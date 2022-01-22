@@ -26,3 +26,37 @@
 >   ```
 >   - Password is hard coding is ``Ndh90768``
 >   - Need config path of certificate in file ``appsettings.json`` with key ``Certificate.Path``
+
+## Project Reference
+- edit `*.csproj`
+- Way 1 (Need generate ProjectGuid):
+    ```
+    <ItemGroup>
+        <ProjectReference Include="..\demo-lib\demo-lib.csproj">
+            <Project>{7B05D051-5909-4DBD-818C-61B6361BB246}</Project>
+            <Name>DemooLib</Name>
+        </ProjectReference>
+    </ItemGroup>
+    ```
+- Way 2:
+    ```
+    <ItemGroup>
+        <ProjectReference Include="..\demo-lib\demo-lib.csproj" />
+    </ItemGroup>
+    ```
+## Unit test
+- add project reference
+- command:
+> cd test
+> dotnet test
+
+## Build and Run coreApi
+> cd coreApi
+- debug mode + environment develop
+> dotnet run https
+- release mode + environment production
+> dotnet run https --launch-profile pro -c release
+- run without https
+> dotnet run
+
+## Project Console is for testing
