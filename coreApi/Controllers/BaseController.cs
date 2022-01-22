@@ -2,7 +2,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 
-namespace core_api.Controllers
+namespace coreApi.Controllers
 {
     [Controller]
     public class BaseController : ControllerBase

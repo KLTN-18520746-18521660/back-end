@@ -3,8 +3,9 @@ using System.Text.Json;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 
-namespace core_api.Models
+namespace coreApi.Models
 {
     public class BaseModel : ICloneable
     {
@@ -27,7 +28,7 @@ namespace core_api.Models
             {
                 return JsonSerializer.Serialize(__ObjectJson);
             }
-            return "{\"err\": \"Can't convert Object[" + __ModelName + "] to Json\"}";
+            return $"{{\"err\": \"Can't convert Object[{__ModelName}] to Json\"}}";
         }
         public bool FromJsonString(string jsonString)
         {
