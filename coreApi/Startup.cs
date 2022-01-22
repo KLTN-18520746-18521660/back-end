@@ -34,10 +34,12 @@ namespace coreApi
             ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger<Startup>();
+            var __logger = Program.BaseLoggerFactory.CreateLogger<Startup>();
             hostApplicationLifetime.ApplicationStopping.Register(OnShutdown);
 
             if (env.IsDevelopment()) {
-                _logger.LogWarning("Application run in development mode");   
+                _logger.LogWarning(0, "Application is running in development mode");
+                // __logger.LogWarning(0, "Application is running in development mode");
                 app.UseDeveloperExceptionPage();
                 app.UseSwagger();
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "coreApi v1"));
@@ -51,7 +53,7 @@ namespace coreApi
         }
         private void OnShutdown()
         {
-            _logger.LogInformation("Shutting down...");
+            _logger.LogInformation(0, "Host shutting down...");
         }
     }
 }

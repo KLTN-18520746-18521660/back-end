@@ -8,12 +8,12 @@ namespace coreApi.Common
     class Logger
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void LogException(ILogger logger, string exception)
+        public static void LogException(EventId id,ILogger logger, string exception)
         {
             #if DEBUG
-                logger.LogError(exception);
+                logger.LogError(id, exception);
             #else
-                logger.LogError(exception.Split(Environment.NewLine)[0]);
+                logger.LogError(id, exception.Split(Environment.NewLine)[0]);
             #endif
         }
     }

@@ -10,7 +10,12 @@ namespace console
         }
         static void Main(string[] args)
         {
-        
+            var a = 1;
+            var b = a;
+
+            b = 11;
+            Console.Write(a);
+            Console.Write(b);
         }
     }
 }
