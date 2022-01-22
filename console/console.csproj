@@ -3,12 +3,12 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\demo-lib\demo-lib.csproj">
-      <Project>{7B05D051-5909-4DBD-818C-61B6361BB246}</Project>
-      <Name>DemooLib</Name>
+    <ProjectReference Include="..\coreApi\coreApi.csproj">
+      <Name>coreApi</Name>
     </ProjectReference>
   </ItemGroup>
 
