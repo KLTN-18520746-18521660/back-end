@@ -53,10 +53,10 @@
 ## Build and Run coreApi
 > cd coreApi
 - debug mode + environment develop
-> dotnet run https
+> dotnet run ssl
 - release mode + environment production
 > dotnet run https --launch-profile pro -c release
-- run without https
+- run without ssl + environment develop
 > dotnet run
 
 ## Project Console is for testing
