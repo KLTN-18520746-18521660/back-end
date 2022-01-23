@@ -1,20 +1,44 @@
 
-using System.Runtime.CompilerServices;
-using Microsoft.Extensions.Logging;
 using System;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 
 namespace coreApi.Common
 {
-    class Logger
+    // [INFO] Handle log file in one line
+    public class ExceptionEnricher : ILogEventEnricher
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void LogException(EventId id,ILogger logger, string exception)
+        public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
         {
-            #if DEBUG
-                logger.LogError(id, exception);
-            #else
-                logger.LogError(id, exception.Split(Environment.NewLine)[0]);
-            #endif
+            if (logEvent.Exception == null)
+                return;
+            LogEventProperty logEventProperty;
+#if DEBUG
+            logEventProperty = propertyFactory.CreateProperty(
+                "EscapedException",
+                Regex.Replace(logEvent.Exception.ToString(), Environment.NewLine, " ")
+            );
+#else
+            logEventProperty = propertyFactory.CreateProperty(
+                "EscapedException",
+                "logEvent.Exception.ToString().Split(System.Environment.NewLine)[0]"
+            );
+#endif
+            logEvent.AddPropertyIfAbsent(logEventProperty);
+        }
+    }
+    public class MessageEnricher : ILogEventEnricher
+    {
+        public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
+        {
+            if (logEvent.MessageTemplate == null)
+                return;
+
+            var logEventProperty = propertyFactory.CreateProperty("EscapedMessage", Regex.Replace(logEvent.MessageTemplate.ToString(), Environment.NewLine, " "));
+            logEvent.AddPropertyIfAbsent(logEventProperty);
         }
     }
 }
