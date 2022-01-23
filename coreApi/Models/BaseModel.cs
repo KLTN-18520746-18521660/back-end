@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
-using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace coreApi.Models
 {
@@ -11,12 +11,13 @@ namespace coreApi.Models
     {
         protected string __ModelName;
         protected Dictionary<string, string> __ObjectJson;
-
+        protected ILogger __Logger;
         public string ModelName { get => __ModelName; }
         public BaseModel()
         {
             __ModelName = "BaseModel";
             __ObjectJson = new Dictionary<string, string>();
+            __Logger = Log.Logger;
         }
         public object Clone()
         {
@@ -24,8 +25,7 @@ namespace coreApi.Models
         }
         public string ToJsonString()
         {
-            if (PrepareExportObjectJson())
-            {
+            if (PrepareExportObjectJson()) {
                 return JsonSerializer.Serialize(__ObjectJson);
             }
             return $"{{\"err\": \"Can't convert Object[{__ModelName}] to Json\"}}";
@@ -33,8 +33,7 @@ namespace coreApi.Models
         public bool FromJsonString(string jsonString)
         {
             __ObjectJson = JsonSerializer.Deserialize<Dictionary<string, string>>(jsonString);
-            if (!InitFromObjecJson())
-            {
+            if (!InitFromObjecJson()) {
                 __ObjectJson = new Dictionary<string, string>();
                 return false;
             }
@@ -60,8 +59,7 @@ namespace coreApi.Models
                         .GetType()
                         .GetProperties(BindingFlags.Instance | BindingFlags.Public)
                         .ToDictionary(prop => prop.Name, prop => (string)prop.GetValue(baseModel, null));
-            foreach(var key in __ObjectJson.Keys)
-            {
+            foreach(var key in __ObjectJson.Keys) {
                 if (!dic.ContainsKey(key)) {
                     return false;
                 }

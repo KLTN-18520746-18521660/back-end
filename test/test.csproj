@@ -7,6 +7,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="coreApi\appsettings.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="coreApi\appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\coreApi\coreApi.csproj">
       <Name>coreApi</Name>
     </ProjectReference>
