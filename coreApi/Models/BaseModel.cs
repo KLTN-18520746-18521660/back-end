@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Linq;
 using Serilog;
 
-namespace coreApi.Models
+namespace CoreApi.Models
 {
     public class BaseModel : ICloneable
     {

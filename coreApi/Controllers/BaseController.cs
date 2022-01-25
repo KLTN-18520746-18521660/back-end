@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 
-namespace coreApi.Controllers
+namespace CoreApi.Controllers
 {
     [Controller]
     public class BaseController : ControllerBase

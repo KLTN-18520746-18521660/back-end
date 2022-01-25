@@ -2,13 +2,12 @@ using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-// using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using Serilog;
-using Serilog.Sinks;
-using coreApi.Common;
+using Common.Validate;
+using Common.Logger;
 
-namespace coreApi
+namespace CoreApi
 {
     public static class ConfigurationDefaultVariable
     {
@@ -16,7 +15,7 @@ namespace coreApi
         public static readonly int PORT = 7005;
         // Password default of certificate
         public static readonly string PASSWORD_CERTIFICATE = "Ndh90768";
-        public static readonly string LOG_FILE_FORMAT = "./logs/coreApi.log";
+        public static readonly string LOG_FILE_FORMAT = "./logs/CoreApi.log";
         public static readonly string LOG_TEMPLATE = "{Timestamp:yyyy-MM-dd HH:mm:ss zzz} [{Level:u3}] {EscapedMessage}{NewLine}{EscapedException}";
         public static readonly string TMP_FOLDER = "./tmp";
     }
@@ -26,46 +25,51 @@ namespace coreApi
         private static IConfigurationRoot __Configuration;
         private static IHost __Host;
         private static int _Port;
-        private static bool _EnablePort;
+        private static bool _EnableSSL;
         private static string _TmpPath = ConfigurationDefaultVariable.TMP_FOLDER;
         private static string _CertPath;
         private static string _LogFilePath;
         private static string _PasswordCert;
         private static readonly List<string> _ValidParamsFromArgs = new List<string>();
-        private static void SetParamsFromConfiguration(in IConfigurationRoot configuration)
+        private static void SetParamsFromConfiguration(in IConfigurationRoot configuration, out List<string> warnings)
         {
-            try {
-                // [INFO] Get log file format
-                _LogFilePath = configuration.GetValue<string>("LogFilePath");
-                if (_LogFilePath == null) {
-                    _LogFilePath = ConfigurationDefaultVariable.LOG_FILE_FORMAT;
-                }
-                // [INFO] Get port config
-                var portConfig = configuration["Port"];
-                if (portConfig != null) {
-                    _Port = int.Parse(portConfig);
+            warnings = new List<string>();
+            // [INFO] Get log file format
+            _LogFilePath = configuration.GetValue<string>("LogFilePath");
+            if (_LogFilePath == null) {
+                _LogFilePath = ConfigurationDefaultVariable.LOG_FILE_FORMAT;
+                warnings.Add($"Log file path not configured. Use default path: { _LogFilePath }");
+            }
+            // [INFO] Get port config
+            var portConfig = configuration["Port"];
+            if (portConfig != null && CommonValidate.ValidatePort(portConfig)) {
+                _Port = int.Parse(portConfig);
+            } else {
+                _Port = ConfigurationDefaultVariable.PORT;
+                if (portConfig == null) {
+                    warnings.Add($"Port not configured. Use default port: { _Port }");
                 } else {
-                    _Port = ConfigurationDefaultVariable.PORT;
+                    warnings.Add($"Configured port isn't valid. Use default port: { _Port }");
                 }
-                // [INFO] Get custom passeord cert
-                _PasswordCert =  configuration.GetSection("Certificate").GetValue<string>("Password");
-                if (_PasswordCert == null) {
-                    _PasswordCert = ConfigurationDefaultVariable.PASSWORD_CERTIFICATE;
-                }
-                // [INFO] Get custom cert path
-                _CertPath = configuration.GetSection("Certificate").GetValue<string>("Path");
-            } catch (Exception ex) {
-                if (ex is ArgumentNullException || ex is FormatException || ex is  OverflowException) {
-                    _Port = ConfigurationDefaultVariable.PORT;
-                } else {
-                    throw;
-                }
+            }
+            // [INFO] Get custom passeord cert
+            _PasswordCert =  configuration.GetSection("Certificate").GetValue<string>("Password");
+            if (_PasswordCert == null) {
+                _PasswordCert = ConfigurationDefaultVariable.PASSWORD_CERTIFICATE;
+                warnings.Add($"Password certificate not configured. Use default password: ***");
+            }
+            // [INFO] Get custom cert path
+            _CertPath = configuration.GetSection("Certificate").GetValue<string>("Path");
+            if (CommonValidate.ValidateFilePath(_CertPath, false) == null && _EnableSSL) {
+                _EnableSSL = false;
+                warnings.Add($"Certificate not exists or not set. Cerificate path: { ((_CertPath == null) ? null : System.IO.Path.GetFullPath(_CertPath)) }");
             }
         }
         private static void SetParamsFromArgs(in List<string> args)
         {
+            // [INFO] run with param ssl to enable https
             if (args.Contains("ssl")) {
-                _EnablePort = true;
+                _EnableSSL = true;
             }
         }
         private static string[] GetValidParamsFromArgs(in List<string> args)
@@ -88,7 +92,7 @@ namespace coreApi
                     webBuilder.UseKestrel(kestrelServerOptions => {
                         // Listen on any IP
                         kestrelServerOptions.Listen(System.Net.IPAddress.Any, _Port, listenOptions => {
-                            if (_EnablePort && CommonValidate.ValidateFilePath(_CertPath, false) != null) {
+                            if (_EnableSSL && CommonValidate.ValidateFilePath(_CertPath, false) != null) {
                                 // Config ssl pfx
                                 listenOptions.UseHttps(CommonValidate.ValidateFilePath(_CertPath, false), _PasswordCert);
                             }
@@ -102,13 +106,9 @@ namespace coreApi
             __Logger.Information("=================START=================");
             __Logger.Information($"Logs folder: { CommonValidate.ValidateDirectoryPath(System.IO.Path.GetDirectoryName(_LogFilePath)) }");
             __Logger.Information($"Temp folder: { _TmpPath }");
-            if (CommonValidate.ValidateFilePath(_CertPath, false) == null && _EnablePort) {
-                __Logger.Warning($"Certificate not exists or not set. Cerificate path: { ((_CertPath == null) ? null : System.IO.Path.GetFullPath(_CertPath)) } ");
-                _EnablePort = false;
-            }
             __Logger.Information( string.Format(
                 "Listening on: {0}://{1}:{2}",
-                _EnablePort ? "https" : "http",
+                _EnableSSL ? "https" : "http",
                 System.Net.IPAddress.Any.ToString(),
                 _Port.ToString()
             ));
@@ -150,14 +150,18 @@ namespace coreApi
                                     .AddJsonFile(ConfigurationDefaultVariable.CONFIG_FILE_PATH)
                                     .AddEnvironmentVariables()
                                     .Build();
+                List<string> warningsWhenSetParamsFromConfiguration;
                 SetParamsFromArgs(new List<string>(args));
-                SetParamsFromConfiguration(__Configuration);
+                SetParamsFromConfiguration(__Configuration, out warningsWhenSetParamsFromConfiguration);
                 _TmpPath = CommonValidate.ValidateDirectoryPath(_TmpPath);
                 __Logger = SetDefaultSeriLogger(__Configuration);
-
-                var _args = GetValidParamsFromArgs(new List<string>(args));
-                __Host = CreateHostBuilder(_args).Build();
                 LogStartInformation();
+                warningsWhenSetParamsFromConfiguration.ForEach(message => {
+                    __Logger.Warning(message);
+                });
+
+                string[] _args = GetValidParamsFromArgs(new List<string>(args));
+                __Host = CreateHostBuilder(_args).Build();
                 __Host.Run();
             } 
             catch (Exception ex) {
