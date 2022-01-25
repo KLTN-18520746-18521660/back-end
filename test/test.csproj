@@ -4,14 +4,16 @@
     <TargetFramework>net5.0</TargetFramework>
 
     <IsPackable>false</IsPackable>
+
+    <AnalysisLevel>5.0</AnalysisLevel>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="coreApi\appsettings.json" />
+    <None Remove="CoreApi\appsettings.json" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="coreApi\appsettings.json">
+    <Content Include="CoreApi\appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
@@ -19,15 +21,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\coreApi\coreApi.csproj">
-      <Name>coreApi</Name>
+    <ProjectReference Include="..\CoreApi\CoreApi.csproj">
+      <Name>CoreApi</Name>
     </ProjectReference>
 
     <!-- Packages -->
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
     <PackageReference Include="NUnit" Version="3.13.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.17.0" />
-    <PackageReference Include="coverlet.collector" Version="3.0.2" />
   </ItemGroup>
 
 </Project>

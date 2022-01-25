@@ -1,8 +1,8 @@
 ﻿using NUnit.Framework;
-using coreApi;
+using CoreApi;
 using System.Threading;
 
-namespace test.coreApi
+namespace test.CoreApi
 {
     class tstCoreApiBase : Program
     {

@@ -1,7 +1,7 @@
-using coreApi.Models;
+using CoreApi.Models;
 using NUnit.Framework;
 
-namespace test.coreApi
+namespace test.CoreApi
 {
     [TestFixture]
     public class tstBaseModel
