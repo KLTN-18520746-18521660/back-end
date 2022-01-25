@@ -50,8 +50,8 @@
 > cd test
 > dotnet test
 
-## Build and Run coreApi
-> cd coreApi
+## Build and Run CoreApi
+> cd CoreApi
 - debug mode + environment develop
 > dotnet run ssl
 - release mode + environment production
@@ -60,3 +60,6 @@
 > dotnet run
 
 ## Project Console is for testing
+
+enable-migrations -ContextProjectName back-end.DatabaseAccess -contexttypename back-end.DatabaseAccess.ConfigDB.ConfigDBContext -Verbose
+Add-Migration InitialDBCreation

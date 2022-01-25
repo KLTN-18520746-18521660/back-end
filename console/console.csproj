@@ -4,11 +4,15 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <AnalysisLevel>5.0</AnalysisLevel>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\coreApi\coreApi.csproj">
-      <Name>coreApi</Name>
+    <ProjectReference Include="..\CoreApi\CoreApi.csproj">
+      <Name>CoreApi</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Common\Common.csproj">
+      <Name>Common</Name>
     </ProjectReference>
   </ItemGroup>
 
