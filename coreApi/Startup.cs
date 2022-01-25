@@ -7,7 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Serilog;
 
-namespace coreApi
+namespace CoreApi
 {
     public class Startup
     {
@@ -23,8 +23,13 @@ namespace coreApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+            // services.AddDb
+            services.AddDbContext<DatabaseAccess.Contexts.ConfigDB.ConfigDBContext>();
+            services.AddDbContext<DatabaseAccess.Contexts.CachedDB.CachedDBContext>();
+            services.AddDbContext<DatabaseAccess.Contexts.InventoryDB.InventoryDBContext>();
+            services.AddDbContext<DatabaseAccess.Contexts.SocialDB.SocialDBContext>();
             services.AddSwaggerGen(c => {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "coreApi", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "CoreApi", Version = "v1" });
             });
         }
 
@@ -39,7 +44,7 @@ namespace coreApi
             if (env.IsDevelopment()) {
                 app.UseDeveloperExceptionPage();
                 app.UseSwagger();
-                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "coreApi v1"));
+                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "CoreApi v1"));
                 
                 __Logger.Warning("Application is running in development mode will include: swagger");
             }
