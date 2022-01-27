@@ -15,7 +15,7 @@ namespace CoreApi
         public static readonly int PORT = 7005;
         // Password default of certificate
         public static readonly string PASSWORD_CERTIFICATE = "Ndh90768";
-        public static readonly string LOG_FILE_FORMAT = "./logs/CoreApi.log";
+        public static readonly string LOG_FILE_FORMAT = "./tmp/logs/CoreApi.log";
         public static readonly string LOG_TEMPLATE = "{Timestamp:yyyy-MM-dd HH:mm:ss zzz} [{Level:u3}] {EscapedMessage}{NewLine}{EscapedException}";
         public static readonly string TMP_FOLDER = "./tmp";
     }
