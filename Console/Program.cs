@@ -58,14 +58,28 @@ namespace MyConsole
             //Console.WriteLine(Common.Password.PasswordDecryptor.GenerateSalt());
             //Console.WriteLine(Common.Password.PasswordDecryptor.GenerateSalt());
             //Console.WriteLine(Common.Password.PasswordDecryptor.GenerateSalt());
-            var adminUser = DatabaseAccess.Contexts.ConfigDB.Models.AdminUser.GetUserDefault();
-            var salt = adminUser.Salt;
-            var pass = "admin";
+            //var adminUser = DatabaseAccess.Contexts.ConfigDB.Models.AdminUser.GetDefaultData();
+            //var salt = adminUser.Salt;
+            //var pass = "admin";
 
-            Console.WriteLine(Common.Password.PasswordEncryptor.EncryptPassword(pass, salt));
-            Console.WriteLine(Common.Password.PasswordEncryptor.EncryptPassword(pass, salt));
-            Console.WriteLine(Common.Password.PasswordEncryptor.EncryptPassword(pass, "6d5e9cdb"));
-            Console.WriteLine(adminUser.Password);
+            //Console.WriteLine(Common.Password.PasswordEncryptor.EncryptPassword(pass, salt));
+            //Console.WriteLine(Common.Password.PasswordEncryptor.EncryptPassword(pass, salt));
+            //Console.WriteLine(Common.Password.PasswordEncryptor.EncryptPassword(pass, "6d5e9cdb"));
+            //Console.WriteLine(adminUser.Password);
+
+            //DatabaseAccess.Common.LogValue a;
+            //a = JsonConvert.DeserializeObject<DatabaseAccess.Common.LogValue>("{Data: []}");
+            //Console.WriteLine(a.ToString());
+            Dictionary<string, List<string>> Rights = new();
+            Rights.Add("test", new List<string>() { "test", "test" });
+            var val = Rights.GetValueOrDefault("test", new List<string>());
+            val.Add("test");
+            val.Add("test");
+            Console.WriteLine(JsonConvert.SerializeObject(Rights));
+            Rights.Remove("test");
+            Rights.Add("test", val.Distinct().ToList());
+            //val.Distinct().ToList();
+            Console.WriteLine(JsonConvert.SerializeObject(Rights));
         }
     }
 

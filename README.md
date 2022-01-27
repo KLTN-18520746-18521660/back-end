@@ -61,5 +61,74 @@
 
 ## Project Console is for testing
 
-enable-migrations -ContextProjectName back-end.DatabaseAccess -contexttypename back-end.DatabaseAccess.ConfigDB.ConfigDBContext -Verbose
-Add-Migration InitialDBCreation
+## Migration
+- **Using Manager Package console**
+	- *Add migrations*
+		```
+		add-migration ConfigDBCreation -Context ConfigDBContext
+		add-migration CachedDBCreation -Context CachedDBContext
+		add-migration InventoryDBCreation -Context InventoryDBContext
+		add-migration SocialDBCreation -Context SocialDBContext
+		```
+	- *Update database*
+		```
+		update-database ConfigDBCreation -Context ConfigDBContext
+		update-database CachedDBCreation -Context CachedDBContext
+		update-database InventoryDBCreation -Context InventoryDBContext
+		update-database SocialDBCreation -Context SocialDBContext
+		```
+
+- **Using Cmd**
+	> dotnet tool install --global dotnet-ef
+	- *Add migrations*
+		```
+		dotnet ef migrations add ConfigDBCreation --context ConfigDBContext
+		dotnet ef migrations add CachedDBCreation --context CachedDBContext
+		dotnet ef migrations add InventoryDBCreation --context InventoryDBContext
+		dotnet ef migrations add SocialDBCreation --context SocialDBContext
+		```
+	- *Update database*
+		```
+		dotnet ef database update ConfigDBCreation --context ConfigDBContext
+		dotnet ef database update CachedDBCreation --context CachedDBContext
+		dotnet ef database update InventoryDBCreation --context InventoryDBContext
+		dotnet ef database update SocialDBCreation --context SocialDBContext
+		```
+	- *Drop database*
+		```
+		dotnet ef database drop ConfigDBCreation --context ConfigDBContext
+		dotnet ef database drop CachedDBCreation --context CachedDBContext
+		dotnet ef database drop InventoryDBCreation --context InventoryDBContext
+		dotnet ef database drop SocialDBCreation --context SocialDBContext
+		```
+	- *Generate script database*
+		```
+		dotnet ef migrations script --context ConfigDBContext
+		dotnet ef migrations script --context CachedDBContext
+		dotnet ef migrations script --context InventoryDBContext
+		dotnet ef migrations script --context SocialDBContext
+		```
+	- *Remove migrations*
+		```
+		dotnet ef migrations remove --context ConfigDBContext
+		dotnet ef migrations remove --context CachedDBContext
+		dotnet ef migrations remove --context InventoryDBContext
+		dotnet ef migrations remove --context SocialDBContext
+		```
+		
+		dotnet ef dbcontext scaffold -o <out-path> -d "connectstring" "Microsoft.EntityFrameworkCore.SQLServer"
+## SQL
+- **Fultext search**:
+	- [Full Text Search | Npgsql Documentation](https://www.npgsql.org/efcore/mapping/full-text-search.html?tabs=pg12%2Cv5)
+	- [PostgreSQL: Documentation: 14: 12.9. GIN and GiST Index Types](https://www.postgresql.org/docs/14/textsearch-indexes.html)
+	- Summary:
+		- GIN: using for static data because lookup faster
+		- GiST: using for dynamic data because update index faster
+> docker run --name postgresdb -e POSTGRES_PASSWORD=a -p 5432:5432 -d postgres:14.1-alpine3.15
+```
+CREATE DATABASE "config_db";
+CREATE DATABASE "inventory_db";
+CREATE DATABASE "social_db";
+CREATE DATABASE "cachec_db";
+```
+

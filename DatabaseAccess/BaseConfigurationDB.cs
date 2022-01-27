@@ -1,5 +1,4 @@
-﻿using Common.Validate;
-
+﻿
 namespace DatabaseAccess
 {
     public class IBaseConfigurationDB
@@ -43,9 +42,6 @@ namespace DatabaseAccess
                                      string Password,
                                      string Port)
         {
-            if (!CommonValidate.ValidatePort(_Port)) {
-                throw new System.Exception($"Invalid port configured: { Port }");
-            }
             // Allow run one time
             if (_IsConfigured) {
                 return false;
@@ -67,9 +63,6 @@ namespace DatabaseAccess
                                      string InventoryDBName,
                                      string CachedDBName)
         {
-            if (!CommonValidate.ValidatePort(_Port)) {
-                throw new System.Exception($"Invalid port configured: { Port }");
-            }
             // Allow run one time
             if (_IsConfigured) {
                 return false;
