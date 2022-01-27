@@ -5,32 +5,39 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using DatabaseAccess.Common;
+using DatabaseAccess.Common.Interface;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using DatabaseAccess.Common.Interface;
 namespace DatabaseAccess.Contexts.ConfigDB.Models
 {
-    [Table("admin_user_role")]
-    public class AdminUserRole : BaseModel
+    [Table("social_user_right")]
+    public class SocialUserRight : BaseModel
     {
-        public AdminUserRole()
+        public SocialUserRight()
         {
-            __ModelName = "AdminUserRole";
+            __ModelName = "SocialUserRight";
             Status = EntityStatus.Enabled;
         }
 
-        public static List<AdminUserRole> GetDefaultData()
+        public static List<SocialUserRight> GetDefaultData()
         {
-            List<AdminUserRole> ListData = new List<AdminUserRole>()
+            List<SocialUserRight> ListData = new List<SocialUserRight>()
             {
-                new AdminUserRole()
+                new SocialUserRight()
                 {
                     Id = 1,
-                    RoleName = "admin",
-                    DisplayName = "Administrator",
-                    Describe = "Administrator",
-                    Status = EntityStatus.Readonly,
-                    Rights = AdminUserRight.GenerateAdminRights()
+                    RightName = "post",
+                    DisplayName = "Post",
+                    Describe = "Can read, write post.",
+                    Status = EntityStatus.Readonly
+                },
+                new SocialUserRight()
+                {
+                    Id = 2,
+                    RightName = "comment",
+                    DisplayName = "Comment",
+                    Describe = "Can read, write comment.",
+                    Status = EntityStatus.Readonly
                 }
             };
             return ListData;
@@ -40,11 +47,10 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
         {
             Error ??= "";
             try {
-                var parser = (ParserModels.ParserAdminUserRole)Parser;
-                RoleName = parser.role_name;
+                var parser = (ParserModels.ParserSocialUserRight)Parser;
+                RightName = parser.display_name;
                 DisplayName = parser.display_name;
                 Describe = parser.describe;
-                Rights = parser.rights;
                 return true;
             } catch (Exception ex) {
                 Error ??= ex.ToString();
@@ -57,10 +63,9 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
             __ObjectJson = new Dictionary<string, object>
             {
                 { "id", Id },
-                { "role_name", RoleName },
+                { "right_name", RightName },
                 { "display_name", DisplayName },
                 { "describe", Describe },
-                { "rights", Rights },
                 { "status", Status },
 #if DEBUG
                 {"__ModelName", __ModelName }
@@ -72,9 +77,9 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
         [Column("id", TypeName = "INTEGER")]
         public int Id { get; private set; }
 
-        [Column("role_name", TypeName = "VARCHAR(50)")]
-        public string RoleName { get; set; }
-
+        [Column("right_name", TypeName = "VARCHAR(50)")]
+        public string RightName { get; set; }
+        
         [Column("display_name", TypeName = "VARCHAR(50)")]
         public string DisplayName { get; set; }
 
@@ -82,19 +87,9 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
         public string Describe { get; set; }
 
         [NotMapped]
-        public Dictionary<string, List<string>> Rights { get; set; }
-        [Column("rights", TypeName = "JSON")]
-        public string RightsStr
-        {
-            get { return JsonConvert.SerializeObject(Rights).ToString(); }
-            set { Rights = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(value); }
-        }
-
-        [NotMapped]
         public int Status { get; set; }
         [Column("status", TypeName = "VARCHAR(20)")]
-        public string StatusStr
-        {
+        public string StatusStr {
             get => EntityStatus.StatusToString(Status);
             set => Status = EntityStatus.StatusFromString(value);
         }
