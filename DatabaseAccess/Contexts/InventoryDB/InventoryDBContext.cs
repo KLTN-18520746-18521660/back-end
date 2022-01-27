@@ -8,7 +8,7 @@ namespace DatabaseAccess.Contexts.InventoryDB
         {
         }
 
-        public InventoryDBContext(DbContextOptions options) : base(options)
+        public InventoryDBContext(DbContextOptions<InventoryDBContext> options) : base(options)
         {
         }
 
