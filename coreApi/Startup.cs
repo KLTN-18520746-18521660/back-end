@@ -6,6 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Mvc.NewtonsoftJson;
+using DatabaseAccess.Contexts.ConfigDB;
 
 namespace CoreApi
 {
@@ -22,8 +25,16 @@ namespace CoreApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers();
-            // services.AddDb
+            services
+                .AddControllers()
+                .AddNewtonsoftJson()
+                .AddFluentValidation(FluentValidationConfig =>
+                {
+                    // Dot not use base validate with Annotation
+                    FluentValidationConfig.DisableDataAnnotationsValidation = true;
+                    // Register Validators
+                    FluentValidationConfig.RegisterValidatorsFromAssemblyContaining<ConfigDBContext>();
+                });
             services.AddDbContext<DatabaseAccess.Contexts.ConfigDB.ConfigDBContext>();
             services.AddDbContext<DatabaseAccess.Contexts.CachedDB.CachedDBContext>();
             services.AddDbContext<DatabaseAccess.Contexts.InventoryDB.InventoryDBContext>();
