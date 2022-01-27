@@ -8,7 +8,7 @@ namespace DatabaseAccess.Contexts.CachedDB
         {
         }
 
-        public CachedDBContext(DbContextOptions<CachedDBContext> options) : base(options)
+        public CachedDBContext(DbContextOptions options) : base(options)
         {
         }
 

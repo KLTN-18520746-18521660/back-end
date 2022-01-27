@@ -13,7 +13,7 @@ namespace DatabaseAccess.Contexts.SocialDB
         {
         }
 
-        public SocialDBContext(DbContextOptions<SocialDBContext> options) : base(options)
+        public SocialDBContext(DbContextOptions options) : base(options)
         {
         }
 
