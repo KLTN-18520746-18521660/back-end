@@ -3,6 +3,8 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace MyConsole
 {
@@ -11,6 +13,26 @@ namespace MyConsole
         static string GenerateProjectGUID()
         {
             return Guid.NewGuid().ToString("B").ToUpper();
+        }
+
+        static byte[] HmacSHA256(String data, byte[] key)
+        {
+            String algorithm = "HmacSHA256";
+            KeyedHashAlgorithm kha = KeyedHashAlgorithm.Create(algorithm);
+            kha.Key = key;
+
+            return kha.ComputeHash(Encoding.UTF8.GetBytes(data));
+        }
+
+        static byte[] getSignatureKey(String key, String dateStamp, String regionName, String serviceName)
+        {
+            byte[] kSecret = Encoding.UTF8.GetBytes(("AWS4" + key).ToCharArray());
+            byte[] kDate = HmacSHA256(dateStamp, kSecret);
+            byte[] kRegion = HmacSHA256(regionName, kDate);
+            byte[] kService = HmacSHA256(serviceName, kRegion);
+            byte[] kSigning = HmacSHA256("aws4_request", kService);
+
+            return kSigning;
         }
 
         static void Main(string[] args)
@@ -70,16 +92,29 @@ namespace MyConsole
             //DatabaseAccess.Common.LogValue a;
             //a = JsonConvert.DeserializeObject<DatabaseAccess.Common.LogValue>("{Data: []}");
             //Console.WriteLine(a.ToString());
-            Dictionary<string, List<string>> Rights = new();
-            Rights.Add("test", new List<string>() { "test", "test" });
-            var val = Rights.GetValueOrDefault("test", new List<string>());
-            val.Add("test");
-            val.Add("test");
-            Console.WriteLine(JsonConvert.SerializeObject(Rights));
-            Rights.Remove("test");
-            Rights.Add("test", val.Distinct().ToList());
-            //val.Distinct().ToList();
-            Console.WriteLine(JsonConvert.SerializeObject(Rights));
+            // Dictionary<string, List<string>> Rights = new();
+            // Rights.Add("test", new List<string>() { "test", "test" });
+            // var val = Rights.GetValueOrDefault("test", new List<string>());
+            // val.Add("test");
+            // val.Add("test");
+            // Console.WriteLine(JsonConvert.SerializeObject(Rights));
+            // Rights.Remove("test");
+            // Rights.Add("test", val.Distinct().ToList());
+            // //val.Distinct().ToList();
+            // Console.WriteLine(JsonConvert.SerializeObject(Rights));
+
+            var sig = getSignatureKey(
+                "L+Y/LzysRX4g9qsPan3tEqGgNfyNZqVfzcym9iGJ",
+                "20220209T044253Z",
+                "us-west-2",
+                "execute-api"
+            );
+
+            StringBuilder s = new StringBuilder();
+            foreach(var b in sig) {
+                
+                Console.WriteLine(b);
+            }
         }
     }
 

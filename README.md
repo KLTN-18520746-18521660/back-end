@@ -116,7 +116,7 @@
 		dotnet ef migrations remove --context SocialDBContext
 		```
 		
-		dotnet ef dbcontext scaffold -o <out-path> -d "connectstring" "Microsoft.EntityFrameworkCore.SQLServer"
+		dotnet ef dbcontext scaffold -o Tests -d "Host=localhost;Username=postgres;Database=config_db;Password=a;Port=5432" "Npgsql.EntityFrameworkCore.PostgreSQL"
 ## SQL
 - **Fultext search**:
 	- [Full Text Search | Npgsql Documentation](https://www.npgsql.org/efcore/mapping/full-text-search.html?tabs=pg12%2Cv5)

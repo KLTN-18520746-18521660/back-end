@@ -14,7 +14,7 @@ namespace Common.Validate
                         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(FilePath));
                         var fileCreated = System.IO.File.Create(FilePath);
                         fileCreated.Close();
-                    } catch (Exception) {
+                    } catch (Exception) { 
                         Error ??= $"Cannot create file. File path: { FilePath }";
                         return null;
                     }

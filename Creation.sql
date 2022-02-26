@@ -14,17 +14,16 @@ CREATE TABLE social_user (
 	country VARCHAR(20),
 	city VARCHAR(20),
 	province VARCHAR(20),
-	verified BOOLEAN NOT NULL DEFAULT FALSE,
+	verified_email BOOLEAN NOT NULL DEFAULT FALSE,
 	avatar TEXT,
-	status VARCHAR(20) NOT NULL DEFAULT 'Not Activated',
+	status VARCHAR(20) NOT NULL DEFAULT 'Activated',
     roles JSON NOT NULL DEFAULT '[]',
     settings JSON NOT NULL DEFAULT '{}',
 	ranks JSON NOT NULL DEFAULT '{}',
     last_access_timestamp TIMESTAMPTZ NULL,
     created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
     CONSTRAINT "PK_social_user" PRIMARY KEY (id),
-    CONSTRAINT "CK_Status_Valid_Value" CHECK (status = 'Deleted' OR status = 'Not Activated' OR status = 'Activated' OR status = 'Readonly'),
-    CONSTRAINT "CK_LastAccessTimestamp_Valid_Value" CHECK ((last_access_timestamp IS NULL AND status = 'Not Activated') OR (status <> 'Not Activated'))
+    CONSTRAINT "CK_Status_Valid_Value" CHECK (status = 'Deleted' OR status = 'Blocked' OR status = 'Activated')
 );
 
 CREATE TABLE social_post (
@@ -115,14 +114,13 @@ CREATE TABLE admin_user (
     password VARCHAR(32) NOT NULL,
     salt VARCHAR(8) NOT NULL DEFAULT (SUBSTRING(REPLACE(CAST(gen_random_uuid() AS VARCHAR), '-', ''), 1, 8)),
     email VARCHAR(320) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'Not Activated',
+    status VARCHAR(20) NOT NULL DEFAULT 'Activated',
     roles JSON NOT NULL DEFAULT '[]',
     settings JSON NOT NULL DEFAULT '{}',
     last_access_timestamp TIMESTAMPTZ NULL,
     created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
     CONSTRAINT "PK_admin_user" PRIMARY KEY (id),
-    CONSTRAINT "CK_Status_Valid_Value" CHECK (status = 'Deleted' OR status = 'Not Activated' OR status = 'Activated' OR status = 'Readonly'),
-    CONSTRAINT "CK_LastAccessTimestamp_Valid_Value" CHECK ((last_access_timestamp IS NULL AND status = 'Not Activated') OR (status <> 'Not Activated'))
+    CONSTRAINT "CK_Status_Valid_Value" CHECK (status = 'Deleted' OR status = 'Blocked' OR status = 'Activated' OR status = 'Readonly')
 );
 
 CREATE TABLE admin_user_right (
