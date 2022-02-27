@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using DatabaseAccess.Common;
+using DatabaseAccess.Common.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NpgsqlTypes;
@@ -23,7 +24,7 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
             Timestamp = DateTime.UtcNow;
         }
         
-        public override bool Parse(IBaseParserModel Parser, string Error = null)
+        public override bool Parse(IBaseParserModel Parser, out string Error)
         {
             throw new NotImplementedException();
         }

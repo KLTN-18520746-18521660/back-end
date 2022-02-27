@@ -4,21 +4,19 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DatabaseAccess.Common
+namespace DatabaseAccess.Common.Models
 {
-    public class UserStatus
+    public class AdminUserRoleStatus
     {
         public readonly static int InvalidStatus = -1;
-        public readonly static int Deleted = 0;
-        public readonly static int NotActivated = 1;
-        public readonly static int Activated = 2;
-        public readonly static int Readonly = 3;
-        private readonly static Dictionary<int, string> MapStatus = new Dictionary<int, string>()
+        public readonly static int Enabled = 0;
+        public readonly static int Disabled = 1;
+        public readonly static int Readonly = 2;
+        private readonly static Dictionary<int, string> MapStatus = new ()
         {
             { InvalidStatus, "Invalid Status" },
-            { Deleted, "Deleted" },
-            { NotActivated, "Not Activated" },
-            { Activated, "Activated" },
+            { Enabled, "Enabled" },
+            { Disabled, "Disabled" },
             { Readonly, "Readonly" }
         };
 

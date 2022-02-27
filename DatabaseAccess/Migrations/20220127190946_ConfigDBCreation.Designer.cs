@@ -10,7 +10,7 @@ using NpgsqlTypes;
 
 namespace DatabaseAccess.Migrations
 {
-    [DbContext(typeof(ConfigDBContext))]
+    [DbContext(typeof(DBContext))]
     [Migration("20220127190946_ConfigDBCreation")]
     partial class ConfigDBCreation
     {

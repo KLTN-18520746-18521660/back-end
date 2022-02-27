@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace DatabaseAccess.Common
+namespace DatabaseAccess.Common.Models
 {
     public class LogValue
     {

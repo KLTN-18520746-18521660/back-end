@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using DatabaseAccess.Common;
+using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
 using System;
 using Newtonsoft.Json;
@@ -16,7 +17,7 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
         public SocialUserRole()
         {
             __ModelName = "SocialUserRole";
-            Status = EntityStatus.Enabled;
+            //Status = EntityStatus.Enabled;
         }
     
         public static List<SocialUserRole> GetDefaultData()
@@ -26,39 +27,39 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
             int IdIdentity = 1;
             foreach(var Right in DefaultRights)
             {
-                // Read Role
-                ListData.Add(new SocialUserRole()
-                {
-                    Id = IdIdentity++,
-                    RoleName = $"{Right.RightName}_read",
-                    DisplayName = $"{Right.DisplayName} - Read",
-                    Describe = $"{Right.DisplayName} - Read",
-                    Status = EntityStatus.Readonly,
-                    Rights = new Dictionary<string, List<string>>()
-                    {
-                        { Right.RightName, new List<string>(){"read"} }
-                    }
-                });
-                // Write Role
-                ListData.Add(new SocialUserRole()
-                {
-                    Id = IdIdentity++,
-                    RoleName = $"{Right.RightName}_write",
-                    DisplayName = $"{Right.DisplayName} - Write",
-                    Describe = $"{Right.DisplayName} - Write",
-                    Status = EntityStatus.Readonly,
-                    Rights = new Dictionary<string, List<string>>()
-                    {
-                        { Right.RightName, new List<string>(){"write"} }
-                    }
-                });
+                //// Read Role
+                //ListData.Add(new SocialUserRole()
+                //{
+                //    Id = IdIdentity++,
+                //    RoleName = $"{Right.RightName}_read",
+                //    DisplayName = $"{Right.DisplayName} - Read",
+                //    Describe = $"{Right.DisplayName} - Read",
+                //    //Status = EntityStatus.Readonly,
+                //    Rights = new Dictionary<string, List<string>>()
+                //    {
+                //        { Right.RightName, new List<string>(){"read"} }
+                //    }
+                //});
+                //// Write Role
+                //ListData.Add(new SocialUserRole()
+                //{
+                //    Id = IdIdentity++,
+                //    RoleName = $"{Right.RightName}_write",
+                //    DisplayName = $"{Right.DisplayName} - Write",
+                //    Describe = $"{Right.DisplayName} - Write",
+                //    Status = EntityStatus.Readonly,
+                //    Rights = new Dictionary<string, List<string>>()
+                //    {
+                //        { Right.RightName, new List<string>(){"write"} }
+                //    }
+                //});
             }
             return ListData;
         }
 
-        public override bool Parse(IBaseParserModel Parser, string Error = null)
+        public override bool Parse(IBaseParserModel Parser, out string Error)
         {
-            Error ??= "";
+            Error = "";
             try {
                 var parser = (ParserModels.ParserSocialUserRole)Parser;
                 RoleName = parser.role_name;
@@ -115,8 +116,8 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
         [Column("status", TypeName = "VARCHAR(20)")]
         public string StatusStr
         {
-            get => EntityStatus.StatusToString(Status);
-            set => Status = EntityStatus.StatusFromString(value);
+            get => "";
+            set => Status = 1;
         }
     }
 }

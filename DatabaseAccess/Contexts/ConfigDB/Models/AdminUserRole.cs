@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using DatabaseAccess.Common;
+using DatabaseAccess.Common.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using DatabaseAccess.Common.Interface;
@@ -16,29 +17,29 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
         public AdminUserRole()
         {
             __ModelName = "AdminUserRole";
-            Status = EntityStatus.Enabled;
+            //Status = EntityStatus.Enabled;
         }
 
         public static List<AdminUserRole> GetDefaultData()
         {
             List<AdminUserRole> ListData = new List<AdminUserRole>()
             {
-                new AdminUserRole()
-                {
-                    Id = 1,
-                    RoleName = "admin",
-                    DisplayName = "Administrator",
-                    Describe = "Administrator",
-                    Status = EntityStatus.Readonly,
-                    Rights = AdminUserRight.GenerateAdminRights()
-                }
+                //new AdminUserRole()
+                //{
+                //    Id = 1,
+                //    RoleName = "admin",
+                //    DisplayName = "Administrator",
+                //    Describe = "Administrator",
+                //    Status = EntityStatus.Readonly,
+                //    Rights = AdminUserRight.GenerateAdminRights()
+                //}
             };
             return ListData;
         }
 
-        public override bool Parse(IBaseParserModel Parser, string Error = null)
+        public override bool Parse(IBaseParserModel Parser, out string Error)
         {
-            Error ??= "";
+            Error = "";
             try {
                 var parser = (ParserModels.ParserAdminUserRole)Parser;
                 RoleName = parser.role_name;
@@ -95,8 +96,8 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
         [Column("status", TypeName = "VARCHAR(20)")]
         public string StatusStr
         {
-            get => EntityStatus.StatusToString(Status);
-            set => Status = EntityStatus.StatusFromString(value);
+            get => "";
+            set => Status = 1;
         }
     }
 }

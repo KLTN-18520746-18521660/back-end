@@ -9,7 +9,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Newtonsoft.Json.Linq;
 using DatabaseAccess.Common.Interface;
 
-namespace DatabaseAccess.Common
+namespace DatabaseAccess.Common.Models
 {
     public abstract class BaseModel : ICloneable, IBaseModel
     {
@@ -41,6 +41,6 @@ namespace DatabaseAccess.Common
         }
 
         public abstract bool PrepareExportObjectJson();
-        public abstract bool Parse(IBaseParserModel Parser, string Error = null);
+        public abstract bool Parse(IBaseParserModel Parser, out string Error);
     }
 }

@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using DatabaseAccess.Common;
+using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -16,93 +17,93 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
         public AdminUserRight()
         {
             __ModelName = "SocialUserRight";
-            Status = EntityStatus.Enabled;
+            // Status = EntityStatus.Enabled;
         }
 
         public static List<AdminUserRight> GetDefaultData()
         {
             List<AdminUserRight> ListData = new List<AdminUserRight>()
             {
-                new AdminUserRight()
-                {
-                    Id = 1,
-                    RightName = "dashboard",
-                    DisplayName = "Dashboard",
-                    Describe = "Can access Homepage and see statistic",
-                    Status = EntityStatus.Readonly
-                },
-                new AdminUserRight()
-                {
-                    Id = 2,
-                    RightName = "category",
-                    DisplayName = "Category",
-                    Describe = "Add, create, disable category",
-                    Status = EntityStatus.Readonly
-                },
-                new AdminUserRight()
-                {
-                    Id = 3,
-                    RightName = "topic",
-                    DisplayName = "Topic",
-                    Describe = "Add, create, disable topics",
-                    Status = EntityStatus.Readonly
-                },
-                new AdminUserRight()
-                {
-                    Id = 4,
-                    RightName = "type_of_post",
-                    DisplayName = "Type of post",
-                    Describe = "Add, create, disable type of post.",
-                    Status = EntityStatus.Readonly
-                },
-                new AdminUserRight()
-                {
-                    Id = 5,
-                    RightName = "post",
-                    DisplayName = "Post",
-                    Describe = "Review, accept, deny post. See report about post.",
-                    Status = EntityStatus.Readonly
-                },
-                new AdminUserRight()
-                {
-                    Id = 6,
-                    RightName = "comment",
-                    DisplayName = "Comment",
-                    Describe = "Delete comment. See report about comment.",
-                    Status = EntityStatus.Readonly
-                },
-                new AdminUserRight()
-                {
-                    Id = 7,
-                    RightName = "security",
-                    DisplayName = "Security",
-                    Describe = "Configure security of Server.",
-                    Status = EntityStatus.Readonly
-                },
-                new AdminUserRight()
-                {
-                    Id = 8,
-                    RightName = "social_user",
-                    DisplayName = "Social User",
-                    Describe = "Deactivate, activate SocialUser",
-                    Status = EntityStatus.Readonly
-                },
-                new AdminUserRight()
-                {
-                    Id = 9,
-                    RightName = "admin_user",
-                    DisplayName = "Admin User",
-                    Describe = "Add, deactivate, activate, delete AdminUser.",
-                    Status = EntityStatus.Readonly
-                },
-                new AdminUserRight()
-                {
-                    Id = 10,
-                    RightName = "log",
-                    DisplayName = "Log",
-                    Describe = "See and tracking log file.",
-                    Status = EntityStatus.Readonly
-                }
+                //new AdminUserRight()
+                //{
+                //    Id = 1,
+                //    RightName = "dashboard",
+                //    DisplayName = "Dashboard",
+                //    Describe = "Can access Homepage and see statistic",
+                //    Status = EntityStatus.Readonly
+                //},
+                //new AdminUserRight()
+                //{
+                //    Id = 2,
+                //    RightName = "category",
+                //    DisplayName = "Category",
+                //    Describe = "Add, create, disable category",
+                //    Status = EntityStatus.Readonly
+                //},
+                //new AdminUserRight()
+                //{
+                //    Id = 3,
+                //    RightName = "topic",
+                //    DisplayName = "Topic",
+                //    Describe = "Add, create, disable topics",
+                //    Status = EntityStatus.Readonly
+                //},
+                //new AdminUserRight()
+                //{
+                //    Id = 4,
+                //    RightName = "type_of_post",
+                //    DisplayName = "Type of post",
+                //    Describe = "Add, create, disable type of post.",
+                //    Status = EntityStatus.Readonly
+                //},
+                //new AdminUserRight()
+                //{
+                //    Id = 5,
+                //    RightName = "post",
+                //    DisplayName = "Post",
+                //    Describe = "Review, accept, deny post. See report about post.",
+                //    Status = EntityStatus.Readonly
+                //},
+                //new AdminUserRight()
+                //{
+                //    Id = 6,
+                //    RightName = "comment",
+                //    DisplayName = "Comment",
+                //    Describe = "Delete comment. See report about comment.",
+                //    Status = EntityStatus.Readonly
+                //},
+                //new AdminUserRight()
+                //{
+                //    Id = 7,
+                //    RightName = "security",
+                //    DisplayName = "Security",
+                //    Describe = "Configure security of Server.",
+                //    Status = EntityStatus.Readonly
+                //},
+                //new AdminUserRight()
+                //{
+                //    Id = 8,
+                //    RightName = "social_user",
+                //    DisplayName = "Social User",
+                //    Describe = "Deactivate, activate SocialUser",
+                //    Status = EntityStatus.Readonly
+                //},
+                //new AdminUserRight()
+                //{
+                //    Id = 9,
+                //    RightName = "admin_user",
+                //    DisplayName = "Admin User",
+                //    Describe = "Add, deactivate, activate, delete AdminUser.",
+                //    Status = EntityStatus.Readonly
+                //},
+                //new AdminUserRight()
+                //{
+                //    Id = 10,
+                //    RightName = "log",
+                //    DisplayName = "Log",
+                //    Describe = "See and tracking log file.",
+                //    Status = EntityStatus.Readonly
+                //}
             };
             return ListData;
         }
@@ -118,9 +119,9 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
             return Rights;
         }
 
-        public override bool Parse(IBaseParserModel Parser, string Error = null)
+        public override bool Parse(IBaseParserModel Parser, out string Error)
         {
-            Error ??= "";
+            Error = "";
             try {
                 var parser = (ParserModels.ParserAdminUserRight)Parser;
                 RightName = parser.right_name;
@@ -166,8 +167,8 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
         public int Status { get; set; }
         [Column("status", TypeName = "VARCHAR(20)")]
         public string StatusStr {
-            get => EntityStatus.StatusToString(Status);
-            set => Status = EntityStatus.StatusFromString(value);
+            get => "";
+            set => Status = 1;
         }
     }
 }

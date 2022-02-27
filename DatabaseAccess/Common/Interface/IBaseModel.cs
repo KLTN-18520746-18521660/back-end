@@ -9,6 +9,6 @@ namespace DatabaseAccess.Common.Interface
     public interface IBaseModel
     {
         public bool PrepareExportObjectJson();
-        public bool Parse(IBaseParserModel Parser, string Error = null);
+        public bool Parse(IBaseParserModel Parser, out string Error);
     }
 }

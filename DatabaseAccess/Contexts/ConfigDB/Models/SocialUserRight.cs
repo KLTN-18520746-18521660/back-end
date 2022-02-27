@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using DatabaseAccess.Common;
+using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -16,36 +17,36 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
         public SocialUserRight()
         {
             __ModelName = "SocialUserRight";
-            Status = EntityStatus.Enabled;
+            //Status = EntityStatus.Enabled;
         }
 
         public static List<SocialUserRight> GetDefaultData()
         {
             List<SocialUserRight> ListData = new List<SocialUserRight>()
             {
-                new SocialUserRight()
-                {
-                    Id = 1,
-                    RightName = "post",
-                    DisplayName = "Post",
-                    Describe = "Can read, write post.",
-                    Status = EntityStatus.Readonly
-                },
-                new SocialUserRight()
-                {
-                    Id = 2,
-                    RightName = "comment",
-                    DisplayName = "Comment",
-                    Describe = "Can read, write comment.",
-                    Status = EntityStatus.Readonly
-                }
+                //new SocialUserRight()
+                //{
+                //    Id = 1,
+                //    RightName = "post",
+                //    DisplayName = "Post",
+                //    Describe = "Can read, write post.",
+                //    Status = EntityStatus.Readonly
+                //},
+                //new SocialUserRight()
+                //{
+                //    Id = 2,
+                //    RightName = "comment",
+                //    DisplayName = "Comment",
+                //    Describe = "Can read, write comment.",
+                //    Status = EntityStatus.Readonly
+                //}
             };
             return ListData;
         }
 
-        public override bool Parse(IBaseParserModel Parser, string Error = null)
+        public override bool Parse(IBaseParserModel Parser, out string Error)
         {
-            Error ??= "";
+            Error = "";
             try {
                 var parser = (ParserModels.ParserSocialUserRight)Parser;
                 RightName = parser.display_name;
@@ -90,8 +91,8 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
         public int Status { get; set; }
         [Column("status", TypeName = "VARCHAR(20)")]
         public string StatusStr {
-            get => EntityStatus.StatusToString(Status);
-            set => Status = EntityStatus.StatusFromString(value);
+            get => "";
+            set => Status = 1;
         }
     }
 }

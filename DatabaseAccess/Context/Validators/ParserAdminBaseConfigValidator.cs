@@ -1,11 +1,11 @@
 using FluentValidation;
 using System;
 
-namespace DatabaseAccess.Contexts.ConfigDB.Validators
+namespace DatabaseAccess.Context.Validators
 {
-    public class ParserBaseConfigValidator : AbstractValidator<ParserModels.ParserBaseConfig>
+    public class ParserAdminBaseConfigValidator : AbstractValidator<ParserModels.ParserAdminBaseConfig>
     {
-        public ParserBaseConfigValidator()
+        public ParserAdminBaseConfigValidator()
         {
             RuleFor(entity => entity.config_key)
                 .Cascade(CascadeMode.Stop)

@@ -22,7 +22,7 @@ namespace DatabaseAccess.Contexts.SocialDB
             if (!options.IsConfigured)
             {
                 options.UseNpgsql(
-                    BaseConfigurationDB.GetConnectStringToConfigDB(),
+                    BaseConfigurationDB.GetConnectStringToDB(),
                     npgsqlOptionsAction: o => {
                         o.SetPostgresVersion(14, 1);
                     }

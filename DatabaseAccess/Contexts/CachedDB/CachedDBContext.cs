@@ -21,7 +21,7 @@ namespace DatabaseAccess.Contexts.CachedDB
             if (!options.IsConfigured)
             {
                 options.UseNpgsql(
-                    BaseConfigurationDB.GetConnectStringToCachedDB(),
+                    BaseConfigurationDB.GetConnectStringToDB(),
                     npgsqlOptionsAction: o => {
                         o.SetPostgresVersion(14, 1);
                     }

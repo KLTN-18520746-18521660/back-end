@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using DatabaseAccess.Common;
+using DatabaseAccess.Common.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using DatabaseAccess.Common.Interface;
@@ -18,12 +19,12 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
             __ModelName = "BaseConfig";
             ConfigKey = "";
             ValueStr = "{}";
-            Status = EntityStatus.Enabled;
+            //Status = EntityStatus.Enabled;
         }
 
         public static List<BaseConfig> GetDefaultData()
         {
-            List<BaseConfig> ListData = new List<BaseConfig>()
+            List<BaseConfig> ListData = new()
             {
 
             };
@@ -45,9 +46,9 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
             return true;
         }
 
-        public override bool Parse(IBaseParserModel Parser, string Error = null)
+        public override bool Parse(IBaseParserModel Parser, out string Error)
         {
-            Error ??= "";
+            Error = "";
             try {
                 var parser = (ParserModels.ParserBaseConfig)Parser;
                 ConfigKey = parser.config_key;
@@ -78,8 +79,8 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
         [Column("status", TypeName = "VARCHAR(20)")]
         public string StatusStr
         {
-            get => EntityStatus.StatusToString(Status);
-            set => Status = EntityStatus.StatusFromString(value);
+            get => "";
+            set => Status = 1;
         }
     }
 }

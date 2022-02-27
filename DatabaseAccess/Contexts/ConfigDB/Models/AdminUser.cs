@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
-using DatabaseAccess.Common;
+using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using DatabaseAccess.Common;
 
 namespace DatabaseAccess.Contexts.ConfigDB.Models
 {
@@ -15,31 +16,31 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
     {   
         public AdminUser() : base()
         {
-            __ModelName = "AdminUser";
-            Id = Guid.NewGuid();
-            CreatedTimestamp = DateTime.UtcNow;
-            Status = UserStatus.NotActivated;
-            Salt = PasswordEncryptor.GenerateSalt();
-            RolesStr = "[]";
-            SettingsStr = "{}";
+            //__ModelName = "AdminUser";
+            //Id = Guid.NewGuid();
+            //CreatedTimestamp = DateTime.UtcNow;
+            //Status = SocialUserStatus.NotActivated;
+            //Salt = PasswordEncryptor.GenerateSalt();
+            //RolesStr = "[]";
+            //SettingsStr = "{}";
         }
 
         public static List<AdminUser> GetDefaultData()
         {
             List<AdminUser> ListData = new List<AdminUser>()
             {
-                new AdminUser() {
-                    Id = Guid.NewGuid(),
-                    UserName = "admin",
-                    DisplayName = "Administrator",
-                    Salt = PasswordEncryptor.GenerateSalt(),
-                    Password = "admin",
-                    Email = "admin@admin",
-                    Status = UserStatus.Readonly,
-                    RolesStr = "[]",
-                    SettingsStr = "{}",
-                    CreatedTimestamp = DateTime.UtcNow
-                }
+                //new AdminUser() {
+                //    Id = Guid.NewGuid(),
+                //    UserName = "admin",
+                //    DisplayName = "Administrator",
+                //    Salt = PasswordEncryptor.GenerateSalt(),
+                //    Password = "admin",
+                //    Email = "admin@admin",
+                //    Status = SocialUserStatus.Readonly,
+                //    RolesStr = "[]",
+                //    SettingsStr = "{}",
+                //    CreatedTimestamp = DateTime.UtcNow
+                //}
             };
             return ListData;
         }
@@ -67,9 +68,9 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
             return true;
         }
 
-        public override bool Parse(IBaseParserModel Parser, string Error = null)
+        public override bool Parse(IBaseParserModel Parser, out string Error)
         {
-            Error ??= "";
+            Error = "";
             try {
                 var parser = (ParserModels.ParserAdminUser)Parser;
                 UserName = parser.user_name;
@@ -112,8 +113,8 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
         public int Status { get; set; }
         [Column("status", TypeName = "VARCHAR(20)")]
         public string StatusStr {
-            get => UserStatus.StatusToString(Status);
-            set => Status = UserStatus.StatusFromString(value);
+            get => SocialUserStatus.StatusToString(Status);
+            set => Status = SocialUserStatus.StatusFromString(value);
         }
 
         [NotMapped]

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
@@ -20,6 +20,7 @@
   <ItemGroup>
     <Folder Include="Contexts\CachedDB\Validators\" />
     <Folder Include="Contexts\CachedDB\ParserModels\" />
+    <Folder Include="Contexts\ConfigDB\Validators\" />
     <Folder Include="Migrations\" />
   </ItemGroup>
 

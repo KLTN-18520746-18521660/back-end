@@ -1,13 +1,13 @@
 using FluentValidation;
 using System;
 
-namespace DatabaseAccess.Contexts.ConfigDB.Validators
+namespace DatabaseAccess.Context.Validators
 {
-    public class ParserAdminUserRightValidator : AbstractValidator<ParserModels.ParserAdminUserRight>
+    public class ParserAdminUserRoleValidator : AbstractValidator<ParserModels.ParserAdminUserRole>
     {
-        public ParserAdminUserRightValidator()
+        public ParserAdminUserRoleValidator()
         {
-            RuleFor(entity => entity.right_name)
+            RuleFor(entity => entity.role_name)
                 .Cascade(CascadeMode.Stop)
                 .NotNull()
                     .WithMessage("{PropertyName} is Null")
@@ -28,7 +28,7 @@ namespace DatabaseAccess.Contexts.ConfigDB.Validators
                     .WithMessage("Length of {PropertyName} must be from 4 to 50")
                 .Matches("^.+$")
                     .WithMessage("{PropertyName} do not accept line terminators like: new line");
-
+            
             RuleFor(entity => entity.describe)
                 .Cascade(CascadeMode.Stop)
                 .NotNull()
@@ -39,6 +39,15 @@ namespace DatabaseAccess.Contexts.ConfigDB.Validators
                     .WithMessage("Length of {PropertyName} must be from 4 to 150")
                 .Matches("^.+$")
                     .WithMessage("{PropertyName} do not accept line terminators like: new line");
+
+            RuleFor(entity => entity.rights)
+                .Cascade(CascadeMode.Stop)
+                .NotNull()
+                    .WithMessage("{PropertyName} is Null")
+                .NotEmpty()
+                    .WithMessage("{PropertyName} is Empty")
+                .Must(Common.CommonValidator.ValidateRightsAbilities)
+                    .WithMessage("{PropertyName} is invalid");
         }
     }
 }

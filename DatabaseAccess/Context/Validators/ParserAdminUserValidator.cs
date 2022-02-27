@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
 using System;
 
-namespace DatabaseAccess.Contexts.ConfigDB.Validators
+namespace DatabaseAccess.Context.Validators
 {
     public class ParserAdminUserValidator : AbstractValidator<ParserModels.ParserAdminUser>
     {

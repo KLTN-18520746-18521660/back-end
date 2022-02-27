@@ -1,23 +1,23 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DatabaseAccess.Common
+namespace DatabaseAccess.Common.Models
 {
-    public class EntityStatus
+    public class SocialUserStatus
     {
         public readonly static int InvalidStatus = -1;
-        public readonly static int Disabled = 0;
-        public readonly static int Enabled = 1;
-        public readonly static int Readonly = 2;
-        private readonly static Dictionary<int, string> MapStatus = new Dictionary<int, string>()
+        public readonly static int Deleted = 0;
+        public readonly static int Activated = 1;
+        public readonly static int Blocked = 2;
+        private readonly static Dictionary<int, string> MapStatus = new ()
         {
             { InvalidStatus, "Invalid Status" },
-            { Disabled, "Disabled" },
-            { Enabled, "Enabled" },
-            { Readonly, "Readonly" }
+            { Deleted, "Deleted" },
+            { Activated, "Activated" },
+            { Blocked, "Blocked" }
         };
 
         public static string StatusToString(int Status)

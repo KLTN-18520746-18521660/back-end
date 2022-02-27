@@ -9,7 +9,7 @@ using NpgsqlTypes;
 
 namespace DatabaseAccess.Migrations
 {
-    [DbContext(typeof(ConfigDBContext))]
+    [DbContext(typeof(DBContext))]
     partial class ConfigDBContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

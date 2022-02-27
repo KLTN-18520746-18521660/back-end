@@ -9,7 +9,7 @@ using System;
 
 namespace DatabaseAccess.Contexts.ConfigDB
 {
-    public class ConfigDBContext : DbContext
+    public class DBContext : DbContext
     {
         public DbSet<Models.AdminUser> AdminUsers { get; set; }
         public DbSet<Models.AdminUserRole> AdminUserRoles { get; set; }
@@ -19,11 +19,11 @@ namespace DatabaseAccess.Contexts.ConfigDB
         public DbSet<Models.SocialAuditLog> SocialAuditLogs { get; set; }
         public DbSet<Models.SocialUserRole> SocialUserRoles { get; set; }
         public DbSet<Models.SocialUserRight> SocialUserRights { get; set; }
-        public ConfigDBContext()
+        public DBContext()
         {
         }
 
-        public ConfigDBContext(DbContextOptions<ConfigDBContext> options) : base(options)
+        public DBContext(DbContextOptions<DBContext> options) : base(options)
         {
         }
         #region Configure Context
@@ -33,7 +33,7 @@ namespace DatabaseAccess.Contexts.ConfigDB
             if (!options.IsConfigured)
             {
                 options.UseNpgsql(
-                    BaseConfigurationDB.GetConnectStringToConfigDB(),
+                    BaseConfigurationDB.GetConnectStringToDB(),
                     npgsqlOptionsAction: o => {
                         o.SetPostgresVersion(14, 1);
                     }
@@ -58,199 +58,199 @@ namespace DatabaseAccess.Contexts.ConfigDB
         {
             modelBuilder.Entity<Models.AdminUser>(entityBuilder =>
             {
-                entityBuilder.HasKey(e => e.Id);
-                entityBuilder.Property(e => e.Id)
-                    .HasDefaultValueSql("gen_random_uuid()")
-                    .IsRequired();
-                entityBuilder.Property(e => e.UserName)
-                    .IsRequired();
-                entityBuilder.Property(e => e.DisplayName)
-                    .IsRequired();
-                entityBuilder.Property(e => e.Salt)
-                    .HasDefaultValueSql("SUBSTRING(REPLACE(CAST(gen_random_uuid() AS VARCHAR), '-', ''), 1, 8)")
-                    .IsRequired();
-                entityBuilder.Property(e => e.Password)
-                    .IsRequired();
-                entityBuilder.Property(e => e.Email)
-                    .IsRequired();
-                entityBuilder.Property(e => e.StatusStr)
-                    .HasDefaultValue(Common.UserStatus.StatusToString(Common.UserStatus.NotActivated))
-                    .IsRequired();
-                entityBuilder.Property(e => e.RolesStr)
-                    .HasDefaultValue("[]")
-                    .IsRequired();
-                entityBuilder.Property(e => e.SettingsStr)
-                    .HasDefaultValue("{}")
-                    .IsRequired();
-                entityBuilder.Property(e => e.CreatedTimestamp)
-                    .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'")
-                    .IsRequired();
-                entityBuilder.Property(e => e.LastAccessTimestamp)
-                    .IsRequired(false);
+                //entityBuilder.HasKey(e => e.Id);
+                //entityBuilder.Property(e => e.Id)
+                //    .HasDefaultValueSql("gen_random_uuid()")
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.UserName)
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.DisplayName)
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.Salt)
+                //    .HasDefaultValueSql("SUBSTRING(REPLACE(CAST(gen_random_uuid() AS VARCHAR), '-', ''), 1, 8)")
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.Password)
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.Email)
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.StatusStr)
+                //    .HasDefaultValue(Common.SocialUserStatus.StatusToString(Common.SocialUserStatus.NotActivated))
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.RolesStr)
+                //    .HasDefaultValue("[]")
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.SettingsStr)
+                //    .HasDefaultValue("{}")
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.CreatedTimestamp)
+                //    .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'")
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.LastAccessTimestamp)
+                //    .IsRequired(false);
 
-                entityBuilder
-                    .HasIndex(e => new { e.UserName, e.Email })
-                    .IsUnique()
-                    .HasFilter($"status != '{ Common.UserStatus.StatusToString(Common.UserStatus.Deleted) }'");
-                entityBuilder
-                    .HasCheckConstraint(
-                        "CK_Status_Valid_Value",
-                        string.Format("status = '{0}' OR status = '{1}' OR status = '{2}' OR status = '{3}'",
-                            Common.UserStatus.StatusToString(Common.UserStatus.Deleted),
-                            Common.UserStatus.StatusToString(Common.UserStatus.NotActivated),
-                            Common.UserStatus.StatusToString(Common.UserStatus.Activated),
-                            Common.UserStatus.StatusToString(Common.UserStatus.Readonly)
-                        )
-                    );
-                entityBuilder
-                    .HasCheckConstraint(
-                        "CK_LastAccessTimestamp_Valid_Value",
-                        string.Format("(last_access_timestamp IS NULL AND status = '{0}') OR (status <> '{0}')",
-                            Common.UserStatus.StatusToString(Common.UserStatus.NotActivated)
-                        )
-                    );
-                entityBuilder.HasData(Models.AdminUser.GetDefaultData());
+                //entityBuilder
+                //    .HasIndex(e => new { e.UserName, e.Email })
+                //    .IsUnique()
+                //    .HasFilter($"status != '{ Common.SocialUserStatus.StatusToString(Common.SocialUserStatus.Deleted) }'");
+                //entityBuilder
+                //    .HasCheckConstraint(
+                //        "CK_Status_Valid_Value",
+                //        string.Format("status = '{0}' OR status = '{1}' OR status = '{2}' OR status = '{3}'",
+                //            Common.SocialUserStatus.StatusToString(Common.SocialUserStatus.Deleted),
+                //            Common.SocialUserStatus.StatusToString(Common.SocialUserStatus.NotActivated),
+                //            Common.SocialUserStatus.StatusToString(Common.SocialUserStatus.Activated),
+                //            Common.SocialUserStatus.StatusToString(Common.SocialUserStatus.Readonly)
+                //        )
+                //    );
+                //entityBuilder
+                //    .HasCheckConstraint(
+                //        "CK_LastAccessTimestamp_Valid_Value",
+                //        string.Format("(last_access_timestamp IS NULL AND status = '{0}') OR (status <> '{0}')",
+                //            Common.SocialUserStatus.StatusToString(Common.SocialUserStatus.NotActivated)
+                //        )
+                //    );
+                //entityBuilder.HasData(Models.AdminUser.GetDefaultData());
             });
         }
         #endregion
         #region Table AdminUserRight
         private static void ConfigureEnityAdminUserRight(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Models.AdminUserRight>(entityBuilder =>
-            {
-                entityBuilder.HasKey(e => e.Id);
-                entityBuilder.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn()
-                    .IsRequired();
-                entityBuilder.Property(e => e.RightName)
-                    .IsRequired();
-                entityBuilder.Property(e => e.DisplayName)
-                    .IsRequired();
-                entityBuilder.Property(e => e.Describe)
-                    .IsRequired();
-                entityBuilder.Property(e => e.StatusStr)
-                    .IsRequired();
+            //modelBuilder.Entity<Models.AdminUserRight>(entityBuilder =>
+            //{
+            //    entityBuilder.HasKey(e => e.Id);
+            //    entityBuilder.Property(e => e.Id)
+            //        .UseIdentityAlwaysColumn()
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.RightName)
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.DisplayName)
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.Describe)
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.StatusStr)
+            //        .IsRequired();
 
-                entityBuilder.HasIndex(e => e.RightName)
-                    .IsUnique()
-                    .HasFilter($"status != '{ Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled) }'");
-                entityBuilder.HasData(Models.AdminUserRight.GetDefaultData());
-                entityBuilder
-                    .HasCheckConstraint(
-                        "CK_Status_Valid_Value",
-                        string.Format("status = '{0}' OR status = '{1}' OR status = '{2}'",
-                            Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled),
-                            Common.EntityStatus.StatusToString(Common.EntityStatus.Enabled),
-                            Common.EntityStatus.StatusToString(Common.EntityStatus.Readonly)
-                        )
-                    );
-            });
+            //    entityBuilder.HasIndex(e => e.RightName)
+            //        .IsUnique()
+            //        .HasFilter($"status != '{ Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled) }'");
+            //    entityBuilder.HasData(Models.AdminUserRight.GetDefaultData());
+            //    entityBuilder
+            //        .HasCheckConstraint(
+            //            "CK_Status_Valid_Value",
+            //            string.Format("status = '{0}' OR status = '{1}' OR status = '{2}'",
+            //                Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled),
+            //                Common.EntityStatus.StatusToString(Common.EntityStatus.Enabled),
+            //                Common.EntityStatus.StatusToString(Common.EntityStatus.Readonly)
+            //            )
+            //        );
+            //});
         }
         #endregion
         #region Table AdminUserRole
         private static void ConfigureEnityAdminUserRole(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Models.AdminUserRole>(entityBuilder =>
-            {
-                entityBuilder.HasKey (e => e.Id);
-                entityBuilder.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn()
-                    .IsRequired();
-                entityBuilder.Property(e => e.RoleName)
-                    .IsRequired();
-                entityBuilder.Property(e => e.DisplayName)
-                    .IsRequired();
-                entityBuilder.Property(e => e.Describe)
-                    .IsRequired();
-                entityBuilder.Property(e => e.RightsStr)
-                    .HasDefaultValue("[]")
-                    .IsRequired();
-                entityBuilder.Property(e => e.StatusStr)
-                    .IsRequired();
+            //modelBuilder.Entity<Models.AdminUserRole>(entityBuilder =>
+            //{
+            //    entityBuilder.HasKey (e => e.Id);
+            //    entityBuilder.Property(e => e.Id)
+            //        .UseIdentityAlwaysColumn()
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.RoleName)
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.DisplayName)
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.Describe)
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.RightsStr)
+            //        .HasDefaultValue("[]")
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.StatusStr)
+            //        .IsRequired();
 
-                entityBuilder.HasIndex(e => e.RoleName)
-                    .IsUnique()
-                    .HasFilter($"status != '{ Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled) }'");
-                entityBuilder.HasData(Models.AdminUserRole.GetDefaultData());
-                entityBuilder
-                    .HasCheckConstraint(
-                        "CK_Status_Valid_Value",
-                        string.Format("status = '{0}' OR status = '{1}' OR status = '{2}'",
-                            Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled),
-                            Common.EntityStatus.StatusToString(Common.EntityStatus.Enabled),
-                            Common.EntityStatus.StatusToString(Common.EntityStatus.Readonly)
-                        )
-                    );
-            });
+            //    entityBuilder.HasIndex(e => e.RoleName)
+            //        .IsUnique()
+            //        .HasFilter($"status != '{ Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled) }'");
+            //    entityBuilder.HasData(Models.AdminUserRole.GetDefaultData());
+            //    entityBuilder
+            //        .HasCheckConstraint(
+            //            "CK_Status_Valid_Value",
+            //            string.Format("status = '{0}' OR status = '{1}' OR status = '{2}'",
+            //                Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled),
+            //                Common.EntityStatus.StatusToString(Common.EntityStatus.Enabled),
+            //                Common.EntityStatus.StatusToString(Common.EntityStatus.Readonly)
+            //            )
+            //        );
+            //});
         }
         #endregion
         #region Table BaseConfig
         private static void ConfigureEnityBaseConfig(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Models.BaseConfig>(entityBuilder =>
-            {
-                entityBuilder.HasKey (e => e.Id);
-                entityBuilder.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn()
-                    .IsRequired();
-                entityBuilder.Property(e => e.ConfigKey)
-                    .IsRequired();
-                entityBuilder.Property(e => e.ValueStr)
-                    .HasDefaultValue("{}")
-                    .IsRequired();
-                entityBuilder.Property(e => e.StatusStr)
-                    .IsRequired();
+            //modelBuilder.Entity<Models.BaseConfig>(entityBuilder =>
+            //{
+            //    entityBuilder.HasKey (e => e.Id);
+            //    entityBuilder.Property(e => e.Id)
+            //        .UseIdentityAlwaysColumn()
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.ConfigKey)
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.ValueStr)
+            //        .HasDefaultValue("{}")
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.StatusStr)
+            //        .IsRequired();
 
-                entityBuilder.HasIndex(e => e.ConfigKey)
-                    .IsUnique()
-                    .HasFilter($"status != '{ Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled) }'");
-                entityBuilder.HasData(Models.BaseConfig.GetDefaultData());
-                entityBuilder
-                    .HasCheckConstraint(
-                        "CK_Status_Valid_Value",
-                        string.Format("status = '{0}' OR status = '{1}' OR status = '{2}'",
-                            Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled),
-                            Common.EntityStatus.StatusToString(Common.EntityStatus.Enabled),
-                            Common.EntityStatus.StatusToString(Common.EntityStatus.Readonly)
-                        )
-                    );
-            });
+            //    entityBuilder.HasIndex(e => e.ConfigKey)
+            //        .IsUnique()
+            //        .HasFilter($"status != '{ Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled) }'");
+            //    entityBuilder.HasData(Models.BaseConfig.GetDefaultData());
+            //    entityBuilder
+            //        .HasCheckConstraint(
+            //            "CK_Status_Valid_Value",
+            //            string.Format("status = '{0}' OR status = '{1}' OR status = '{2}'",
+            //                Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled),
+            //                Common.EntityStatus.StatusToString(Common.EntityStatus.Enabled),
+            //                Common.EntityStatus.StatusToString(Common.EntityStatus.Readonly)
+            //            )
+            //        );
+            //});
         }
         #endregion
         #region Table ConfigAuditLog
         private static void ConfigureEnityConfigAuditLog(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Models.ConfigAuditLog>(entityBuilder =>
-            {
-                entityBuilder.HasKey (e => e.Id);
-                entityBuilder.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn()
-                    .IsRequired();
-                entityBuilder.Property(e => e.Table)
-                    .IsRequired();
-                entityBuilder.Property(e => e.TableKey)
-                    .IsRequired();
-                entityBuilder.Property(e => e.Action)
-                    .IsRequired();
-                entityBuilder.Property(e => e.OldValueStr)
-                    .IsRequired();
-                entityBuilder.Property(e => e.NewValueStr)
-                    .IsRequired();
-                entityBuilder.Property(e => e.User)
-                    .IsRequired();
-                entityBuilder.Property(e => e.Timestamp)
-                    .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'")
-                    .IsRequired();
+            //modelBuilder.Entity<Models.ConfigAuditLog>(entityBuilder =>
+            //{
+            //    entityBuilder.HasKey (e => e.Id);
+            //    entityBuilder.Property(e => e.Id)
+            //        .UseIdentityAlwaysColumn()
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.Table)
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.TableKey)
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.Action)
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.OldValueStr)
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.NewValueStr)
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.User)
+            //        .IsRequired();
+            //    entityBuilder.Property(e => e.Timestamp)
+            //        .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'")
+            //        .IsRequired();
 
-                entityBuilder
-                    .HasGeneratedTsVectorColumn(
-                        e => e.SearchVector,
-                        "english",
-                        e => new { e.Table, e.TableKey, e.OldValueStr, e.NewValueStr, e.User }
-                    )
-                    .HasIndex(e => e.SearchVector)
-                    .HasMethod("GIN");
-            });
+            //    entityBuilder
+            //        .HasGeneratedTsVectorColumn(
+            //            e => e.SearchVector,
+            //            "english",
+            //            e => new { e.Table, e.TableKey, e.OldValueStr, e.NewValueStr, e.User }
+            //        )
+            //        .HasIndex(e => e.SearchVector)
+            //        .HasMethod("GIN");
+            //});
         }
         #endregion
         #region Table SocialAuditLog
@@ -294,32 +294,32 @@ namespace DatabaseAccess.Contexts.ConfigDB
         {
             modelBuilder.Entity<Models.SocialUserRight>(entityBuilder =>
             {
-                entityBuilder.HasKey(e => e.Id);
-                entityBuilder.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn()
-                    .IsRequired();
-                entityBuilder.Property(e => e.RightName)
-                    .IsRequired();
-                entityBuilder.Property(e => e.DisplayName)
-                    .IsRequired();
-                entityBuilder.Property(e => e.Describe)
-                    .IsRequired();
-                entityBuilder.Property(e => e.StatusStr)
-                    .IsRequired();
+                //entityBuilder.HasKey(e => e.Id);
+                //entityBuilder.Property(e => e.Id)
+                //    .UseIdentityAlwaysColumn()
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.RightName)
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.DisplayName)
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.Describe)
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.StatusStr)
+                //    .IsRequired();
 
-                entityBuilder.HasIndex(e => e.RightName)
-                    .IsUnique()
-                    .HasFilter($"status != '{ Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled) }'");
-                entityBuilder.HasData(Models.SocialUserRight.GetDefaultData());
-                entityBuilder
-                    .HasCheckConstraint(
-                        "CK_Status_Valid_Value",
-                        string.Format("status = '{0}' OR status = '{1}' OR status = '{2}'",
-                            Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled),
-                            Common.EntityStatus.StatusToString(Common.EntityStatus.Enabled),
-                            Common.EntityStatus.StatusToString(Common.EntityStatus.Readonly)
-                        )
-                    );
+                //entityBuilder.HasIndex(e => e.RightName)
+                //    .IsUnique()
+                //    .HasFilter($"status != '{ Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled) }'");
+                //entityBuilder.HasData(Models.SocialUserRight.GetDefaultData());
+                //entityBuilder
+                //    .HasCheckConstraint(
+                //        "CK_Status_Valid_Value",
+                //        string.Format("status = '{0}' OR status = '{1}' OR status = '{2}'",
+                //            Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled),
+                //            Common.EntityStatus.StatusToString(Common.EntityStatus.Enabled),
+                //            Common.EntityStatus.StatusToString(Common.EntityStatus.Readonly)
+                //        )
+                //    );
             });
         }
         #endregion
@@ -328,35 +328,35 @@ namespace DatabaseAccess.Contexts.ConfigDB
         {
             modelBuilder.Entity<Models.SocialUserRole>(entityBuilder =>
             {
-                entityBuilder.HasKey (e => e.Id);
-                entityBuilder.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn()
-                    .IsRequired();
-                entityBuilder.Property(e => e.RoleName)
-                    .IsRequired();
-                entityBuilder.Property(e => e.DisplayName)
-                    .IsRequired();
-                entityBuilder.Property(e => e.Describe)
-                    .IsRequired();
-                entityBuilder.Property(e => e.RightsStr)
-                    .HasDefaultValue("[]")
-                    .IsRequired();
-                entityBuilder.Property(e => e.StatusStr)
-                    .IsRequired();
+                //entityBuilder.HasKey (e => e.Id);
+                //entityBuilder.Property(e => e.Id)
+                //    .UseIdentityAlwaysColumn()
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.RoleName)
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.DisplayName)
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.Describe)
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.RightsStr)
+                //    .HasDefaultValue("[]")
+                //    .IsRequired();
+                //entityBuilder.Property(e => e.StatusStr)
+                //    .IsRequired();
 
-                entityBuilder.HasIndex(e => e.RoleName)
-                    .IsUnique()
-                    .HasFilter($"status != '{ Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled) }'");
-                entityBuilder.HasData(Models.SocialUserRole.GetDefaultData());
-                entityBuilder
-                    .HasCheckConstraint(
-                        "CK_Status_Valid_Value",
-                        string.Format("status = '{0}' OR status = '{1}' OR status = '{2}'",
-                            Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled),
-                            Common.EntityStatus.StatusToString(Common.EntityStatus.Enabled),
-                            Common.EntityStatus.StatusToString(Common.EntityStatus.Readonly)
-                        )
-                    );
+                //entityBuilder.HasIndex(e => e.RoleName)
+                //    .IsUnique()
+                //    .HasFilter($"status != '{ Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled) }'");
+                //entityBuilder.HasData(Models.SocialUserRole.GetDefaultData());
+                //entityBuilder
+                //    .HasCheckConstraint(
+                //        "CK_Status_Valid_Value",
+                //        string.Format("status = '{0}' OR status = '{1}' OR status = '{2}'",
+                //            Common.EntityStatus.StatusToString(Common.EntityStatus.Disabled),
+                //            Common.EntityStatus.StatusToString(Common.EntityStatus.Enabled),
+                //            Common.EntityStatus.StatusToString(Common.EntityStatus.Readonly)
+                //        )
+                //    );
             });
         }
         #endregion
@@ -366,23 +366,25 @@ namespace DatabaseAccess.Contexts.ConfigDB
         #region GET
         public Models.AdminUser GetAdminUserById(string Uuid, out string Error)
         {
-            Guid Id = new Guid(Uuid);
-            var Users = AdminUsers.Where(e => e.Id == Id &&
-                    e.Status != Common.UserStatus.Deleted &&
-                    e.Status != Common.UserStatus.InvalidStatus).ToList();
+            Error = null;
+            return null;
+            //Guid Id = new Guid(Uuid);
+            //var Users = AdminUsers.Where(e => e.Id == Id &&
+            //        e.Status != Common.SocialUserStatus.Deleted &&
+            //        e.Status != Common.SocialUserStatus.InvalidStatus).ToList();
 
-            if (Users.Count == 1) {
-                Error = "";
-                Users[0].Rights = GetAdminRightsByRoles(Users[0].Roles);
-                return Users[0];
-            } else if (Users.Count < 1)
-            {
-                Error = $"AdminUser not found. Id: {Uuid}";
-                return null;
-            } else {
-                Error = $"Not expected result. Multi user was found with id: {Uuid}. Total users found: {Users.Count}.";
-                return null;
-            }
+            //if (Users.Count == 1) {
+            //    Error = "";
+            //    Users[0].Rights = GetAdminRightsByRoles(Users[0].Roles);
+            //    return Users[0];
+            //} else if (Users.Count < 1)
+            //{
+            //    Error = $"AdminUser not found. Id: {Uuid}";
+            //    return null;
+            //} else {
+            //    Error = $"Not expected result. Multi user was found with id: {Uuid}. Total users found: {Users.Count}.";
+            //    return null;
+            //}
         }
         public Models.AdminUser GetAdminUserByIdIgnoreStatus(string Uuid, out string Error)
         {
@@ -404,22 +406,24 @@ namespace DatabaseAccess.Contexts.ConfigDB
         }
         public Models.AdminUser GetAdminUserByUserName(string UserName, out string Error)
         {
-            var Users = AdminUsers
-                .Where(e => e.UserName == UserName && 
-                    e.Status != Common.UserStatus.Deleted && 
-                    e.Status != Common.UserStatus.InvalidStatus).ToList();
+            Error = null;
+            return null;
+            //var Users = AdminUsers
+            //    .Where(e => e.UserName == UserName && 
+            //        e.Status != Common.SocialUserStatus.Deleted && 
+            //        e.Status != Common.SocialUserStatus.InvalidStatus).ToList();
 
-            if (Users.Count == 1) {
-                Error = "";
-                Users[0].Rights = GetAdminRightsByRoles(Users[0].Roles);
-                return Users[0];
-            } else if (Users.Count < 1) {
-                Error = $"AdminUser not found. UserName: {UserName}";
-                return null;
-            } else {
-                Error = $"Not expected result. Multi user was found with user name: {UserName}. Total users found: {Users.Count}.";
-                return null;
-            }
+            //if (Users.Count == 1) {
+            //    Error = "";
+            //    Users[0].Rights = GetAdminRightsByRoles(Users[0].Roles);
+            //    return Users[0];
+            //} else if (Users.Count < 1) {
+            //    Error = $"AdminUser not found. UserName: {UserName}";
+            //    return null;
+            //} else {
+            //    Error = $"Not expected result. Multi user was found with user name: {UserName}. Total users found: {Users.Count}.";
+            //    return null;
+            //}
         }
         public List<Models.AdminUser> GetAdminUserByUserNameIgnoreStatus(string UserName, out string Error)
         {
@@ -439,14 +443,15 @@ namespace DatabaseAccess.Contexts.ConfigDB
         }
         public List<Models.AdminUser> GetAllAdminUser()
         {
-            var Users = AdminUsers
-                .Where(e => e.Status != Common.UserStatus.Deleted && 
-                    e.Status != Common.UserStatus.InvalidStatus).ToList();
+            return new List<Models.AdminUser>();
+            //var Users = AdminUsers
+            //    .Where(e => e.Status != Common.SocialUserStatus.Deleted && 
+            //        e.Status != Common.SocialUserStatus.InvalidStatus).ToList();
 
-            foreach (var User in Users) {
-                User.Rights = GetAdminRightsByRoles(User.Roles);
-            }
-            return Users;
+            //foreach (var User in Users) {
+            //    User.Rights = GetAdminRightsByRoles(User.Roles);
+            //}
+            //return Users;
         }
         #endregion
         #region CREATE
@@ -479,20 +484,22 @@ namespace DatabaseAccess.Contexts.ConfigDB
         #region GET
         public Models.AdminUserRight GetAdminUserRightById(int Id, out string Error)
         {
-            var Rights = AdminUserRights.Where(e => e.Id == Id &&
-                            e.Status != Common.EntityStatus.InvalidStatus &&
-                            e.Status != Common.EntityStatus.Disabled).ToList();
+            Error = "";
+            return null;
+            //var Rights = AdminUserRights.Where(e => e.Id == Id &&
+            //                e.Status != Common.EntityStatus.InvalidStatus &&
+            //                e.Status != Common.EntityStatus.Disabled).ToList();
 
-            if (Rights.Count == 1) {
-                Error = "";
-                return Rights[0];
-            } else if (Rights.Count < 1) {
-                Error = $"AdminUserRight not found. Id: {Id}";
-                return null;
-            } else {
-                Error = $"Not expected result. Multi user right was found with id: {Id}. Total rights found: {Rights.Count}.";
-                return null;
-            }
+            //if (Rights.Count == 1) {
+            //    Error = "";
+            //    return Rights[0];
+            //} else if (Rights.Count < 1) {
+            //    Error = $"AdminUserRight not found. Id: {Id}";
+            //    return null;
+            //} else {
+            //    Error = $"Not expected result. Multi user right was found with id: {Id}. Total rights found: {Rights.Count}.";
+            //    return null;
+            //}
         }
         public List<Models.AdminUserRight> GetAdminUserRightByIdIgnoreStatus(int Id, out string Error)
         {
@@ -508,9 +515,10 @@ namespace DatabaseAccess.Contexts.ConfigDB
         }
         public List<Models.AdminUserRight> GetAllAdminUserRight()
         {
-            var Rights = AdminUserRights.Where(e => e.Status != Common.EntityStatus.InvalidStatus &&
-                            e.Status != Common.EntityStatus.Disabled).ToList();
-            return Rights;
+            //var Rights = AdminUserRights.Where(e => e.Status != Common.EntityStatus.InvalidStatus &&
+            //                e.Status != Common.EntityStatus.Disabled).ToList();
+            //return Rights;
+            return null;
         }
         #endregion
         #region CREATE
@@ -524,20 +532,27 @@ namespace DatabaseAccess.Contexts.ConfigDB
         #region GET
         public Models.AdminUserRole GetAdminUserRoleById(int Id, out string Error)
         {
-            var Roles = AdminUserRoles.Where(e => e.Id == Id &&
-                            e.Status != Common.EntityStatus.InvalidStatus &&
-                            e.Status != Common.EntityStatus.Disabled).ToList();
+            Error = "";
+            return null;
+            //var Roles = AdminUserRoles.Where(e => e.Id == Id &&
+            //                e.Status != Common.EntityStatus.InvalidStatus &&
+            //                e.Status != Common.EntityStatus.Disabled).ToList();
 
-            if (Roles.Count == 1) {
-                Error = "";
-                return Roles[0];
-            } else if (Roles.Count < 1) {
-                Error = $"AdminUserRole not found. Id: {Id}";
-                return null;
-            } else {
-                Error = $"Not expected result. Multi user right was found with id: {Id}. Total roles found: {Roles.Count}.";
-                return null;
-            }
+            //if (Roles.Count == 1)
+            //{
+            //    Error = "";
+            //    return Roles[0];
+            //}
+            //else if (Roles.Count < 1)
+            //{
+            //    Error = $"AdminUserRole not found. Id: {Id}";
+            //    return null;
+            //}
+            //else
+            //{
+            //    Error = $"Not expected result. Multi user right was found with id: {Id}. Total roles found: {Roles.Count}.";
+            //    return null;
+            //}
         }
         public List<Models.AdminUserRole> GetAdminUserRoleByIdIgnoreStatus(int Id, out string Error)
         {
@@ -553,20 +568,22 @@ namespace DatabaseAccess.Contexts.ConfigDB
         }
         public Models.AdminUserRole GetAdminUserRoleByRoleName(string RoleName, out string Error)
         {
-            var Roles = AdminUserRoles.Where(e => e.RoleName == RoleName &&
-                            e.Status != Common.EntityStatus.InvalidStatus &&
-                            e.Status != Common.EntityStatus.Disabled).ToList();
+            Error = "";
+            return null;
+            //var Roles = AdminUserRoles.Where(e => e.RoleName == RoleName &&
+            //                e.Status != Common.EntityStatus.InvalidStatus &&
+            //                e.Status != Common.EntityStatus.Disabled).ToList();
 
-            if (Roles.Count == 1) {
-                Error = "";
-                return Roles[0];
-            } else if (Roles.Count < 1) {
-                Error = $"AdminUserRole not found. RoleName: {RoleName}";
-                return null;
-            } else {
-                Error = $"Not expected result. Multi user right was found with RoleName: {RoleName}. Total roles found: {Roles.Count}.";
-                return null;
-            }
+            //if (Roles.Count == 1) {
+            //    Error = "";
+            //    return Roles[0];
+            //} else if (Roles.Count < 1) {
+            //    Error = $"AdminUserRole not found. RoleName: {RoleName}";
+            //    return null;
+            //} else {
+            //    Error = $"Not expected result. Multi user right was found with RoleName: {RoleName}. Total roles found: {Roles.Count}.";
+            //    return null;
+            //}
         }
         public List<Models.AdminUserRole> GetAdminUserRoleByRoleNameIgnoreStatus(string RoleName, out string Error)
         {
@@ -582,9 +599,10 @@ namespace DatabaseAccess.Contexts.ConfigDB
         }
         public List<Models.AdminUserRole> GetAllAdminUserRole()
         {
-            var Roles = AdminUserRoles.Where(e => e.Status != Common.EntityStatus.InvalidStatus &&
-                            e.Status != Common.EntityStatus.Disabled).ToList();
-            return Roles;
+            return null;
+            //var Roles = AdminUserRoles.Where(e => e.Status != Common.EntityStatus.InvalidStatus &&
+            //                e.Status != Common.EntityStatus.Disabled).ToList();
+            //return Roles;
         }
         #endregion
         #region CREATE
