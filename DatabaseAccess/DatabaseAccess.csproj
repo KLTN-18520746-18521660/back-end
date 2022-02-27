@@ -18,6 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Contexts\CachedDB\Validators\" />
+    <Folder Include="Contexts\CachedDB\ParserModels\" />
     <Folder Include="Migrations\" />
   </ItemGroup>
 

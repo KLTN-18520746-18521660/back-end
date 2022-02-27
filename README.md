@@ -116,7 +116,7 @@
 		dotnet ef migrations remove --context SocialDBContext
 		```
 		
-		dotnet ef dbcontext scaffold -o <out-path> -d "connectstring" "Microsoft.EntityFrameworkCore.SQLServer"
+		dotnet ef dbcontext scaffold -o Tests -d "Host=localhost;Username=postgres;Database=config_db;Password=a;Port=5432" "Npgsql.EntityFrameworkCore.PostgreSQL"
 ## SQL
 - **Fultext search**:
 	- [Full Text Search | Npgsql Documentation](https://www.npgsql.org/efcore/mapping/full-text-search.html?tabs=pg12%2Cv5)
@@ -132,4 +132,12 @@ CREATE DATABASE "social_db";
 CREATE DATABASE "cachec_db";
 ```
 
+## NOTIFICATION
+- Need to notify: comment, like, follow
+- "comment/ like": --> "%1 has been commented on your post" --> need post_id, last_user_id
+- "follow"
+- status: "unread" --> modify_time
+- content: object
+	- type: post --> post_id / user --> user_id / system / category
+	- action: post -> "comment, like"; user -> "follow"; "no action"
 dasdasdasdsds

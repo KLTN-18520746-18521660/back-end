@@ -1,9 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using DatabaseAccess.Contexts.CachedDB.Models;
 
 namespace DatabaseAccess.Contexts.CachedDB
 {
     public class CachedDBContext : DbContext
     {
+        DbSet<RecommendResultOfSocialUser> RecommendResultOfSocialUsers { get; set; }
+        DbSet<SessionSocialUser> SessionSocialUsers { get; set; }
+        DbSet<SessionAdminUser> SessionAdminUsers { get; set; }
         public CachedDBContext()
         {
         }
@@ -17,7 +21,7 @@ namespace DatabaseAccess.Contexts.CachedDB
             if (!options.IsConfigured)
             {
                 options.UseNpgsql(
-                    BaseConfigurationDB.GetConnectStringToConfigDB(),
+                    BaseConfigurationDB.GetConnectStringToCachedDB(),
                     npgsqlOptionsAction: o => {
                         o.SetPostgresVersion(14, 1);
                     }
