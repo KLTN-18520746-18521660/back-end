@@ -9,6 +9,9 @@ using Serilog;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Mvc.NewtonsoftJson;
 using DatabaseAccess.Contexts.ConfigDB;
+using DatabaseAccess.Contexts.CachedDB;
+using DatabaseAccess.Contexts.InventoryDB;
+using DatabaseAccess.Contexts.SocialDB;
 
 namespace CoreApi
 {
@@ -32,13 +35,16 @@ namespace CoreApi
                 {
                     // Dot not use base validate with Annotation
                     FluentValidationConfig.DisableDataAnnotationsValidation = true;
-                    // Register Validators
+                    // Register Validators -- Will get all validators match with class contained in Assembly 'ConfigDBContext'
                     FluentValidationConfig.RegisterValidatorsFromAssemblyContaining<ConfigDBContext>();
+                    FluentValidationConfig.RegisterValidatorsFromAssemblyContaining<CachedDBContext>();
+                    FluentValidationConfig.RegisterValidatorsFromAssemblyContaining<InventoryDBContext>();
+                    FluentValidationConfig.RegisterValidatorsFromAssemblyContaining<SocialDBContext>();
                 });
-            services.AddDbContext<DatabaseAccess.Contexts.ConfigDB.ConfigDBContext>();
-            services.AddDbContext<DatabaseAccess.Contexts.CachedDB.CachedDBContext>();
-            services.AddDbContext<DatabaseAccess.Contexts.InventoryDB.InventoryDBContext>();
-            services.AddDbContext<DatabaseAccess.Contexts.SocialDB.SocialDBContext>();
+            services.AddDbContext<ConfigDBContext>();
+            services.AddDbContext<CachedDBContext>();
+            services.AddDbContext<InventoryDBContext>();
+            services.AddDbContext<SocialDBContext>();
             services.AddSwaggerGen(c => {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "CoreApi", Version = "v1" });
             });

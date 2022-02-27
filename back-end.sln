@@ -16,6 +16,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B8E9CB67-B71E-4F36-A92F-3F516D7FD5E6}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
+		Creation.sql = Creation.sql
 		README.md = README.md
 	EndProjectSection
 EndProject

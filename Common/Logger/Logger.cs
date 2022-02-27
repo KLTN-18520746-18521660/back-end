@@ -1,5 +1,6 @@
 using System;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
@@ -11,6 +12,8 @@ namespace Common.Logger
     {
         public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
         {
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
+                "ThreadId", Thread.CurrentThread.ManagedThreadId));
             if (logEvent.Exception == null)
                 return;
             LogEventProperty logEventProperty;
@@ -32,6 +35,8 @@ namespace Common.Logger
     {
         public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
         {
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
+                "ThreadId", Thread.CurrentThread.ManagedThreadId));
             if (logEvent.MessageTemplate == null)
                 return;
 
