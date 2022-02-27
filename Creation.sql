@@ -2,24 +2,24 @@
 /********** SOCIAL **********/
 CREATE TABLE social_user (
     id UUID NOT NULL DEFAULT (gen_random_uuid()),
-	first_name VARCHAR(25) NOT NULL,
-	last_name VARCHAR(25) NOT NULL,
-	display_name VARCHAR(50) NOT NULL,
+    first_name VARCHAR(25) NOT NULL,
+    last_name VARCHAR(25) NOT NULL,
+    display_name VARCHAR(50) NOT NULL,
     user_name VARCHAR(50) NOT NULL,
     password VARCHAR(32) NOT NULL,
     salt VARCHAR(8) NOT NULL DEFAULT (SUBSTRING(REPLACE(CAST(gen_random_uuid() AS VARCHAR), '-', ''), 1, 8)),
     email VARCHAR(320) NOT NULL,
     sex VARCHAR(10),
-	phone VARCHAR(20),
-	country VARCHAR(20),
-	city VARCHAR(20),
-	province VARCHAR(20),
-	verified_email BOOLEAN NOT NULL DEFAULT FALSE,
-	avatar TEXT,
-	status VARCHAR(15) NOT NULL DEFAULT 'Activated',
+    phone VARCHAR(20),
+    country VARCHAR(20),
+    city VARCHAR(20),
+    province VARCHAR(20),
+    verified_email BOOLEAN NOT NULL DEFAULT FALSE,
+    avatar TEXT,
+    status VARCHAR(15) NOT NULL DEFAULT 'Activated',
     roles JSON NOT NULL DEFAULT '[]',
     settings JSON NOT NULL DEFAULT '{}',
-	ranks JSON NOT NULL DEFAULT '{}',
+    ranks JSON NOT NULL DEFAULT '{}',
     search_vector tsvector GENERATED ALWAYS AS (to_tsvector('english', display_name || ' ' || user_name)) STORED,
     last_access_timestamp TIMESTAMPTZ NULL,
     created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
@@ -29,49 +29,45 @@ CREATE TABLE social_user (
 
 CREATE TABLE social_post (
     id BIGINT GENERATED ALWAYS AS IDENTITY,
-	owner UUID NOT NULL,
+    owner UUID NOT NULL,
     title TEXT NOT NULL,
     slug TEXT NOT NULL,
     thumbnail TEXT NOT NULL,
-	status VARCHAR(15) NOT NULL DEFAULT 'Pending',
+    status VARCHAR(15) NOT NULL DEFAULT 'Pending',
+    content_search TEXT NOT NULL,
+    content TEXT NOT NULL,
+    search_vector tsvector GENERATED ALWAYS AS (to_tsvector('english', title || ' ' || content_search)) STORED,
     created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    last_modified_timestamp TIMESTAMPTZ NULL DEFAULT NULL,
     CONSTRAINT "PK_social_post" PRIMARY KEY (id),
     CONSTRAINT "CK_status_valid_value" CHECK (status = 'Deleted' OR status = 'Pending' OR status = 'Private' OR status = 'Approved')
 );
 
-CREATE TABLE social_post_content (
-    post_id BIGINT GENERATED ALWAYS AS IDENTITY,
-    content_search TEXT NOT NULL,
-    content TEXT NOT NULL,
-    search_vector tsvector GENERATED ALWAYS AS (to_tsvector('english', content_search)) STORED,
-    CONSTRAINT "PK_social_post_content" PRIMARY KEY (post_id),
-    CONSTRAINT "FK_social_post" FOREIGN KEY (post_id) REFERENCES social_post(id)
-);
-
 CREATE TABLE social_category (
-	id BIGINT GENERATED ALWAYS AS IDENTITY,
+    id BIGINT GENERATED ALWAYS AS IDENTITY,
     parent_id INTEGER NULL DEFAULT NULL,
-	name VARCHAR(20) NOT NULL,
-	display_name VARCHAR(50) NOT NULL,
-	describe VARCHAR(100) NOT NULL,
-	slug TEXT NOT NULL,
-	thumbnail TEXT,
-	status VARCHAR(15) NOT NULL DEFAULT 'Enabled',
-	created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
-	last_modified_timestamp TIMESTAMPTZ,
-	CONSTRAINT "PK_social_category" PRIMARY KEY (id),
+    name VARCHAR(20) NOT NULL,
+    display_name VARCHAR(50) NOT NULL,
+    describe VARCHAR(100) NOT NULL,
+    slug TEXT NOT NULL,
+    thumbnail TEXT,
+    status VARCHAR(15) NOT NULL DEFAULT 'Enabled',
+    search_vector tsvector GENERATED ALWAYS AS (to_tsvector('english', name || ' ' || display_name || ' ' || describe)) STORED,
+    created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    last_modified_timestamp TIMESTAMPTZ NULL DEFAULT NULL,
+    CONSTRAINT "PK_social_category" PRIMARY KEY (id),
     CONSTRAINT "FK_social_category_parent" FOREIGN KEY (parent_id) REFERENCES social_category(id),
     CONSTRAINT "CK_status_valid_value" CHECK (status = 'Disabled' OR status = 'Enabled' OR status = 'Readonly')
 );
 
 CREATE TABLE social_tag (
-	id BIGINT GENERATED ALWAYS AS IDENTITY,
-	tag VARCHAR(20) NOT NULL,
-	describe VARCHAR(100) NOT NULL,
-	status VARCHAR(15) NOT NULL DEFAULT 'Enabled',
-	created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
-	last_modified_timestamp TIMESTAMPTZ,
-	CONSTRAINT "PK_social_tag" PRIMARY KEY (id),
+    id BIGINT GENERATED ALWAYS AS IDENTITY,
+    tag VARCHAR(20) NOT NULL,
+    describe VARCHAR(100) NOT NULL,
+    status VARCHAR(15) NOT NULL DEFAULT 'Enabled',
+    created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    last_modified_timestamp TIMESTAMPTZ NULL DEFAULT NULL,
+    CONSTRAINT "PK_social_tag" PRIMARY KEY (id),
     CONSTRAINT "CK_status_valid_value" CHECK (status = 'Disabled' OR status = 'Enabled' OR status = 'Readonly')
 );
 
@@ -94,8 +90,9 @@ CREATE TABLE social_comment (
     owner UUID NOT NULL,
     content TEXT NOT NULL,
     status VARCHAR(15) NOT NULL DEFAULT 'Created',
-	created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
-	last_modified_timestamp TIMESTAMPTZ,
+    search_vector tsvector GENERATED ALWAYS AS (to_tsvector('english', content)) STORED,
+    created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    last_modified_timestamp TIMESTAMPTZ NULL DEFAULT NULL,
     CONSTRAINT "PK_social_comment" PRIMARY KEY (id),
     CONSTRAINT "FK_social_comment_post" FOREIGN KEY (post_id) REFERENCES social_post(id),
     CONSTRAINT "FK_social_comment_parent" FOREIGN KEY (id) REFERENCES social_comment(id),
@@ -109,8 +106,9 @@ CREATE TABLE social_report (
     comment_id BIGINT NULL,
     content TEXT NOT NULL,
     status VARCHAR(15) NOT NULL DEFAULT 'Pending',
-	created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
-	last_modified_timestamp TIMESTAMPTZ,
+    search_vector tsvector GENERATED ALWAYS AS (to_tsvector('english', content)) STORED,
+    created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    last_modified_timestamp TIMESTAMPTZ NULL DEFAULT NULL,
     CONSTRAINT "PK_social_report" PRIMARY KEY (id),
     CONSTRAINT "FK_social_report_post" FOREIGN KEY (post_id) REFERENCES social_post(id),
     CONSTRAINT "FK_social_report_comment" FOREIGN KEY (comment_id) REFERENCES social_comment(id),
@@ -173,15 +171,21 @@ CREATE TABLE social_notification (
     user_id UUID NOT NULL,
     status VARCHAR(15) NOT NULL,
     content JSON NOT NULL DEFAULT '{}',
-	created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
-	last_modified_timestamp TIMESTAMPTZ,
+    created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    last_modified_timestamp TIMESTAMPTZ NULL DEFAULT NULL,
     CONSTRAINT "PK_social_notification" PRIMARY KEY (id),
     CONSTRAINT "FK_social_notification_user_id" FOREIGN KEY (user_id) REFERENCES social_user(id)
 );
 
 CREATE UNIQUE INDEX "IX_social_post_slug" ON social_post(slug) WHERE status != 'Deleted';
 CREATE UNIQUE INDEX "IX_social_category_slug" ON social_category(slug) WHERE status != 'Disabled';
+CREATE UNIQUE INDEX "IX_social_tag_tag" ON social_tag(tag) WHERE status != 'Disabled';
 CREATE UNIQUE INDEX "IX_social_user_user_name_email" ON social_user (user_name, email) WHERE status != 'Deleted';
+CREATE INDEX "IX_social_user_search_vector" ON social_user USING GIST (search_vector);
+CREATE INDEX "IX_social_post_search_vector" ON social_post USING GIN (search_vector);
+CREATE INDEX "IX_social_category_search_vector" ON social_category USING GIN (search_vector);
+CREATE INDEX "IX_social_comment_search_vector" ON social_comment USING GIN (search_vector);
+CREATE INDEX "IX_social_report_search_vector" ON social_report USING GIN (search_vector);
 
 /********** CONFIG **********/
 CREATE TABLE admin_user (
@@ -205,7 +209,7 @@ CREATE TABLE admin_user_right (
     right_name VARCHAR(50) NOT NULL,
     display_name VARCHAR(50) NOT NULL,
     describe VARCHAR(150) NOT NULL,
-    status VARCHAR(15) NOT NULL,
+    status VARCHAR(15) NOT NULL DEFAULT 'Enabled',
     CONSTRAINT "PK_admin_user_right" PRIMARY KEY (id),
     CONSTRAINT "CK_status_valid_value" CHECK (status = 'Disabled' OR status = 'Enabled' OR status = 'Readonly')
 );
@@ -216,17 +220,17 @@ CREATE TABLE admin_user_role (
     display_name VARCHAR(50) NOT NULL,
     describe VARCHAR(150) NOT NULL,
     rights JSON NOT NULL DEFAULT '[]',
-    status VARCHAR(15) NOT NULL,
+    status VARCHAR(15) NOT NULL DEFAULT 'Enabled',
     CONSTRAINT "PK_admin_user_role" PRIMARY KEY (id),
     CONSTRAINT "CK_status_valid_value" CHECK (status = 'Disabled' OR status = 'Enabled' OR status = 'Readonly')
 );
 
-CREATE TABLE base_config (
+CREATE TABLE admin_base_config (
     id INTEGER GENERATED ALWAYS AS IDENTITY,
     config_key VARCHAR(50) NOT NULL,
     value JSON NOT NULL DEFAULT '{}',
-    status VARCHAR(15) NOT NULL,
-    CONSTRAINT "PK_base_config" PRIMARY KEY (id),
+    status VARCHAR(15) NOT NULL DEFAULT 'Enabled',
+    CONSTRAINT "PK_admin_base_config" PRIMARY KEY (id),
     CONSTRAINT "CK_status_valid_value" CHECK (status = 'Disabled' OR status = 'Enabled' OR status = 'Readonly')
 );
 
@@ -261,7 +265,7 @@ CREATE TABLE social_user_right (
     right_name VARCHAR(50) NOT NULL,
     display_name VARCHAR(50) NOT NULL,
     describe VARCHAR(150) NOT NULL,
-    status VARCHAR(15) NOT NULL,
+    status VARCHAR(15) NOT NULL DEFAULT 'Enabled',
     CONSTRAINT "PK_social_user_right" PRIMARY KEY (id),
     CONSTRAINT "CK_status_valid_value" CHECK (status = 'Disabled' OR status = 'Enabled' OR status = 'Readonly')
 );
@@ -272,7 +276,7 @@ CREATE TABLE social_user_role (
     display_name VARCHAR(50) NOT NULL,
     describe VARCHAR(150) NOT NULL,
     rights JSON NOT NULL DEFAULT '[]',
-    status VARCHAR(15) NOT NULL,
+    status VARCHAR(15) NOT NULL DEFAULT 'Enabled',
     CONSTRAINT "PK_social_user_role" PRIMARY KEY (id),
     CONSTRAINT "CK_status_valid_value" CHECK (status = 'Disabled' OR status = 'Enabled' OR status = 'Readonly')
 );
@@ -280,7 +284,7 @@ CREATE TABLE social_user_role (
 CREATE UNIQUE INDEX "IX_admin_user_user_name_email" ON admin_user (user_name, email) WHERE status != 'Deleted';
 CREATE UNIQUE INDEX "IX_admin_user_right_right_name" ON admin_user_right (right_name) WHERE status != 'Disabled';
 CREATE UNIQUE INDEX "IX_admin_user_role_role_name" ON admin_user_role (role_name) WHERE status != 'Disabled';
-CREATE UNIQUE INDEX "IX_base_config_config_key" ON base_config (config_key) WHERE status != 'Disabled';
+CREATE UNIQUE INDEX "IX_admin_base_config_config_key" ON admin_base_config (config_key) WHERE status != 'Disabled';
 CREATE INDEX "IX_admin_audit_log_search_vector" ON admin_audit_log USING GIN (search_vector);
 CREATE INDEX "IX_social_audit_log_search_vector" ON social_audit_log USING GIN (search_vector);
 CREATE UNIQUE INDEX "IX_social_user_right_right_name" ON social_user_right (right_name) WHERE status != 'Disabled';
@@ -288,23 +292,23 @@ CREATE UNIQUE INDEX "IX_social_user_role_role_name" ON social_user_role (role_na
 
 /********** CACHED **********/
 CREATE TABLE session_social_user (
-    session_id VARCHAR(30) NOT NULL,
+    session_token VARCHAR(30) NOT NULL,
     user_id UUID NOT NULL,
     saved BOOLEAN NOT NULL DEFAULT 'false',
     data JSON NOT NULL DEFAULT '{}',
-	login_time TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
-	last_interaction_time TIMESTAMPTZ,
-    CONSTRAINT "PK_session_social_user" PRIMARY KEY (session_id),
+    login_time TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    last_interaction_time TIMESTAMPTZ,
+    CONSTRAINT "PK_session_social_user" PRIMARY KEY (session_token),
     CONSTRAINT "FK_session_social_user_user_id" FOREIGN KEY (user_id) REFERENCES social_user(id)
 );
 
 CREATE TABLE session_admin_user (
-    session_id VARCHAR(30) NOT NULL,
+    session_token VARCHAR(30) NOT NULL,
     user_id UUID NOT NULL,
     saved BOOLEAN NOT NULL DEFAULT 'false',
     data JSON NOT NULL DEFAULT '{}',
-	login_time TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
-	last_interaction_time TIMESTAMPTZ,
-    CONSTRAINT "PK_session_admin_user" PRIMARY KEY (session_id),
+    login_time TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    last_interaction_time TIMESTAMPTZ,
+    CONSTRAINT "PK_session_admin_user" PRIMARY KEY (session_token),
     CONSTRAINT "FK_session_admin_user_user_id" FOREIGN KEY (user_id) REFERENCES admin_user(id)
 );
