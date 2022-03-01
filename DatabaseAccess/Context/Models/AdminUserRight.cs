@@ -43,7 +43,7 @@ namespace DatabaseAccess.Context.Models
             get => BaseStatus.StatusToString(Status, EntityStatus.AdminUserRightStatus);
             set => Status = BaseStatus.StatusFromString(value, EntityStatus.AdminUserRightStatus);
         }
-        
+
         public AdminUserRight()
         {
             __ModelName = "SocialUserRight";
@@ -91,7 +91,7 @@ namespace DatabaseAccess.Context.Models
                     Id = 1,
                     RightName = "dashboard",
                     DisplayName = "Dashboard",
-                    Describe = "Can access Homepage and see statistic",
+                    Describe = "Can access Homepage and see statistic.",
                     Status = AdminUserRightStatus.Readonly
                 },
                 new AdminUserRight()
@@ -99,7 +99,7 @@ namespace DatabaseAccess.Context.Models
                     Id = 2,
                     RightName = "category",
                     DisplayName = "Category",
-                    Describe = "Add, create, disable category",
+                    Describe = "Add, create, disable category.",
                     Status = AdminUserRightStatus.Readonly
                 },
                 new AdminUserRight()
@@ -113,9 +113,9 @@ namespace DatabaseAccess.Context.Models
                 new AdminUserRight()
                 {
                     Id = 4,
-                    RightName = "type_of_post",
-                    DisplayName = "Type of post",
-                    Describe = "Add, create, disable type of post.",
+                    RightName = "tag",
+                    DisplayName = "Tag",
+                    Describe = "Add, create, disable tag.",
                     Status = AdminUserRightStatus.Readonly
                 },
                 new AdminUserRight()
@@ -123,7 +123,7 @@ namespace DatabaseAccess.Context.Models
                     Id = 5,
                     RightName = "post",
                     DisplayName = "Post",
-                    Describe = "Review, accept, deny post. See report about post.",
+                    Describe = "Review, accept, reject post. See report about post.",
                     Status = AdminUserRightStatus.Readonly
                 },
                 new AdminUserRight()
@@ -147,7 +147,7 @@ namespace DatabaseAccess.Context.Models
                     Id = 8,
                     RightName = "social_user",
                     DisplayName = "Social User",
-                    Describe = "Deactivate, activate SocialUser",
+                    Describe = "Block, unblock SocialUser",
                     Status = AdminUserRightStatus.Readonly
                 },
                 new AdminUserRight()
@@ -155,7 +155,7 @@ namespace DatabaseAccess.Context.Models
                     Id = 9,
                     RightName = "admin_user",
                     DisplayName = "Admin User",
-                    Describe = "Add, deactivate, activate, delete AdminUser.",
+                    Describe = "Add, block, unblock, delete AdminUser.",
                     Status = AdminUserRightStatus.Readonly
                 },
                 new AdminUserRight()

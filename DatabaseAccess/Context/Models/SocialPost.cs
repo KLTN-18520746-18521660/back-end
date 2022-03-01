@@ -16,7 +16,7 @@ using DatabaseAccess.Common.Status;
 namespace DatabaseAccess.Context.Models
 {
     [Table("social_post")]
-    public partial class SocialPost : BaseModel
+    public class SocialPost : BaseModel
     {
         [Key]
         [Column("id")]
@@ -117,7 +117,6 @@ namespace DatabaseAccess.Context.Models
 
         public override bool PrepareExportObjectJson()
         {
-            
             __ObjectJson = new Dictionary<string, object>
             {
                 { "id", Id },

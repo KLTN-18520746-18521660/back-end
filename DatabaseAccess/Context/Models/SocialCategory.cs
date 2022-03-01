@@ -122,7 +122,7 @@ namespace DatabaseAccess.Context.Models
             };
             return true;
         }
-        
+
         public static List<SocialCategory> GetDefaultData()
         {
             List<SocialCategory> ListData = new()
@@ -173,7 +173,7 @@ namespace DatabaseAccess.Context.Models
                 },
                 new SocialCategory
                 {
-                    Id = 4,
+                    Id = 5,
                     ParentId = null,
                     Name = "left",
                     DisplayName = "Left",

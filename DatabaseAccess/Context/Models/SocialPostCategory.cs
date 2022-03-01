@@ -14,7 +14,7 @@ using DatabaseAccess.Common.Interface;
 namespace DatabaseAccess.Context.Models
 {
     [Table("social_post_category")]
-    public partial class SocialPostCategory : BaseModel
+    public class SocialPostCategory : BaseModel
     {
         [Key]
         [Column("post_id")]
@@ -43,7 +43,15 @@ namespace DatabaseAccess.Context.Models
 
         public override bool PrepareExportObjectJson()
         {
-            throw new NotImplementedException();
+            __ObjectJson = new Dictionary<string, object>
+            {
+                { "post_id", PostId },
+                { "category_id", CategoryId },
+#if DEBUG
+                {"__ModelName", __ModelName }
+#endif
+            };
+            return true;
         }
     }
 }

@@ -3,13 +3,20 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
+using NpgsqlTypes;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using DatabaseAccess.Common.Models;
+using DatabaseAccess.Common.Interface;
+using DatabaseAccess.Common.Status;
+
 
 #nullable disable
 
 namespace DatabaseAccess.Context.Models
 {
     [Table("social_user_action_with_user")]
-    public partial class SocialUserActionWithUser
+    public class SocialUserActionWithUser : BaseModel
     {
         [Key]
         [Column("user_id")]
@@ -17,9 +24,14 @@ namespace DatabaseAccess.Context.Models
         [Key]
         [Column("user_id_des")]
         public Guid UserIdDes { get; set; }
+        [NotMapped]
+        public JArray Actions { get; set; }
         [Required]
         [Column("actions", TypeName = "json")]
-        public string Actions { get; set; }
+        public string ActionsStr {
+            get { return Actions.ToString(); }
+            set { Actions = JsonConvert.DeserializeObject<JArray>(value); }
+        }
 
         [ForeignKey(nameof(UserId))]
         [InverseProperty(nameof(SocialUser.SocialUserActionWithUserUsers))]
@@ -27,5 +39,31 @@ namespace DatabaseAccess.Context.Models
         [ForeignKey(nameof(UserIdDes))]
         [InverseProperty(nameof(SocialUser.SocialUserActionWithUserUserIdDesNavigations))]
         public virtual SocialUser UserIdDesNavigation { get; set; }
+
+        public SocialUserActionWithUser()
+        {
+            __ModelName = "SocialUserActionWithUser";
+            ActionsStr = "[]";
+        }
+
+        public override bool Parse(IBaseParserModel Parser, out string Error)
+        {
+            Error = "Not Implemented Error";
+            return false;
+        }
+
+        public override bool PrepareExportObjectJson()
+        {
+            __ObjectJson = new Dictionary<string, object>
+            {
+                { "user_id", UserId },
+                { "user_id_des", UserIdDes },
+                { "actions", Actions },
+#if DEBUG
+                {"__ModelName", __ModelName }
+#endif
+            };
+            return true;
+        }
     }
 }

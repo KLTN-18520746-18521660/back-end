@@ -8,6 +8,7 @@ using DatabaseAccess.Common.Interface;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using DatabaseAccess.Common;
+using DatabaseAccess.Common.Status;
 
 namespace DatabaseAccess.Contexts.ConfigDB.Models
 {
@@ -113,8 +114,8 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
         public int Status { get; set; }
         [Column("status", TypeName = "VARCHAR(20)")]
         public string StatusStr {
-            get => SocialUserStatus.StatusToString(Status);
-            set => Status = SocialUserStatus.StatusFromString(value);
+            get => BaseStatus.StatusToString(Status, EntityStatus.AdminUserStatus);
+            set => Status = BaseStatus.StatusFromString(value, EntityStatus.AdminUserStatus);
         }
 
         [NotMapped]

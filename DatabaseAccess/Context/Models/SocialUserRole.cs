@@ -1,19 +1,27 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
+using System.Text;
+using DatabaseAccess.Common;
+using DatabaseAccess.Common.Status;
+using DatabaseAccess.Common.Actions;
+using DatabaseAccess.Common.Models;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using DatabaseAccess.Common.Interface;
 
 #nullable disable
 
 namespace DatabaseAccess.Context.Models
 {
     [Table("social_user_role")]
-    public partial class SocialUserRole
+    public class SocialUserRole : BaseModel
     {
         [Key]
         [Column("id")]
-        public int Id { get; set; }
+        public int Id { get; private set; }
         [Required]
         [Column("role_name")]
         [StringLength(50)]
@@ -26,12 +34,77 @@ namespace DatabaseAccess.Context.Models
         [Column("describe")]
         [StringLength(150)]
         public string Describe { get; set; }
+        [NotMapped]
+        public Dictionary<string, List<string>> Rights { get; set; }
         [Required]
         [Column("rights", TypeName = "json")]
-        public string Rights { get; set; }
+        public string RightsStr {
+            get { return JsonConvert.SerializeObject(Rights).ToString(); }
+            set { Rights = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(value); }
+        }
+        [NotMapped]
+        public int Status { get; set; }
         [Required]
         [Column("status")]
         [StringLength(15)]
-        public string Status { get; set; }
+        public string StatusStr {
+            get => BaseStatus.StatusToString(Status, EntityStatus.SocialUserRoleStatus);
+            set => Status = BaseStatus.StatusFromString(value,  EntityStatus.SocialUserRoleStatus);
+        }
+        
+        public SocialUserRole()
+        {
+            __ModelName = "SocialUserRole";
+            Status = SocialUserRoleStatus.Enabled;
+        }
+
+        public override bool Parse(IBaseParserModel Parser, out string Error)
+        {
+            Error = "";
+            try {
+                var parser = (ParserModels.ParserSocialUserRole)Parser;
+                RoleName = parser.role_name;
+                DisplayName = parser.display_name;
+                Describe = parser.describe;
+                Rights = parser.rights;
+                return true;
+            } catch (Exception ex) {
+                Error = ex.ToString();
+                return false;
+            }
+        }
+
+        public override bool PrepareExportObjectJson()
+        {
+            __ObjectJson = new Dictionary<string, object>
+            {
+                { "id", Id },
+                { "role_name", RoleName },
+                { "display_name", DisplayName },
+                { "describe", Describe },
+                { "rights", Rights },
+                { "status", Status },
+#if DEBUG
+                {"__ModelName", __ModelName }
+#endif
+            };
+            return true;
+        }
+        public static List<SocialUserRole> GetDefaultData()
+        {
+            List<SocialUserRole> ListData = new ()
+            {
+                new SocialUserRole()
+                {
+                    Id = 1,
+                    RoleName = "user",
+                    DisplayName = "User",
+                    Describe = "Normal user",
+                    Status = SocialUserRoleStatus.Readonly,
+                    Rights = SocialUserRight.GenerateSocialUserRights()
+                }
+            };
+            return ListData;
+        }
     }
 }

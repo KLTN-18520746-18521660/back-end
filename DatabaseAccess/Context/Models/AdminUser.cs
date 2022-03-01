@@ -116,15 +116,15 @@ namespace DatabaseAccess.Context.Models
             __ObjectJson = new Dictionary<string, object>()
             {
                 { "id", Id },
-                { "user_name", UserName},
-                { "display_name", DisplayName},
+                { "user_name", UserName },
+                { "display_name", DisplayName },
                 { "email", Email },
-                { "status", StatusStr},
-                { "roles", Roles},
-                { "rights", Rights},
-                { "settings", Settings},
-                { "last_access_timestamp", LastAccessTimestamp},
-                { "created_timestamp", CreatedTimestamp},
+                { "status", StatusStr },
+                { "roles", Roles },
+                { "rights", Rights },
+                { "settings", Settings },
+                { "last_access_timestamp", LastAccessTimestamp },
+                { "created_timestamp", CreatedTimestamp },
 #if DEBUG
                 { "password", Password },
                 { "salt", Salt },

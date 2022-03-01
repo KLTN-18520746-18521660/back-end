@@ -3,13 +3,20 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
+using NpgsqlTypes;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using DatabaseAccess.Common.Models;
+using DatabaseAccess.Common.Interface;
+using DatabaseAccess.Common.Status;
+
 
 #nullable disable
 
 namespace DatabaseAccess.Context.Models
 {
     [Table("social_user_action_with_post")]
-    public partial class SocialUserActionWithPost
+    public class SocialUserActionWithPost : BaseModel
     {
         [Key]
         [Column("user_id")]
@@ -17,9 +24,14 @@ namespace DatabaseAccess.Context.Models
         [Key]
         [Column("post_id")]
         public long PostId { get; set; }
+        [NotMapped]
+        public JArray Actions { get; set; }
         [Required]
         [Column("actions", TypeName = "json")]
-        public string Actions { get; set; }
+        public string ActionsStr {
+            get { return Actions.ToString(); }
+            set { Actions = JsonConvert.DeserializeObject<JArray>(value); }
+        }
 
         [ForeignKey(nameof(PostId))]
         [InverseProperty(nameof(SocialPost.SocialUserActionWithPosts))]
@@ -27,5 +39,31 @@ namespace DatabaseAccess.Context.Models
         [ForeignKey(nameof(UserId))]
         [InverseProperty(nameof(SocialUser.SocialUserActionWithPosts))]
         public virtual SocialUser User { get; set; }
+
+        public SocialUserActionWithPost()
+        {
+            __ModelName = "SocialUserActionWithPost";
+            ActionsStr = "[]";
+        }
+
+        public override bool Parse(IBaseParserModel Parser, out string Error)
+        {
+            Error = "Not Implemented Error";
+            return false;
+        }
+
+        public override bool PrepareExportObjectJson()
+        {
+            __ObjectJson = new Dictionary<string, object>
+            {
+                { "user_id", UserId },
+                { "post_id", PostId },
+                { "actions", Actions },
+#if DEBUG
+                {"__ModelName", __ModelName }
+#endif
+            };
+            return true;
+        }
     }
 }

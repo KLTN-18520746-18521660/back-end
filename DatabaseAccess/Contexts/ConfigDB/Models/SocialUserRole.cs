@@ -24,7 +24,7 @@ namespace DatabaseAccess.Contexts.ConfigDB.Models
         {
             List<SocialUserRole> ListData = new List<SocialUserRole>();
             var DefaultRights = SocialUserRight.GetDefaultData();
-            int IdIdentity = 1;
+            // int IdIdentity = 1;
             foreach(var Right in DefaultRights)
             {
                 //// Read Role
