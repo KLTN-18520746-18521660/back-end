@@ -82,38 +82,23 @@
 	> dotnet tool install --global dotnet-ef
 	- *Add migrations*
 		```
-		dotnet ef migrations add ConfigDBCreation --context ConfigDBContext
-		dotnet ef migrations add CachedDBCreation --context CachedDBContext
-		dotnet ef migrations add InventoryDBCreation --context InventoryDBContext
-		dotnet ef migrations add SocialDBCreation --context SocialDBContext
+		dotnet ef migrations add DBCreation --context DBContext
 		```
 	- *Update database*
 		```
-		dotnet ef database update ConfigDBCreation --context ConfigDBContext
-		dotnet ef database update CachedDBCreation --context CachedDBContext
-		dotnet ef database update InventoryDBCreation --context InventoryDBContext
-		dotnet ef database update SocialDBCreation --context SocialDBContext
+		dotnet ef database update DBCreation --context DBContext
 		```
 	- *Drop database*
 		```
-		dotnet ef database drop ConfigDBCreation --context ConfigDBContext
-		dotnet ef database drop CachedDBCreation --context CachedDBContext
-		dotnet ef database drop InventoryDBCreation --context InventoryDBContext
-		dotnet ef database drop SocialDBCreation --context SocialDBContext
+		dotnet ef database drop DBCreation --context DBContext
 		```
 	- *Generate script database*
 		```
-		dotnet ef migrations script --context ConfigDBContext
-		dotnet ef migrations script --context CachedDBContext
-		dotnet ef migrations script --context InventoryDBContext
-		dotnet ef migrations script --context SocialDBContext
+		dotnet ef migrations script --context DBContext
 		```
 	- *Remove migrations*
 		```
-		dotnet ef migrations remove --context ConfigDBContext
-		dotnet ef migrations remove --context CachedDBContext
-		dotnet ef migrations remove --context InventoryDBContext
-		dotnet ef migrations remove --context SocialDBContext
+		dotnet ef migrations remove --context DBContext
 		```
 		
 		dotnet ef dbcontext scaffold -o Tests -d "Host=localhost;Username=postgres;Database=config_db;Password=a;Port=5432" "Npgsql.EntityFrameworkCore.PostgreSQL"

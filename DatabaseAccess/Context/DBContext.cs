@@ -127,9 +127,9 @@ namespace DatabaseAccess.Context
             {
                 entity.Property(e => e.Id)
                     .UseIdentityAlwaysColumn();
-                entity.Property(e => e.Status)
+                entity.Property(e => e.StatusStr)
                     .HasDefaultValueSql($"'{ BaseStatus.StatusToString(AdminBaseConfigStatus.Enabled, EntityStatus.AdminBaseConfigStatus) }'");
-                entity.Property(e => e.ValueStr).HasDefaultValueSql("{}");
+                entity.Property(e => e.ValueStr).HasDefaultValueSql("'{}'");
 
                 entity.HasIndex(e => e.ConfigKey, "IX_admin_base_config_config_key")
                     .IsUnique()
@@ -157,13 +157,13 @@ namespace DatabaseAccess.Context
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.RolesStr)
-                    .HasDefaultValueSql("[]");
+                    .HasDefaultValueSql("'[]'");
                 entity.Property(e => e.Salt)
                     .HasDefaultValueSql("SUBSTRING(REPLACE(CAST(gen_random_uuid() AS VARCHAR), '-', ''), 1, 8)");
                 entity.Property(e => e.SettingsStr)
-                    .HasDefaultValueSql("{}");
-                entity.Property(e => e.Status)
-                    .HasDefaultValueSql($"{ BaseStatus.StatusToString(AdminUserStatus.Activated, EntityStatus.AdminUserStatus) }");
+                    .HasDefaultValueSql("'{}'");
+                entity.Property(e => e.StatusStr)
+                    .HasDefaultValueSql($"'{ BaseStatus.StatusToString(AdminUserStatus.Activated, EntityStatus.AdminUserStatus) }'");
 
                 entity.HasIndex(e => new { e.UserName, e.Email }, "IX_admin_user_user_name_email")
                     .IsUnique()
@@ -195,7 +195,7 @@ namespace DatabaseAccess.Context
                 entity.Property(e => e.Id)
                     .UseIdentityAlwaysColumn();
                 entity.Property(e => e.StatusStr)
-                    .HasDefaultValueSql($"{ BaseStatus.StatusToString(AdminUserRightStatus.Enabled, EntityStatus.AdminUserRightStatus) }");
+                    .HasDefaultValueSql($"'{ BaseStatus.StatusToString(AdminUserRightStatus.Enabled, EntityStatus.AdminUserRightStatus) }'");
 
                 entity.HasIndex(e => e.RightName, "IX_admin_user_right_right_name")
                     .IsUnique()
@@ -221,12 +221,12 @@ namespace DatabaseAccess.Context
                 entity.Property(e => e.Id)
                     .UseIdentityAlwaysColumn();
                 entity.Property(e => e.RightsStr)
-                    .HasDefaultValueSql("[]");
-                entity.Property(e => e.StatusStr).HasDefaultValueSql($"{ BaseStatus.StatusToString(AdminUserRoleStatus.Enabled, EntityStatus.AdminUserRoleStatus) }");
+                    .HasDefaultValueSql("'[]'");
+                entity.Property(e => e.StatusStr).HasDefaultValueSql($"'{ BaseStatus.StatusToString(AdminUserRoleStatus.Enabled, EntityStatus.AdminUserRoleStatus) }'");
 
                 entity.HasIndex(e => e.RoleName, "IX_admin_user_role_role_name")
                     .IsUnique()
-                    .HasFilter($"(status) <> '{ BaseStatus.StatusToString(AdminUserRoleStatus.Disabled, EntityStatus.AdminUserRoleStatus) }')");
+                    .HasFilter($"(status) <> '{ BaseStatus.StatusToString(AdminUserRoleStatus.Disabled, EntityStatus.AdminUserRoleStatus) }'");
                 entity
                     .HasCheckConstraint(
                         "CK_admin_user_role_status_valid_value",
@@ -245,7 +245,7 @@ namespace DatabaseAccess.Context
         {
             modelBuilder.Entity<SessionAdminUser>(entity =>
             {
-                entity.Property(e => e.DataStr).HasDefaultValueSql("{}");
+                entity.Property(e => e.DataStr).HasDefaultValueSql("'{}'");
                 entity.Property(e => e.CreatedTimestamp).HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
 
                 entity.HasOne(d => d.User)
@@ -268,7 +268,7 @@ namespace DatabaseAccess.Context
         {
             modelBuilder.Entity<SessionSocialUser>(entity =>
             {
-                entity.Property(e => e.DataStr).HasDefaultValueSql("{}");
+                entity.Property(e => e.DataStr).HasDefaultValueSql("'{}'");
                 entity.Property(e => e.CreatedTimestamp).HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
 
                 entity.HasOne(d => d.User)
@@ -319,8 +319,8 @@ namespace DatabaseAccess.Context
                     .UseIdentityAlwaysColumn();
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
-                entity.Property(e => e.Status)
-                    .HasDefaultValueSql($"{ BaseStatus.StatusToString(SocialCategoryStatus.Enabled, EntityStatus.SocialCategoryStatus) }");
+                entity.Property(e => e.StatusStr)
+                    .HasDefaultValueSql($"'{ BaseStatus.StatusToString(SocialCategoryStatus.Enabled, EntityStatus.SocialCategoryStatus) }'");
                 //entity.Property(e => e.SearchVector).HasComputedColumnSql("to_tsvector('english'::regconfig, (((((name)::text || ' '::text) || (display_name)::text) || ' '::text) || (describe)::text))", true);
                 //entity.HasIndex(e => e.SearchVector, "IX_social_category_search_vector")
                 //    .HasMethod("gin");
@@ -374,7 +374,7 @@ namespace DatabaseAccess.Context
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.StatusStr)
-                    .HasDefaultValueSql($"{ BaseStatus.StatusToString(SocialCommentStatus.Created, EntityStatus.SocialCommentStatus) }");
+                    .HasDefaultValueSql($"'{ BaseStatus.StatusToString(SocialCommentStatus.Created, EntityStatus.SocialCommentStatus) }'");
 
                 entity
                     .HasGeneratedTsVectorColumn(
@@ -422,10 +422,10 @@ namespace DatabaseAccess.Context
             modelBuilder.Entity<SocialNotification>(entity =>
             {
                 entity.Property(e => e.Id).UseIdentityAlwaysColumn();
-                entity.Property(e => e.ContentStr).HasDefaultValueSql("{}");
+                entity.Property(e => e.ContentStr).HasDefaultValueSql("'{}'");
                 entity.Property(e => e.CreatedTimestamp).HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.StatusStr)
-                    .HasDefaultValueSql($"{ BaseStatus.StatusToString(SocialNotificationStatus.Sent, EntityStatus.SocialNotificationStatus) }");
+                    .HasDefaultValueSql($"'{ BaseStatus.StatusToString(SocialNotificationStatus.Sent, EntityStatus.SocialNotificationStatus) }'");
                 
                 entity
                     .HasCheckConstraint(
@@ -468,7 +468,7 @@ namespace DatabaseAccess.Context
                     .HasDefaultValueSql("0");
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
-                entity.Property(e => e.StatusStr).HasDefaultValueSql($"{ BaseStatus.StatusToString(SocialPostStatus.Pending, EntityStatus.SocialPostStatus) }");
+                entity.Property(e => e.StatusStr).HasDefaultValueSql($"'{ BaseStatus.StatusToString(SocialPostStatus.Pending, EntityStatus.SocialPostStatus) }'");
 
 
                 entity
@@ -555,12 +555,12 @@ namespace DatabaseAccess.Context
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.StatusStr)
-                    .HasDefaultValueSql($"{ BaseStatus.StatusToString(SocialReportStatus.Pending, EntityStatus.SocialReportStatus) }");
+                    .HasDefaultValueSql($"'{ BaseStatus.StatusToString(SocialReportStatus.Pending, EntityStatus.SocialReportStatus) }'");
                 entity
                     .HasGeneratedTsVectorColumn(
                         e => e.SearchVector,
                         "english",
-                        e => new { e.Comment }
+                        e => e.Content
                     )
                     .HasIndex(e => e.SearchVector)
                     .HasMethod("GIN");
@@ -603,7 +603,7 @@ namespace DatabaseAccess.Context
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.StatusStr)
-                    .HasDefaultValueSql($"{ BaseStatus.StatusToString(SocialTagStatus.Enabled, EntityStatus.SocialTagStatus) }");
+                    .HasDefaultValueSql($"'{ BaseStatus.StatusToString(SocialTagStatus.Enabled, EntityStatus.SocialTagStatus) }'");
                 entity
                     .HasCheckConstraint(
                         "CK_social_tag_status_valid_value",
@@ -632,15 +632,15 @@ namespace DatabaseAccess.Context
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.RanksStr)
-                    .HasDefaultValueSql("{}");
+                    .HasDefaultValueSql("'{}'");
                 entity.Property(e => e.RolesStr)
-                    .HasDefaultValueSql("[]");
+                    .HasDefaultValueSql("'[]'");
                 entity.Property(e => e.SettingsStr)
-                    .HasDefaultValueSql("{}");
+                    .HasDefaultValueSql("'{}'");
                 entity.Property(e => e.Salt)
                     .HasDefaultValueSql("SUBSTRING(REPLACE(CAST(gen_random_uuid() AS VARCHAR), '-', ''), 1, 8)");
                 entity.Property(e => e.StatusStr)
-                    .HasDefaultValueSql($"{ BaseStatus.StatusToString(SocialUserStatus.Activated, EntityStatus.SocialUserStatus) }");
+                    .HasDefaultValueSql($"'{ BaseStatus.StatusToString(SocialUserStatus.Activated, EntityStatus.SocialUserStatus) }'");
                 entity
                     .HasGeneratedTsVectorColumn(
                         e => e.SearchVector,
@@ -651,7 +651,7 @@ namespace DatabaseAccess.Context
                     .HasMethod("GIST");
                 entity.HasIndex(e => new { e.UserName, e.Email }, "IX_social_user_user_name_email")
                     .IsUnique()
-                    .HasFilter($"{ BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus) }");
+                    .HasFilter($"(status) <> '{ BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus) }'");
                 entity
                     .HasCheckConstraint(
                         "CK_social_report_status_valid_value",
@@ -677,7 +677,7 @@ namespace DatabaseAccess.Context
                 entity
                     .HasKey(e => new { e.UserId, e.CategoryId });
                 entity.Property(e => e.ActionsStr)
-                    .HasDefaultValueSql("[]");
+                    .HasDefaultValueSql("'[]'");
                 entity.HasOne(d => d.Category)
                     .WithMany(p => p.SocialUserActionWithCategories)
                     .HasForeignKey(d => d.CategoryId)
@@ -699,7 +699,7 @@ namespace DatabaseAccess.Context
                 entity
                     .HasKey(e => new { e.UserId, e.CommentId });
                 entity.Property(e => e.ActionsStr)
-                    .HasDefaultValueSql("[]");
+                    .HasDefaultValueSql("'[]'");
                 entity.HasOne(d => d.Comment)
                     .WithMany(p => p.SocialUserActionWithComments)
                     .HasForeignKey(d => d.CommentId)
@@ -721,7 +721,7 @@ namespace DatabaseAccess.Context
                 entity
                     .HasKey(e => new { e.UserId, e.PostId });
                 entity.Property(e => e.ActionsStr)
-                    .HasDefaultValueSql("[]");
+                    .HasDefaultValueSql("'[]'");
                 entity.HasOne(d => d.Post)
                     .WithMany(p => p.SocialUserActionWithPosts)
                     .HasForeignKey(d => d.PostId)
@@ -743,7 +743,7 @@ namespace DatabaseAccess.Context
                 entity
                     .HasKey(e => new { e.UserId, e.TagId });
                 entity.Property(e => e.ActionsStr)
-                    .HasDefaultValueSql("[]");
+                    .HasDefaultValueSql("'[]'");
                 entity.HasOne(d => d.Tag)
                     .WithMany(p => p.SocialUserActionWithTags)
                     .HasForeignKey(d => d.TagId)
@@ -765,7 +765,7 @@ namespace DatabaseAccess.Context
                 entity
                     .HasKey(e => new { e.UserId, e.UserIdDes });
                 entity.Property(e => e.ActionsStr)
-                    .HasDefaultValueSql("[]");
+                    .HasDefaultValueSql("'[]'");
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.SocialUserActionWithUserUsers)
                     .HasForeignKey(d => d.UserId)
@@ -786,7 +786,7 @@ namespace DatabaseAccess.Context
             {
                 entity.Property(e => e.Id)
                     .UseIdentityAlwaysColumn();
-                entity.Property(e => e.Status).HasDefaultValueSql($"{ BaseStatus.StatusToString(SocialUserRightStatus.Enabled, EntityStatus.SocialUserRightStatus) }");
+                entity.Property(e => e.StatusStr).HasDefaultValueSql($"'{ BaseStatus.StatusToString(SocialUserRightStatus.Enabled, EntityStatus.SocialUserRightStatus) }'");
                 entity.HasIndex(e => e.RightName, "IX_social_user_right_right_name")
                     .IsUnique()
                     .HasFilter($"(status) <> '{ BaseStatus.StatusToString(SocialUserRightStatus.Disabled, EntityStatus.SocialUserRightStatus) }'");
@@ -811,12 +811,12 @@ namespace DatabaseAccess.Context
                 entity.Property(e => e.Id)
                     .UseIdentityAlwaysColumn();
                 entity.Property(e => e.RightsStr)
-                    .HasDefaultValueSql("[]");
-                entity.Property(e => e.StatusStr).HasDefaultValueSql($"{ BaseStatus.StatusToString(SocialUserRoleStatus.Enabled, EntityStatus.SocialUserRoleStatus) }");
+                    .HasDefaultValueSql("'[]'");
+                entity.Property(e => e.StatusStr).HasDefaultValueSql($"'{ BaseStatus.StatusToString(SocialUserRoleStatus.Enabled, EntityStatus.SocialUserRoleStatus) }'");
 
                 entity.HasIndex(e => e.RoleName, "IX_social_user_role_role_name")
                     .IsUnique()
-                    .HasFilter($"(status) <> '{ BaseStatus.StatusToString(SocialUserRoleStatus.Disabled, EntityStatus.SocialUserRoleStatus) }')");
+                    .HasFilter($"(status) <> '{ BaseStatus.StatusToString(SocialUserRoleStatus.Disabled, EntityStatus.SocialUserRoleStatus) }'");
                 entity
                     .HasCheckConstraint(
                         "CK_social_user_role_status_valid_value",

@@ -21,7 +21,7 @@ namespace DatabaseAccess.Context.Models
         public long Id { get; private set; }
         [Required]
         [Column("tag")]
-        [StringLength(20)]
+        [StringLength(25)]
         public string Tag { get; private set; }
         [Required]
         [Column("describe")]

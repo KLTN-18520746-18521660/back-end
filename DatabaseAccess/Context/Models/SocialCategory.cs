@@ -134,6 +134,7 @@ namespace DatabaseAccess.Context.Models
                     Name = "technology",
                     DisplayName = "Technology",
                     Describe = "This not a bug this a feature",
+                    Slug = "technology",
                     Thumbnail = null,
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly
@@ -145,6 +146,7 @@ namespace DatabaseAccess.Context.Models
                     Name = "developer",
                     DisplayName = "Developer",
                     Describe = "Do not click to this",
+                    Slug = "developer",
                     Thumbnail = null,
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly
@@ -156,6 +158,7 @@ namespace DatabaseAccess.Context.Models
                     Name = "dicussion",
                     DisplayName = "Dicussion",
                     Describe = "Search google to have better solution",
+                    Slug = "dicussion",
                     Thumbnail = null,
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly
@@ -167,6 +170,7 @@ namespace DatabaseAccess.Context.Models
                     Name = "blog",
                     DisplayName = "Blog",
                     Describe = "Nothing in here",
+                    Slug = "blog",
                     Thumbnail = null,
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly
@@ -178,6 +182,7 @@ namespace DatabaseAccess.Context.Models
                     Name = "left",
                     DisplayName = "Left",
                     Describe = "Life die have number",
+                    Slug = "left",
                     Thumbnail = null,
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly
