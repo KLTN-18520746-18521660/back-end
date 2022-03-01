@@ -17,5 +17,12 @@ namespace DatabaseAccess.tst
         [Key]
         [Column("category_id")]
         public long CategoryId { get; set; }
+
+        [ForeignKey(nameof(CategoryId))]
+        [InverseProperty(nameof(SocialCategory.SocialPostCategories))]
+        public virtual SocialCategory Category { get; set; }
+        [ForeignKey(nameof(PostId))]
+        [InverseProperty(nameof(SocialPost.SocialPostCategories))]
+        public virtual SocialPost Post { get; set; }
     }
 }

@@ -15,6 +15,7 @@ namespace DatabaseAccess.tst
         public SocialCategory()
         {
             InverseParent = new HashSet<SocialCategory>();
+            SocialPostCategories = new HashSet<SocialPostCategory>();
             SocialUserActionWithCategories = new HashSet<SocialUserActionWithCategory>();
         }
 
@@ -56,6 +57,8 @@ namespace DatabaseAccess.tst
         public virtual SocialCategory Parent { get; set; }
         [InverseProperty(nameof(SocialCategory.Parent))]
         public virtual ICollection<SocialCategory> InverseParent { get; set; }
+        [InverseProperty(nameof(SocialPostCategory.Category))]
+        public virtual ICollection<SocialPostCategory> SocialPostCategories { get; set; }
         [InverseProperty(nameof(SocialUserActionWithCategory.Category))]
         public virtual ICollection<SocialUserActionWithCategory> SocialUserActionWithCategories { get; set; }
     }

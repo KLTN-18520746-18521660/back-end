@@ -5,9 +5,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using NpgsqlTypes;
 using Newtonsoft.Json;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
+using DatabaseAccess.Common.Status;
 
 #nullable disable
 
@@ -38,14 +40,17 @@ namespace DatabaseAccess.Context.Models
         [Required]
         [Column("thumbnail")]
         public string Thumbnail { get; set; }
+        [Required]
+        [Column("views")]
+        public int Views { get; set; }
         [NotMapped]
         public int Status { get; set; }
         [Required]
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => SocialCommentStatus.StatusToString(Status);
-            set => Status = SocialCommentStatus.StatusFromString(value);
+            get => BaseStatus.StatusToString(Status, EntityStatus.SocialPostStatus);
+            set => Status = BaseStatus.StatusFromString(value, EntityStatus.SocialPostStatus);
         }
         [Required]
         [Column("content_search")]
@@ -73,6 +78,10 @@ namespace DatabaseAccess.Context.Models
         public virtual SocialUser OwnerNavigation { get; set; }
         [InverseProperty(nameof(SocialComment.Post))]
         public virtual ICollection<SocialComment> SocialComments { get; set; }
+        [InverseProperty(nameof(SocialPostCategory.Post))]
+        public virtual ICollection<SocialPostCategory> SocialPostCategories { get; set; }
+        [InverseProperty(nameof(SocialPostTag.Post))]
+        public virtual ICollection<SocialPostTag> SocialPostTags { get; set; }
         [InverseProperty(nameof(SocialReport.Post))]
         public virtual ICollection<SocialReport> SocialReports { get; set; }
         [InverseProperty(nameof(SocialUserActionWithPost.Post))]
@@ -82,6 +91,8 @@ namespace DatabaseAccess.Context.Models
         {
             SocialComments = new HashSet<SocialComment>();
             SocialReports = new HashSet<SocialReport>();
+            SocialPostCategories = new HashSet<SocialPostCategory>();
+            SocialPostTags = new HashSet<SocialPostTag>();
             SocialUserActionWithPosts = new HashSet<SocialUserActionWithPost>();
 
             CreatedTimestamp = DateTime.UtcNow;
@@ -106,7 +117,26 @@ namespace DatabaseAccess.Context.Models
 
         public override bool PrepareExportObjectJson()
         {
-            throw new NotImplementedException();
+            
+            __ObjectJson = new Dictionary<string, object>
+            {
+                { "id", Id },
+                { "owner", Owner },
+                { "title", Title },
+                { "slug", Slug },
+                { "thumbnail", Thumbnail },
+                { "views", Views },
+                // { "comments", SocialComments.Count<SocialComment>(p => p.Status != SocialCommentStatus.Deleted) },
+                // { "likes", SocialUserActionWithPosts.Count<SocialUserActionWithPost>(p => p.Actions.li) },
+                { "content", Content },
+                { "status", StatusStr },
+                { "created_timestamp", CreatedTimestamp },
+                { "last_modified_timestamp", LastModifiedTimestamp },
+#if DEBUG
+                {"__ModelName", __ModelName }
+#endif
+            };
+            return true;
         }
 
     }

@@ -5,6 +5,8 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using DatabaseAccess.Common;
+using DatabaseAccess.Common.Status;
+using DatabaseAccess.Common.Actions;
 using DatabaseAccess.Common.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -46,8 +48,8 @@ namespace DatabaseAccess.Context.Models
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => AdminUserRoleStatus.StatusToString(Status);
-            set => Status = AdminUserRoleStatus.StatusFromString(value);
+            get => BaseStatus.StatusToString(Status, EntityStatus.AdminUserRoleStatus);
+            set => Status = BaseStatus.StatusFromString(value,  EntityStatus.AdminUserRoleStatus);
         }
         
         public AdminUserRole()

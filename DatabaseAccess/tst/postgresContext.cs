@@ -223,6 +223,8 @@ namespace DatabaseAccess.tst
 
                 entity.Property(e => e.CreatedTimestamp).HasDefaultValueSql("(now() AT TIME ZONE 'UTC'::text)");
 
+                entity.Property(e => e.Status).HasDefaultValueSql("'Sent'::character varying");
+
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.SocialNotifications)
                     .HasForeignKey(d => d.UserId)
@@ -257,11 +259,35 @@ namespace DatabaseAccess.tst
             modelBuilder.Entity<SocialPostCategory>(entity =>
             {
                 entity.HasKey(e => new { e.PostId, e.CategoryId });
+
+                entity.HasOne(d => d.Category)
+                    .WithMany(p => p.SocialPostCategories)
+                    .HasForeignKey(d => d.CategoryId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("social_post_category_category");
+
+                entity.HasOne(d => d.Post)
+                    .WithMany(p => p.SocialPostCategories)
+                    .HasForeignKey(d => d.PostId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("social_post_category_post");
             });
 
             modelBuilder.Entity<SocialPostTag>(entity =>
             {
                 entity.HasKey(e => new { e.PostId, e.TagId });
+
+                entity.HasOne(d => d.Post)
+                    .WithMany(p => p.SocialPostTags)
+                    .HasForeignKey(d => d.PostId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_social_post_tag_post");
+
+                entity.HasOne(d => d.Tag)
+                    .WithMany(p => p.SocialPostTags)
+                    .HasForeignKey(d => d.TagId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_social_post_tag_tag");
             });
 
             modelBuilder.Entity<SocialReport>(entity =>

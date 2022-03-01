@@ -16,9 +16,9 @@ namespace CoreApi.Controllers.Test
     [Route("[controller]/test/adminuser")]
     public class TestController : BaseController
     {
-        private ConfigDBContext __ConfigDB;
+        private DBContext __ConfigDB;
         public TestController(
-            ConfigDBContext ConfigDB
+            DBContext ConfigDB
         ) : base() {
             __ConfigDB = ConfigDB;
             __ControllerName = "TestController";

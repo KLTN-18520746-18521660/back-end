@@ -40,12 +40,13 @@ CREATE TABLE social_post (
     created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
     last_modified_timestamp TIMESTAMPTZ NULL DEFAULT NULL,
     CONSTRAINT "PK_social_post" PRIMARY KEY (id),
+    CONSTRAINT "FK_social_post_user_id" FOREIGN KEY (owner) REFERENCES social_user(id),
     CONSTRAINT "CK_status_valid_value" CHECK (status = 'Deleted' OR status = 'Pending' OR status = 'Private' OR status = 'Approved')
 );
 
 CREATE TABLE social_category (
     id BIGINT GENERATED ALWAYS AS IDENTITY,
-    parent_id INTEGER NULL DEFAULT NULL,
+    parent_id BIGINT NULL DEFAULT NULL,
     name VARCHAR(20) NOT NULL,
     display_name VARCHAR(50) NOT NULL,
     describe VARCHAR(100) NOT NULL,
@@ -74,13 +75,17 @@ CREATE TABLE social_tag (
 CREATE TABLE social_post_tag (
     post_id BIGINT NOT NULL,
     tag_id BIGINT NOT NULL,
-    CONSTRAINT "PK_social_post_tag" PRIMARY KEY (post_id, tag_id)
+    CONSTRAINT "PK_social_post_tag" PRIMARY KEY (post_id, tag_id),
+    CONSTRAINT "FK_social_post_tag_post" FOREIGN KEY (post_id) REFERENCES social_post(id),
+    CONSTRAINT "FK_social_post_tag_tag" FOREIGN KEY (tag_id) REFERENCES social_tag(id)
 );
 
 CREATE TABLE social_post_category (
     post_id BIGINT NOT NULL,
     category_id BIGINT NOT NULL,
-    CONSTRAINT "PK_social_post_category" PRIMARY KEY (post_id, category_id)
+    CONSTRAINT "PK_social_post_category" PRIMARY KEY (post_id, category_id),
+    CONSTRAINT "social_post_category_post" FOREIGN KEY (post_id) REFERENCES social_post(id),
+    CONSTRAINT "social_post_category_category" FOREIGN KEY (category_id) REFERENCES social_category(id)
 );
 
 CREATE TABLE social_comment (
@@ -94,8 +99,9 @@ CREATE TABLE social_comment (
     created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
     last_modified_timestamp TIMESTAMPTZ NULL DEFAULT NULL,
     CONSTRAINT "PK_social_comment" PRIMARY KEY (id),
+    CONSTRAINT "FK_social_comment_user_id" FOREIGN KEY (owner) REFERENCES social_user(id),
     CONSTRAINT "FK_social_comment_post" FOREIGN KEY (post_id) REFERENCES social_post(id),
-    CONSTRAINT "FK_social_comment_parent" FOREIGN KEY (id) REFERENCES social_comment(id),
+    CONSTRAINT "FK_social_comment_parent" FOREIGN KEY (parent_id) REFERENCES social_comment(id),
     CONSTRAINT "CK_status_valid_value" CHECK (status = 'Deleted' OR status = 'Created' OR status = 'Edited')
 );
 
@@ -110,12 +116,13 @@ CREATE TABLE social_report (
     created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
     last_modified_timestamp TIMESTAMPTZ NULL DEFAULT NULL,
     CONSTRAINT "PK_social_report" PRIMARY KEY (id),
-    CONSTRAINT "FK_social_report_post" FOREIGN KEY (post_id) REFERENCES social_post(id),
+    CONSTRAINT "FK_social_report_user_id" FOREIGN KEY (user_id) REFERENCES social_user(id),
+	CONSTRAINT "FK_social_report_post" FOREIGN KEY (post_id) REFERENCES social_post(id),
     CONSTRAINT "FK_social_report_comment" FOREIGN KEY (comment_id) REFERENCES social_comment(id),
     CONSTRAINT "CK_status_valid_value" CHECK (status = 'Pending' OR status = 'Handled' OR status = 'Ignored')
 );
 
--- follow, report, friend
+-- follow, report, friend, block
 CREATE TABLE social_user_action_with_user (
     user_id UUID NOT NULL,
     user_id_des UUID NOT NULL,
@@ -169,12 +176,13 @@ CREATE TABLE social_user_action_with_category (
 CREATE TABLE social_notification (
     id BIGINT GENERATED ALWAYS AS IDENTITY,
     user_id UUID NOT NULL,
-    status VARCHAR(15) NOT NULL,
+    status VARCHAR(15) NOT NULL DEFAULT 'Sent',
     content JSON NOT NULL DEFAULT '{}',
     created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
     last_modified_timestamp TIMESTAMPTZ NULL DEFAULT NULL,
     CONSTRAINT "PK_social_notification" PRIMARY KEY (id),
-    CONSTRAINT "FK_social_notification_user_id" FOREIGN KEY (user_id) REFERENCES social_user(id)
+    CONSTRAINT "FK_social_notification_user_id" FOREIGN KEY (user_id) REFERENCES social_user(id),
+    CONSTRAINT "CK_status_valid_value" CHECK (status = 'Sent' OR status = 'Read' OR status = 'Deleted')
 );
 
 CREATE UNIQUE INDEX "IX_social_post_slug" ON social_post(slug) WHERE status != 'Deleted';
@@ -296,7 +304,7 @@ CREATE TABLE session_social_user (
     user_id UUID NOT NULL,
     saved BOOLEAN NOT NULL DEFAULT 'false',
     data JSON NOT NULL DEFAULT '{}',
-    login_time TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
     last_interaction_time TIMESTAMPTZ,
     CONSTRAINT "PK_session_social_user" PRIMARY KEY (session_token),
     CONSTRAINT "FK_session_social_user_user_id" FOREIGN KEY (user_id) REFERENCES social_user(id)
@@ -307,7 +315,7 @@ CREATE TABLE session_admin_user (
     user_id UUID NOT NULL,
     saved BOOLEAN NOT NULL DEFAULT 'false',
     data JSON NOT NULL DEFAULT '{}',
-    login_time TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    created_timestamp TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
     last_interaction_time TIMESTAMPTZ,
     CONSTRAINT "PK_session_admin_user" PRIMARY KEY (session_token),
     CONSTRAINT "FK_session_admin_user_user_id" FOREIGN KEY (user_id) REFERENCES admin_user(id)

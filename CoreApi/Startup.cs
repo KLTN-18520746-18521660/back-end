@@ -36,12 +36,12 @@ namespace CoreApi
                     // Dot not use base validate with Annotation
                     FluentValidationConfig.DisableDataAnnotationsValidation = true;
                     // Register Validators -- Will get all validators match with class contained in Assembly 'ConfigDBContext'
-                    FluentValidationConfig.RegisterValidatorsFromAssemblyContaining<ConfigDBContext>();
+                    FluentValidationConfig.RegisterValidatorsFromAssemblyContaining<DBContext>();
                     FluentValidationConfig.RegisterValidatorsFromAssemblyContaining<CachedDBContext>();
                     FluentValidationConfig.RegisterValidatorsFromAssemblyContaining<InventoryDBContext>();
                     FluentValidationConfig.RegisterValidatorsFromAssemblyContaining<SocialDBContext>();
                 });
-            services.AddDbContext<ConfigDBContext>();
+            services.AddDbContext<DBContext>();
             services.AddDbContext<CachedDBContext>();
             services.AddDbContext<InventoryDBContext>();
             services.AddDbContext<SocialDBContext>();

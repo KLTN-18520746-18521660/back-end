@@ -7,6 +7,7 @@ using NpgsqlTypes;
 using Newtonsoft.Json;
 using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
+using DatabaseAccess.Common.Status;
 
 
 #nullable disable
@@ -34,8 +35,8 @@ namespace DatabaseAccess.Context.Models
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => SocialCommentStatus.StatusToString(Status);
-            set => Status = SocialCommentStatus.StatusFromString(value);
+            get => BaseStatus.StatusToString(Status, EntityStatus.SocialCommentStatus);
+            set => Status = BaseStatus.StatusFromString(value, EntityStatus.SocialCommentStatus);
         }
         [Column("search_vector")]
         public NpgsqlTsVector SearchVector { get; set; }

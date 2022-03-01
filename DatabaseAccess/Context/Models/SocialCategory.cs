@@ -7,6 +7,7 @@ using NpgsqlTypes;
 using Newtonsoft.Json;
 using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
+using DatabaseAccess.Common.Status;
 
 
 #nullable disable
@@ -52,8 +53,8 @@ namespace DatabaseAccess.Context.Models
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => SocialCategoryStatus.StatusToString(Status);
-            set => Status = SocialCategoryStatus.StatusFromString(value);
+            get => BaseStatus.StatusToString(Status, EntityStatus.SocialCategoryStatus);
+            set => Status = BaseStatus.StatusFromString(value,  EntityStatus.SocialCategoryStatus);
         }
         [Column("search_vector")]
         public NpgsqlTsVector SearchVector { get; set; }
@@ -67,12 +68,15 @@ namespace DatabaseAccess.Context.Models
         public virtual SocialCategory Parent { get; set; }
         [InverseProperty(nameof(SocialCategory.Parent))]
         public virtual ICollection<SocialCategory> InverseParent { get; set; }
+        [InverseProperty(nameof(SocialPostCategory.Category))]
+        public virtual ICollection<SocialPostCategory> SocialPostCategories { get; set; }
         [InverseProperty(nameof(SocialUserActionWithCategory.Category))]
         public virtual ICollection<SocialUserActionWithCategory> SocialUserActionWithCategories { get; set; }
 
         public SocialCategory()
         {
             InverseParent = new HashSet<SocialCategory>();
+            SocialPostCategories = new HashSet<SocialPostCategory>();
             SocialUserActionWithCategories = new HashSet<SocialUserActionWithCategory>();
 
             __ModelName = "SocialCategory";
@@ -135,7 +139,7 @@ namespace DatabaseAccess.Context.Models
                     Status = SocialCategoryStatus.Readonly
                 },
                 new SocialCategory
-                {                    
+                {
                     Id = 2,
                     ParentId = null,
                     Name = "developer",
@@ -146,7 +150,7 @@ namespace DatabaseAccess.Context.Models
                     Status = SocialCategoryStatus.Readonly
                 },
                 new SocialCategory
-                {                    
+                {
                     Id = 3,
                     ParentId = null,
                     Name = "dicussion",
@@ -157,7 +161,7 @@ namespace DatabaseAccess.Context.Models
                     Status = SocialCategoryStatus.Readonly
                 },
                 new SocialCategory
-                {                    
+                {
                     Id = 4,
                     ParentId = null,
                     Name = "blog",
@@ -168,7 +172,7 @@ namespace DatabaseAccess.Context.Models
                     Status = SocialCategoryStatus.Readonly
                 },
                 new SocialCategory
-                {                    
+                {
                     Id = 4,
                     ParentId = null,
                     Name = "left",

@@ -3,13 +3,11 @@ namespace DatabaseAccess
 {
     public class IBaseConfigurationDB
     {
-#pragma warning disable CA2211 // Non-constant fields should not be visible
         protected static readonly string CONNECT_STRING = "Host={0};Username={1};Database={2};Password={3};Port={4}";
         protected static string _Host = "localhost";
         protected static string _User = "postgres";
         protected static string _Password = "a";
         protected static string _Port = "5432";
-#pragma warning restore CA2211 // Non-constant fields should not be visible
 
         public static string Host { get => _Host; }
         public static string User { get => _User; }
@@ -20,9 +18,7 @@ namespace DatabaseAccess
     public class BaseConfigurationDB : IBaseConfigurationDB
     {
         private static string _DBName = "postgres";
-#pragma warning disable CA2211 // Non-constant fields should not be visible
         protected static bool _IsConfigured = false;
-#pragma warning restore CA2211 // Non-constant fields should not be visible
 
         public static string DBName { get => _DBName; }
         public static bool IsConfigured { get => _IsConfigured; }

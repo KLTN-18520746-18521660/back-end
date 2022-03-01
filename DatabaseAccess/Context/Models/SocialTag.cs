@@ -13,6 +13,7 @@ namespace DatabaseAccess.Context.Models
     {
         public SocialTag()
         {
+            SocialPostTags = new HashSet<SocialPostTag>();
             SocialUserActionWithTags = new HashSet<SocialUserActionWithTag>();
         }
 
@@ -35,6 +36,8 @@ namespace DatabaseAccess.Context.Models
         public DateTime CreatedTimestamp { get; set; }
         [Column("last_modified_timestamp", TypeName = "timestamp with time zone")]
         public DateTime? LastModifiedTimestamp { get; set; }
+        [InverseProperty(nameof(SocialPostTag.Tag))]
+        public virtual ICollection<SocialPostTag> SocialPostTags { get; set; }
 
         [InverseProperty(nameof(SocialUserActionWithTag.Tag))]
         public virtual ICollection<SocialUserActionWithTag> SocialUserActionWithTags { get; set; }

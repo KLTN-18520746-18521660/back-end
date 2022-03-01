@@ -16,9 +16,9 @@ namespace CoreApi.Controllers.Test
     [Route("[controller]/test/baseconfig")]
     public class TestBaseConfigController : BaseController
     {
-        private ConfigDBContext __ConfigDB;
+        private DBContext __ConfigDB;
         public TestBaseConfigController(
-            ConfigDBContext ConfigDB
+            DBContext ConfigDB
         ) : base()
         {
             __ConfigDB = ConfigDB;

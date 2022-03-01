@@ -656,6 +656,8 @@ namespace DatabaseAccess.Context
 
                 entity.Property(e => e.Id)
                     .UseIdentityAlwaysColumn();
+                entity.Property(e => e.Views)
+                    .HasDefaultValueSql("0");
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.StatusStr).HasDefaultValueSql($"{ SocialPostStatus.StatusToString(SocialPostStatus.Pending) }");
@@ -699,6 +701,17 @@ namespace DatabaseAccess.Context
             modelBuilder.Entity<SocialPostCategory>(entity =>
             {
                 entity.HasKey(e => new { e.PostId, e.CategoryId });
+
+                entity.HasOne(d => d.Category)
+                    .WithMany(p => p.SocialPostCategories)
+                    .HasForeignKey(d => d.CategoryId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("social_post_category_category");
+                entity.HasOne(d => d.Post)
+                    .WithMany(p => p.SocialPostCategories)
+                    .HasForeignKey(d => d.PostId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("social_post_category_post");
             });
         }
         #endregion

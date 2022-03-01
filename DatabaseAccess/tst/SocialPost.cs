@@ -15,6 +15,8 @@ namespace DatabaseAccess.tst
         public SocialPost()
         {
             SocialComments = new HashSet<SocialComment>();
+            SocialPostCategories = new HashSet<SocialPostCategory>();
+            SocialPostTags = new HashSet<SocialPostTag>();
             SocialReports = new HashSet<SocialReport>();
             SocialUserActionWithPosts = new HashSet<SocialUserActionWithPost>();
         }
@@ -55,6 +57,10 @@ namespace DatabaseAccess.tst
         public virtual SocialUser OwnerNavigation { get; set; }
         [InverseProperty(nameof(SocialComment.Post))]
         public virtual ICollection<SocialComment> SocialComments { get; set; }
+        [InverseProperty(nameof(SocialPostCategory.Post))]
+        public virtual ICollection<SocialPostCategory> SocialPostCategories { get; set; }
+        [InverseProperty(nameof(SocialPostTag.Post))]
+        public virtual ICollection<SocialPostTag> SocialPostTags { get; set; }
         [InverseProperty(nameof(SocialReport.Post))]
         public virtual ICollection<SocialReport> SocialReports { get; set; }
         [InverseProperty(nameof(SocialUserActionWithPost.Post))]

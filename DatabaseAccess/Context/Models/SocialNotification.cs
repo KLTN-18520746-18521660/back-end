@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
+using DatabaseAccess.Common.Status;
 
 #nullable disable
 
@@ -27,8 +28,8 @@ namespace DatabaseAccess.Context.Models
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => SocialCommentStatus.StatusToString(Status);
-            set => Status = SocialCommentStatus.StatusFromString(value);
+            get => BaseStatus.StatusToString(Status, EntityStatus.SocialNotificationStatus);
+            set => Status = BaseStatus.StatusFromString(value, EntityStatus.SocialNotificationStatus);
         }
         [NotMapped]
         public JObject Content { get; set; }
