@@ -4,6 +4,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Generic;
 using Serilog;
+using Microsoft.Extensions.DependencyInjection;
+using DatabaseAccess;
+using CoreApi.Common.Interface;
+using CoreApi.Common;
 using Common.Validate;
 using Common.Logger;
 
@@ -64,6 +68,8 @@ namespace CoreApi
                 _EnableSSL = false;
                 warnings.Add($"Certificate not exists or not set. Cerificate path: { ((_CertPath == null) ? null : System.IO.Path.GetFullPath(_CertPath)) }");
             }
+            // [INFO] Configure connect string
+            BaseConfigurationDB.Configure(); // Use default value
         }
         private static void SetParamsFromArgs(in List<string> args)
         {
@@ -84,9 +90,11 @@ namespace CoreApi
         }
         private static IHostBuilder CreateHostBuilder(in string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .ConfigureServices((context, services) => {
-                    // services.Add()
-                })
+#if DEBUG
+                .UseEnvironment(Environments.Development)
+#else
+                .UseEnvironment(Environments.Production)
+#endif
                 .UseSerilog()
                 .ConfigureWebHostDefaults(webBuilder => {
                     webBuilder.UseKestrel(kestrelServerOptions => {
