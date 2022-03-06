@@ -43,6 +43,9 @@ namespace DatabaseAccess.Context.Models
         [Required]
         [Column("views")]
         public int Views { get; set; }
+        [Required]
+        [Column("time_read")]
+        public int TimeRead { get; set; }
         [NotMapped]
         public int Status { get; set; }
         [Required]
@@ -77,23 +80,23 @@ namespace DatabaseAccess.Context.Models
         [InverseProperty(nameof(SocialUser.SocialPosts))]
         public virtual SocialUser OwnerNavigation { get; set; }
         [InverseProperty(nameof(SocialComment.Post))]
-        public virtual ICollection<SocialComment> SocialComments { get; set; }
+        public virtual List<SocialComment> SocialComments { get; set; }
         [InverseProperty(nameof(SocialPostCategory.Post))]
-        public virtual ICollection<SocialPostCategory> SocialPostCategories { get; set; }
+        public virtual List<SocialPostCategory> SocialPostCategories { get; set; }
         [InverseProperty(nameof(SocialPostTag.Post))]
-        public virtual ICollection<SocialPostTag> SocialPostTags { get; set; }
+        public virtual List<SocialPostTag> SocialPostTags { get; set; }
         [InverseProperty(nameof(SocialReport.Post))]
-        public virtual ICollection<SocialReport> SocialReports { get; set; }
+        public virtual List<SocialReport> SocialReports { get; set; }
         [InverseProperty(nameof(SocialUserActionWithPost.Post))]
-        public virtual ICollection<SocialUserActionWithPost> SocialUserActionWithPosts { get; set; }
+        public virtual List<SocialUserActionWithPost> SocialUserActionWithPosts { get; set; }
         
         public SocialPost()
         {
-            SocialComments = new HashSet<SocialComment>();
-            SocialReports = new HashSet<SocialReport>();
-            SocialPostCategories = new HashSet<SocialPostCategory>();
-            SocialPostTags = new HashSet<SocialPostTag>();
-            SocialUserActionWithPosts = new HashSet<SocialUserActionWithPost>();
+            SocialComments = new List<SocialComment>();
+            SocialReports = new List<SocialReport>();
+            SocialPostCategories = new List<SocialPostCategory>();
+            SocialPostTags = new List<SocialPostTag>();
+            SocialUserActionWithPosts = new List<SocialUserActionWithPost>();
 
             CreatedTimestamp = DateTime.UtcNow;
             Status = SocialPostStatus.Pending;

@@ -14,6 +14,5 @@ namespace DatabaseAccess.Context.ParserModels
         public string role_name { get; set; }
         public string display_name { get; set; }
         public string describe { get; set; }
-        public Dictionary<string, List<string>> rights { get; set; }
     }
 }

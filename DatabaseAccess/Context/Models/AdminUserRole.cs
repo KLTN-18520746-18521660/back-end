@@ -35,14 +35,6 @@ namespace DatabaseAccess.Context.Models
         [StringLength(150)]
         public string Describe { get; set; }
         [NotMapped]
-        public Dictionary<string, List<string>> Rights { get; set; }
-        [Required]
-        [Column("rights", TypeName = "json")]
-        public string RightsStr {
-            get { return JsonConvert.SerializeObject(Rights).ToString(); }
-            set { Rights = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(value); }
-        }
-        [NotMapped]
         public int Status { get; set; }
         [Required]
         [Column("status")]
@@ -51,9 +43,16 @@ namespace DatabaseAccess.Context.Models
             get => BaseStatus.StatusToString(Status, EntityStatus.AdminUserRoleStatus);
             set => Status = BaseStatus.StatusFromString(value,  EntityStatus.AdminUserRoleStatus);
         }
-        
+
+        [InverseProperty(nameof(AdminUserRoleDetail.Role))]
+        public virtual List<AdminUserRoleDetail> AdminUserRoleDetails { get; set; }
+        [InverseProperty(nameof(AdminUserRoleOfUser.Role))]
+        public virtual List<AdminUserRoleOfUser> AdminUserRoleOfUsers { get; set; }
+
         public AdminUserRole()
         {
+            AdminUserRoleDetails = new List<AdminUserRoleDetail>();
+            AdminUserRoleOfUsers = new List<AdminUserRoleOfUser>();
             __ModelName = "AdminUserRole";
             Status = AdminUserRoleStatus.Enabled;
         }
@@ -66,7 +65,7 @@ namespace DatabaseAccess.Context.Models
                 RoleName = parser.role_name;
                 DisplayName = parser.display_name;
                 Describe = parser.describe;
-                Rights = parser.rights;
+                // Rights = parser.rights;
                 return true;
             } catch (Exception ex) {
                 Error = ex.ToString();
@@ -82,7 +81,7 @@ namespace DatabaseAccess.Context.Models
                 { "role_name", RoleName },
                 { "display_name", DisplayName },
                 { "describe", Describe },
-                { "rights", Rights },
+                // { "rights", Rights },
                 { "status", Status },
 #if DEBUG
                 {"__ModelName", __ModelName }
@@ -100,11 +99,14 @@ namespace DatabaseAccess.Context.Models
                     RoleName = "admin",
                     DisplayName = "Administrator",
                     Describe = "Administrator",
-                    Status = AdminUserRoleStatus.Readonly,
-                    Rights = AdminUserRight.GenerateAdminRights()
+                    Status = AdminUserRoleStatus.Readonly
                 }
             };
             return ListData;
+        }
+        public static int GetAdminRoleId()
+        {
+            return 1;
         }
     }
 }

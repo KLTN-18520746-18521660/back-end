@@ -27,6 +27,8 @@
 >   - Password is hard coding is ``Ndh90768``
 >   - Need config path of certificate in file ``appsettings.json`` with key ``Certificate.Path``
 
+> rm -rf /etc/localtime && ln -s /usr/share/zoneinfo/Asia/Ho_Chi_Minh /etc/localtime
+
 ## Project Reference
 - edit `*.csproj`
 - Way 1 (Need generate ProjectGuid):
@@ -55,7 +57,7 @@
 - debug mode + environment develop
 > dotnet run ssl
 - release mode + environment production
-> dotnet run https --launch-profile pro -c release
+> dotnet run ssl --launch-profile pro -c release
 - run without ssl + environment develop
 > dotnet run
 
@@ -100,8 +102,10 @@
 		```
 		dotnet ef migrations remove --context DBContext
 		```
-		
-		dotnet ef dbcontext scaffold -o Tests -d "Host=localhost;Username=postgres;Database=config_db;Password=a;Port=5432" "Npgsql.EntityFrameworkCore.PostgreSQL"
+	- *Get models from database*
+		```
+		dotnet ef dbcontext scaffold -o Tests -d "Host=localhost;Username=postgres;Database=postgres;Password=a;Port=5432" "Npgsql.EntityFrameworkCore.PostgreSQL"
+		```
 ## SQL
 - **Fultext search**:
 	- [Full Text Search | Npgsql Documentation](https://www.npgsql.org/efcore/mapping/full-text-search.html?tabs=pg12%2Cv5)

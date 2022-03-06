@@ -1,5 +1,5 @@
 using System;
-using System.Text.Json;
+// using System.Text.Json;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
@@ -7,6 +7,9 @@ using System.Linq;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 using DatabaseAccess.Common.Interface;
 
 namespace DatabaseAccess.Common.Models
@@ -29,15 +32,12 @@ namespace DatabaseAccess.Common.Models
         }
         public string ToJsonString() {
             if (PrepareExportObjectJson()) {
-                return JsonSerializer.Serialize(__ObjectJson);
+                return JsonConvert.SerializeObject(__ObjectJson);
             }
             return $"{{\"err\": \"Can't convert Object[{__ModelName}] to Json\"}}";
         }
         public JObject GetJsonObject() {
-            if (PrepareExportObjectJson()) {
-                return JsonSerializer.Deserialize<JObject>(JsonSerializer.Serialize(__ObjectJson));
-            }
-            return JsonSerializer.Deserialize<JObject>($"{{\"err\": \"Can't convert Object[{__ModelName}] to Json\"}}");
+            return JsonConvert.DeserializeObject<JObject>(ToJsonString());
         }
 
         public abstract bool PrepareExportObjectJson();

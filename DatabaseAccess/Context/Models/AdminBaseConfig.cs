@@ -13,6 +13,71 @@ using System.Collections.Generic;
 
 namespace DatabaseAccess.Context.Models
 {
+    public enum CONFIG_KEY
+    {
+        ADMIN_USER_LOGIN_CONFIG = 1,
+        SOCIAL_USER_LOGIN_CONFIG = 2,
+        SESSION_ADMIN_USER_CONFIG = 3,
+        SESSION_SOCIAL_USER_CONFIG = 4,
+    }
+
+    public static class DefaultBaseConfig
+    {
+        #region Default Config
+        public static readonly Dictionary<string, int> AdminUserLoginConfig = new() {
+            { "number", 5 },
+            { "time", 5 },
+            { "lock", 360 },
+        };
+        public static readonly Dictionary<string, int> SocialUserLoginConfig = new() {
+            { "number", 5 },
+            { "time", 5 },
+            { "lock", 360 },
+        };
+        public static readonly Dictionary<string, int> SessionAdminUserConfig = new() {
+            { "expiry_time", 5 },
+            { "extension_time", 5 },
+        };
+        public static readonly Dictionary<string, int> SessionSocialUserConfig = new() {
+            { "expiry_time", 5 },
+            { "extension_time", 5 },
+        };
+        #endregion
+        public static JObject GetConfig(CONFIG_KEY ConfigKey, string Error = null)
+        {
+            Error ??= "";
+            switch(ConfigKey) {
+                case CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG:
+                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(AdminUserLoginConfig));
+                case CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG:
+                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(SocialUserLoginConfig));
+                case CONFIG_KEY.SESSION_ADMIN_USER_CONFIG:
+                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(SessionAdminUserConfig));
+                case CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG:
+                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(SessionSocialUserConfig));
+                default:
+                    Error ??= "Invalid config key.";
+                    return new JObject();
+            }
+        }
+        public static string ConfigKeyToString(CONFIG_KEY ConfigKey, string Error = null)
+        {
+            Error ??= "";
+            switch(ConfigKey) {
+                case CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG:
+                    return "AdminUserLoginConfig";
+                case CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG:
+                    return "SocialUserLoginConfig";
+                case CONFIG_KEY.SESSION_ADMIN_USER_CONFIG:
+                    return "SessionAdminUserConfig";
+                case CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG:
+                    return "SessionSocialUserConfig";
+                default:
+                    Error ??= "Invalid config key.";
+                    return "Invalid config key.";
+            }
+        }
+    }
     [Table("admin_base_config")]
     public class AdminBaseConfig : BaseModel
     {
@@ -81,7 +146,30 @@ namespace DatabaseAccess.Context.Models
         {
             List<AdminBaseConfig> ListData = new()
             {
-
+                new AdminBaseConfig() {
+                    Id = 1,
+                    ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG),
+                    Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG),
+                    Status = AdminBaseConfigStatus.Enabled
+                },
+                new AdminBaseConfig() {
+                    Id = 2,
+                    ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG),
+                    Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG),
+                    Status = AdminBaseConfigStatus.Enabled
+                },
+                new AdminBaseConfig() {
+                    Id = 3,
+                    ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG),
+                    Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG),
+                    Status = AdminBaseConfigStatus.Enabled
+                },
+                new AdminBaseConfig() {
+                    Id = 4,
+                    ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG),
+                    Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG),
+                    Status = AdminBaseConfigStatus.Enabled
+                },
             };
             return ListData;
         }

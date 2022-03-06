@@ -44,8 +44,12 @@ namespace DatabaseAccess.Context.Models
             set => Status = BaseStatus.StatusFromString(value, EntityStatus.AdminUserRightStatus);
         }
 
+        [InverseProperty(nameof(AdminUserRoleDetail.Right))]
+        public virtual List<AdminUserRoleDetail> AdminUserRoleDetails { get; set; }
+
         public AdminUserRight()
         {
+            AdminUserRoleDetails = new List<AdminUserRoleDetail>();
             __ModelName = "SocialUserRight";
             Status = AdminUserRightStatus.Enabled;
         }
@@ -168,17 +172,6 @@ namespace DatabaseAccess.Context.Models
                 }
             };
             return ListData;
-        }
-
-        public static Dictionary<string, List<string>> GenerateAdminRights()
-        {
-            Dictionary<string, List<string>> Rights = new();
-            var AllRights = AdminUserRight.GetDefaultData();
-            foreach (var Right in AllRights)
-            {
-                Rights.Add(Right.RightName, new List<string>() { "write", "read" });
-            }
-            return Rights;
         }
     }
 }

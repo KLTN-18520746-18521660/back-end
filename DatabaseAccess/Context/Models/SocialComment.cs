@@ -55,17 +55,17 @@ namespace DatabaseAccess.Context.Models
         [InverseProperty(nameof(SocialPost.SocialComments))]
         public virtual SocialPost Post { get; set; }
         [InverseProperty(nameof(SocialComment.Parent))]
-        public virtual ICollection<SocialComment> InverseParent { get; set; }
+        public virtual List<SocialComment> InverseParent { get; set; }
         [InverseProperty(nameof(SocialReport.Comment))]
-        public virtual ICollection<SocialReport> SocialReports { get; set; }
+        public virtual List<SocialReport> SocialReports { get; set; }
         [InverseProperty(nameof(SocialUserActionWithComment.Comment))]
-        public virtual ICollection<SocialUserActionWithComment> SocialUserActionWithComments { get; set; }
+        public virtual List<SocialUserActionWithComment> SocialUserActionWithComments { get; set; }
         
         public SocialComment()
         {
-            InverseParent = new HashSet<SocialComment>();
-            SocialReports = new HashSet<SocialReport>();
-            SocialUserActionWithComments = new HashSet<SocialUserActionWithComment>();
+            InverseParent = new List<SocialComment>();
+            SocialReports = new List<SocialReport>();
+            SocialUserActionWithComments = new List<SocialUserActionWithComment>();
 
             __ModelName = "SocialComment";
             CreatedTimestamp = DateTime.UtcNow;

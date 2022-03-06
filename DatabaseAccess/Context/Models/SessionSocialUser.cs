@@ -36,8 +36,9 @@ namespace DatabaseAccess.Context.Models
         }
         [Column("created_timestamp", TypeName = "timestamp with time zone")]
         public DateTime CreatedTimestamp { get; private set; }
+        [Required]
         [Column("last_interaction_time", TypeName = "timestamp with time zone")]
-        public DateTime? LastInteractionTime { get; set; }
+        public DateTime LastInteractionTime { get; set; }
 
         [ForeignKey(nameof(UserId))]
         [InverseProperty(nameof(SocialUser.SessionSocialUsers))]

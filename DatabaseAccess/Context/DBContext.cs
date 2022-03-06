@@ -4,13 +4,17 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using DatabaseAccess.Common;
 using System.Linq;
 using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Text.Json;
+// using System.Text.Json;
 using DatabaseAccess.Context.Models;
 using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Actions;
 using DatabaseAccess.Common.Status;
+using System.Collections;
+
 
 #nullable disable
 
@@ -57,7 +61,9 @@ namespace DatabaseAccess.Context
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseNpgsql(
+                optionsBuilder
+                .UseLazyLoadingProxies()
+                .UseNpgsql(
                     BaseConfigurationDB.GetConnectStringToDB(),
                     npgsqlOptionsAction: o => {
                         o.SetPostgresVersion(14, 1);
@@ -75,6 +81,8 @@ namespace DatabaseAccess.Context
             ConfigureEnityAdminUser(modelBuilder);
             ConfigureEnityAdminUserRight(modelBuilder);
             ConfigureEnityAdminUserRole(modelBuilder);
+            ConfigureEnityAdminUserRoleDetail(modelBuilder);
+            ConfigureEnityAdminUserRoleOfUser(modelBuilder);
             ConfigureEnitySessionAdminUser(modelBuilder);
             ConfigureEnitySessionSocialUser(modelBuilder);
             ConfigureEnitySocialAuditLog(modelBuilder);
@@ -94,6 +102,8 @@ namespace DatabaseAccess.Context
             ConfigureEnitySocialUserActionWithUser(modelBuilder);
             ConfigureEnitySocialUserRight(modelBuilder);
             ConfigureEnitySocialUserRole(modelBuilder);
+            ConfigureEnitySocialUserRoleDetail(modelBuilder);
+            ConfigureEnitySocialUserRoleOfUser(modelBuilder);
 
             OnModelCreatingPartial(modelBuilder);
         }
@@ -156,8 +166,6 @@ namespace DatabaseAccess.Context
                     .HasDefaultValueSql("gen_random_uuid()");
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
-                entity.Property(e => e.RolesStr)
-                    .HasDefaultValueSql("'[]'");
                 entity.Property(e => e.Salt)
                     .HasDefaultValueSql("SUBSTRING(REPLACE(CAST(gen_random_uuid() AS VARCHAR), '-', ''), 1, 8)");
                 entity.Property(e => e.SettingsStr)
@@ -220,8 +228,6 @@ namespace DatabaseAccess.Context
             {
                 entity.Property(e => e.Id)
                     .UseIdentityAlwaysColumn();
-                entity.Property(e => e.RightsStr)
-                    .HasDefaultValueSql("'[]'");
                 entity.Property(e => e.StatusStr).HasDefaultValueSql($"'{ BaseStatus.StatusToString(AdminUserRoleStatus.Enabled, EntityStatus.AdminUserRoleStatus) }'");
 
                 entity.HasIndex(e => e.RoleName, "IX_admin_user_role_role_name")
@@ -237,6 +243,52 @@ namespace DatabaseAccess.Context
                         )
                     );
                 entity.HasData(AdminUserRole.GetDefaultData());
+            });
+        }
+        #endregion
+        #region Table AdminUserRoleDetail
+        private static void ConfigureEnityAdminUserRoleDetail(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<AdminUserRoleDetail>(entity =>
+            {
+                entity.HasKey(e => new { e.RoleId, e.RightId });
+                entity.Property(e => e.ActionsStr)
+                    .HasDefaultValueSql("'{}'");
+
+                entity.HasOne(d => d.Right)
+                    .WithMany(p => p.AdminUserRoleDetails)
+                    .HasForeignKey(d => d.RightId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_admin_user_role_detail_right");
+                entity.HasOne(d => d.Role)
+                    .WithMany(p => p.AdminUserRoleDetails)
+                    .HasForeignKey(d => d.RoleId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_admin_user_role_detail_role");
+
+                entity.HasData(AdminUserRoleDetail.GetDefaultData());
+            });
+        }
+        #endregion
+        #region Table AdminUserRoleOfUser
+        private static void ConfigureEnityAdminUserRoleOfUser(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<AdminUserRoleOfUser>(entity =>
+            {
+                entity.HasKey(e => new { e.UserId, e.RoleId });
+
+                entity.HasOne(d => d.Role)
+                    .WithMany(p => p.AdminUserRoleOfUsers)
+                    .HasForeignKey(d => d.RoleId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_admin_user_role_of_user_role");
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.AdminUserRoleOfUsers)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_admin_user_role_of_user_user");
+
+                entity.HasData(AdminUserRoleOfUser.GetDefaultData());
             });
         }
         #endregion
@@ -454,10 +506,6 @@ namespace DatabaseAccess.Context
         {
             modelBuilder.Entity<SocialPost>(entity =>
             {
-                //entity.HasIndex(e => e.SearchVector, "IX_social_post_search_vector")
-                //    .HasMethod("gin");
-                //entity.Property(e => e.SearchVector).HasComputedColumnSql("to_tsvector('english'::regconfig, ((title || ' '::text) || content_search))", true);
-
                 entity.HasIndex(e => e.Slug, "IX_social_post_slug")
                     .IsUnique()
                     .HasFilter($"(status) <> '{ BaseStatus.StatusToString(SocialPostStatus.Deleted, EntityStatus.SocialPostStatus) }'");
@@ -466,6 +514,8 @@ namespace DatabaseAccess.Context
                     .UseIdentityAlwaysColumn();
                 entity.Property(e => e.Views)
                     .HasDefaultValueSql("0");
+                entity.Property(e => e.TimeRead)
+                    .HasDefaultValueSql("2");
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.StatusStr).HasDefaultValueSql($"'{ BaseStatus.StatusToString(SocialPostStatus.Pending, EntityStatus.SocialPostStatus) }'");
@@ -488,6 +538,11 @@ namespace DatabaseAccess.Context
                             BaseStatus.StatusToString(SocialPostStatus.Private, EntityStatus.SocialPostStatus),
                             BaseStatus.StatusToString(SocialPostStatus.Deleted, EntityStatus.SocialPostStatus)
                         )
+                    );
+                entity
+                    .HasCheckConstraint(
+                        "CK_social_post_time_read_valid_value",
+                        "time_read >= 2"
                     );
                 entity
                     .HasCheckConstraint(
@@ -633,8 +688,6 @@ namespace DatabaseAccess.Context
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.RanksStr)
                     .HasDefaultValueSql("'{}'");
-                entity.Property(e => e.RolesStr)
-                    .HasDefaultValueSql("'[]'");
                 entity.Property(e => e.SettingsStr)
                     .HasDefaultValueSql("'{}'");
                 entity.Property(e => e.Salt)
@@ -810,8 +863,6 @@ namespace DatabaseAccess.Context
             {
                 entity.Property(e => e.Id)
                     .UseIdentityAlwaysColumn();
-                entity.Property(e => e.RightsStr)
-                    .HasDefaultValueSql("'[]'");
                 entity.Property(e => e.StatusStr).HasDefaultValueSql($"'{ BaseStatus.StatusToString(SocialUserRoleStatus.Enabled, EntityStatus.SocialUserRoleStatus) }'");
 
                 entity.HasIndex(e => e.RoleName, "IX_social_user_role_role_name")
@@ -828,6 +879,63 @@ namespace DatabaseAccess.Context
                     );
                 entity.HasData(SocialUserRole.GetDefaultData());
             });
+        }
+        #endregion
+        #region Table SocialUserRoleDetail
+        private static void ConfigureEnitySocialUserRoleDetail(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<SocialUserRoleDetail>(entity =>
+            {
+                entity.HasKey(e => new { e.RoleId, e.RightId });
+                entity.Property(e => e.ActionsStr)
+                    .HasDefaultValueSql("'{}'");
+
+                entity.HasOne(d => d.Right)
+                    .WithMany(p => p.SocialUserRoleDetails)
+                    .HasForeignKey(d => d.RightId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_social_user_role_detail_right");
+                entity.HasOne(d => d.Role)
+                    .WithMany(p => p.SocialUserRoleDetails)
+                    .HasForeignKey(d => d.RoleId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_social_user_role_detail_role");
+                entity.HasData(SocialUserRoleDetail.GetDefaultData());
+            });
+        }
+        #endregion
+        #region Table SocialUserRoleOfUser
+        private static void ConfigureEnitySocialUserRoleOfUser(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<SocialUserRoleOfUser>(entity =>
+            {
+                entity.HasKey(e => new { e.UserId, e.RoleId });
+
+                entity.HasOne(d => d.Role)
+                    .WithMany(p => p.SocialUserRoleOfUsers)
+                    .HasForeignKey(d => d.RoleId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_social_user_role_of_user_role");
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.SocialUserRoleOfUsers)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_social_user_role_of_user_user");
+            });
+        }
+        #endregion
+        #endregion
+        #region Function Handle
+        #region Session
+        public virtual void ClearExpriedSessionAdminUser(List<string> sessionTokens)
+        {
+            var sessions = SessionAdminUsers.Where(e => sessionTokens.Contains(e.SessionToken));
+            SessionAdminUsers.RemoveRange(sessions);
+        }
+        public virtual void ClearExpriedSessionSocialUser(List<string> sessionTokens)
+        {
+            var sessions = SessionSocialUsers.Where(e => sessionTokens.Contains(e.SessionToken));
+            SessionSocialUsers.RemoveRange(sessions);
         }
         #endregion
         #endregion

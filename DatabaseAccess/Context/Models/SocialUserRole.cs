@@ -35,14 +35,6 @@ namespace DatabaseAccess.Context.Models
         [StringLength(150)]
         public string Describe { get; set; }
         [NotMapped]
-        public Dictionary<string, List<string>> Rights { get; set; }
-        [Required]
-        [Column("rights", TypeName = "json")]
-        public string RightsStr {
-            get { return JsonConvert.SerializeObject(Rights).ToString(); }
-            set { Rights = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(value); }
-        }
-        [NotMapped]
         public int Status { get; set; }
         [Required]
         [Column("status")]
@@ -51,9 +43,15 @@ namespace DatabaseAccess.Context.Models
             get => BaseStatus.StatusToString(Status, EntityStatus.SocialUserRoleStatus);
             set => Status = BaseStatus.StatusFromString(value,  EntityStatus.SocialUserRoleStatus);
         }
+        [InverseProperty(nameof(SocialUserRoleDetail.Role))]
+        public virtual List<SocialUserRoleDetail> SocialUserRoleDetails { get; set; }
+        [InverseProperty(nameof(SocialUserRoleOfUser.Role))]
+        public virtual List<SocialUserRoleOfUser> SocialUserRoleOfUsers { get; set; }
         
         public SocialUserRole()
         {
+            SocialUserRoleDetails = new List<SocialUserRoleDetail>();
+            SocialUserRoleOfUsers = new List<SocialUserRoleOfUser>();
             __ModelName = "SocialUserRole";
             Status = SocialUserRoleStatus.Enabled;
         }
@@ -66,7 +64,7 @@ namespace DatabaseAccess.Context.Models
                 RoleName = parser.role_name;
                 DisplayName = parser.display_name;
                 Describe = parser.describe;
-                Rights = parser.rights;
+                // Rights = parser.rights;
                 return true;
             } catch (Exception ex) {
                 Error = ex.ToString();
@@ -82,7 +80,7 @@ namespace DatabaseAccess.Context.Models
                 { "role_name", RoleName },
                 { "display_name", DisplayName },
                 { "describe", Describe },
-                { "rights", Rights },
+                // { "rights", Rights },
                 { "status", Status },
 #if DEBUG
                 {"__ModelName", __ModelName }
@@ -101,10 +99,15 @@ namespace DatabaseAccess.Context.Models
                     DisplayName = "User",
                     Describe = "Normal user",
                     Status = SocialUserRoleStatus.Readonly,
-                    Rights = SocialUserRight.GenerateSocialUserRights()
+                    // Rights = SocialUserRight.GenerateSocialUserRights()
                 }
             };
             return ListData;
+        }
+
+        public static int GetDefaultRoleId()
+        {
+            return 1;
         }
     }
 }

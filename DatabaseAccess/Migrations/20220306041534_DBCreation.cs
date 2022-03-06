@@ -58,7 +58,6 @@ namespace DatabaseAccess.Migrations
                     salt = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: false, defaultValueSql: "SUBSTRING(REPLACE(CAST(gen_random_uuid() AS VARCHAR), '-', ''), 1, 8)"),
                     email = table.Column<string>(type: "character varying(320)", maxLength: 320, nullable: false),
                     status = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: false, defaultValueSql: "'Activated'"),
-                    roles = table.Column<string>(type: "json", nullable: false, defaultValueSql: "'[]'"),
                     settings = table.Column<string>(type: "json", nullable: false, defaultValueSql: "'{}'"),
                     last_access_timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     created_timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW() AT TIME ZONE 'UTC'")
@@ -96,7 +95,6 @@ namespace DatabaseAccess.Migrations
                     role_name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     display_name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     describe = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    rights = table.Column<string>(type: "json", nullable: false, defaultValueSql: "'[]'"),
                     status = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: false, defaultValueSql: "'Enabled'")
                 },
                 constraints: table =>
@@ -197,7 +195,6 @@ namespace DatabaseAccess.Migrations
                     verified_email = table.Column<bool>(type: "boolean", nullable: false),
                     avatar = table.Column<string>(type: "text", nullable: true),
                     status = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: false, defaultValueSql: "'Activated'"),
-                    roles = table.Column<string>(type: "json", nullable: false, defaultValueSql: "'[]'"),
                     settings = table.Column<string>(type: "json", nullable: false, defaultValueSql: "'{}'"),
                     ranks = table.Column<string>(type: "json", nullable: false, defaultValueSql: "'{}'"),
                     search_vector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: true)
@@ -239,7 +236,6 @@ namespace DatabaseAccess.Migrations
                     role_name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     display_name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     describe = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    rights = table.Column<string>(type: "json", nullable: false, defaultValueSql: "'[]'"),
                     status = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: false, defaultValueSql: "'Enabled'")
                 },
                 constraints: table =>
@@ -257,7 +253,7 @@ namespace DatabaseAccess.Migrations
                     saved = table.Column<bool>(type: "boolean", nullable: false),
                     data = table.Column<string>(type: "json", nullable: false, defaultValueSql: "'{}'"),
                     created_timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW() AT TIME ZONE 'UTC'"),
-                    last_interaction_time = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    last_interaction_time = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -265,6 +261,55 @@ namespace DatabaseAccess.Migrations
                     table.CheckConstraint("CK_session_admin_user_last_interaction_time_valid_value", "(last_interaction_time >= created_timestamp)");
                     table.ForeignKey(
                         name: "FK_session_admin_user_user_id",
+                        column: x => x.user_id,
+                        principalTable: "admin_user",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "admin_user_role_detail",
+                columns: table => new
+                {
+                    role_id = table.Column<int>(type: "integer", nullable: false),
+                    right_id = table.Column<int>(type: "integer", nullable: false),
+                    actions = table.Column<string>(type: "json", nullable: false, defaultValueSql: "'{}'")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_admin_user_role_detail", x => new { x.role_id, x.right_id });
+                    table.ForeignKey(
+                        name: "FK_admin_user_role_detail_right",
+                        column: x => x.right_id,
+                        principalTable: "admin_user_right",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_admin_user_role_detail_role",
+                        column: x => x.role_id,
+                        principalTable: "admin_user_role",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "admin_user_role_of_user",
+                columns: table => new
+                {
+                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    role_id = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_admin_user_role_of_user", x => new { x.user_id, x.role_id });
+                    table.ForeignKey(
+                        name: "FK_admin_user_role_of_user_role",
+                        column: x => x.role_id,
+                        principalTable: "admin_user_role",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_admin_user_role_of_user_user",
                         column: x => x.user_id,
                         principalTable: "admin_user",
                         principalColumn: "id",
@@ -280,7 +325,7 @@ namespace DatabaseAccess.Migrations
                     saved = table.Column<bool>(type: "boolean", nullable: false),
                     data = table.Column<string>(type: "json", nullable: false, defaultValueSql: "'{}'"),
                     created_timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW() AT TIME ZONE 'UTC'"),
-                    last_interaction_time = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    last_interaction_time = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -330,6 +375,7 @@ namespace DatabaseAccess.Migrations
                     slug = table.Column<string>(type: "text", nullable: false),
                     thumbnail = table.Column<string>(type: "text", nullable: false),
                     views = table.Column<int>(type: "integer", nullable: false, defaultValueSql: "0"),
+                    time_read = table.Column<int>(type: "integer", nullable: false, defaultValueSql: "2"),
                     status = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: false, defaultValueSql: "'Pending'"),
                     content_search = table.Column<string>(type: "text", nullable: false),
                     content = table.Column<string>(type: "text", nullable: false),
@@ -343,6 +389,7 @@ namespace DatabaseAccess.Migrations
                 {
                     table.PrimaryKey("PK_social_post", x => x.id);
                     table.CheckConstraint("CK_social_post_status_valid_value", "status = 'Pending' OR status = 'Approved' OR status = 'Private' OR status = 'Deleted'");
+                    table.CheckConstraint("CK_social_post_time_read_valid_value", "time_read >= 2");
                     table.CheckConstraint("CK_social_post_last_modified_timestamp_valid_value", "(last_modified_timestamp IS NULL) OR (last_modified_timestamp > created_timestamp)");
                     table.ForeignKey(
                         name: "FK_social_post_user_id",
@@ -422,6 +469,55 @@ namespace DatabaseAccess.Migrations
                     table.ForeignKey(
                         name: "FK_social_user_action_with_user_user_id_des",
                         column: x => x.user_id_des,
+                        principalTable: "social_user",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "social_user_role_detail",
+                columns: table => new
+                {
+                    role_id = table.Column<int>(type: "integer", nullable: false),
+                    right_id = table.Column<int>(type: "integer", nullable: false),
+                    actions = table.Column<string>(type: "json", nullable: false, defaultValueSql: "'{}'")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_social_user_role_detail", x => new { x.role_id, x.right_id });
+                    table.ForeignKey(
+                        name: "FK_social_user_role_detail_right",
+                        column: x => x.right_id,
+                        principalTable: "social_user_right",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_social_user_role_detail_role",
+                        column: x => x.role_id,
+                        principalTable: "social_user_role",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "social_user_role_of_user",
+                columns: table => new
+                {
+                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    role_id = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_social_user_role_of_user", x => new { x.user_id, x.role_id });
+                    table.ForeignKey(
+                        name: "FK_social_user_role_of_user_role",
+                        column: x => x.role_id,
+                        principalTable: "social_user_role",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_social_user_role_of_user_user",
+                        column: x => x.user_id,
                         principalTable: "social_user",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
@@ -609,42 +705,53 @@ namespace DatabaseAccess.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "admin_base_config",
+                columns: new[] { "id", "config_key", "status", "value" },
+                values: new object[,]
+                {
+                    { 1, "AdminUserLoginConfig", "Enabled", "{\r\n  \"number\": 5,\r\n  \"time\": 5,\r\n  \"lock\": 360\r\n}" },
+                    { 2, "SocialUserLoginConfig", "Enabled", "{\r\n  \"number\": 5,\r\n  \"time\": 5,\r\n  \"lock\": 360\r\n}" },
+                    { 3, "SessionAdminUserConfig", "Enabled", "{\r\n  \"expiry_time\": 5,\r\n  \"extension_time\": 5\r\n}" },
+                    { 4, "SessionSocialUserConfig", "Enabled", "{\r\n  \"expiry_time\": 5,\r\n  \"extension_time\": 5\r\n}" }
+                });
+
+            migrationBuilder.InsertData(
                 table: "admin_user",
-                columns: new[] { "id", "created_timestamp", "display_name", "email", "last_access_timestamp", "password", "roles", "salt", "settings", "status", "user_name" },
-                values: new object[] { new Guid("65bdb4cb-70ee-41aa-b784-9e15c0cb9ba8"), new DateTime(2022, 3, 1, 21, 6, 59, 365, DateTimeKind.Utc).AddTicks(2415), "Administrator", "admin@admin", null, "D1A877E07E28F21A837568CF02F47377", "[]", "5a801431", "{}", "Readonly", "admin" });
+                columns: new[] { "id", "created_timestamp", "display_name", "email", "last_access_timestamp", "salt", "settings", "status", "password", "user_name" },
+                values: new object[] { new Guid("aef445ea-10f2-469a-bf08-0425f403030c"), new DateTime(2022, 3, 6, 4, 15, 33, 32, DateTimeKind.Utc).AddTicks(4268), "Administrator", "admin@admin", null, "3c6efe21", "{}", "Readonly", "0AFC343755FA7D0BA5B9D31A5062E165", "admin" });
 
             migrationBuilder.InsertData(
                 table: "admin_user_right",
                 columns: new[] { "id", "describe", "display_name", "right_name", "status" },
                 values: new object[,]
                 {
-                    { 1, "Can access Homepage and see statistic.", "Dashboard", "dashboard", "Readonly" },
-                    { 2, "Add, create, disable category.", "Category", "category", "Readonly" },
-                    { 3, "Add, create, disable topics", "Topic", "topic", "Readonly" },
-                    { 4, "Add, create, disable tag.", "Tag", "tag", "Readonly" },
-                    { 5, "Review, accept, reject post. See report about post.", "Post", "post", "Readonly" },
-                    { 6, "Delete comment. See report about comment.", "Comment", "comment", "Readonly" },
-                    { 7, "Configure security of Server.", "Security", "security", "Readonly" },
-                    { 8, "Block, unblock SocialUser", "Social User", "social_user", "Readonly" },
                     { 9, "Add, block, unblock, delete AdminUser.", "Admin User", "admin_user", "Readonly" },
-                    { 10, "See and tracking log file.", "Log", "log", "Readonly" }
+                    { 8, "Block, unblock SocialUser", "Social User", "social_user", "Readonly" },
+                    { 7, "Configure security of Server.", "Security", "security", "Readonly" },
+                    { 6, "Delete comment. See report about comment.", "Comment", "comment", "Readonly" },
+                    { 10, "See and tracking log file.", "Log", "log", "Readonly" },
+                    { 4, "Add, create, disable tag.", "Tag", "tag", "Readonly" },
+                    { 3, "Add, create, disable topics", "Topic", "topic", "Readonly" },
+                    { 2, "Add, create, disable category.", "Category", "category", "Readonly" },
+                    { 1, "Can access Homepage and see statistic.", "Dashboard", "dashboard", "Readonly" },
+                    { 5, "Review, accept, reject post. See report about post.", "Post", "post", "Readonly" }
                 });
 
             migrationBuilder.InsertData(
                 table: "admin_user_role",
-                columns: new[] { "id", "describe", "display_name", "rights", "role_name", "status" },
-                values: new object[] { 1, "Administrator", "Administrator", "{\"dashboard\":[\"write\",\"read\"],\"category\":[\"write\",\"read\"],\"topic\":[\"write\",\"read\"],\"tag\":[\"write\",\"read\"],\"post\":[\"write\",\"read\"],\"comment\":[\"write\",\"read\"],\"security\":[\"write\",\"read\"],\"social_user\":[\"write\",\"read\"],\"admin_user\":[\"write\",\"read\"],\"log\":[\"write\",\"read\"]}", "admin", "Readonly" });
+                columns: new[] { "id", "describe", "display_name", "role_name", "status" },
+                values: new object[] { 1, "Administrator", "Administrator", "admin", "Readonly" });
 
             migrationBuilder.InsertData(
                 table: "social_category",
                 columns: new[] { "id", "created_timestamp", "describe", "display_name", "last_modified_timestamp", "name", "parent_id", "slug", "status", "thumbnail" },
                 values: new object[,]
                 {
-                    { 5L, new DateTime(2022, 3, 1, 21, 6, 59, 383, DateTimeKind.Utc).AddTicks(3949), "Life die have number", "Left", null, "left", null, "left", "Readonly", null },
-                    { 4L, new DateTime(2022, 3, 1, 21, 6, 59, 383, DateTimeKind.Utc).AddTicks(3943), "Nothing in here", "Blog", null, "blog", null, "blog", "Readonly", null },
-                    { 1L, new DateTime(2022, 3, 1, 21, 6, 59, 383, DateTimeKind.Utc).AddTicks(3895), "This not a bug this a feature", "Technology", null, "technology", null, "technology", "Readonly", null },
-                    { 2L, new DateTime(2022, 3, 1, 21, 6, 59, 383, DateTimeKind.Utc).AddTicks(3934), "Do not click to this", "Developer", null, "developer", null, "developer", "Readonly", null },
-                    { 3L, new DateTime(2022, 3, 1, 21, 6, 59, 383, DateTimeKind.Utc).AddTicks(3939), "Search google to have better solution", "Dicussion", null, "dicussion", null, "dicussion", "Readonly", null }
+                    { 5L, new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8314), "Life die have number", "Left", null, "left", null, "left", "Readonly", null },
+                    { 3L, new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8300), "Search google to have better solution", "Dicussion", null, "dicussion", null, "dicussion", "Readonly", null },
+                    { 4L, new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8305), "Nothing in here", "Blog", null, "blog", null, "blog", "Readonly", null },
+                    { 1L, new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8249), "This not a bug this a feature", "Technology", null, "technology", null, "technology", "Readonly", null },
+                    { 2L, new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8294), "Do not click to this", "Developer", null, "developer", null, "developer", "Readonly", null }
                 });
 
             migrationBuilder.InsertData(
@@ -652,11 +759,11 @@ namespace DatabaseAccess.Migrations
                 columns: new[] { "id", "created_timestamp", "describe", "last_modified_timestamp", "status", "tag" },
                 values: new object[,]
                 {
-                    { 1L, new DateTime(2022, 3, 1, 21, 6, 59, 401, DateTimeKind.Utc).AddTicks(4023), "Angular", null, "Readonly", "#angular" },
-                    { 2L, new DateTime(2022, 3, 1, 21, 6, 59, 401, DateTimeKind.Utc).AddTicks(4064), "Something is not thing", null, "Readonly", "#life-die-have-number" },
-                    { 3L, new DateTime(2022, 3, 1, 21, 6, 59, 401, DateTimeKind.Utc).AddTicks(4068), "Dot not choose this tag", null, "Readonly", "#develop" },
-                    { 4L, new DateTime(2022, 3, 1, 21, 6, 59, 401, DateTimeKind.Utc).AddTicks(4072), "Nothing in here", null, "Readonly", "#nothing" },
-                    { 5L, new DateTime(2022, 3, 1, 21, 6, 59, 401, DateTimeKind.Utc).AddTicks(4076), "hi hi", null, "Readonly", "#hihi" }
+                    { 1L, new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8159), "Angular", null, "Readonly", "#angular" },
+                    { 2L, new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8210), "Something is not thing", null, "Readonly", "#life-die-have-number" },
+                    { 3L, new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8216), "Dot not choose this tag", null, "Readonly", "#develop" },
+                    { 4L, new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8220), "Nothing in here", null, "Readonly", "#nothing" },
+                    { 5L, new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8225), "hi hi", null, "Readonly", "#hihi" }
                 });
 
             migrationBuilder.InsertData(
@@ -671,8 +778,40 @@ namespace DatabaseAccess.Migrations
 
             migrationBuilder.InsertData(
                 table: "social_user_role",
-                columns: new[] { "id", "describe", "display_name", "rights", "role_name", "status" },
-                values: new object[] { 1, "Normal user", "User", "{\"post\":[\"write\",\"read\"],\"comment\":[\"write\",\"read\"],\"report\":[\"write\",\"read\"]}", "user", "Readonly" });
+                columns: new[] { "id", "describe", "display_name", "role_name", "status" },
+                values: new object[] { 1, "Normal user", "User", "user", "Readonly" });
+
+            migrationBuilder.InsertData(
+                table: "admin_user_role_detail",
+                columns: new[] { "right_id", "role_id", "actions" },
+                values: new object[,]
+                {
+                    { 1, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
+                    { 2, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
+                    { 3, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
+                    { 4, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
+                    { 5, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
+                    { 6, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
+                    { 7, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
+                    { 8, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
+                    { 9, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
+                    { 10, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "admin_user_role_of_user",
+                columns: new[] { "role_id", "user_id" },
+                values: new object[] { 1, new Guid("aef445ea-10f2-469a-bf08-0425f403030c") });
+
+            migrationBuilder.InsertData(
+                table: "social_user_role_detail",
+                columns: new[] { "right_id", "role_id", "actions" },
+                values: new object[,]
+                {
+                    { 1, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
+                    { 2, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
+                    { 3, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" }
+                });
 
             migrationBuilder.CreateIndex(
                 name: "IX_admin_audit_log_search_vector",
@@ -707,6 +846,16 @@ namespace DatabaseAccess.Migrations
                 column: "role_name",
                 unique: true,
                 filter: "(status) <> 'Disabled'");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_admin_user_role_detail_right_id",
+                table: "admin_user_role_detail",
+                column: "right_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_admin_user_role_of_user_role_id",
+                table: "admin_user_role_of_user",
+                column: "role_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_session_admin_user_token_user_id",
@@ -887,6 +1036,16 @@ namespace DatabaseAccess.Migrations
                 column: "role_name",
                 unique: true,
                 filter: "(status) <> 'Disabled'");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_social_user_role_detail_right_id",
+                table: "social_user_role_detail",
+                column: "right_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_social_user_role_of_user_role_id",
+                table: "social_user_role_of_user",
+                column: "role_id");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
@@ -898,10 +1057,10 @@ namespace DatabaseAccess.Migrations
                 name: "admin_base_config");
 
             migrationBuilder.DropTable(
-                name: "admin_user_right");
+                name: "admin_user_role_detail");
 
             migrationBuilder.DropTable(
-                name: "admin_user_role");
+                name: "admin_user_role_of_user");
 
             migrationBuilder.DropTable(
                 name: "session_admin_user");
@@ -940,10 +1099,16 @@ namespace DatabaseAccess.Migrations
                 name: "social_user_action_with_user");
 
             migrationBuilder.DropTable(
-                name: "social_user_right");
+                name: "social_user_role_detail");
 
             migrationBuilder.DropTable(
-                name: "social_user_role");
+                name: "social_user_role_of_user");
+
+            migrationBuilder.DropTable(
+                name: "admin_user_right");
+
+            migrationBuilder.DropTable(
+                name: "admin_user_role");
 
             migrationBuilder.DropTable(
                 name: "admin_user");
@@ -956,6 +1121,12 @@ namespace DatabaseAccess.Migrations
 
             migrationBuilder.DropTable(
                 name: "social_tag");
+
+            migrationBuilder.DropTable(
+                name: "social_user_right");
+
+            migrationBuilder.DropTable(
+                name: "social_user_role");
 
             migrationBuilder.DropTable(
                 name: "social_post");

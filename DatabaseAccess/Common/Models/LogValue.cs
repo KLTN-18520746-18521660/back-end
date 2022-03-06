@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
+// using System.Text.Json;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 using System.Threading.Tasks;
 
 namespace DatabaseAccess.Common.Models
@@ -13,7 +15,7 @@ namespace DatabaseAccess.Common.Models
 
         public override string ToString()
         {
-            return JsonSerializer.Serialize(Data);
+            return JsonConvert.SerializeObject(Data);
         }
     }
     public class EntityValue

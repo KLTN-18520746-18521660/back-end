@@ -9,10 +9,10 @@ using DatabaseAccess.Common.Interface;
 
 namespace DatabaseAccess.Context.ParserModels
 {
-    public class ParserAdminUserRole : IBaseParserModel
+    public class ParserSocialUserRoleDetail : IBaseParserModel
     {
-        public string role_name { get; set; }
-        public string display_name { get; set; }
-        public string describe { get; set; }
+        public int role_id { get; set; }
+        public int right_id { get; set; }
+        public JObject actions { get; set; }
     }
 }

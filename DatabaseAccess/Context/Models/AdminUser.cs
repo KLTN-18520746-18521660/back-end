@@ -8,6 +8,7 @@ using DatabaseAccess.Common.Interface;
 using DatabaseAccess.Common.Status;
 using DatabaseAccess.Common.Actions;
 using Newtonsoft.Json;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 using DatabaseAccess.Common;
 
@@ -29,11 +30,11 @@ namespace DatabaseAccess.Context.Models
         [Column("display_name")]
         [StringLength(50)]
         public string DisplayName { get; set; }
-        [NotMapped]
-        private string StorePassword;
-        [Required]
         [Column("password")]
+        [Required]
         [StringLength(32)]
+        public string StorePassword { get; private set; }
+        [NotMapped]
         public string Password {
             get => StorePassword;
             set => StorePassword = PasswordEncryptor.EncryptPassword(value, Salt); 
@@ -56,15 +57,9 @@ namespace DatabaseAccess.Context.Models
             set => Status = BaseStatus.StatusFromString(value, EntityStatus.AdminUserStatus);
         }
         [NotMapped]
-        public List<string> Roles { get; set; }
-        [Required]
-        [Column("roles", TypeName = "json")]
-        public string RolesStr {
-            get { return JsonConvert.SerializeObject(Roles).ToString(); }
-            set { Roles = JsonConvert.DeserializeObject<List<string>>(value); }
-        }
+        public Dictionary<string, JObject> Rights { get => GetRights(); }
         [NotMapped]
-        public Dictionary<string, List<string>> Rights { get; set; }
+        public List<string> Roles { get => GetRoles(); }
         [NotMapped]
         public JObject Settings { get; set; }
         [Required]
@@ -77,19 +72,20 @@ namespace DatabaseAccess.Context.Models
         public DateTime? LastAccessTimestamp { get; set; }
         [Column("created_timestamp", TypeName = "timestamp with time zone")]
         public DateTime CreatedTimestamp { get; private set; }
-
+        [InverseProperty(nameof(AdminUserRoleOfUser.User))]
+        public virtual List<AdminUserRoleOfUser> AdminUserRoleOfUsers { get; set; }
         [InverseProperty(nameof(SessionAdminUser.User))]
-        public virtual ICollection<SessionAdminUser> SessionAdminUsers { get; set; }
+        public virtual List<SessionAdminUser> SessionAdminUsers { get; set; }
 
         public AdminUser() : base()
         {
-            SessionAdminUsers = new HashSet<SessionAdminUser>();
+            AdminUserRoleOfUsers = new List<AdminUserRoleOfUser>();
+            SessionAdminUsers = new List<SessionAdminUser>();
             __ModelName = "AdminUser";
             Id = Guid.NewGuid();
             CreatedTimestamp = DateTime.UtcNow;
             Status = AdminUserStatus.Activated;
             Salt = PasswordEncryptor.GenerateSalt();
-            RolesStr = "[]";
             SettingsStr = "{}";
         }
 
@@ -109,6 +105,47 @@ namespace DatabaseAccess.Context.Models
                 Error = ex.ToString();
                 return false;
             }
+        }
+
+        #region Handle default data
+        public List<string> GetRoles()
+        {
+            List<string> roles = new();
+            foreach (var item in AdminUserRoleOfUsers) {
+                roles.Add(item.Role.RoleName);
+            }
+            return roles;
+        }
+
+        public Dictionary<string, JObject> GetRights()
+        {
+            Dictionary<string, JObject> rights = new();
+            foreach (var item in AdminUserRoleOfUsers) {
+                foreach (var detail in item.Role.AdminUserRoleDetails) {
+                    var _obj = rights.GetValueOrDefault(detail.Right.RightName, new JObject());
+                    var obj = detail.Actions;
+                    JObject action;
+                    if (_obj.Count != 0) {
+                        try {
+                            var _read = _obj.Value<bool>("read");
+                            var _write = _obj.Value<bool>("write");
+                            var read = obj.Value<bool>("read") ? true : _read;
+                            var write = obj.Value<bool>("write") ? true : _write;
+                            rights.Remove(detail.Right.RightName);
+                            action = new JObject {
+                                { "read", read },
+                                { "write", write }
+                            };
+                        } catch (Exception) {
+                            action = _obj;
+                        }
+                        rights.Add(detail.Right.RightName, action);
+                    } else {
+                        rights.Add(detail.Right.RightName, obj);
+                    }
+                }
+            }
+            return rights;
         }
 
         public override bool PrepareExportObjectJson()
@@ -134,24 +171,52 @@ namespace DatabaseAccess.Context.Models
             return true;
         }
 
+        private static Guid AdminUserId = Guid.NewGuid();
+        private static string AdminUserName = "admin";
         public static List<AdminUser> GetDefaultData()
         {
             List<AdminUser> ListData = new ()
             {
                 new AdminUser() {
-                    Id = Guid.NewGuid(),
+                    Id = AdminUserId,
                     UserName = "admin",
                     DisplayName = "Administrator",
                     Salt = PasswordEncryptor.GenerateSalt(),
-                    Password = "admin",
+                    Password = AdminUserName,
                     Email = "admin@admin",
                     Status = AdminUserStatus.Readonly,
-                    RolesStr = "[]",
                     SettingsStr = "{}",
                     CreatedTimestamp = DateTime.UtcNow
                 }
             };
             return ListData;
         }
+
+        public static Guid GetAdminUserId()
+        {
+            return AdminUserId;
+        }
+
+        public static string GetAdminUserName()
+        {
+            return AdminUserName;
+        }
+        #endregion
+        #region Handle session user
+        public List<string> GetExpiredSessions(int ExpiryTime) // minute
+        {
+            var now = DateTime.UtcNow;
+            return SessionAdminUsers
+                    .Where(e => (now - e.LastInteractionTime.ToUniversalTime()).TotalMinutes >= ExpiryTime && e.Saved == false)
+                    .Select(e => e.SessionToken)
+                    .ToList();
+        }
+        public void SessionExtension(string SessionToken, int ExtensionTime) // minute
+        {
+            var now = DateTime.UtcNow.AddMinutes(ExtensionTime);
+            var session = SessionAdminUsers.Where<SessionAdminUser>(e => e.SessionToken == SessionToken).ToList().First();
+            session.LastInteractionTime = now;
+        }
+        #endregion
     }
 }

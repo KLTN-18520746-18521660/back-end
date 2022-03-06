@@ -40,14 +40,14 @@ namespace DatabaseAccess.Context.Validators
                 .Matches("^.+$")
                     .WithMessage("{PropertyName} do not accept line terminators like: new line");
 
-            RuleFor(entity => entity.rights)
-                .Cascade(CascadeMode.Stop)
-                .NotNull()
-                    .WithMessage("{PropertyName} is Null")
-                .NotEmpty()
-                    .WithMessage("{PropertyName} is Empty")
-                .Must(Common.CommonValidator.ValidateRightsAbilities)
-                    .WithMessage("{PropertyName} is invalid");
+            // RuleFor(entity => entity.rights)
+            //     .Cascade(CascadeMode.Stop)
+            //     .NotNull()
+            //         .WithMessage("{PropertyName} is Null")
+            //     .NotEmpty()
+            //         .WithMessage("{PropertyName} is Empty")
+            //     .Must(Common.CommonValidator.ValidateRightsAbilities)
+            //         .WithMessage("{PropertyName} is invalid");
         }
     }
 }

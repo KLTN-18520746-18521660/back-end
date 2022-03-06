@@ -121,6 +121,36 @@ namespace DatabaseAccess.Migrations
                     b.ToTable("admin_base_config");
 
                     b.HasCheckConstraint("CK_admin_base_config_status_valid_value", "status = 'Disabled' OR status = 'Enabled' OR status = 'Readonly'");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            ConfigKey = "AdminUserLoginConfig",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\r\n  \"number\": 5,\r\n  \"time\": 5,\r\n  \"lock\": 360\r\n}"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            ConfigKey = "SocialUserLoginConfig",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\r\n  \"number\": 5,\r\n  \"time\": 5,\r\n  \"lock\": 360\r\n}"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            ConfigKey = "SessionAdminUserConfig",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\r\n  \"expiry_time\": 5,\r\n  \"extension_time\": 5\r\n}"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            ConfigKey = "SessionSocialUserConfig",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\r\n  \"expiry_time\": 5,\r\n  \"extension_time\": 5\r\n}"
+                        });
                 });
 
             modelBuilder.Entity("DatabaseAccess.Context.Models.AdminUser", b =>
@@ -153,19 +183,6 @@ namespace DatabaseAccess.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_access_timestamp");
 
-                    b.Property<string>("Password")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("password");
-
-                    b.Property<string>("RolesStr")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
-                        .HasColumnName("roles")
-                        .HasDefaultValueSql("'[]'");
-
                     b.Property<string>("Salt")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -189,6 +206,12 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("status")
                         .HasDefaultValueSql("'Activated'");
 
+                    b.Property<string>("StorePassword")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("password");
+
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -210,15 +233,14 @@ namespace DatabaseAccess.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("65bdb4cb-70ee-41aa-b784-9e15c0cb9ba8"),
-                            CreatedTimestamp = new DateTime(2022, 3, 1, 21, 6, 59, 365, DateTimeKind.Utc).AddTicks(2415),
+                            Id = new Guid("aef445ea-10f2-469a-bf08-0425f403030c"),
+                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 32, DateTimeKind.Utc).AddTicks(4268),
                             DisplayName = "Administrator",
                             Email = "admin@admin",
-                            Password = "BB2DD0553AE44EB0A5DD2FAEFFBC9154",
-                            RolesStr = "[]",
-                            Salt = "5a801431",
+                            Salt = "3c6efe21",
                             SettingsStr = "{}",
                             StatusStr = "Readonly",
+                            StorePassword = "0AFC343755FA7D0BA5B9D31A5062E165",
                             UserName = "admin"
                         });
                 });
@@ -370,13 +392,6 @@ namespace DatabaseAccess.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("display_name");
 
-                    b.Property<string>("RightsStr")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
-                        .HasColumnName("rights")
-                        .HasDefaultValueSql("'[]'");
-
                     b.Property<string>("RoleName")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -407,9 +422,118 @@ namespace DatabaseAccess.Migrations
                             Id = 1,
                             Describe = "Administrator",
                             DisplayName = "Administrator",
-                            RightsStr = "{\"dashboard\":[\"write\",\"read\"],\"category\":[\"write\",\"read\"],\"topic\":[\"write\",\"read\"],\"tag\":[\"write\",\"read\"],\"post\":[\"write\",\"read\"],\"comment\":[\"write\",\"read\"],\"security\":[\"write\",\"read\"],\"social_user\":[\"write\",\"read\"],\"admin_user\":[\"write\",\"read\"],\"log\":[\"write\",\"read\"]}",
                             RoleName = "admin",
                             StatusStr = "Readonly"
+                        });
+                });
+
+            modelBuilder.Entity("DatabaseAccess.Context.Models.AdminUserRoleDetail", b =>
+                {
+                    b.Property<int>("RoleId")
+                        .HasColumnType("integer")
+                        .HasColumnName("role_id");
+
+                    b.Property<int>("RightId")
+                        .HasColumnType("integer")
+                        .HasColumnName("right_id");
+
+                    b.Property<string>("ActionsStr")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("json")
+                        .HasColumnName("actions")
+                        .HasDefaultValueSql("'{}'");
+
+                    b.HasKey("RoleId", "RightId");
+
+                    b.HasIndex("RightId");
+
+                    b.ToTable("admin_user_role_detail");
+
+                    b.HasData(
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 1,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 2,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 3,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 4,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 5,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 6,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 7,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 8,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 9,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 10,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        });
+                });
+
+            modelBuilder.Entity("DatabaseAccess.Context.Models.AdminUserRoleOfUser", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("integer")
+                        .HasColumnName("role_id");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("admin_user_role_of_user");
+
+                    b.HasData(
+                        new
+                        {
+                            UserId = new Guid("aef445ea-10f2-469a-bf08-0425f403030c"),
+                            RoleId = 1
                         });
                 });
 
@@ -433,7 +557,7 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("data")
                         .HasDefaultValueSql("'{}'");
 
-                    b.Property<DateTime?>("LastInteractionTime")
+                    b.Property<DateTime>("LastInteractionTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_interaction_time");
 
@@ -477,7 +601,7 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("data")
                         .HasDefaultValueSql("'{}'");
 
-                    b.Property<DateTime?>("LastInteractionTime")
+                    b.Property<DateTime>("LastInteractionTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_interaction_time");
 
@@ -649,7 +773,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedTimestamp = new DateTime(2022, 3, 1, 21, 6, 59, 383, DateTimeKind.Utc).AddTicks(3895),
+                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8249),
                             Describe = "This not a bug this a feature",
                             DisplayName = "Technology",
                             Name = "technology",
@@ -659,7 +783,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 2L,
-                            CreatedTimestamp = new DateTime(2022, 3, 1, 21, 6, 59, 383, DateTimeKind.Utc).AddTicks(3934),
+                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8294),
                             Describe = "Do not click to this",
                             DisplayName = "Developer",
                             Name = "developer",
@@ -669,7 +793,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 3L,
-                            CreatedTimestamp = new DateTime(2022, 3, 1, 21, 6, 59, 383, DateTimeKind.Utc).AddTicks(3939),
+                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8300),
                             Describe = "Search google to have better solution",
                             DisplayName = "Dicussion",
                             Name = "dicussion",
@@ -679,7 +803,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 4L,
-                            CreatedTimestamp = new DateTime(2022, 3, 1, 21, 6, 59, 383, DateTimeKind.Utc).AddTicks(3943),
+                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8305),
                             Describe = "Nothing in here",
                             DisplayName = "Blog",
                             Name = "blog",
@@ -689,7 +813,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 5L,
-                            CreatedTimestamp = new DateTime(2022, 3, 1, 21, 6, 59, 383, DateTimeKind.Utc).AddTicks(3949),
+                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8314),
                             Describe = "Life die have number",
                             DisplayName = "Left",
                             Name = "left",
@@ -871,6 +995,12 @@ namespace DatabaseAccess.Migrations
                         .HasColumnType("text")
                         .HasColumnName("thumbnail");
 
+                    b.Property<int>("TimeRead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("time_read")
+                        .HasDefaultValueSql("2");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text")
@@ -896,6 +1026,8 @@ namespace DatabaseAccess.Migrations
                     b.ToTable("social_post");
 
                     b.HasCheckConstraint("CK_social_post_status_valid_value", "status = 'Pending' OR status = 'Approved' OR status = 'Private' OR status = 'Deleted'");
+
+                    b.HasCheckConstraint("CK_social_post_time_read_valid_value", "time_read >= 2");
 
                     b.HasCheckConstraint("CK_social_post_last_modified_timestamp_valid_value", "(last_modified_timestamp IS NULL) OR (last_modified_timestamp > created_timestamp)");
                 });
@@ -1052,7 +1184,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedTimestamp = new DateTime(2022, 3, 1, 21, 6, 59, 401, DateTimeKind.Utc).AddTicks(4023),
+                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8159),
                             Describe = "Angular",
                             StatusStr = "Readonly",
                             Tag = "#angular"
@@ -1060,7 +1192,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 2L,
-                            CreatedTimestamp = new DateTime(2022, 3, 1, 21, 6, 59, 401, DateTimeKind.Utc).AddTicks(4064),
+                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8210),
                             Describe = "Something is not thing",
                             StatusStr = "Readonly",
                             Tag = "#life-die-have-number"
@@ -1068,7 +1200,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 3L,
-                            CreatedTimestamp = new DateTime(2022, 3, 1, 21, 6, 59, 401, DateTimeKind.Utc).AddTicks(4068),
+                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8216),
                             Describe = "Dot not choose this tag",
                             StatusStr = "Readonly",
                             Tag = "#develop"
@@ -1076,7 +1208,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 4L,
-                            CreatedTimestamp = new DateTime(2022, 3, 1, 21, 6, 59, 401, DateTimeKind.Utc).AddTicks(4072),
+                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8220),
                             Describe = "Nothing in here",
                             StatusStr = "Readonly",
                             Tag = "#nothing"
@@ -1084,7 +1216,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 5L,
-                            CreatedTimestamp = new DateTime(2022, 3, 1, 21, 6, 59, 401, DateTimeKind.Utc).AddTicks(4076),
+                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8225),
                             Describe = "hi hi",
                             StatusStr = "Readonly",
                             Tag = "#hihi"
@@ -1147,12 +1279,6 @@ namespace DatabaseAccess.Migrations
                         .HasColumnType("character varying(25)")
                         .HasColumnName("last_name");
 
-                    b.Property<string>("Password")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("password");
-
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
@@ -1169,13 +1295,6 @@ namespace DatabaseAccess.Migrations
                         .HasColumnType("json")
                         .HasColumnName("ranks")
                         .HasDefaultValueSql("'{}'");
-
-                    b.Property<string>("RolesStr")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
-                        .HasColumnName("roles")
-                        .HasDefaultValueSql("'[]'");
 
                     b.Property<string>("Salt")
                         .IsRequired()
@@ -1211,6 +1330,12 @@ namespace DatabaseAccess.Migrations
                         .HasColumnType("character varying(15)")
                         .HasColumnName("status")
                         .HasDefaultValueSql("'Activated'");
+
+                    b.Property<string>("StorePassword")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("password");
 
                     b.Property<string>("UserName")
                         .IsRequired()
@@ -1449,13 +1574,6 @@ namespace DatabaseAccess.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("display_name");
 
-                    b.Property<string>("RightsStr")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
-                        .HasColumnName("rights")
-                        .HasDefaultValueSql("'[]'");
-
                     b.Property<string>("RoleName")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1486,10 +1604,108 @@ namespace DatabaseAccess.Migrations
                             Id = 1,
                             Describe = "Normal user",
                             DisplayName = "User",
-                            RightsStr = "{\"post\":[\"write\",\"read\"],\"comment\":[\"write\",\"read\"],\"report\":[\"write\",\"read\"]}",
                             RoleName = "user",
                             StatusStr = "Readonly"
                         });
+                });
+
+            modelBuilder.Entity("DatabaseAccess.Context.Models.SocialUserRoleDetail", b =>
+                {
+                    b.Property<int>("RoleId")
+                        .HasColumnType("integer")
+                        .HasColumnName("role_id");
+
+                    b.Property<int>("RightId")
+                        .HasColumnType("integer")
+                        .HasColumnName("right_id");
+
+                    b.Property<string>("ActionsStr")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("json")
+                        .HasColumnName("actions")
+                        .HasDefaultValueSql("'{}'");
+
+                    b.HasKey("RoleId", "RightId");
+
+                    b.HasIndex("RightId");
+
+                    b.ToTable("social_user_role_detail");
+
+                    b.HasData(
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 1,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 2,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 3,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        });
+                });
+
+            modelBuilder.Entity("DatabaseAccess.Context.Models.SocialUserRoleOfUser", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("integer")
+                        .HasColumnName("role_id");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("social_user_role_of_user");
+                });
+
+            modelBuilder.Entity("DatabaseAccess.Context.Models.AdminUserRoleDetail", b =>
+                {
+                    b.HasOne("DatabaseAccess.Context.Models.AdminUserRight", "Right")
+                        .WithMany("AdminUserRoleDetails")
+                        .HasForeignKey("RightId")
+                        .HasConstraintName("FK_admin_user_role_detail_right")
+                        .IsRequired();
+
+                    b.HasOne("DatabaseAccess.Context.Models.AdminUserRole", "Role")
+                        .WithMany("AdminUserRoleDetails")
+                        .HasForeignKey("RoleId")
+                        .HasConstraintName("FK_admin_user_role_detail_role")
+                        .IsRequired();
+
+                    b.Navigation("Right");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("DatabaseAccess.Context.Models.AdminUserRoleOfUser", b =>
+                {
+                    b.HasOne("DatabaseAccess.Context.Models.AdminUserRole", "Role")
+                        .WithMany("AdminUserRoleOfUsers")
+                        .HasForeignKey("RoleId")
+                        .HasConstraintName("FK_admin_user_role_of_user_role")
+                        .IsRequired();
+
+                    b.HasOne("DatabaseAccess.Context.Models.AdminUser", "User")
+                        .WithMany("AdminUserRoleOfUsers")
+                        .HasForeignKey("UserId")
+                        .HasConstraintName("FK_admin_user_role_of_user_user")
+                        .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("DatabaseAccess.Context.Models.SessionAdminUser", b =>
@@ -1730,9 +1946,61 @@ namespace DatabaseAccess.Migrations
                     b.Navigation("UserIdDesNavigation");
                 });
 
+            modelBuilder.Entity("DatabaseAccess.Context.Models.SocialUserRoleDetail", b =>
+                {
+                    b.HasOne("DatabaseAccess.Context.Models.SocialUserRight", "Right")
+                        .WithMany("SocialUserRoleDetails")
+                        .HasForeignKey("RightId")
+                        .HasConstraintName("FK_social_user_role_detail_right")
+                        .IsRequired();
+
+                    b.HasOne("DatabaseAccess.Context.Models.SocialUserRole", "Role")
+                        .WithMany("SocialUserRoleDetails")
+                        .HasForeignKey("RoleId")
+                        .HasConstraintName("FK_social_user_role_detail_role")
+                        .IsRequired();
+
+                    b.Navigation("Right");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("DatabaseAccess.Context.Models.SocialUserRoleOfUser", b =>
+                {
+                    b.HasOne("DatabaseAccess.Context.Models.SocialUserRole", "Role")
+                        .WithMany("SocialUserRoleOfUsers")
+                        .HasForeignKey("RoleId")
+                        .HasConstraintName("FK_social_user_role_of_user_role")
+                        .IsRequired();
+
+                    b.HasOne("DatabaseAccess.Context.Models.SocialUser", "User")
+                        .WithMany("SocialUserRoleOfUsers")
+                        .HasForeignKey("UserId")
+                        .HasConstraintName("FK_social_user_role_of_user_user")
+                        .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("DatabaseAccess.Context.Models.AdminUser", b =>
                 {
+                    b.Navigation("AdminUserRoleOfUsers");
+
                     b.Navigation("SessionAdminUsers");
+                });
+
+            modelBuilder.Entity("DatabaseAccess.Context.Models.AdminUserRight", b =>
+                {
+                    b.Navigation("AdminUserRoleDetails");
+                });
+
+            modelBuilder.Entity("DatabaseAccess.Context.Models.AdminUserRole", b =>
+                {
+                    b.Navigation("AdminUserRoleDetails");
+
+                    b.Navigation("AdminUserRoleOfUsers");
                 });
 
             modelBuilder.Entity("DatabaseAccess.Context.Models.SocialCategory", b =>
@@ -1796,6 +2064,20 @@ namespace DatabaseAccess.Migrations
                     b.Navigation("SocialUserActionWithUserUserIdDesNavigations");
 
                     b.Navigation("SocialUserActionWithUserUsers");
+
+                    b.Navigation("SocialUserRoleOfUsers");
+                });
+
+            modelBuilder.Entity("DatabaseAccess.Context.Models.SocialUserRight", b =>
+                {
+                    b.Navigation("SocialUserRoleDetails");
+                });
+
+            modelBuilder.Entity("DatabaseAccess.Context.Models.SocialUserRole", b =>
+                {
+                    b.Navigation("SocialUserRoleDetails");
+
+                    b.Navigation("SocialUserRoleOfUsers");
                 });
 #pragma warning restore 612, 618
         }

@@ -44,9 +44,12 @@ namespace DatabaseAccess.Context.Models
             get => BaseStatus.StatusToString(Status, EntityStatus.SocialUserRightStatus);
             set => Status = BaseStatus.StatusFromString(value, EntityStatus.SocialUserRightStatus);
         }
+        [InverseProperty(nameof(SocialUserRoleDetail.Right))]
+        public virtual List<SocialUserRoleDetail> SocialUserRoleDetails { get; set; }
 
         public SocialUserRight()
         {
+            SocialUserRoleDetails = new List<SocialUserRoleDetail>();
             __ModelName = "SocialUserRight";
             Status = SocialUserRightStatus.Enabled;
         }

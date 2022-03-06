@@ -67,17 +67,17 @@ namespace DatabaseAccess.Context.Models
         [InverseProperty(nameof(SocialCategory.InverseParent))]
         public virtual SocialCategory Parent { get; set; }
         [InverseProperty(nameof(SocialCategory.Parent))]
-        public virtual ICollection<SocialCategory> InverseParent { get; set; }
+        public virtual List<SocialCategory> InverseParent { get; set; }
         [InverseProperty(nameof(SocialPostCategory.Category))]
-        public virtual ICollection<SocialPostCategory> SocialPostCategories { get; set; }
+        public virtual List<SocialPostCategory> SocialPostCategories { get; set; }
         [InverseProperty(nameof(SocialUserActionWithCategory.Category))]
-        public virtual ICollection<SocialUserActionWithCategory> SocialUserActionWithCategories { get; set; }
+        public virtual List<SocialUserActionWithCategory> SocialUserActionWithCategories { get; set; }
 
         public SocialCategory()
         {
-            InverseParent = new HashSet<SocialCategory>();
-            SocialPostCategories = new HashSet<SocialPostCategory>();
-            SocialUserActionWithCategories = new HashSet<SocialUserActionWithCategory>();
+            InverseParent = new List<SocialCategory>();
+            SocialPostCategories = new List<SocialPostCategory>();
+            SocialUserActionWithCategories = new List<SocialUserActionWithCategory>();
 
             __ModelName = "SocialCategory";
             Status = SocialCategoryStatus.Enabled;

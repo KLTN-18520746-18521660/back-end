@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using NpgsqlTypes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -38,11 +39,11 @@ namespace DatabaseAccess.Context.Models
         [Column("user_name")]
         [StringLength(50)]
         public string UserName { get; set; }
-        [NotMapped]
-        private string StorePassword;
         [Required]
         [Column("password")]
         [StringLength(32)]
+        public string StorePassword { get; private set; }
+        [NotMapped]
         public string Password {
             get => StorePassword;
             set => StorePassword = PasswordEncryptor.EncryptPassword(value, Salt); 
@@ -84,15 +85,9 @@ namespace DatabaseAccess.Context.Models
             set => Status = BaseStatus.StatusFromString(value, EntityStatus.AdminUserStatus);
         }
         [NotMapped]
-        public List<string> Roles { get; set; }
-        [Required]
-        [Column("roles", TypeName = "json")]
-        public string RolesStr {
-            get { return JsonConvert.SerializeObject(Roles).ToString(); }
-            set { Roles = JsonConvert.DeserializeObject<List<string>>(value); }
-        }
+        public Dictionary<string, JObject> Rights { get => GetRights(); }
         [NotMapped]
-        public Dictionary<string, List<string>> Rights { get; set; }
+        public List<string> Roles { get => GetRoles(); }
         [NotMapped]
         public JObject Settings { get; set; }
         [Required]
@@ -117,48 +112,51 @@ namespace DatabaseAccess.Context.Models
         public DateTime CreatedTimestamp { get; private set; }
 
         [InverseProperty(nameof(SessionSocialUser.User))]
-        public virtual ICollection<SessionSocialUser> SessionSocialUsers { get; set; }
+        public virtual List<SessionSocialUser> SessionSocialUsers { get; set; }
         [InverseProperty(nameof(SocialComment.OwnerNavigation))]
-        public virtual ICollection<SocialComment> SocialComments { get; set; }
+        public virtual List<SocialComment> SocialComments { get; set; }
         [InverseProperty(nameof(SocialNotification.User))]
-        public virtual ICollection<SocialNotification> SocialNotifications { get; set; }
+        public virtual List<SocialNotification> SocialNotifications { get; set; }
         [InverseProperty(nameof(SocialPost.OwnerNavigation))]
-        public virtual ICollection<SocialPost> SocialPosts { get; set; }
+        public virtual List<SocialPost> SocialPosts { get; set; }
         [InverseProperty(nameof(SocialReport.User))]
-        public virtual ICollection<SocialReport> SocialReports { get; set; }
+        public virtual List<SocialReport> SocialReports { get; set; }
         [InverseProperty(nameof(SocialUserActionWithCategory.User))]
-        public virtual ICollection<SocialUserActionWithCategory> SocialUserActionWithCategories { get; set; }
+        public virtual List<SocialUserActionWithCategory> SocialUserActionWithCategories { get; set; }
         [InverseProperty(nameof(SocialUserActionWithComment.User))]
-        public virtual ICollection<SocialUserActionWithComment> SocialUserActionWithComments { get; set; }
+        public virtual List<SocialUserActionWithComment> SocialUserActionWithComments { get; set; }
         [InverseProperty(nameof(SocialUserActionWithPost.User))]
-        public virtual ICollection<SocialUserActionWithPost> SocialUserActionWithPosts { get; set; }
+        public virtual List<SocialUserActionWithPost> SocialUserActionWithPosts { get; set; }
         [InverseProperty(nameof(SocialUserActionWithTag.User))]
-        public virtual ICollection<SocialUserActionWithTag> SocialUserActionWithTags { get; set; }
+        public virtual List<SocialUserActionWithTag> SocialUserActionWithTags { get; set; }
         [InverseProperty(nameof(SocialUserActionWithUser.UserIdDesNavigation))]
-        public virtual ICollection<SocialUserActionWithUser> SocialUserActionWithUserUserIdDesNavigations { get; set; }
+        public virtual List<SocialUserActionWithUser> SocialUserActionWithUserUserIdDesNavigations { get; set; }
         [InverseProperty(nameof(SocialUserActionWithUser.User))]
-        public virtual ICollection<SocialUserActionWithUser> SocialUserActionWithUserUsers { get; set; }
+        public virtual List<SocialUserActionWithUser> SocialUserActionWithUserUsers { get; set; }
+        [InverseProperty(nameof(SocialUserRoleOfUser.User))]
+        public virtual List<SocialUserRoleOfUser> SocialUserRoleOfUsers { get; set; }
 
         public SocialUser()
         {
-            SessionSocialUsers = new HashSet<SessionSocialUser>();
-            SocialComments = new HashSet<SocialComment>();
-            SocialNotifications = new HashSet<SocialNotification>();
-            SocialPosts = new HashSet<SocialPost>();
-            SocialReports = new HashSet<SocialReport>();
-            SocialUserActionWithCategories = new HashSet<SocialUserActionWithCategory>();
-            SocialUserActionWithComments = new HashSet<SocialUserActionWithComment>();
-            SocialUserActionWithPosts = new HashSet<SocialUserActionWithPost>();
-            SocialUserActionWithTags = new HashSet<SocialUserActionWithTag>();
-            SocialUserActionWithUserUserIdDesNavigations = new HashSet<SocialUserActionWithUser>();
-            SocialUserActionWithUserUsers = new HashSet<SocialUserActionWithUser>();
+            SessionSocialUsers = new List<SessionSocialUser>();
+            SocialComments = new List<SocialComment>();
+            SocialNotifications = new List<SocialNotification>();
+            SocialPosts = new List<SocialPost>();
+            SocialReports = new List<SocialReport>();
+            SocialUserActionWithCategories = new List<SocialUserActionWithCategory>();
+            SocialUserActionWithComments = new List<SocialUserActionWithComment>();
+            SocialUserActionWithPosts = new List<SocialUserActionWithPost>();
+            SocialUserActionWithTags = new List<SocialUserActionWithTag>();
+            SocialUserActionWithUserUserIdDesNavigations = new List<SocialUserActionWithUser>();
+            SocialUserActionWithUserUsers = new List<SocialUserActionWithUser>();
+            SocialUserRoleOfUsers = new List<SocialUserRoleOfUser>();
 
             __ModelName = "SocialUser";
             Id = Guid.NewGuid();
             CreatedTimestamp = DateTime.UtcNow;
             Status = SocialUserStatus.Activated;
             Salt = PasswordEncryptor.GenerateSalt();
-            RolesStr = "[]";
+            // RolesStr = "[]";
             SettingsStr = "{}";
             RanksStr = "{}";
         }
@@ -198,7 +196,6 @@ namespace DatabaseAccess.Context.Models
                 { "last_name", LastName },
                 { "display_name", DisplayName },
                 { "user_name", UserName },
-                { "display_name", DisplayName },
                 { "email", Email },
                 { "sex", Sex },
                 { "phone", Phone },
@@ -208,11 +205,11 @@ namespace DatabaseAccess.Context.Models
                 { "verified_email", VerifiedEmail },
                 { "avatar", Avatar },
                 { "status", StatusStr },
-                { "roles", Roles},
-                { "rights", Rights},
-                { "settings", Settings},
+                { "roles", Roles },
+                { "rights", Rights },
+                { "settings", Settings },
                 { "ranks", Ranks },
-                { "last_access_timestamp", LastAccessTimestamp},
+                { "last_access_timestamp", LastAccessTimestamp },
                 { "created_timestamp", CreatedTimestamp },
 #if DEBUG
                 { "password", Password },
@@ -222,5 +219,77 @@ namespace DatabaseAccess.Context.Models
             };
             return true;
         }
+
+        #region Handle default data
+        public List<string> GetRoles()
+        {
+            List<string> roles = new();
+            foreach (var item in SocialUserRoleOfUsers) {
+                roles.Add(item.Role.RoleName);
+            }
+            return roles;
+        }
+
+        public Dictionary<string, JObject> GetRights()
+        {
+            Dictionary<string, JObject> rights = new();
+            foreach (var item in SocialUserRoleOfUsers) {
+                foreach (var detail in item.Role.SocialUserRoleDetails) {
+                    var _obj = rights.GetValueOrDefault(detail.Right.RightName, new JObject());
+                    var obj = detail.Actions;
+                    JObject action;
+                    if (_obj.Count != 0) {
+                        try {
+                            var _read = _obj.Value<bool>("read");
+                            var _write = _obj.Value<bool>("write");
+                            var read = obj.Value<bool>("read") ? true : _read;
+                            var write = obj.Value<bool>("write") ? true : _write;
+                            rights.Remove(detail.Right.RightName);
+                            action = new JObject {
+                                { "read", read },
+                                { "write", write }
+                            };
+                        } catch (Exception) {
+                            action = _obj;
+                        }
+                        rights.Add(detail.Right.RightName, action);
+                    } else {
+                        rights.Add(detail.Right.RightName, obj);
+                    }
+                }
+            }
+            return rights;
+        }
+
+        private static Guid AdminUserId = Guid.NewGuid();
+        private static string AdminUserName = "admin";
+
+        public static Guid GetAdminUserId()
+        {
+            return AdminUserId;
+        }
+
+        public static string GetAdminUserName()
+        {
+            return AdminUserName;
+        }
+        #endregion
+        #region Handle session user
+        public List<string> GetExpiredSessions(int ExpiryTime) // minute
+        {
+            var now = DateTime.UtcNow;
+            return SessionSocialUsers
+                    .Where(e => (now - e.LastInteractionTime.ToUniversalTime()).TotalMinutes >= ExpiryTime && e.Saved == false)
+                    .Select(e => e.SessionToken)
+                    .ToList();
+        }
+        public void SessionExtension(string SessionToken, int ExtensionTime) // minute
+        {
+            var now = DateTime.UtcNow.AddMinutes(ExtensionTime);
+            var session = SessionSocialUsers.Where<SessionSocialUser>(e => e.SessionToken == SessionToken).ToList().First();
+            session.LastInteractionTime = now;
+        }
+        #endregion
+    
     }
 }
