@@ -4,32 +4,35 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
+using DatabaseAccess.Common.Models;
 using System.Text;
 
 namespace MyConsole
 {
+    public class tst
+    {
+        public LogValue NewValue { get; set; }
+        public string NewValueStr
+        {
+            get { return NewValue.ToString(); }
+            set { NewValue = JsonConvert.DeserializeObject<LogValue>(value); }
+        }
+    }
     class Program
     {
-        static string GenerateProjectGUID()
-        {
+        static string GenerateProjectGUID() {
             return Guid.NewGuid().ToString("B").ToUpper();
         }
 
+        static void PrintPassEncrypt() {
+            string passCert = CoreApi.ConfigurationDefaultVariable.PASSWORD_CERTIFICATE;
+            string passDb = "a";
+            Console.WriteLine(CoreApi.Common.StringDecryptor.Encrypt(passCert));
+            Console.WriteLine(CoreApi.Common.StringDecryptor.Encrypt(passDb));
+        }
         static void Main(string[] args)
         {
-            var user = DatabaseAccess.Context.Models.AdminUser.GetDefaultData().First();
-            // string salt = user.Salt;
-            string salt = "2adb88f2";
-            string pass = "admin";
-            // string _pass = user.Password;
-            string _pass = "E0F9DC1F07E91A713A471D7349B8FE13";
-            string en = DatabaseAccess.Common.PasswordEncryptor.EncryptPassword(pass, salt);
-            string en2 = DatabaseAccess.Common.PasswordEncryptor.EncryptPassword(pass, salt);
-
-            Console.WriteLine(en);
-            Console.WriteLine(en2);
-            Console.WriteLine(_pass);
-            Console.WriteLine(en == _pass);
+            PrintPassEncrypt();
         }
     }
 }
