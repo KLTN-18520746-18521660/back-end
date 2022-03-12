@@ -9,7 +9,6 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Mvc.NewtonsoftJson;
 using DatabaseAccess.Context;
 using DatabaseAccess;
-using CoreApi.Common.Interface;
 using CoreApi.Common;
 using System.Collections.Generic;
 using System.Collections;

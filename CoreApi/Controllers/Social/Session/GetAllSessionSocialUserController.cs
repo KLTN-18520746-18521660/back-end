@@ -13,9 +13,11 @@ using Newtonsoft.Json.Linq;
 using CoreApi.Common;
 // using System.Data.Entity;
 using System.Diagnostics;
-using CoreApi.Common.Interface;
+
 using System.Text;
 // using System.Text.Json;
+using CoreApi.Services;
+using System.ComponentModel;
 
 namespace CoreApi.Controllers.Session
 {
@@ -24,13 +26,13 @@ namespace CoreApi.Controllers.Session
     public class GetAllSessionSocialUserController : BaseController
     {
         private DBContext __DBContext;
-        private IBaseConfig __BaseConfig;
+        private BaseConfig __BaseConfig;
         /////////// CONFIG VALUE ///////////
         private int EXPIRY_TIME; // minutes
         ////////////////////////////////////
         public GetAllSessionSocialUserController(
             DBContext _DBContext,
-            IBaseConfig _BaseConfig
+            BaseConfig _BaseConfig
         ) : base() {
             __DBContext = _DBContext;
             __BaseConfig = _BaseConfig;
@@ -42,7 +44,7 @@ namespace CoreApi.Controllers.Session
         {
             string Error = "";
             try {
-                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "expiry_time", Error);
+                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "expiry_time", out Error);
                 LogWarning(Error);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {

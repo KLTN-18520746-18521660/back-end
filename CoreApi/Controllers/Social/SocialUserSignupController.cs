@@ -14,21 +14,22 @@ using Newtonsoft.Json.Linq;
 using CoreApi.Common;
 // using System.Data.Entity;
 using System.Diagnostics;
-using CoreApi.Common.Interface;
+
 using System.Text;
 // using System.Text.Json;
+using CoreApi.Services;
 
-namespace CoreApi.Controllers.Admin.Session
+namespace CoreApi.Controllers.Social
 {
     [ApiController]
     [Route("/signup")]
     public class SocialUserSignupController : BaseController
     {
         private DBContext __DBContext;
-        private IBaseConfig __BaseConfig;
+        private BaseConfig __BaseConfig;
         public SocialUserSignupController(
             DBContext _DBContext,
-            IBaseConfig _BaseConfig
+            BaseConfig _BaseConfig
         ) : base() {
             __DBContext = _DBContext;
             __BaseConfig = _BaseConfig;

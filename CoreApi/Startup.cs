@@ -10,8 +10,13 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Mvc.NewtonsoftJson;
 using DatabaseAccess.Context;
 using DatabaseAccess;
-using CoreApi.Common.Interface;
+using Microsoft.AspNetCore.Mvc;
 using CoreApi.Common;
+using CoreApi.Services;
+using System;
+using System.Reflection;
+using System.IO;
+using System.ComponentModel;
 
 namespace CoreApi
 {
@@ -40,11 +45,57 @@ namespace CoreApi
                     FluentValidationConfig.RegisterValidatorsFromAssemblyContaining<Startup>();
                 });
             services.AddDbContext<DBContext>();
-            services.AddSingleton<IBaseConfig, BaseConfig>();
-            services.AddSwaggerGen(c => {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "CoreApi", Version = "v1" });
-                c.OperationFilter<HeadersFilter>();
+            services.AddSingleton<BaseConfig, BaseConfig>();
+            services.AddSingleton<AdminAuditLogManagement, AdminAuditLogManagement>();
+            services.AddSingleton<AdminUserManagement, AdminUserManagement>();
+            services.AddSingleton<SessionAdminUserManagement, SessionAdminUserManagement>();
+#if DEBUG
+            services.AddMvcCore(options => {
+                options.Filters.Add<ValidatorFilter>();
+                options.Conventions.Add(new ApiExplorerConvention());
             });
+            services.Configure<ApiBehaviorOptions>(options =>
+            {
+                options.SuppressModelStateInvalidFilter = true;
+            });
+            services.AddSwaggerGen(c => {
+                c.SwaggerDoc("admin", new OpenApiInfo {
+                    Title = "CoreApi",
+                    Version = "v1",
+                    Description = "CoreApi for manage blog. (KLTN-UIT-18520746-18521660)",
+                    Contact = new OpenApiContact {
+                        Name = "KLTN-UIT-18520746-18521660",
+                        Email = "18520746@gm.uit.edu.vn",
+                        Url = new Uri("https://github.com/KLTN-18520746-18521660/back-end"),
+                    },
+                });
+                c.SwaggerDoc("social", new OpenApiInfo {
+                    Title = "CoreApi",
+                    Version = "v1",
+                    Description = "CoreApi for using blog. (KLTN-UIT-18520746-18521660)",
+                    Contact = new OpenApiContact {
+                        Name = "KLTN-UIT-18520746-18521660",
+                        Email = "18520746@gm.uit.edu.vn",
+                        Url = new Uri("https://github.com/KLTN-18520746-18521660/back-end"),
+                    },
+                });
+                c.SwaggerDoc("test", new OpenApiInfo {
+                    Title = "CoreApi",
+                    Version = "v1",
+                    Description = "Api testing blog. (KLTN-UIT-18520746-18521660)",
+                    Contact = new OpenApiContact {
+                        Name = "KLTN-UIT-18520746-18521660",
+                        Email = "18520746@gm.uit.edu.vn",
+                        Url = new Uri("https://github.com/KLTN-18520746-18521660/back-end"),
+                    },
+                });
+                c.OperationFilter<HeadersFilter>();
+                // Set the comments path for the Swagger JSON and UI.
+                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                c.IncludeXmlComments(xmlPath);
+            });
+#endif
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -57,10 +108,18 @@ namespace CoreApi
 
             if (env.IsDevelopment()) {
                 app.UseDeveloperExceptionPage();
-                app.UseSwagger();
-                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "CoreApi v1"));
-                
-                __Logger.Warning("Application is running in development mode will include: swagger");
+                app.UseSwagger(c => {
+                    // c.SerializeAsV2 = true;
+                });
+                app.UseSwaggerUI(c => {
+                    c.SwaggerEndpoint("/swagger/admin/swagger.json", "CoreApi - Admin");
+                    c.SwaggerEndpoint("/swagger/social/swagger.json", "CoreApi - Social");
+                    c.SwaggerEndpoint("/swagger/test/swagger.json", "CoreApi - Testing");
+                    
+                    c.RoutePrefix = string.Empty;
+                });
+
+                __Logger.Warning($"Application is running in development mode will include: swagger.");
             }
 
             app.UseRouting();

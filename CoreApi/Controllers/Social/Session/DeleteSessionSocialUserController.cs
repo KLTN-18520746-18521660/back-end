@@ -13,25 +13,32 @@ using Newtonsoft.Json.Linq;
 using CoreApi.Common;
 // using System.Data.Entity;
 using System.Diagnostics;
-using CoreApi.Common.Interface;
+using Swashbuckle.AspNetCore.Swagger;
+using Swashbuckle.AspNetCore.SwaggerGen;
+using Swashbuckle.AspNetCore.SwaggerUI;
+using Swashbuckle.AspNetCore;
+using Swashbuckle;
+
 using System.Text;
 // using System.Text.Json;
+using CoreApi.Services;
+using System.ComponentModel;
 
-namespace CoreApi.Controllers.Admin.Session
+namespace CoreApi.Controllers.Social.Session
 {
     [ApiController]
     [Route("/session")]
     public class DeleteSessionSocialUserController : BaseController
     {
         private DBContext __DBContext;
-        private IBaseConfig __BaseConfig;
+        private BaseConfig __BaseConfig;
         /////////// CONFIG VALUE ///////////
         private int EXTENSION_TIME; // minutes
         private int EXPIRY_TIME; // minutes
         ////////////////////////////////////
         public DeleteSessionSocialUserController(
             DBContext _DBContext,
-            IBaseConfig _BaseConfig
+            BaseConfig _BaseConfig
         ) : base() {
             __DBContext = _DBContext;
             __BaseConfig = _BaseConfig;
@@ -43,9 +50,9 @@ namespace CoreApi.Controllers.Admin.Session
         {
             string Error = "";
             try {
-                EXTENSION_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "extension_time", Error);
+                EXTENSION_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "extension_time", out Error);
                 LogWarning(Error);
-                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "expiry_time", Error);
+                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "expiry_time", out Error);
                 LogWarning(Error);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {

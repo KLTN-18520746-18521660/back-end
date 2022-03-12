@@ -1,21 +1,12 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using DatabaseAccess.Context;
+using CoreApi.Common;
+using CoreApi.Services;
 using DatabaseAccess.Common;
 using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
-using Newtonsoft.Json;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using CoreApi.Common;
-using CoreApi.Common.Interface;
-// using System.Data.Entity;
-using System.Diagnostics;
+using System;
 using System.Text;
-// using System.Text.Json;
 
 namespace CoreApi.Controllers.Admin
 {
@@ -23,19 +14,25 @@ namespace CoreApi.Controllers.Admin
     [Route("/admin/login")]
     public class AdminUserLoginController : BaseController
     {
-        private DBContext __DBContext;
-        private IBaseConfig __BaseConfig;
-        /////////// CONFIG VALUE ///////////
+        #region Services
+        private BaseConfig __BaseConfig;
+        private AdminUserManagement __AdminUserManagement;
+        private SessionAdminUserManagement __SessionAdminUserManagement;
+        #endregion
+
+        #region Config Value
         private int NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE;
-        private int TIME_TO_SET_LOGIN_ATTEMPTS_TO_ZERO; // minute
         private int LOCK_TIME; // minute
-        ////////////////////////////////////
+        #endregion
+
         public AdminUserLoginController(
-            DBContext _DBContext,
-            IBaseConfig _BaseConfig
+            BaseConfig _BaseConfig,
+            AdminUserManagement _AdminUserManagement,
+            SessionAdminUserManagement _SessionAdminUserManagement
         ) : base() {
-            __DBContext = _DBContext;
             __BaseConfig = _BaseConfig;
+            __AdminUserManagement = _AdminUserManagement;
+            __SessionAdminUserManagement = _SessionAdminUserManagement;
             __ControllerName = "AdminUserLogin";
             LoadConfig();
         }
@@ -45,12 +42,8 @@ namespace CoreApi.Controllers.Admin
         {
             string Error = "";
             try {
-                NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG, "number", Error);
-                LogWarning(Error);
-                TIME_TO_SET_LOGIN_ATTEMPTS_TO_ZERO = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG, "time", Error);
-                LogWarning(Error);
-                LOCK_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG, "lock", Error);
-                LogWarning(Error);
+                NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG, "number", out Error);
+                LOCK_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG, "lock", out Error);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
@@ -58,84 +51,66 @@ namespace CoreApi.Controllers.Admin
                 if (Error != e.Message && Error != "") {
                     msg.Append($" && Error: { Error }");
                 }
-                LogError($"Load config value fail, message: { msg }");
+                LogError($"Load config value failed, message: { msg }");
             }
         }
 
-        [HttpPost]
+        [HttpPost("")]
+        // [ApiExplorerSettings(GroupName = "admin")]
         public IActionResult AdminUserLogin(Models.LoginModel model)
         {
             if (!LoadConfigSuccess) {
-                return Problem(
-                    detail: "Internal Server error.",
-                    statusCode: 500,
-                    instance: "/admin/login",
-                    title: "Internal Server Error",
-                    type: "/report"
-                );
+                return Problem(500, "Internal Server error.");
             }
             try {
-                // check input is email or not
-                bool isEmail = CoreApi.Common.Utils.isEmail(model.user_name);
-                List<AdminUser> users;
-                // Find user
+                #region Find User
+                ErrorCodes error = ErrorCodes.NO_ERROR;
+                bool isEmail = CoreApi.Common.Utils.IsEmail(model.user_name);
                 LogDebug($"Find user user_name: { model.user_name }, isEmail: { isEmail }");
-                if (isEmail) {
-                    users = __DBContext.AdminUsers
-                            .Where<AdminUser>(e => e.Email == model.user_name
-                                && e.StatusStr != BaseStatus.StatusToString(AdminUserStatus.Deleted, EntityStatus.AdminUserStatus))
-                            .ToList<AdminUser>();
-                } else {
-                    users = __DBContext.AdminUsers
-                            .Where<AdminUser>(e => e.UserName == model.user_name
-                                && e.StatusStr != BaseStatus.StatusToString(AdminUserStatus.Deleted, EntityStatus.AdminUserStatus))
-                            .ToList<AdminUser>();
-                }
+                AdminUser user = null;
+                bool found = __AdminUserManagement.FindUser(model.user_name, isEmail, out user, out error);
 
-                if (users.Count < 1) {
-                    LogDebug($"Not found user_name: { model.user_name }, isEmail: { isEmail }");
-                    return Problem(
-                        detail: "User not found or incorrect password.",
-                        statusCode: 400,
-                        instance: "/admin/login",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
+                if (!found) {
+                    if (error == ErrorCodes.NOT_FOUND) {
+                        LogDebug($"Not found user_name: { model.user_name }, isEmail: { isEmail }");
+                        return Problem(400, "User not found or incorrect password.");
+                    }
+                    throw new Exception("Internal Server Error. Find AdminUser failed.");
                 }
+                #endregion
 
-                var user = users.First();
+                #region Check user is lock or not
                 if (user.Status == AdminUserStatus.Blocked) {
                     LogInformation($"User has been locked user_name: { model.user_name }, isEmail: { isEmail }");
-                    return Problem(
-                        detail: "You have been locked.",
-                        statusCode: 423,
-                        instance: "/admin/login",
-                        title: "Locked",
-                        type: "/help"
-                    );
+                    return Problem(423, "You have been locked.");
                 }
+                #endregion
+
+                #region Compare password
                 if (PasswordEncryptor.EncryptPassword(model.password, user.Salt) != user.Password) {
                     LogInformation($"Incorrect password user_name: { model.user_name }, isEmail: { isEmail }");
-                    HandleAdminUserLoginFail(user);
-                    __DBContext.SaveChanges();
-                    return Problem(
-                        detail: "User not found or incorrect password.",
-                        statusCode: 400,
-                        instance: "/admin/login",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
+                    __AdminUserManagement.HandleLoginFail(user, LOCK_TIME, NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE, out error);
+                    if (error != ErrorCodes.NO_ERROR) {
+                        throw new Exception("Internal Server Error. Handle AdminUseLoginFail failed.");
+                    }
+                    return Problem(400, "User not found or incorrect password.");
+                }
+                #endregion
+
+                #region Create session
+                SessionAdminUser session = null;
+                var data = model.data == null ? new JObject() : model.data;
+                if (!__SessionAdminUserManagement.NewSession(user.Id, model.remember, data, out session, out error)) {
+                    throw new Exception("Internal Server Error. CreateNewAdminSession Failed.");
                 }
 
-                SessionAdminUser session = new(); 
-                session.UserId = user.Id;
-                session.Saved = model.remember;
-                session.Data = model.data == null ? new JObject() : model.data;
-                __DBContext.SessionAdminUsers.Add(session);
-                HandleAdminUserLoginSuccess(user);
+                __AdminUserManagement.HandleLoginSuccess(user, out error);
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception("Internal Server Error. Handle AdminUserLoginSuccess failed.");
+                }
+                #endregion
 
                 LogInformation($"User login success user_name: { model.user_name }, isEmail: { isEmail }");
-                __DBContext.SaveChanges();
                 return Ok( new JObject(){
                     { "status", 200 },
                     { "session_id", session.SessionToken },
@@ -143,65 +118,8 @@ namespace CoreApi.Controllers.Admin
                 });
             } catch (Exception e) {
                 LogError($"Unhandle exception, message: { e.Message }");
-                return Problem(
-                    detail: "Internal Server error.",
-                    statusCode: 500,
-                    instance: "/admin/login",
-                    title: "Internal Server Error",
-                    type: "/report"
-                );
+                return Problem(500, "Internal Server error.");
             }
-        }
-
-        [NonAction]
-        public void HandleAdminUserLoginFail(AdminUser user) {
-            JObject config;
-            if (!user.Settings.ContainsKey("__login_config")) {
-                config = new JObject{
-                    { "number", 1 },
-                    { "last_login", DateTimeOffset.Now.ToUnixTimeSeconds()}
-                };
-            } else {
-                try {
-                    config = user.Settings.Value<JObject>("__login_config");
-                    int numberLoginFailure = config.Value<int>("number");
-                    long lastLoginFailure = config.Value<long>("last_login");
-
-                    if (user.Status == AdminUserStatus.Blocked) {
-                        long currentUnixTime = DateTimeOffset.Now.ToUnixTimeSeconds();
-                        if (currentUnixTime - lastLoginFailure > LOCK_TIME * 60) {
-                            user.Status = AdminUserStatus.Activated;
-                            numberLoginFailure = 1;
-                            lastLoginFailure = DateTimeOffset.Now.ToUnixTimeSeconds();
-                        }
-                    } else {
-                        numberLoginFailure++;
-                        lastLoginFailure = DateTimeOffset.Now.ToUnixTimeSeconds();
-                    }
-
-                    if (numberLoginFailure >= NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE) {
-                        if (user.UserName != AdminUser.GetAdminUserName()) {
-                            user.Status = (int) AdminUserStatus.Blocked;
-                        }
-                    }
-
-                    config["number"] = numberLoginFailure;
-                    config["last_login"] = lastLoginFailure;
-                } catch (Exception) {
-                    config = new JObject(){
-                        { "number", 1 },
-                        { "last_login", DateTimeOffset.Now.ToUnixTimeSeconds()}
-                    };
-                }
-            }
-
-            user.Settings["__login_config"] = config;
-            return;
-        }
-
-        [NonAction]
-        public void HandleAdminUserLoginSuccess(AdminUser user) {
-            user.Settings.Remove("__login_config");
         }
     }
 }

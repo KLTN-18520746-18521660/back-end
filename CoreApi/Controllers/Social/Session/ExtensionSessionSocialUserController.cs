@@ -11,11 +11,13 @@ using DatabaseAccess.Context.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using CoreApi.Common;
-using CoreApi.Common.Interface;
+
 // using System.Data.Entity;
 using System.Diagnostics;
 using System.Text;
 // using System.Text.Json;
+using CoreApi.Services;
+using System.ComponentModel;
 
 namespace CoreApi.Controllers.Social.Session
 {
@@ -24,14 +26,14 @@ namespace CoreApi.Controllers.Social.Session
     public class ExtensionSessionSocialUserController : BaseController
     {
         private DBContext __DBContext;
-        private IBaseConfig __BaseConfig;
+        private BaseConfig __BaseConfig;
         /////////// CONFIG VALUE ///////////
         private int EXTENSION_TIME; // minute
         private int EXPIRY_TIME; // minute
         ////////////////////////////////////
         public ExtensionSessionSocialUserController(
             DBContext _DBContext,
-            IBaseConfig _BaseConfig
+            BaseConfig _BaseConfig
         ) : base() {
             __DBContext = _DBContext;
             __BaseConfig = _BaseConfig;
@@ -43,9 +45,9 @@ namespace CoreApi.Controllers.Social.Session
         {
             string Error = "";
             try {
-                EXTENSION_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "extension_time", Error);
+                EXTENSION_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "extension_time", out Error);
                 LogWarning(Error);
-                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "expiry_time", Error);
+                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "expiry_time", out Error);
                 LogWarning(Error);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {

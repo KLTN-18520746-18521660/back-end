@@ -1,5 +1,6 @@
 using CoreApi.Common;
 using CoreApi.Services;
+using DatabaseAccess.Context;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
@@ -10,25 +11,25 @@ namespace CoreApi.Controllers.Admin.Session
 {
     [ApiController]
     [Route("/admin/session")]
-    public class ExtensionSessionAdminUserController : BaseController
+    public class GetAdminUserByApikeyController : BaseController
     {
         #region Services
-        private BaseConfig __BaseConfig;
         private SessionAdminUserManagement __SessionAdminUserManagement;
+        private BaseConfig __BaseConfig;
         #endregion
 
         #region Config Value
         private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minutes
+        private int EXPIRY_TIME; // minute
         #endregion
 
-        public ExtensionSessionAdminUserController(
-            BaseConfig _BaseConfig,
-            SessionAdminUserManagement _SessionAdminUserManagement
+        public GetAdminUserByApikeyController(
+            SessionAdminUserManagement _SessionAdminUserManagement,
+            BaseConfig _BaseConfig
         ) : base() {
-            __BaseConfig = _BaseConfig;
             __SessionAdminUserManagement = _SessionAdminUserManagement;
-            __ControllerName = "ExtensionSessionAdminUser";
+            __BaseConfig = _BaseConfig;
+            __ControllerName = "GetAdminUserByApikey";
             LoadConfig();
         }
 
@@ -50,8 +51,8 @@ namespace CoreApi.Controllers.Admin.Session
             }
         }
 
-        [HttpPost("extension")]
-        public IActionResult ExtensionSession()
+        [HttpGet("user")]
+        public IActionResult GetSocialUserByApiKey()
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -86,10 +87,11 @@ namespace CoreApi.Controllers.Admin.Session
                 }
                 #endregion
 
-                LogDebug($"Session extension success, session_token: { sessionToken.Substring(0, 15) }");
+                var user = session.User;
+                LogInformation($"Get info user by apikey success, user_name: { user.UserName }");
                 return Ok( new JObject(){
                     { "status", 200 },
-                    { "message", "success" },
+                    { "user", user.GetJsonObject() },
                 });
             } catch (Exception e) {
                 LogError($"Unhandle exception, message: { e.Message }");

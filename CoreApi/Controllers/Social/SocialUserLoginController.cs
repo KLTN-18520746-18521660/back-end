@@ -11,10 +11,11 @@ using DatabaseAccess.Context.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using CoreApi.Common;
-using CoreApi.Common.Interface;
+
 using System.Text;
 // using System.Data.Entity;
 using System.Diagnostics;
+using CoreApi.Services;
 
 namespace CoreApi.Controllers.Social
 {
@@ -23,15 +24,14 @@ namespace CoreApi.Controllers.Social
     public class SocialUserLoginController : BaseController
     {
         private DBContext __DBContext;
-        private IBaseConfig __BaseConfig;
+        private BaseConfig __BaseConfig;
         /////////// CONFIG VALUE ///////////
         private int NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE;
-        private int TIME_TO_SET_LOGIN_ATTEMPTS_TO_ZERO; // minute
         private int LOCK_TIME; // minute
         /////////////////////////////////////
         public SocialUserLoginController(
             DBContext _DBContext,
-            IBaseConfig _BaseConfig
+            BaseConfig _BaseConfig
         ) : base() {
             __DBContext = _DBContext;
             __BaseConfig = _BaseConfig;
@@ -43,11 +43,9 @@ namespace CoreApi.Controllers.Social
         {
             string Error = "";
             try {
-                NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG, "number", Error);
+                NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG, "number", out Error);
                 LogWarning(Error);
-                TIME_TO_SET_LOGIN_ATTEMPTS_TO_ZERO = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG, "time", Error);
-                LogWarning(Error);
-                LOCK_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG, "lock", Error);
+                LOCK_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG, "lock", out Error);
                 LogWarning(Error);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
@@ -73,7 +71,7 @@ namespace CoreApi.Controllers.Social
             }
             try {
                 // check input is email or not
-                bool isEmail = CoreApi.Common.Utils.isEmail(model.user_name);
+                bool isEmail = CoreApi.Common.Utils.IsEmail(model.user_name);
                 List<SocialUser> users;
                 // Find user
                 LogDebug($"Find user user_name: { model.user_name }, isEmail: { isEmail }");

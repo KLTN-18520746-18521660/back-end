@@ -1,21 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using DatabaseAccess.Context;
-using DatabaseAccess.Common;
-using DatabaseAccess.Common.Status;
-using DatabaseAccess.Context.Models;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using CoreApi.Common;
-using CoreApi.Common.Interface;
+using CoreApi.Services;
+using DatabaseAccess.Context.Models;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Text;
-// using System.Data.Entity;
-using System.Diagnostics;
-// using System.Text.Json;
 
 namespace CoreApi.Controllers.Admin
 {
@@ -23,27 +12,31 @@ namespace CoreApi.Controllers.Admin
     [Route("/admin/logout")]
     public class AdminUserLogoutController : BaseController
     {
-        private DBContext __DBContext;
-        private IBaseConfig __BaseConfig;
-        /////////// CONFIG VALUE ///////////
+        #region Services
+        private BaseConfig __BaseConfig;
+        private SessionAdminUserManagement __SessionAdminUserManagement;
+        #endregion
+
+        #region Config Value
         private int EXPIRY_TIME; // minute
-        ////////////////////////////////////
+        #endregion
+
         public AdminUserLogoutController(
-            DBContext _DBContext,
-            IBaseConfig _BaseConfig
+            BaseConfig _BaseConfig,
+            SessionAdminUserManagement _SessionAdminUserManagement
         ) : base() {
-            __DBContext = _DBContext;
             __BaseConfig = _BaseConfig;
+            __SessionAdminUserManagement = _SessionAdminUserManagement;
             __ControllerName = "AdminUserLogout";
             LoadConfig();
         }
+
         [NonAction]
         public override void LoadConfig()
         {
             string Error = "";
             try {
-                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "expiry_time", Error);
-                LogWarning(Error);
+                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "expiry_time", out Error);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
@@ -54,75 +47,53 @@ namespace CoreApi.Controllers.Admin
                 LogError($"Load config value fail, message: { msg }");
             }
         }
+
         [HttpPost]
         public IActionResult AdminUserLogout()
         {
             if (!LoadConfigSuccess) {
-                return Problem(
-                    detail: "Internal Server error.",
-                    statusCode: 500,
-                    instance: "/admin/logout",
-                    title: "Internal Server Error",
-                    type: "/report"
-                );
+                return Problem(500, "Internal Server error.");
             }
             try {
-                if (!Request.Headers.ContainsKey(HEADER_KEYS.API_KEY)) {
+                #region Get session token
+                string sessionToken = "";
+                if (!GetHeader(HEADER_KEYS.API_KEY, out sessionToken)) {
                     LogDebug($"Missing header authorization.");
-                    return Problem(
-                        detail: "Missing header authorization.",
-                        statusCode: 403,
-                        instance: "/admin/logout",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
+                    return Problem(403, "Missing header authorization.");
                 }
 
-                string sessionToken = Request.Headers[HEADER_KEYS.API_KEY];
                 if (!CoreApi.Common.Utils.IsValidSessionToken(sessionToken)) {
-                    return Problem(
-                        detail: "Invalid header authorization.",
-                        statusCode: 403,
-                        instance: "/admin/logout",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
+                    return Problem(403, "Invalid header authorization.");
                 }
-                var sessions = __DBContext.SessionAdminUsers
-                                .Where(e => e.SessionToken == sessionToken)
-                                .ToList();
+                #endregion
 
-                if (sessions.Count < 1) {
-                    LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
-                    return Problem(
-                        detail: "Session not found.",
-                        statusCode: 400,
-                        instance: "/admin/logout",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
+                #region Find session token
+                SessionAdminUser session = null;
+                ErrorCodes error = ErrorCodes.NO_ERROR;
+
+                if (!__SessionAdminUserManagement.FindSession(sessionToken, out session, out error)) {
+                    if (error == ErrorCodes.NOT_FOUND) {
+                        LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
+                        return Problem(400, "Session not found.");
+                    }
+                    throw new Exception("Internal Server Error. FindSessionAdminUser failed.");
                 }
-                var userName = sessions.First().User.UserName;
-                var expiredSessions = sessions.First().User.GetExpiredSessions(EXPIRY_TIME);
+                #endregion
 
-                __DBContext.SessionAdminUsers.Remove(sessions.First());
-                __DBContext.SaveChanges();
-                __DBContext.ClearExpriedSessionAdminUser(expiredSessions);
-                __DBContext.SaveChanges();
-                LogInformation($"Logout success, user_name: { userName }");
+                #region Remove session and clear expried session
+                var user = session.User;
+                __SessionAdminUserManagement.RemoveSession(session, out error);
+                __SessionAdminUserManagement.ClearExpiredSession(user, EXPIRY_TIME, out error);
+                #endregion
+
+                LogInformation($"Logout success, user_name: { user.UserName }, session_token: { sessionToken.Substring(0, 15) }");
                 return Ok( new JObject(){
                     { "status", 200 },
                     { "message", "success" },
                 });
             } catch (Exception e) {
                 LogError($"Unhandle exception, message: { e.Message }");
-                return Problem(
-                    detail: "Internal Server error.",
-                    statusCode: 500,
-                    instance: "/admin/logout",
-                    title: "Internal Server Error",
-                    type: "/report"
-                );
+                return Problem(500, "Internal Server error.");
             }
         }
     }

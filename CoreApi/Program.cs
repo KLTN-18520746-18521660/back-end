@@ -6,10 +6,11 @@ using System.Collections.Generic;
 using Serilog;
 using Microsoft.Extensions.DependencyInjection;
 using DatabaseAccess;
-using CoreApi.Common.Interface;
+using System.Net;
 using CoreApi.Common;
 using Common.Validate;
 using Common.Logger;
+using System.Net.Sockets;
 
 namespace CoreApi
 {
@@ -23,6 +24,15 @@ namespace CoreApi
         public static readonly string LOG_TEMPLATE = "{Timestamp:yyyy-MM-dd HH:mm:ss zzz} [{Level:u3}] ({ThreadId}) {EscapedMessage}{NewLine}{EscapedException}";
         public static readonly string TMP_FOLDER = "./tmp";
     }
+
+    public struct DatabaseAccessConfiguration {
+        public string Host { get; set; }
+        public string User { get; set; }
+        public string Password { get; set; }
+        public string Port { get; set; }
+        public string DBName { get; set; }
+    }
+
     public class Program
     {
         private static ILogger __Logger;
@@ -34,6 +44,7 @@ namespace CoreApi
         private static string _CertPath;
         private static string _LogFilePath;
         private static string _PasswordCert;
+        private static DatabaseAccessConfiguration DBAccessConfig;
         private static readonly List<string> _ValidParamsFromArgs = new List<string>();
         private static void SetParamsFromConfiguration(in IConfigurationRoot configuration, out List<string> warnings)
         {
@@ -53,7 +64,7 @@ namespace CoreApi
                 if (portConfig == null) {
                     warnings.Add($"Port not configured. Use default port: { _Port }");
                 } else {
-                    warnings.Add($"Configured port isn't valid. Use default port: { _Port }");
+                    warnings.Add($"Configured port is invalid. Use default port: { _Port }");
                 }
             }
             // [INFO] Get custom passeord cert
@@ -61,6 +72,8 @@ namespace CoreApi
             if (_PasswordCert == null) {
                 _PasswordCert = ConfigurationDefaultVariable.PASSWORD_CERTIFICATE;
                 warnings.Add($"Password certificate not configured. Use default password: ***");
+            } else {
+                _PasswordCert = StringDecryptor.Decrypt(_PasswordCert);
             }
             // [INFO] Get custom cert path
             _CertPath = configuration.GetSection("Certificate").GetValue<string>("Path");
@@ -69,7 +82,24 @@ namespace CoreApi
                 warnings.Add($"Certificate not exists or not set. Cerificate path: { ((_CertPath == null) ? null : System.IO.Path.GetFullPath(_CertPath)) }");
             }
             // [INFO] Configure connect string
-            BaseConfigurationDB.Configure(); // Use default value
+            if (configuration.GetSection("DatabaseAccess") != null) {
+                DBAccessConfig.Host = configuration.GetSection("DatabaseAccess").GetValue<string>("Host");
+                DBAccessConfig.User = configuration.GetSection("DatabaseAccess").GetValue<string>("Username");
+                DBAccessConfig.Password = configuration.GetSection("DatabaseAccess").GetValue<string>("Password");
+                DBAccessConfig.Port = configuration.GetSection("DatabaseAccess").GetValue<string>("Port");
+                DBAccessConfig.DBName = configuration.GetSection("DatabaseAccess").GetValue<string>("DBName");
+                DBAccessConfig.Password = StringDecryptor.Decrypt(DBAccessConfig.Password);
+
+                if (DBAccessConfig.Port == null || !CommonValidate.ValidatePort(DBAccessConfig.Port)) {
+                    warnings.Add($"Configured database port is invalid or null. Use default port: { IBaseConfigurationDB.Port }");
+                    DBAccessConfig.Port = IBaseConfigurationDB.Port;
+                }
+
+                BaseConfigurationDB.Configure(DBAccessConfig.Host, DBAccessConfig.User, DBAccessConfig.Password, DBAccessConfig.Port, DBAccessConfig.DBName);
+            } else {
+                warnings.Add($"DatabaseAccess configuration not configured. Use default config.");
+                BaseConfigurationDB.Configure(); // Use default value
+            }
         }
         private static void SetParamsFromArgs(in List<string> args)
         {
@@ -111,15 +141,26 @@ namespace CoreApi
                 });
         private static void LogStartInformation()
         {
+            // string myIP = Dns.GetHostEntry(Dns.GetHostName()).AddressList[1].ToString();
             __Logger.Information("=================START=================");
             __Logger.Information($"Logs folder: { CommonValidate.ValidateDirectoryPath(System.IO.Path.GetDirectoryName(_LogFilePath)) }");
             __Logger.Information($"Temp folder: { _TmpPath }");
-            __Logger.Information( string.Format(
-                "Listening on: {0}://{1}:{2}",
-                _EnableSSL ? "https" : "http",
-                System.Net.IPAddress.Any.ToString(),
-                _Port.ToString()
-            ));
+            string ipStr = "";
+            if (Common.Utils.GetIpAddress(out ipStr)) {
+                __Logger.Information( string.Format(
+                    "Listening on: {0}://{1}:{2}",
+                    _EnableSSL ? "https" : "http",
+                    ipStr,
+                    _Port.ToString()
+                ));
+            } else {
+                __Logger.Information( string.Format(
+                    "Listening on: {0}://{1}:{2}",
+                    _EnableSSL ? "https" : "http",
+                    System.Net.IPAddress.Any.ToString(),
+                    _Port.ToString()
+                ));
+            }
         }
         private static void LogEndInformation()
         {

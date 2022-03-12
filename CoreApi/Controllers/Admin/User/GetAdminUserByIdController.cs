@@ -6,29 +6,32 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Text;
 
-namespace CoreApi.Controllers.Admin.Session
+namespace CoreApi.Controllers.Admin.User
 {
     [ApiController]
-    [Route("/admin/session")]
-    public class ExtensionSessionAdminUserController : BaseController
+    [Route("/admin/user")]
+    public class GetAdminUserByIdController : BaseController
     {
         #region Services
-        private BaseConfig __BaseConfig;
+        private AdminUserManagement __AdminUserManagement;
         private SessionAdminUserManagement __SessionAdminUserManagement;
+        private BaseConfig __BaseConfig;
         #endregion
 
         #region Config Value
         private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minutes
+        private int EXPIRY_TIME; // minute
         #endregion
 
-        public ExtensionSessionAdminUserController(
-            BaseConfig _BaseConfig,
-            SessionAdminUserManagement _SessionAdminUserManagement
+        public GetAdminUserByIdController(
+            AdminUserManagement _AdminUserManagement,
+            SessionAdminUserManagement _SessionAdminUserManagement,
+            BaseConfig _BaseConfig
         ) : base() {
-            __BaseConfig = _BaseConfig;
+            __AdminUserManagement = _AdminUserManagement;
             __SessionAdminUserManagement = _SessionAdminUserManagement;
-            __ControllerName = "ExtensionSessionAdminUser";
+            __BaseConfig = _BaseConfig;
+            __ControllerName = "GetAdminUserById";
             LoadConfig();
         }
 
@@ -50,8 +53,8 @@ namespace CoreApi.Controllers.Admin.Session
             }
         }
 
-        [HttpPost("extension")]
-        public IActionResult ExtensionSession()
+        [HttpGet("/admin/user/{id}")]
+        public IActionResult GetSocialUserByApiKey(Guid id)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -86,10 +89,29 @@ namespace CoreApi.Controllers.Admin.Session
                 }
                 #endregion
 
-                LogDebug($"Session extension success, session_token: { sessionToken.Substring(0, 15) }");
+                #region Check Permission
+                var user = session.User;
+                if (!__AdminUserManagement.HaveReadPermission(user, ADMIN_RIGHTS.ADMIN_USER)) {
+                    LogInformation($"User doesn't have permission for get admin user, user_name: { user.UserName }");
+                    return Problem(403, "User doesn't have permission for get admin user.");
+                }
+                #endregion
+
+                #region Get Admin user info by id
+                AdminUser retUser = null;
+                if (!__AdminUserManagement.FindUserById(id, out retUser, out error)) {
+                    if (error == ErrorCodes.NOT_FOUND) {
+                        LogDebug($"User not found by id: { id }");
+                        return Problem(404, "User not found.");
+                    }
+                    throw new Exception("Internal Server Error. FindAdminUserById failed.");
+                }
+                #endregion
+
+                LogInformation($"Get info user by id success, user_name: { user.UserName }, id: { id }");
                 return Ok( new JObject(){
                     { "status", 200 },
-                    { "message", "success" },
+                    { "user", retUser.GetJsonObject() },
                 });
             } catch (Exception e) {
                 LogError($"Unhandle exception, message: { e.Message }");

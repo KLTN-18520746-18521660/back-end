@@ -2,18 +2,22 @@ using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.Text;
 
-namespace CoreApi.Controllers.Admin.Session
+namespace CoreApi.Controllers.Admin.AuditLog
 {
     [ApiController]
-    [Route("/admin/session")]
-    public class ExtensionSessionAdminUserController : BaseController
+    [Route("/admin/auditlog")]
+    public class GetAdminAuditLogController : BaseController
     {
         #region Services
         private BaseConfig __BaseConfig;
+        private AdminUserManagement __AdminUserManagement;
+        private AdminAuditLogManagement __AdminAuditLogManagement;
         private SessionAdminUserManagement __SessionAdminUserManagement;
         #endregion
 
@@ -22,13 +26,17 @@ namespace CoreApi.Controllers.Admin.Session
         private int EXPIRY_TIME; // minutes
         #endregion
 
-        public ExtensionSessionAdminUserController(
+        public GetAdminAuditLogController(
             BaseConfig _BaseConfig,
+            AdminUserManagement _AdminUserManagement,
+            AdminAuditLogManagement _AdminAuditLogManagement,
             SessionAdminUserManagement _SessionAdminUserManagement
         ) : base() {
             __BaseConfig = _BaseConfig;
+            __AdminUserManagement = _AdminUserManagement;
+            __AdminAuditLogManagement = _AdminAuditLogManagement;
             __SessionAdminUserManagement = _SessionAdminUserManagement;
-            __ControllerName = "ExtensionSessionAdminUser";
+            __ControllerName = "GetAdminAuditLog";
             LoadConfig();
         }
 
@@ -50,8 +58,8 @@ namespace CoreApi.Controllers.Admin.Session
             }
         }
 
-        [HttpPost("extension")]
-        public IActionResult ExtensionSession()
+        [HttpGet]
+        public IActionResult GetAuditLogs(int start = 0, int size = 20, string search_term = null)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -86,10 +94,35 @@ namespace CoreApi.Controllers.Admin.Session
                 }
                 #endregion
 
-                LogDebug($"Session extension success, session_token: { sessionToken.Substring(0, 15) }");
+                #region Check Permission
+                var user = session.User;
+                if (!__AdminUserManagement.HaveReadPermission(user, ADMIN_RIGHTS.LOG)) {
+                    LogInformation($"User doesn't have permission to see admin audit log, user_name: { user.UserName }");
+                    return Problem(403, "User doesn't have permission to see admin audit log.");
+                }
+                #endregion
+
+                #region Get all audit logs
+                int totalSize = 0;
+                var logs = __AdminAuditLogManagement.GetAllAuditLog(out totalSize, start, size, search_term);
+
+                List<JObject> rawReturn = new();
+                logs.ForEach(e => rawReturn.Add(e.GetJsonObject()));
+                var ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(rawReturn));
+                #endregion
+
+                #region Validate params: start, size, total_size
+                if (start + size > totalSize) {
+                    LogInformation($"Invalid request params for get audit log, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
+                    return Problem(400, $"Invalid request params 'start', 'size'. Total size is { totalSize }");
+                }
+                #endregion
+
+                LogDebug($"Get all auditlog success, user_name: { user.UserName }, start: { start }, size: { size }, search_term: { search_term }");
                 return Ok( new JObject(){
                     { "status", 200 },
-                    { "message", "success" },
+                    { "logs", ret },
+                    { "total_size", totalSize },
                 });
             } catch (Exception e) {
                 LogError($"Unhandle exception, message: { e.Message }");

@@ -11,11 +11,12 @@ using DatabaseAccess.Context.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using CoreApi.Common;
-using CoreApi.Common.Interface;
+
 using System.Text;
 // using System.Data.Entity;
 using System.Diagnostics;
 // using System.Text.Json;
+using CoreApi.Services;
 
 namespace CoreApi.Controllers.Social
 {
@@ -24,13 +25,13 @@ namespace CoreApi.Controllers.Social
     public class SocialUserLogoutController : BaseController
     {
         private DBContext __DBContext;
-        private IBaseConfig __BaseConfig;
+        private BaseConfig __BaseConfig;
         /////////// CONFIG VALUE ///////////
         private int EXPIRY_TIME; // minute
         ////////////////////////////////////
         public SocialUserLogoutController(
             DBContext _DBContext,
-            IBaseConfig _BaseConfig
+            BaseConfig _BaseConfig
         ) : base() {
             __DBContext = _DBContext;
             __BaseConfig = _BaseConfig;
@@ -42,7 +43,7 @@ namespace CoreApi.Controllers.Social
         {
             string Error = "";
             try {
-                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "expiry_time", Error);
+                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "expiry_time", out Error);
                 LogWarning(Error);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {

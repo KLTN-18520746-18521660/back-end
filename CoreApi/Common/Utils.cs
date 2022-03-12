@@ -1,14 +1,18 @@
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using System;
+using System.Net;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
 
 namespace CoreApi.Common
 {
     public class Utils
     {
-        public static string EmailRegex = "^(([^<>()[\\]\\\\.,;:\\s@\\\"]+(\\.[^<>()[\\]\\\\.,;:\\s@\\\"]+)*)|(\\\".+\\\"))@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$";
-        public static bool isEmail(string Input)
+        // Email Format: {64}@{255} ----------- RFC 3696 - Session 3
+        // Total length: 320
+        public static string EmailRegex = "^[a-z0-9_\\.]{1,64}@[a-z]+\\.[a-z]{2,3}$";
+        public static bool IsEmail(string Input)
         {
             return Regex.IsMatch(Input, EmailRegex);
         }
@@ -19,6 +23,19 @@ namespace CoreApi.Common
                 return false;
             }
             return true;
+        }
+
+        public static bool GetIpAddress(out string Ip)
+        {
+            Ip = "";
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in host.AddressList) {
+                if (ip.AddressFamily == AddressFamily.InterNetwork) {
+                    Ip = ip.ToString();
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }

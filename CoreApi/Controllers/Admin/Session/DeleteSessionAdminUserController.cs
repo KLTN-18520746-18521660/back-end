@@ -1,21 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using DatabaseAccess.Context;
-using DatabaseAccess.Common;
-using DatabaseAccess.Common.Status;
-using DatabaseAccess.Context.Models;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using CoreApi.Common;
-// using System.Data.Entity;
-using System.Diagnostics;
-using CoreApi.Common.Interface;
+using CoreApi.Services;
+using DatabaseAccess.Context.Models;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Text;
-// using System.Text.Json;
 
 namespace CoreApi.Controllers.Admin.Session
 {
@@ -23,30 +12,33 @@ namespace CoreApi.Controllers.Admin.Session
     [Route("/admin/session")]
     public class DeleteSessionAdminUserController : BaseController
     {
-        private DBContext __DBContext;
-        private IBaseConfig __BaseConfig;
-        /////////// CONFIG VALUE ///////////
+        #region Services
+        private BaseConfig __BaseConfig;
+        private SessionAdminUserManagement __SessionAdminUserManagement;
+        #endregion
+
+        #region Config Value
         private int EXTENSION_TIME; // minutes
         private int EXPIRY_TIME; // minutes
-        ////////////////////////////////////
+        #endregion
+
         public DeleteSessionAdminUserController(
-            DBContext _DBContext,
-            IBaseConfig _BaseConfig
+            BaseConfig _BaseConfig,
+            SessionAdminUserManagement _SessionAdminUserManagement
         ) : base() {
-            __DBContext = _DBContext;
             __BaseConfig = _BaseConfig;
+            __SessionAdminUserManagement = _SessionAdminUserManagement;
             __ControllerName = "DeleteSessionAdminUser";
             LoadConfig();
         }
+
         [NonAction]
         public override void LoadConfig()
         {
             string Error = "";
             try {
-                EXTENSION_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, "extension_time", Error);
-                LogWarning(Error);
-                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, "expiry_time", Error);
-                LogWarning(Error);
+                EXTENSION_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, "extension_time", out Error);
+                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, "expiry_time", out Error);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
@@ -57,94 +49,64 @@ namespace CoreApi.Controllers.Admin.Session
                 LogError($"Load config value fail, message: { msg }");
             }
         }
-        [HttpDelete]
+
+        [HttpDelete("/admin/session/{session_token}")]
         public IActionResult ExtensionSession(string session_token)
         {
             if (!LoadConfigSuccess) {
-                return Problem(
-                    detail: "Internal Server error.",
-                    statusCode: 500,
-                    instance: "/admin/session",
-                    title: "Internal Server Error",
-                    type: "/report"
-                );
+                return Problem(500, "Internal Server error.");
             }
             try {
-                if (!Request.Headers.ContainsKey(HEADER_KEYS.API_KEY)) {
+                #region Get session token
+                string sessionToken = "";
+                if (!GetHeader(HEADER_KEYS.API_KEY, out sessionToken)) {
                     LogDebug($"Missing header authorization.");
-                    return Problem(
-                        detail: "Missing header authorization.",
-                        statusCode: 403,
-                        instance: "/admin/session",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
+                    return Problem(403, "Missing header authorization.");
                 }
 
-                string sessionToken = Request.Headers[HEADER_KEYS.API_KEY];
                 if (!CoreApi.Common.Utils.IsValidSessionToken(sessionToken)) {
-                    return Problem(
-                        detail: "Invalid header authorization.",
-                        statusCode: 403,
-                        instance: "/admin/session",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
+                    return Problem(403, "Invalid header authorization.");
                 }
+                #endregion
+
+                #region Compare with present session token
                 if (!CoreApi.Common.Utils.IsValidSessionToken(session_token)) {
-                    return Problem(
-                        detail: "Invalid session token.",
-                        statusCode: 400,
-                        instance: "/admin/session",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
+                    return Problem(400, "Invalid session token.");
                 }
-                if (session_token != sessionToken) {
-                    return Problem(
-                        detail: "Not allow delete session. Try logout.",
-                        statusCode: 400,
-                        instance: "/admin/session",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
+                if (session_token == sessionToken) {
+                    return Problem(400, "Not allow delete session. Try logout.");
                 }
-                var sessions = __DBContext.SessionAdminUsers
-                                .Where(e => e.SessionToken == sessionToken)
-                                .ToList();
+                #endregion
 
-                if (sessions.Count < 1) {
-                    LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
-                    return Problem(
-                        detail: "Session not found.",
-                        statusCode: 400,
-                        instance: "/admin/session",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
-                }
-                var user = sessions.First().User;
-                __DBContext.ClearExpriedSessionAdminUser(user.GetExpiredSessions(EXPIRY_TIME));
-                __DBContext.SaveChanges();
-                sessions = __DBContext.SessionAdminUsers
-                            .Where(e => e.SessionToken == sessionToken)
-                            .ToList();
-                if (sessions.Count < 1) {
-                    LogInformation($"Session has expired, session_token: { sessionToken.Substring(0, 15) }");
-                    return Problem(
-                        detail: "Session has expired.",
-                        statusCode: 401,
-                        instance: "/admin/session",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
-                }
-                user.SessionExtension(sessionToken, EXTENSION_TIME);
-                __DBContext.SaveChanges();
+                #region Find session for use
+                SessionAdminUser session = null;
+                ErrorCodes error = ErrorCodes.NO_ERROR;
 
-                var delSession = __DBContext.SessionAdminUsers.Single(e => e.SessionToken == session_token);
-                __DBContext.SessionAdminUsers.Remove(delSession);
-                __DBContext.SaveChanges();
+                if (!__SessionAdminUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME, out session, out error)) {
+                    if (error == ErrorCodes.NOT_FOUND) {
+                        LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
+                        return Problem(400, "Session not found.");
+                    }
+                    if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
+                        LogInformation($"Session has expired, session_token: { sessionToken.Substring(0, 15) }");
+                        return Problem(401, "Session has expired.");
+                    }
+                    throw new Exception("Internal Server Error. FindSessionForUse Failed.");
+                }
+                #endregion
+
+                #region Delete session
+                var user = session.User;
+                SessionAdminUser delSession = null;
+                if (!__SessionAdminUserManagement.FindSession(session_token, out delSession, out error)) {
+                    LogInformation($"Delete session not found, session_token: { session_token.Substring(0, 15) }");
+                    return Problem(404, "Delete session not found.");
+                }
+                if (!__SessionAdminUserManagement.RemoveSession(delSession, out error)) {
+                    throw new Exception("Internal Server Error. DeleteSession Failed.");
+                }
+                #endregion
+
                 LogInformation($"Delete session success, session_token: { session_token.Substring(0, 15) }");
                 return Ok( new JObject(){
                     { "status", 200 },
@@ -152,13 +114,7 @@ namespace CoreApi.Controllers.Admin.Session
                 });
             } catch (Exception e) {
                 LogError($"Unhandle exception, message: { e.Message }");
-                return Problem(
-                    detail: "Internal Server error.",
-                    statusCode: 500,
-                    instance: "/admin/session",
-                    title: "Internal Server Error",
-                    type: "/report"
-                );
+                return Problem(500, "Internal Server error.");
             }
         }
     }

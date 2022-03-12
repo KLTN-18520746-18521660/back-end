@@ -1,35 +1,27 @@
-using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using DatabaseAccess.Context;
-// using DatabaseAccess.Context.Models;
 using DatabaseAccess.Context.Models;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using System;
-using CoreApi.Common.Interface;
 
-namespace CoreApi.Common
+using CoreApi.Common;
+
+namespace CoreApi.Services
 {
-    public class BaseConfig : IBaseConfig
+    public class BaseConfig : BaseService
     {
-        protected ILogger __Logger;
         protected DBContext __DBContext;
-        public BaseConfig()
+        public BaseConfig() : base()
         {
-            __Logger = Log.Logger;
             __DBContext = new DBContext();
+            __ServiceName = "BaseConfig";
         }
 
-        public List<JObject> GetAllDefaultConfig()
+        public JObject GetConfigValue(CONFIG_KEY ConfigKey, out string Error)
         {
-            throw new NotImplementedException();
-        }
-
-        public JObject GetConfigValue(CONFIG_KEY ConfigKey, string Error = null)
-        {
-            Error ??= "";
+            Error = "";
             string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
             var configs = __DBContext.AdminBaseConfigs
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
@@ -39,15 +31,16 @@ namespace CoreApi.Common
                 return configs.First();
             }
 
-            Error ??= "Invalid config data. Default vaue will be use.";
+            Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }.";
+            LogWarning(Error);
             return DefaultBaseConfig.GetConfig(ConfigKey);
         }
 
-        public T GetConfigValue<T>(CONFIG_KEY ConfigKey, string SubKey, string Error = null)
+        public T GetConfigValue<T>(CONFIG_KEY ConfigKey, string SubKey, out string Error)
         {
-            Error ??= "";
+            Error = "";
             if (typeof(T) != typeof(string) && typeof(T) != typeof(int)) {
-                Error ??= "GetConfigValue. Unsupport convert type.";
+                Error = $"GetConfigValue. Unsupport convert type: { typeof(T) }";
                 throw new Exception(Error);
             }
             string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
@@ -66,7 +59,8 @@ namespace CoreApi.Common
                 if (defaultConfig[SubKey] == null) {
                     throw new Exception("Invalid subkey.");
                 }
-                Error = "Invalid config data. Default vaue will be use.";
+                Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }, subkey: { SubKey }.";
+                LogWarning(Error);
                 return (T) System.Convert.ChangeType(defaultConfig[SubKey], typeof(T));
             }
         }
