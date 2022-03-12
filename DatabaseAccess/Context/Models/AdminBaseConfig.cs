@@ -26,12 +26,10 @@ namespace DatabaseAccess.Context.Models
         #region Default Config
         public static readonly Dictionary<string, int> AdminUserLoginConfig = new() {
             { "number", 5 },
-            { "time", 5 },
             { "lock", 360 },
         };
         public static readonly Dictionary<string, int> SocialUserLoginConfig = new() {
             { "number", 5 },
-            { "time", 5 },
             { "lock", 360 },
         };
         public static readonly Dictionary<string, int> SessionAdminUserConfig = new() {
