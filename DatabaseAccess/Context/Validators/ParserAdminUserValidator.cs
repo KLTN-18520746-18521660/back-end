@@ -35,8 +35,6 @@ namespace DatabaseAccess.Context.Validators
                     .WithMessage("{PropertyName} is null.")
                 .NotEmpty()
                     .WithMessage("{PropertyName} is empty.");
-                //.Length(32)
-                //    .WithMessage("Length of {PropertyName} must be 32");
 
             // Email Format: {64}@{255} ----------- RFC 3696 - Session 3
             // Total length: 320
@@ -49,7 +47,7 @@ namespace DatabaseAccess.Context.Validators
                 .MaximumLength(320)
                     .WithMessage("Total length accepted for valid email is 320. See in RFC 3696.")
                 .Matches("^[a-z0-9_\\.]{1,64}@[a-z]+\\.[a-z]{2,3}$")
-                    .WithMessage("Email is invalid. Accept character [0-9a-zA-Z], '_'.");
+                    .WithMessage("Email is invalid.");
 
             RuleFor(entity => entity.settings)
                 .Cascade(CascadeMode.Stop)

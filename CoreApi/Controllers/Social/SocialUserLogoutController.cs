@@ -11,12 +11,13 @@ using DatabaseAccess.Context.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using CoreApi.Common;
-
+using Common;
 using System.Text;
 // using System.Data.Entity;
 using System.Diagnostics;
 // using System.Text.Json;
 using CoreApi.Services;
+using Microsoft.AspNetCore.Http;
 
 namespace CoreApi.Controllers.Social
 {
@@ -24,106 +25,125 @@ namespace CoreApi.Controllers.Social
     [Route("/logout")]
     public class SocialUserLogoutController : BaseController
     {
-        private DBContext __DBContext;
+        #region Services
         private BaseConfig __BaseConfig;
-        /////////// CONFIG VALUE ///////////
+        private SessionSocialUserManagement __SessionSocialUserManagement;
+        #endregion
+
+        #region Config Value
         private int EXPIRY_TIME; // minute
-        ////////////////////////////////////
+        #endregion
         public SocialUserLogoutController(
-            DBContext _DBContext,
-            BaseConfig _BaseConfig
+            BaseConfig _BaseConfig,
+            SessionSocialUserManagement _SessionSocialUserManagement
         ) : base() {
-            __DBContext = _DBContext;
             __BaseConfig = _BaseConfig;
+            __SessionSocialUserManagement = _SessionSocialUserManagement;
             __ControllerName = "SocialUserLogout";
             LoadConfig();
         }
+
         [NonAction]
         public override void LoadConfig()
         {
             string Error = "";
             try {
                 EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "expiry_time", out Error);
-                LogWarning(Error);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.Message);
+                StringBuilder msg = new StringBuilder(e.ToString());
                 if (Error != e.Message && Error != "") {
                     msg.Append($" && Error: { Error }");
                 }
-                LogError($"Load config value fail, message: { msg }");
+                LogError($"Load config value failed, message: { msg }");
             }
         }
-        [HttpPost]
+
+        /// <summary>
+        /// Social user logout
+        /// </summary>
+        /// <returns><b>Return message ok</b></returns>
+        ///
+        /// <remarks>
+        /// </remarks>
+        ///
+        /// <response code="200">
+        /// <b>Success Case:</b> return message <q>Success.</q>.
+        /// </response>
+        /// 
+        /// <response code="400">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>Session not found.</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="403">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>Missing header session_token.</li>
+        /// <li>Header session_token is invalid.</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="500">
+        /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
+        /// </response>
+        [HttpPost("")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(SocialUserLogoutSuccessExample))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
+        [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public IActionResult SocialUserLogout()
         {
             if (!LoadConfigSuccess) {
-                return Problem(
-                    detail: "Internal Server error.",
-                    statusCode: 500,
-                    instance: "/logout",
-                    title: "Internal Server Error",
-                    type: "/report"
-                );
+                return Problem(500, "Internal Server error.");
             }
             try {
-                if (!Request.Headers.ContainsKey(HEADER_KEYS.API_KEY)) {
+                #region Get session token
+                string sessionToken = "";
+                if (!GetHeader(HEADER_KEYS.API_KEY, out sessionToken)) {
                     LogDebug($"Missing header authorization.");
-                    return Problem(
-                        detail: "Missing header authorization.",
-                        statusCode: 403,
-                        instance: "/logout",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
+                    return Problem(403, "Missing header authorization.");
                 }
 
-                string sessionToken = Request.Headers[HEADER_KEYS.API_KEY];
-                if (!CoreApi.Common.Utils.IsValidSessionToken(sessionToken)) {
-                    return Problem(
-                        detail: "Invalid header authorization.",
-                        statusCode: 403,
-                        instance: "/getuser",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
+                if (!Utils.IsValidSessionToken(sessionToken)) {
+                    return Problem(403, "Invalid header authorization.");
                 }
-                var sessions = __DBContext.SessionSocialUsers
-                                .Where(e => e.SessionToken == sessionToken)
-                                .ToList();
+                #endregion
 
-                if (sessions.Count < 1) {
-                    LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
-                    return Problem(
-                        detail: "Session not found.",
-                        statusCode: 400,
-                        instance: "/logout",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
+                #region Find session token
+                SessionSocialUser session = null;
+                ErrorCodes error = ErrorCodes.NO_ERROR;
+
+                if (!__SessionSocialUserManagement.FindSession(sessionToken, out session, out error)) {
+                    if (error == ErrorCodes.NOT_FOUND) {
+                        LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
+                        return Problem(400, "Session not found.");
+                    }
+                    throw new Exception("Internal Server Error. FindSessionSocialUser failed.");
                 }
-                var userName = sessions.First().User.UserName;
-                var expiredSessions = sessions.First().User.GetExpiredSessions(EXPIRY_TIME);
+                #endregion
 
-                __DBContext.SessionSocialUsers.Remove(sessions.First());
-                __DBContext.SaveChanges();
-                __DBContext.ClearExpriedSessionSocialUser(expiredSessions);
-                __DBContext.SaveChanges();
-                LogInformation($"Logout success, user_name: { userName }");
+                #region Remove session and clear expried session
+                var user = session.User;
+                if (!__SessionSocialUserManagement.RemoveSession(session, out error)) {
+                    throw new Exception("Internal Server Error. RemoveSessionSocialUser failed.");
+                }
+                if (!__SessionSocialUserManagement.ClearExpiredSession(user, EXPIRY_TIME, out error)) {
+                    throw new Exception("Internal Server Error. ClearExpiredSessionSocialUser failed.");
+                }
+                #endregion
+
+                LogInformation($"Logout success, user_name: { user.UserName }, session_token: { sessionToken.Substring(0, 15) }");
                 return Ok( new JObject(){
                     { "status", 200 },
-                    { "message", "success" },
+                    { "message", "Success." },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.Message }");
-                return Problem(
-                    detail: "Internal Server error.",
-                    statusCode: 500,
-                    instance: "/logout",
-                    title: "Internal Server Error",
-                    type: "/report"
-                );
+                LogError($"Unhandle exception, message: { e.ToString() }");
+                return Problem(500, "Internal Server error.");
             }
         }
     }

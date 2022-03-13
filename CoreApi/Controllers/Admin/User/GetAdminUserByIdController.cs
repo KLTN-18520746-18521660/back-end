@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Text;
+using Common;
+using Microsoft.AspNetCore.Http;
 
 namespace CoreApi.Controllers.Admin.User
 {
@@ -45,15 +47,73 @@ namespace CoreApi.Controllers.Admin.User
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.Message);
+                StringBuilder msg = new StringBuilder(e.ToString());
                 if (Error != e.Message && Error != "") {
                     msg.Append($" && Error: { Error }");
                 }
-                LogError($"Load config value fail, message: { msg }");
+                LogError($"Load config value failed, message: { msg }");
             }
         }
 
+        /// <summary>
+        /// Get admin user info by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns><b>Get admin user info by id</b></returns>
+        ///
+        /// <remarks>
+        /// <b>Using endpoint need:</b>
+        /// 
+        /// - Need header 'session_token'.
+        /// - User have read permission of 'admin_user'.
+        /// 
+        /// </remarks>
+        ///
+        /// <response code="200">
+        /// <b>Success Case:</b> return admin user info.
+        /// </response>
+        /// 
+        /// <response code="400">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>Bad request body.</li>
+        /// <li>Field 'user_name' or 'email' has been used.</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="401">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>Session has expired.</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="403">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>Missing header session_token.</li>
+        /// <li>Header session_token is invalid.</li>
+        /// <li>User doesn't have permission to get admin user.</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="423">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>User have been locked.</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="500">
+        /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
+        /// </response>
         [HttpGet("/admin/user/{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetAdminUserByIdSuccessExample))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
+        [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
+        [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public IActionResult GetSocialUserByApiKey(Guid id)
         {
             if (!LoadConfigSuccess) {
@@ -67,7 +127,7 @@ namespace CoreApi.Controllers.Admin.User
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!CoreApi.Common.Utils.IsValidSessionToken(sessionToken)) {
+                if (!Utils.IsValidSessionToken(sessionToken)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -84,6 +144,10 @@ namespace CoreApi.Controllers.Admin.User
                     if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
                         LogInformation($"Session has expired, session_token: { sessionToken.Substring(0, 15) }");
                         return Problem(401, "Session has expired.");
+                    }
+                    if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
+                        LogInformation($"User has been locked, session_token: { sessionToken.Substring(0, 15) }");
+                        return Problem(423, "You have been locked.");
                     }
                     throw new Exception("Internal Server Error. FindSessionForUse Failed.");
                 }
@@ -114,7 +178,7 @@ namespace CoreApi.Controllers.Admin.User
                     { "user", retUser.GetJsonObject() },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.Message }");
+                LogError($"Unhandle exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");
             }
         }

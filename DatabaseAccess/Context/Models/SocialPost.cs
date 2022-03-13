@@ -10,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
 using DatabaseAccess.Common.Status;
+using Common;
 
 #nullable disable
 
@@ -31,7 +32,7 @@ namespace DatabaseAccess.Context.Models
             get => _title; 
             set {
                 _title = value;
-                Slug = Common.Utils.GenerateSlug(value);
+                Slug = Utils.GenerateSlug(value);
             }
         }
         [Required]
@@ -66,7 +67,7 @@ namespace DatabaseAccess.Context.Models
             get => _content;
             set {
                 _content = value;
-                ContentSearch = Common.Utils.TakeContentForSearchFromRawContent(value);
+                ContentSearch = Utils.TakeContentForSearchFromRawContent(value);
             }
         }
         [Column("search_vector")]

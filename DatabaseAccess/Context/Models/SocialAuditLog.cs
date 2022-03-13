@@ -37,7 +37,7 @@ namespace DatabaseAccess.Context.Models
         public string OldValueStr
         {
             get { return OldValue.ToString(); }
-            set { OldValue = JsonConvert.DeserializeObject<LogValue>(value); }
+            set { OldValue = new LogValue(value); }
         }
         [NotMapped]
         public LogValue NewValue { get; set; }
@@ -46,22 +46,23 @@ namespace DatabaseAccess.Context.Models
         public string NewValueStr
         {
             get { return NewValue.ToString(); }
-            set { NewValue = JsonConvert.DeserializeObject<LogValue>(value); }
+            set { NewValue = new LogValue(value); }
         }
-        [Required]
-        [Column("user")]
-        [StringLength(50)]
-        public string User { get; set; }
+        [Column("user_id")]
+        public Guid UserId { get; set; }
         [Column("timestamp", TypeName = "timestamp with time zone")]
         public DateTime Timestamp { get; private set; }
         [Column("search_vector")]
         public NpgsqlTsVector SearchVector { get; set; }
+        [ForeignKey(nameof(UserId))]
+        [InverseProperty(nameof(SocialUser.SocialAuditLogs))]
+        public virtual SocialUser User { get; set; }
 
         public SocialAuditLog()
         {
             __ModelName = "SocialAuditLog";
-            NewValueStr = "{Data: []}";
-            OldValueStr = "{Data: []}";
+            NewValueStr = "[]";
+            OldValueStr = "[]";
             Timestamp = DateTime.UtcNow;
         }
 
@@ -79,9 +80,9 @@ namespace DatabaseAccess.Context.Models
                 { "table", Table },
                 { "table_key", TableKey },
                 { "action", Action },
-                { "old_value", OldValue },
-                { "new_value", NewValue },
-                { "user", User },
+                { "old_value", OldValue.Data },
+                { "new_value", NewValue.Data },
+                { "user_id", UserId },
                 { "timestamp", Timestamp },
 #if DEBUG
                 {"__ModelName", __ModelName }

@@ -76,11 +76,14 @@ namespace DatabaseAccess.Context.Models
         public virtual List<AdminUserRoleOfUser> AdminUserRoleOfUsers { get; set; }
         [InverseProperty(nameof(SessionAdminUser.User))]
         public virtual List<SessionAdminUser> SessionAdminUsers { get; set; }
+        [InverseProperty(nameof(AdminAuditLog.User))]
+        public virtual List<AdminAuditLog> AdminAuditLogs { get; set; }
 
         public AdminUser() : base()
         {
             AdminUserRoleOfUsers = new List<AdminUserRoleOfUser>();
             SessionAdminUsers = new List<SessionAdminUser>();
+            AdminAuditLogs = new List<AdminAuditLog>();
             __ModelName = "AdminUser";
             Id = Guid.NewGuid();
             CreatedTimestamp = DateTime.UtcNow;

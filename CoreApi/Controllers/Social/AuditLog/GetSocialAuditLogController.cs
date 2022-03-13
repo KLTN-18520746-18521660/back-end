@@ -1,49 +1,43 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using DatabaseAccess.Context;
-using DatabaseAccess.Common;
-using DatabaseAccess.Common.Status;
+using CoreApi.Common;
+using CoreApi.Services;
 using DatabaseAccess.Context.Models;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using CoreApi.Common;
-
-// using System.Data.Entity;
-using System.Diagnostics;
-using System.Text;
-// using System.Text.Json;
-using CoreApi.Services;
-using System.ComponentModel;
+using System;
+using System.Collections.Generic;
 using Common;
-using Microsoft.AspNetCore.Http;
+using System.Text;
 
-namespace CoreApi.Controllers.Social.Session
+namespace CoreApi.Controllers.Social.AuditLog
 {
     [ApiController]
-    [Route("/session")]
-    public class ExtensionSessionSocialUserController : BaseController
+    [Route("/auditlog")]
+    public class GetSocialAuditLogController : BaseController
     {
         #region Services
         private BaseConfig __BaseConfig;
+        private SocialUserManagement __SocialUserManagement;
+        private SocialAuditLogManagement __SocialAuditLogManagement;
         private SessionSocialUserManagement __SessionSocialUserManagement;
         #endregion
 
         #region Config Value
-        private int EXTENSION_TIME; // minute
-        private int EXPIRY_TIME; // minute
+        private int EXTENSION_TIME; // minutes
+        private int EXPIRY_TIME; // minutes
         #endregion
 
-        public ExtensionSessionSocialUserController(
+        public GetSocialAuditLogController(
             BaseConfig _BaseConfig,
+            SocialUserManagement _SocialUserManagement,
+            SocialAuditLogManagement _SocialAuditLogManagement,
             SessionSocialUserManagement _SessionSocialUserManagement
         ) : base() {
             __BaseConfig = _BaseConfig;
+            __SocialUserManagement = _SocialUserManagement;
+            __SocialAuditLogManagement = _SocialAuditLogManagement;
             __SessionSocialUserManagement = _SessionSocialUserManagement;
-            __ControllerName = "ExtensionSessionSocialUser";
+            __ControllerName = "GetSocialAuditLog";
             LoadConfig();
         }
 
@@ -52,10 +46,11 @@ namespace CoreApi.Controllers.Social.Session
         {
             string Error = "";
             try {
-                EXTENSION_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "extension_time", out Error);
-                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "expiry_time", out Error);
+                EXTENSION_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, "extension_time", out Error);
+                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, "expiry_time", out Error);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
+                __LoadConfigSuccess = false;
                 StringBuilder msg = new StringBuilder(e.ToString());
                 if (Error != e.Message && Error != "") {
                     msg.Append($" && Error: { Error }");
@@ -64,55 +59,8 @@ namespace CoreApi.Controllers.Social.Session
             }
         }
 
-        /// <summary>
-        /// Extension social session
-        /// </summary>
-        /// <returns><b>Extension social session</b></returns>
-        ///
-        /// <remarks>
-        /// <b>Using endpoint need:</b>
-        /// 
-        /// - Need header 'session_token'.
-        /// - Need path param 'session_token' for delete.
-        /// 
-        /// </remarks>
-        ///
-        /// <response code="200">
-        /// <b>Success Case:</b> return message <q>Success</q>.
-        /// </response>
-        /// 
-        /// <response code="400">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>Session not found.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="401">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>Session has expired.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="403">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>Missing header session_token.</li>
-        /// <li>Header session_token is invalid.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="500">
-        /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
-        /// </response>
-        [HttpPost("extension")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ExtensionSessionSocialUserSuccessExample))]
-        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
-        [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public IActionResult ExtensionSession()
+        [HttpGet]
+        public IActionResult GetAuditLogs(int start = 0, int size = 20, string search_term = null)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -151,10 +99,28 @@ namespace CoreApi.Controllers.Social.Session
                 }
                 #endregion
 
-                LogDebug($"Session extension success, session_token: { sessionToken.Substring(0, 15) }");
+                #region Get all audit logs
+                var user = session.User;
+                int totalSize = 0;
+                var logs = __SocialAuditLogManagement.GetAllAuditLog(out totalSize, user.Id, start, size, search_term);
+
+                List<JObject> rawReturn = new();
+                logs.ForEach(e => rawReturn.Add(e.GetJsonObject()));
+                var ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(rawReturn));
+                #endregion
+
+                #region Validate params: start, size, total_size
+                if (start >= totalSize) {
+                    LogInformation($"Invalid request params for get audit log, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
+                    return Problem(400, $"Invalid request params start: { start }. Total size is { totalSize }");
+                }
+                #endregion
+
+                LogDebug($"Get all auditlog success, user_name: { user.UserName }, start: { start }, size: { size }, search_term: { search_term }");
                 return Ok( new JObject(){
                     { "status", 200 },
-                    { "message", "Success." },
+                    { "logs", ret },
+                    { "total_size", totalSize },
                 });
             } catch (Exception e) {
                 LogError($"Unhandle exception, message: { e.ToString() }");

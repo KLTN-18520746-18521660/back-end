@@ -1,23 +1,11 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using DatabaseAccess.Context;
-using DatabaseAccess.Common;
-using DatabaseAccess.Common.Status;
+using CoreApi.Common;
+using CoreApi.Services;
 using DatabaseAccess.Context.Models;
 using DatabaseAccess.Context.ParserModels;
-using Newtonsoft.Json;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using CoreApi.Common;
-// using System.Data.Entity;
-using System.Diagnostics;
-
-using System.Text;
-// using System.Text.Json;
-using CoreApi.Services;
+using System;
 
 namespace CoreApi.Controllers.Social
 {
@@ -25,98 +13,88 @@ namespace CoreApi.Controllers.Social
     [Route("/signup")]
     public class SocialUserSignupController : BaseController
     {
-        private DBContext __DBContext;
-        private BaseConfig __BaseConfig;
+        #region Services
+        private SocialUserManagement __SocialUserManagement;
+        #endregion
+
         public SocialUserSignupController(
-            DBContext _DBContext,
-            BaseConfig _BaseConfig
+            SocialUserManagement _SocialUserManagement
         ) : base() {
-            __DBContext = _DBContext;
-            __BaseConfig = _BaseConfig;
+            __SocialUserManagement = _SocialUserManagement;
             __ControllerName = "SocialUserSignup";
             LoadConfig();
         }
-        [HttpPost]
+
+        /// <summary>
+        /// Social user signup
+        /// </summary>
+        /// <returns><b>Return message ok</b></returns>
+        ///
+        /// <remarks>
+        /// </remarks>
+        ///
+        /// <response code="201">
+        /// <b>Success Case:</b> return message <q>Success.</q>.
+        /// </response>
+        /// 
+        /// <response code="400">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>Bad request body.</li>
+        /// <li>Field 'user_name' or 'email' has been used.</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="500">
+        /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
+        /// </response>
+        [HttpPost("")]
+        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(SocialUserSignupSuccessExample))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public IActionResult SocialUserSignup(ParserSocialUser parser)
         {
             if (!LoadConfigSuccess) {
-                return Problem(
-                    detail: "Internal Server error.",
-                    statusCode: 500,
-                    instance: "/signup",
-                    title: "Internal Server Error",
-                    type: "/report"
-                );
+                return Problem(500, "Internal Server error.");
             }
             try {
-                SocialUser user = new SocialUser();
+                #region Parse Social User
+                SocialUser newUser = new SocialUser();
                 string Error = "";
-                if (!user.Parse(parser, out Error)) {
+                if (!newUser.Parse(parser, out Error)) {
                     LogInformation(Error);
-                    return Problem(
-                        detail: "Bad body data.",
-                        statusCode: 400,
-                        instance: "/signup",
-                        title: "Bad request",
-                        type: "/help"
-                    );
+                    return Problem(400, "Bad request body.");
                 }
-                // Check user name
-                bool userNameHaveUsed = __DBContext.SocialUsers
-                        .Count(e => 
-                                e.UserName == user.UserName &&
-                                e.StatusStr != BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus)
-                        ) > 0;
-                if (userNameHaveUsed) {
-                    LogDebug($"UserName have been used, user_name: { user.UserName }");
-                    return Problem(
-                        detail: "UserName have been used.",
-                        statusCode: 400,
-                        instance: "/signup",
-                        title: "Bad request",
-                        type: "/help"
-                    );
+                #endregion
+
+                #region Check unique user_name, email
+                SocialUser tmpUser = null;
+                ErrorCodes error = ErrorCodes.NO_ERROR;
+                if (__SocialUserManagement.FindUser(newUser.UserName, false, out tmpUser, out error)) {
+                    LogDebug($"UserName have been used, user_name: { newUser.UserName }");
+                    return Problem(400, "UserName have been used.");
                 }
-                // check email user
-                bool userEmailHaveUsed = __DBContext.SocialUsers
-                        .Count(e => 
-                                e.Email == user.Email &&
-                                e.StatusStr != BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus)
-                        ) > 0;
-                if (userEmailHaveUsed) {
-                    LogDebug($"Email have been used, user_name: { user.Email }");
-                    return Problem(
-                        detail: "Email have been used.",
-                        statusCode: 400,
-                        instance: "/signup",
-                        title: "Bad request",
-                        type: "/help"
-                    );
+                if (__SocialUserManagement.FindUser(newUser.Email, true, out tmpUser, out error)) {
+                    LogDebug($"Email have been used, user_name: { newUser.Email }");
+                    return Problem(400, "Email have been used.");
                 }
-                // add user
-                __DBContext.SocialUsers.Add(user);
-                // add default role
-                SocialUserRoleOfUser defaultRole = new SocialUserRoleOfUser();
-                defaultRole.UserId = user.Id;
-                defaultRole.RoleId = SocialUserRole.GetDefaultRoleId();
-                defaultRole.Role = __DBContext.SocialUserRoles.Where(e => e.Id == defaultRole.RoleId).ToList().First();
-                user.SocialUserRoleOfUsers.Add(defaultRole);
-                // save changes
-                __DBContext.SaveChanges();
-                LogInformation($"Signup social user success, user_name: { user.UserName }");
+                #endregion
+
+                #region Add new social user
+                if (!__SocialUserManagement.AddNewUser(newUser, out error)) {
+                    throw new Exception("Internal Server Error. AddNewSocialUser Failed.");
+                }
+                #endregion
+
+                LogInformation($"Signup social user success, user_name: { newUser.UserName }");
                 return Ok(new JObject(){
-                    { "status", 200 },
-                    { "message", "success" },
+                    { "status", 201 },
+                    { "message", "Success." },
+                    { "user_id", newUser.Id },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.Message }");
-                return Problem(
-                    detail: "Internal Server error.",
-                    statusCode: 500,
-                    instance: "/signup",
-                    title: "Internal Server Error",
-                    type: "/report"
-                );
+                LogError($"Unhandle exception, message: { e.ToString() }");
+                return Problem(500, "Internal Server error.");
             }
         }
     }

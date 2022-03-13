@@ -9,6 +9,7 @@ using DatabaseAccess.Common;
 using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
 using Newtonsoft.Json;
+using Common;
 using Newtonsoft.Json.Linq;
 using CoreApi.Common;
 
@@ -16,6 +17,7 @@ using System.Text;
 // using System.Data.Entity;
 using System.Diagnostics;
 using CoreApi.Services;
+using Microsoft.AspNetCore.Http;
 
 namespace CoreApi.Controllers.Social
 {
@@ -23,175 +25,146 @@ namespace CoreApi.Controllers.Social
     [Route("/login")]
     public class SocialUserLoginController : BaseController
     {
-        private DBContext __DBContext;
+        #region Services
         private BaseConfig __BaseConfig;
-        /////////// CONFIG VALUE ///////////
+        private SocialUserManagement __SocialUserManagement;
+        private SessionSocialUserManagement __SessionSocialUserManagement;
+        #endregion
+
+        #region Config Value
         private int NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE;
         private int LOCK_TIME; // minute
-        /////////////////////////////////////
+        #endregion
+
         public SocialUserLoginController(
-            DBContext _DBContext,
-            BaseConfig _BaseConfig
+            BaseConfig _BaseConfig,
+            SocialUserManagement _SocialUserManagement,
+            SessionSocialUserManagement _SessionSocialUserManagement
         ) : base() {
-            __DBContext = _DBContext;
             __BaseConfig = _BaseConfig;
+            __SocialUserManagement = _SocialUserManagement;
+            __SessionSocialUserManagement = _SessionSocialUserManagement;
             __ControllerName = "SocialUserLogin";
             LoadConfig();
         }
+
         [NonAction]
         public override void LoadConfig()
         {
             string Error = "";
             try {
                 NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG, "number", out Error);
-                LogWarning(Error);
                 LOCK_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG, "lock", out Error);
-                LogWarning(Error);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.Message);
+                StringBuilder msg = new StringBuilder(e.ToString());
                 if (Error != e.Message && Error != "") {
                     msg.Append($" && Error: { Error }");
                 }
-                LogError($"Load config value fail, message: { msg }");
+                LogError($"Load config value failed, message: { msg }");
             }
         }
-        [HttpPost]
+
+        /// <summary>
+        /// Social user login
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns><b>Return session_id</b></returns>
+        ///
+        /// <remarks>
+        /// </remarks>
+        ///
+        /// <response code="200">
+        /// <b>Success Case:</b> return 'session_id' and 'user_id'.
+        /// </response>
+        /// 
+        /// <response code="400">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>Bad request body.</li>
+        /// <li>User not found or incorrect password.</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="423">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>User have been locked.</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="500">
+        /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
+        /// </response>
+        [HttpPost("")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(SocialUserLoginSuccessExample))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
+        [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public IActionResult SocialUserLogin(Models.LoginModel model)
         {
             if (!LoadConfigSuccess) {
-                return Problem(
-                    detail: "Internal Server error.",
-                    statusCode: 500,
-                    instance: "/login",
-                    title: "Internal Server Error",
-                    type: "/report"
-                );
+                return Problem(500, "Internal Server error.");
             }
             try {
-                // check input is email or not
-                bool isEmail = CoreApi.Common.Utils.IsEmail(model.user_name);
-                List<SocialUser> users;
-                // Find user
+                #region Find User
+                ErrorCodes error = ErrorCodes.NO_ERROR;
+                bool isEmail = Utils.IsEmail(model.user_name);
                 LogDebug($"Find user user_name: { model.user_name }, isEmail: { isEmail }");
-                if (isEmail) {
-                    users = __DBContext.SocialUsers
-                            .Where<SocialUser>(e => e.Email == model.user_name
-                                && e.StatusStr != BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus))
-                            .ToList<SocialUser>();
-                } else {
-                    users = __DBContext.SocialUsers
-                            .Where<SocialUser>(e => e.UserName == model.user_name
-                                && e.StatusStr != BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus))
-                            .ToList<SocialUser>();
-                }
+                SocialUser user = null;
+                bool found = __SocialUserManagement.FindUser(model.user_name, isEmail, out user, out error);
 
-                if (users.Count < 1) {
-                    LogDebug($"Not found user_name: { model.user_name }, isEmail: { isEmail }");
-                    return Problem(
-                        detail: "User not found or incorrect password.",
-                        statusCode: 400,
-                        instance: "/login",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
+                if (!found) {
+                    if (error == ErrorCodes.NOT_FOUND) {
+                        LogDebug($"Not found user_name: { model.user_name }, isEmail: { isEmail }");
+                        return Problem(400, "User not found or incorrect password.");
+                    }
+                    throw new Exception("Internal Server Error. Find AdminUser failed.");
                 }
-                var user = users.First();
-                if (user.Status == SocialUserStatus.Blocked) {
+                #endregion
+
+                #region Check user is lock or not
+                if (user.Status == AdminUserStatus.Blocked) {
                     LogInformation($"User has been locked user_name: { model.user_name }, isEmail: { isEmail }");
-                    return Problem(
-                        detail: "You have been locked.",
-                        statusCode: 423,
-                        instance: "/login",
-                        title: "Locked",
-                        type: "/help"
-                    );
+                    return Problem(423, "You have been locked.");
                 }
+                #endregion
+
+                #region Compare password
                 if (PasswordEncryptor.EncryptPassword(model.password, user.Salt) != user.Password) {
-                    LogDebug($"Incorrect password user_name: { model.user_name }, isEmail: { isEmail }");
-                    HandleSocialUserLoginFail(user);
-                    __DBContext.SaveChanges();
-                    return Problem(
-                        detail: "User not found or incorrect password.",
-                        statusCode: 400,
-                        instance: "/login",
-                        title: "Bad Request",
-                        type: "/help"
-                    );
+                    LogInformation($"Incorrect password user_name: { model.user_name }, isEmail: { isEmail }");
+                    __SocialUserManagement.HandleLoginFail(user, LOCK_TIME, NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE, out error);
+                    if (error != ErrorCodes.NO_ERROR) {
+                        throw new Exception("Internal Server Error. Handle SocialUseLoginFail failed.");
+                    }
+                    return Problem(400, "User not found or incorrect password.");
+                }
+                #endregion
+
+                #region Create session
+                SessionSocialUser session = null;
+                var data = model.data == null ? new JObject() : model.data;
+                if (!__SessionSocialUserManagement.NewSession(user.Id, model.remember, data, out session, out error)) {
+                    throw new Exception("Internal Server Error. CreateNewSocialSession Failed.");
                 }
 
-                SessionSocialUser session = new(); 
-                session.UserId = user.Id;
-                session.Saved = model.remember;
-                session.Data = model.data == null ? new JObject() : model.data;
-                __DBContext.SessionSocialUsers.Add(session);
-                HandleSocialUserLoginSuccess(user);
+                __SocialUserManagement.HandleLoginSuccess(user, out error);
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception("Internal Server Error. Handle SocialUserLoginSuccess failed.");
+                }
+                #endregion
 
                 LogInformation($"User login success user_name: { model.user_name }, isEmail: { isEmail }");
-                __DBContext.SaveChanges();
                 return Ok( new JObject(){
                     { "status", 200 },
                     { "session_id", session.SessionToken },
                     { "user_id", user.Id },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.Message }");
-                return Problem(
-                    detail: "Internal Server error.",
-                    statusCode: 500,
-                    instance: "/login",
-                    title: "Internal Server Error",
-                    type: "/report"
-                );
+                LogError($"Unhandle exception, message: { e.ToString() }");
+                return Problem(500, "Internal Server error.");
             }
-        }
-        [NonAction]
-        public void HandleSocialUserLoginFail(SocialUser user) {
-            JObject config;
-            if (!user.Settings.ContainsKey("__login_config")) {
-                config = new JObject{
-                    { "number", 1 },
-                    { "last_login", DateTimeOffset.Now.ToUnixTimeSeconds()}
-                };
-            } else {
-                try {
-                    config = user.Settings.Value<JObject>("__login_config");
-                    int numberLoginFailure = config.Value<int>("number");
-                    long lastLoginFailure = config.Value<long>("last_login");
-
-                    if (user.Status == SocialUserStatus.Blocked) {
-                        long currentUnixTime = DateTimeOffset.Now.ToUnixTimeSeconds();
-                        if (currentUnixTime - lastLoginFailure > LOCK_TIME * 60) {
-                            user.Status = SocialUserStatus.Activated;
-                            numberLoginFailure = 1;
-                            lastLoginFailure = DateTimeOffset.Now.ToUnixTimeSeconds();
-                        }
-                    } else {
-                        numberLoginFailure++;
-                        lastLoginFailure = DateTimeOffset.Now.ToUnixTimeSeconds();
-                    }
-
-                    if (numberLoginFailure >= NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE) {
-                        user.Status = (int) SocialUserStatus.Blocked;
-                    }
-
-                    config["number"] = numberLoginFailure;
-                    config["last_login"] = lastLoginFailure;
-                } catch (Exception) {
-                    config = new JObject(){
-                        { "number", 1 },
-                        { "last_login", DateTimeOffset.Now.ToUnixTimeSeconds()}
-                    };
-                }
-            }
-
-            user.Settings["__login_config"] = config;
-            return;
-        }
-        [NonAction]
-        public void HandleSocialUserLoginSuccess(SocialUser user) {
-            user.Settings.Remove("__login_config");
         }
     }
 }

@@ -1,7 +1,5 @@
-// ApiExplorerGroupPerVersionConvention.cs
-using System.Linq;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
-using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 
 namespace CoreApi.Common
 {
@@ -9,8 +7,9 @@ namespace CoreApi.Common
     {
         public void Apply(ControllerModel controller)
         {
-            if (controller == null)
+            if (controller == null) {
                 return;
+            }
 
             // Get controller group name
             var controllerNamespace = controller.ControllerType.Namespace; // e.g. "CoreApi.Controller.Admin"

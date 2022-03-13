@@ -1,13 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using Serilog;
-using System;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Filters;
-using System.Linq;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
-using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace CoreApi.Common
 {
@@ -22,14 +17,7 @@ namespace CoreApi.Common
                 
                 var errResp = new JObject();
                 foreach (var error in errorsInModelState) {
-                    // var firstErr = error.Value.First();
                     errResp.Add(error.Key, error.Value.First());
-                    // foreach(var subError in error.Value) {
-                    //     errors.Add(new JObject(){
-                    //         { "Field name", error.Key },
-                    //         { "Error", subError },
-                    //     });
-                    // }
                 }
 
                 var resp = new BadRequestObjectResult(new JObject(){

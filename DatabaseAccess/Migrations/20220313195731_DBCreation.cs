@@ -10,28 +10,6 @@ namespace DatabaseAccess.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "admin_audit_log",
-                columns: table => new
-                {
-                    id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn),
-                    table = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    table_key = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    action = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    old_value = table.Column<string>(type: "TEXT", nullable: false),
-                    new_value = table.Column<string>(type: "TEXT", nullable: false),
-                    user = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW() AT TIME ZONE 'UTC'"),
-                    search_vector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: true)
-                        .Annotation("Npgsql:TsVectorConfig", "english")
-                        .Annotation("Npgsql:TsVectorProperties", new[] { "table", "table_key", "old_value", "new_value", "user" })
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_admin_audit_log", x => x.id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "admin_base_config",
                 columns: table => new
                 {
@@ -101,28 +79,6 @@ namespace DatabaseAccess.Migrations
                 {
                     table.PrimaryKey("PK_admin_user_role", x => x.id);
                     table.CheckConstraint("CK_admin_user_role_status_valid_value", "status = 'Enabled' OR status = 'Disabled' OR status = 'Readonly'");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "social_audit_log",
-                columns: table => new
-                {
-                    id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn),
-                    table = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    table_key = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    action = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    old_value = table.Column<string>(type: "TEXT", nullable: false),
-                    new_value = table.Column<string>(type: "TEXT", nullable: false),
-                    user = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW() AT TIME ZONE 'UTC'"),
-                    search_vector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: true)
-                        .Annotation("Npgsql:TsVectorConfig", "english")
-                        .Annotation("Npgsql:TsVectorProperties", new[] { "table", "table_key", "old_value", "new_value", "user" })
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_social_audit_log", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -245,6 +201,34 @@ namespace DatabaseAccess.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "admin_audit_log",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn),
+                    table = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    table_key = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    action = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    old_value = table.Column<string>(type: "TEXT", nullable: false),
+                    new_value = table.Column<string>(type: "TEXT", nullable: false),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW() AT TIME ZONE 'UTC'"),
+                    search_vector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: true)
+                        .Annotation("Npgsql:TsVectorConfig", "english")
+                        .Annotation("Npgsql:TsVectorProperties", new[] { "table", "table_key", "old_value", "new_value" })
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_admin_audit_log", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_admin_audit_log_user_id",
+                        column: x => x.user_id,
+                        principalTable: "admin_user",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "session_admin_user",
                 columns: table => new
                 {
@@ -333,6 +317,34 @@ namespace DatabaseAccess.Migrations
                     table.CheckConstraint("CK_session_social_user_last_interaction_time_valid_value", "(last_interaction_time >= created_timestamp)");
                     table.ForeignKey(
                         name: "FK_session_social_user_user_id",
+                        column: x => x.user_id,
+                        principalTable: "social_user",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "social_audit_log",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn),
+                    table = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    table_key = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    action = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    old_value = table.Column<string>(type: "TEXT", nullable: false),
+                    new_value = table.Column<string>(type: "TEXT", nullable: false),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW() AT TIME ZONE 'UTC'"),
+                    search_vector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: true)
+                        .Annotation("Npgsql:TsVectorConfig", "english")
+                        .Annotation("Npgsql:TsVectorProperties", new[] { "table", "table_key", "old_value", "new_value" })
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_social_audit_log", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_social_audit_log_user_id",
                         column: x => x.user_id,
                         principalTable: "social_user",
                         principalColumn: "id",
@@ -709,8 +721,8 @@ namespace DatabaseAccess.Migrations
                 columns: new[] { "id", "config_key", "status", "value" },
                 values: new object[,]
                 {
-                    { 1, "AdminUserLoginConfig", "Enabled", "{\r\n  \"number\": 5,\r\n  \"time\": 5,\r\n  \"lock\": 360\r\n}" },
-                    { 2, "SocialUserLoginConfig", "Enabled", "{\r\n  \"number\": 5,\r\n  \"time\": 5,\r\n  \"lock\": 360\r\n}" },
+                    { 1, "AdminUserLoginConfig", "Enabled", "{\r\n  \"number\": 5,\r\n  \"lock\": 360\r\n}" },
+                    { 2, "SocialUserLoginConfig", "Enabled", "{\r\n  \"number\": 5,\r\n  \"lock\": 360\r\n}" },
                     { 3, "SessionAdminUserConfig", "Enabled", "{\r\n  \"expiry_time\": 5,\r\n  \"extension_time\": 5\r\n}" },
                     { 4, "SessionSocialUserConfig", "Enabled", "{\r\n  \"expiry_time\": 5,\r\n  \"extension_time\": 5\r\n}" }
                 });
@@ -718,7 +730,7 @@ namespace DatabaseAccess.Migrations
             migrationBuilder.InsertData(
                 table: "admin_user",
                 columns: new[] { "id", "created_timestamp", "display_name", "email", "last_access_timestamp", "salt", "settings", "status", "password", "user_name" },
-                values: new object[] { new Guid("aef445ea-10f2-469a-bf08-0425f403030c"), new DateTime(2022, 3, 6, 4, 15, 33, 32, DateTimeKind.Utc).AddTicks(4268), "Administrator", "admin@admin", null, "3c6efe21", "{}", "Readonly", "0AFC343755FA7D0BA5B9D31A5062E165", "admin" });
+                values: new object[] { new Guid("46b8baef-a388-4f74-b0d1-05d79d187fd8"), new DateTime(2022, 3, 13, 19, 57, 29, 70, DateTimeKind.Utc).AddTicks(1526), "Administrator", "admin@admin", null, "99fd78dc", "{}", "Readonly", "F285FB2202959C257BECC9A2199D1D6B", "admin" });
 
             migrationBuilder.InsertData(
                 table: "admin_user_right",
@@ -747,11 +759,11 @@ namespace DatabaseAccess.Migrations
                 columns: new[] { "id", "created_timestamp", "describe", "display_name", "last_modified_timestamp", "name", "parent_id", "slug", "status", "thumbnail" },
                 values: new object[,]
                 {
-                    { 5L, new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8314), "Life die have number", "Left", null, "left", null, "left", "Readonly", null },
-                    { 3L, new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8300), "Search google to have better solution", "Dicussion", null, "dicussion", null, "dicussion", "Readonly", null },
-                    { 4L, new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8305), "Nothing in here", "Blog", null, "blog", null, "blog", "Readonly", null },
-                    { 1L, new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8249), "This not a bug this a feature", "Technology", null, "technology", null, "technology", "Readonly", null },
-                    { 2L, new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8294), "Do not click to this", "Developer", null, "developer", null, "developer", "Readonly", null }
+                    { 5L, new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7415), "Life die have number", "Left", null, "left", null, "left", "Readonly", null },
+                    { 3L, new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7362), "Search google to have better solution", "Dicussion", null, "dicussion", null, "dicussion", "Readonly", null },
+                    { 4L, new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7368), "Nothing in here", "Blog", null, "blog", null, "blog", "Readonly", null },
+                    { 1L, new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7125), "This not a bug this a feature", "Technology", null, "technology", null, "technology", "Readonly", null },
+                    { 2L, new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7347), "Do not click to this", "Developer", null, "developer", null, "developer", "Readonly", null }
                 });
 
             migrationBuilder.InsertData(
@@ -759,11 +771,11 @@ namespace DatabaseAccess.Migrations
                 columns: new[] { "id", "created_timestamp", "describe", "last_modified_timestamp", "status", "tag" },
                 values: new object[,]
                 {
-                    { 1L, new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8159), "Angular", null, "Readonly", "#angular" },
-                    { 2L, new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8210), "Something is not thing", null, "Readonly", "#life-die-have-number" },
-                    { 3L, new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8216), "Dot not choose this tag", null, "Readonly", "#develop" },
-                    { 4L, new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8220), "Nothing in here", null, "Readonly", "#nothing" },
-                    { 5L, new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8225), "hi hi", null, "Readonly", "#hihi" }
+                    { 1L, new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2509), "Angular", null, "Readonly", "#angular" },
+                    { 2L, new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2593), "Something is not thing", null, "Readonly", "#life-die-have-number" },
+                    { 3L, new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2598), "Dot not choose this tag", null, "Readonly", "#develop" },
+                    { 4L, new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2604), "Nothing in here", null, "Readonly", "#nothing" },
+                    { 5L, new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2608), "hi hi", null, "Readonly", "#hihi" }
                 });
 
             migrationBuilder.InsertData(
@@ -801,7 +813,7 @@ namespace DatabaseAccess.Migrations
             migrationBuilder.InsertData(
                 table: "admin_user_role_of_user",
                 columns: new[] { "role_id", "user_id" },
-                values: new object[] { 1, new Guid("aef445ea-10f2-469a-bf08-0425f403030c") });
+                values: new object[] { 1, new Guid("46b8baef-a388-4f74-b0d1-05d79d187fd8") });
 
             migrationBuilder.InsertData(
                 table: "social_user_role_detail",
@@ -818,6 +830,11 @@ namespace DatabaseAccess.Migrations
                 table: "admin_audit_log",
                 column: "search_vector")
                 .Annotation("Npgsql:IndexMethod", "GIN");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_admin_audit_log_user_id",
+                table: "admin_audit_log",
+                column: "user_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_admin_base_config_config_key",
@@ -884,6 +901,11 @@ namespace DatabaseAccess.Migrations
                 table: "social_audit_log",
                 column: "search_vector")
                 .Annotation("Npgsql:IndexMethod", "GIN");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_social_audit_log_user_id",
+                table: "social_audit_log",
+                column: "user_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_social_category_parent_id",

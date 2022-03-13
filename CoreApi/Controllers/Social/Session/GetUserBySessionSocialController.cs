@@ -1,42 +1,47 @@
-using Common;
-using CoreApi.Common;
-using CoreApi.Services;
-using DatabaseAccess.Context.Models;
-using DatabaseAccess.Context.ParserModels;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
-using Newtonsoft.Json.Linq;
+using Microsoft.EntityFrameworkCore;
 using System;
-using System.ComponentModel;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using DatabaseAccess.Context;
+using DatabaseAccess.Common;
+using DatabaseAccess.Common.Status;
+using DatabaseAccess.Context.Models;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using CoreApi.Common;
+using Common;
 using System.Text;
+// using System.Data.Entity;
+using System.Diagnostics;
+// using System.Text.Json;
+using CoreApi.Services;
+using Microsoft.AspNetCore.Http;
 
-namespace CoreApi.Controllers.Admin.User
+namespace CoreApi.Controllers.Social.Session
 {
     [ApiController]
-    [Route("/admin/user")]
-    public class CreateAdminUserController : BaseController
+    [Route("/session")]
+    public class GetUserBySessionSocialController : BaseController
     {
         #region Services
         private BaseConfig __BaseConfig;
-        private AdminUserManagement __AdminUserManagement;
-        private SessionAdminUserManagement __SessionAdminUserManagement;
+        private SessionSocialUserManagement __SessionSocialUserManagement;
         #endregion
 
         #region Config Value
         private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minutes
+        private int EXPIRY_TIME; // minute
         #endregion
 
-        public CreateAdminUserController(
+        public GetUserBySessionSocialController(
             BaseConfig _BaseConfig,
-            AdminUserManagement _AdminUserManagement,
-            SessionAdminUserManagement _SessionAdminUserManagement
+            SessionSocialUserManagement _SessionSocialUserManagement
         ) : base() {
             __BaseConfig = _BaseConfig;
-            __AdminUserManagement = _AdminUserManagement;
-            __SessionAdminUserManagement = _SessionAdminUserManagement;
-            __ControllerName = "CreateAdminUser";
+            __SessionSocialUserManagement = _SessionSocialUserManagement;
+            __ControllerName = "GetUserBySessionSocial";
             LoadConfig();
         }
 
@@ -59,28 +64,25 @@ namespace CoreApi.Controllers.Admin.User
         }
 
         /// <summary>
-        /// Create new admin user
+        /// Get social user by header session_token
         /// </summary>
-        /// <param name="parser"></param>
-        /// <returns><b>New admin user info</b></returns>
+        /// <returns><b>Social user of session_token</b></returns>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
         /// 
         /// - Need header 'session_token'.
-        /// - User have full permission of 'admin_user'.
         /// 
         /// </remarks>
         ///
-        /// <response code="201">
-        /// <b>Success Case:</b> return new admin user ID.
+        /// <response code="200">
+        /// <b>Success Case:</b> Social session of user.
         /// </response>
         /// 
         /// <response code="400">
         /// <b>Error case, reasons:</b>
         /// <ul>
-        /// <li>Bad request body.</li>
-        /// <li>Field 'user_name' or 'email' has been used.</li>
+        /// <li>Session not found.</li>
         /// </ul>
         /// </response>
         /// 
@@ -96,28 +98,19 @@ namespace CoreApi.Controllers.Admin.User
         /// <ul>
         /// <li>Missing header session_token.</li>
         /// <li>Header session_token is invalid.</li>
-        /// <li>User doesn't have permission to create admin user.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="423">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>User have been locked.</li>
         /// </ul>
         /// </response>
         /// 
         /// <response code="500">
         /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
         /// </response>
-        [HttpPost("")]
-        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateAdminUserSuccessExample))]
+        [HttpGet("user")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
-        [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public IActionResult CreateAdminUser(ParserAdminUser parser)
+        public IActionResult GetUserBySession()
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -135,20 +128,11 @@ namespace CoreApi.Controllers.Admin.User
                 }
                 #endregion
 
-                #region Parse Admin User
-                AdminUser newUser = new AdminUser();
-                string Error = "";
-                if (!newUser.Parse(parser, out Error)) {
-                    LogInformation(Error);
-                    return Problem(400, "Bad request body.");
-                }
-                #endregion
-
                 #region Find session for use
-                SessionAdminUser session = null;
+                SessionSocialUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
 
-                if (!__SessionAdminUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME, out session, out error)) {
+                if (!__SessionSocialUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME, out session, out error)) {
                     if (error == ErrorCodes.NOT_FOUND) {
                         LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
                         return Problem(400, "Session not found.");
@@ -165,37 +149,11 @@ namespace CoreApi.Controllers.Admin.User
                 }
                 #endregion
 
-                #region Check Permission
                 var user = session.User;
-                if (!__AdminUserManagement.HaveFullPermission(user, ADMIN_RIGHTS.ADMIN_USER)) {
-                    LogInformation($"User doesn't have permission to create admin user, user_name: { user.UserName }");
-                    return Problem(403, "User doesn't have permission to create admin user.");
-                }
-                #endregion
-
-                #region Check unique user_name, email
-                AdminUser tmpUser = null;
-                if (__AdminUserManagement.FindUser(newUser.UserName, false, out tmpUser, out error)) {
-                    LogDebug($"UserName have been used, user_name: { newUser.UserName }");
-                    return Problem(400, "UserName have been used.");
-                }
-                if (__AdminUserManagement.FindUser(newUser.Email, true, out tmpUser, out error)) {
-                    LogDebug($"Email have been used, user_name: { newUser.Email }");
-                    return Problem(400, "Email have been used.");
-                }
-                #endregion
-
-                #region Add new admin user
-                if (!__AdminUserManagement.AddNewUser(user, newUser, out error)) {
-                    throw new Exception("Internal Server Error. AddNewAdminUser Failed.");
-                }
-                #endregion
-
-                LogInformation($"Create new admin user success, user_name: { newUser.UserName }");
-                return Ok(201, new JObject(){
-                    { "status", 201 },
-                    { "message", "Success." },
-                    { "user_id", newUser.Id },
+                LogInformation($"Get info user by apikey success, user_name: { user.UserName }");
+                return Ok( new JObject(){
+                    { "status", 200 },
+                    { "user", user.GetJsonObject() },
                 });
             } catch (Exception e) {
                 LogError($"Unhandle exception, message: { e.ToString() }");

@@ -8,13 +8,13 @@ namespace CoreApi.Models
 {
     public class LoginModel
     {
-        [DefaultValue("admin")]
+        [DefaultValue("user_name")]
         public string user_name { get; set; }
-        [DefaultValue("admin")]
+        [DefaultValue("password")]
         public string password { get; set; }
         [DefaultValue(false)]
         public bool remember { get; set; }
-        [DefaultValue(null)]
+        [DefaultValue("{}")]
         public JObject data { get; set; }
     }
 }

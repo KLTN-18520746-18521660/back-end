@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
 using DatabaseAccess.Common.Status;
-
+using Common;
 
 #nullable disable
 
@@ -31,7 +31,7 @@ namespace DatabaseAccess.Context.Models
             get => _name;
             set {
                 _name = value;
-                Slug = Common.Utils.GenerateSlug(value);
+                Slug = Utils.GenerateSlug(value);
             }
         }
         [Required]

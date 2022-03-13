@@ -1,7 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
 using Serilog;
-using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using System.Text;
 

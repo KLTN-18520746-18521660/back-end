@@ -113,6 +113,8 @@ namespace DatabaseAccess.Context.Models
 
         [InverseProperty(nameof(SessionSocialUser.User))]
         public virtual List<SessionSocialUser> SessionSocialUsers { get; set; }
+        [InverseProperty(nameof(SocialAuditLog.User))]
+        public virtual List<SocialAuditLog> SocialAuditLogs { get; set; }
         [InverseProperty(nameof(SocialComment.OwnerNavigation))]
         public virtual List<SocialComment> SocialComments { get; set; }
         [InverseProperty(nameof(SocialNotification.User))]
@@ -139,6 +141,7 @@ namespace DatabaseAccess.Context.Models
         public SocialUser()
         {
             SessionSocialUsers = new List<SessionSocialUser>();
+            SocialAuditLogs = new List<SocialAuditLog>();
             SocialComments = new List<SocialComment>();
             SocialNotifications = new List<SocialNotification>();
             SocialPosts = new List<SocialPost>();
@@ -156,7 +159,6 @@ namespace DatabaseAccess.Context.Models
             CreatedTimestamp = DateTime.UtcNow;
             Status = SocialUserStatus.Activated;
             Salt = PasswordEncryptor.GenerateSalt();
-            // RolesStr = "[]";
             SettingsStr = "{}";
             RanksStr = "{}";
         }

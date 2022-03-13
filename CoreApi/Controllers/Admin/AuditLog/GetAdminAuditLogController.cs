@@ -6,7 +6,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using Common;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace CoreApi.Controllers.Admin.AuditLog
 {
@@ -50,16 +52,16 @@ namespace CoreApi.Controllers.Admin.AuditLog
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.Message);
+                StringBuilder msg = new StringBuilder(e.ToString());
                 if (Error != e.Message && Error != "") {
                     msg.Append($" && Error: { Error }");
                 }
-                LogError($"Load config value fail, message: { msg }");
+                LogError($"Load config value failed, message: { msg }");
             }
         }
 
         [HttpGet]
-        public IActionResult GetAuditLogs(int start = 0, int size = 20, string search_term = null)
+        public async Task<IActionResult> GetAuditLogsAsync(int start = 0, int size = 20, string search_term = null)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -72,7 +74,7 @@ namespace CoreApi.Controllers.Admin.AuditLog
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!CoreApi.Common.Utils.IsValidSessionToken(sessionToken)) {
+                if (!Utils.IsValidSessionToken(sessionToken)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -90,6 +92,10 @@ namespace CoreApi.Controllers.Admin.AuditLog
                         LogInformation($"Session has expired, session_token: { sessionToken.Substring(0, 15) }");
                         return Problem(401, "Session has expired.");
                     }
+                    if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
+                        LogInformation($"User has been locked, session_token: { sessionToken.Substring(0, 15) }");
+                        return Problem(423, "You have been locked.");
+                    }
                     throw new Exception("Internal Server Error. FindSessionForUse Failed.");
                 }
                 #endregion
@@ -104,7 +110,8 @@ namespace CoreApi.Controllers.Admin.AuditLog
 
                 #region Get all audit logs
                 int totalSize = 0;
-                var logs = __AdminAuditLogManagement.GetAllAuditLog(out totalSize, start, size, search_term);
+                List<AdminAuditLog> logs = null;
+                (logs, totalSize) = await __AdminAuditLogManagement.GetAllAuditLog(start, size, search_term);
 
                 List<JObject> rawReturn = new();
                 logs.ForEach(e => rawReturn.Add(e.GetJsonObject()));
@@ -112,9 +119,9 @@ namespace CoreApi.Controllers.Admin.AuditLog
                 #endregion
 
                 #region Validate params: start, size, total_size
-                if (start + size > totalSize) {
+                if (totalSize != 0 && start >= totalSize) {
                     LogInformation($"Invalid request params for get audit log, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
-                    return Problem(400, $"Invalid request params 'start', 'size'. Total size is { totalSize }");
+                    return Problem(400, $"Invalid request params start: { start }. Total size is { totalSize }");
                 }
                 #endregion
 
@@ -125,7 +132,7 @@ namespace CoreApi.Controllers.Admin.AuditLog
                     { "total_size", totalSize },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.Message }");
+                LogError($"Unhandle exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");
             }
         }

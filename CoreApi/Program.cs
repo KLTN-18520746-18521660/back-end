@@ -1,31 +1,28 @@
-using System;
+using Common;
+using Common.Logger;
+using Common.Validate;
+using DatabaseAccess;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using System.Collections.Generic;
 using Serilog;
-using Microsoft.Extensions.DependencyInjection;
-using DatabaseAccess;
-using System.Net;
-using CoreApi.Common;
-using Common.Validate;
-using Common.Logger;
-using System.Net.Sockets;
+using System;
+using System.Collections.Generic;
 
 namespace CoreApi
 {
-    public static class ConfigurationDefaultVariable
+    static class ConfigurationDefaultVariable
     {
         public static readonly string CONFIG_FILE_PATH = "./appsettings.json";
         public static readonly int PORT = 7005;
-        // Password default of certificate
+        // [INFO] Password default of certificate
         public static readonly string PASSWORD_CERTIFICATE = "Ndh90768";
         public static readonly string LOG_FILE_FORMAT = "./tmp/logs/CoreApi.log";
         public static readonly string LOG_TEMPLATE = "{Timestamp:yyyy-MM-dd HH:mm:ss zzz} [{Level:u3}] ({ThreadId}) {EscapedMessage}{NewLine}{EscapedException}";
         public static readonly string TMP_FOLDER = "./tmp";
     }
 
-    public struct DatabaseAccessConfiguration {
+    struct DatabaseAccessConfiguration {
         public string Host { get; set; }
         public string User { get; set; }
         public string Password { get; set; }
@@ -128,25 +125,25 @@ namespace CoreApi
                 .UseSerilog()
                 .ConfigureWebHostDefaults(webBuilder => {
                     webBuilder.UseKestrel(kestrelServerOptions => {
-                        // Listen on any IP
+                        // [INFO] Listen on any IP
                         kestrelServerOptions.Listen(System.Net.IPAddress.Any, _Port, listenOptions => {
                             if (_EnableSSL && CommonValidate.ValidateFilePath(_CertPath, false) != null) {
-                                // Config ssl pfx
+                                // Config server using ssl with pfx certificate
                                 listenOptions.UseHttps(CommonValidate.ValidateFilePath(_CertPath, false), _PasswordCert);
                             }
                         });
+                        kestrelServerOptions.AddServerHeader = false;
                     });
                     webBuilder.UseUrls();
                     webBuilder.UseStartup<Startup>();
                 });
         private static void LogStartInformation()
         {
-            // string myIP = Dns.GetHostEntry(Dns.GetHostName()).AddressList[1].ToString();
             __Logger.Information("=================START=================");
             __Logger.Information($"Logs folder: { CommonValidate.ValidateDirectoryPath(System.IO.Path.GetDirectoryName(_LogFilePath)) }");
             __Logger.Information($"Temp folder: { _TmpPath }");
             string ipStr = "";
-            if (Common.Utils.GetIpAddress(out ipStr)) {
+            if (Utils.GetIpAddress(out ipStr)) {
                 __Logger.Information( string.Format(
                     "Listening on: {0}://{1}:{2}",
                     _EnableSSL ? "https" : "http",
@@ -190,7 +187,7 @@ namespace CoreApi
         }
         public static void Main(string[] args)
         {
-            // Need to run by order
+            // [IMPORTANT] Need to run by order
             try {
                 if (CommonValidate.ValidateFilePath(ConfigurationDefaultVariable.CONFIG_FILE_PATH, false) == null) {
                     throw new Exception($"Missing configuration file. Path: { System.IO.Path.GetFullPath(ConfigurationDefaultVariable.CONFIG_FILE_PATH) }");

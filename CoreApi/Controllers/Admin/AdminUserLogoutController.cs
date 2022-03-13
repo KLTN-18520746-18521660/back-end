@@ -4,7 +4,9 @@ using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
+using Common;
 using System.Text;
+using Microsoft.AspNetCore.Http;
 
 namespace CoreApi.Controllers.Admin
 {
@@ -40,15 +42,49 @@ namespace CoreApi.Controllers.Admin
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.Message);
+                StringBuilder msg = new StringBuilder(e.ToString());
                 if (Error != e.Message && Error != "") {
                     msg.Append($" && Error: { Error }");
                 }
-                LogError($"Load config value fail, message: { msg }");
+                LogError($"Load config value failed, message: { msg }");
             }
         }
 
-        [HttpPost]
+        /// <summary>
+        /// Admin user logout
+        /// </summary>
+        /// <returns><b>Return message ok</b></returns>
+        ///
+        /// <remarks>
+        /// </remarks>
+        ///
+        /// <response code="200">
+        /// <b>Success Case:</b> return message <q>Success.</q>.
+        /// </response>
+        /// 
+        /// <response code="400">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>Session not found.</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="403">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>Missing header session_token.</li>
+        /// <li>Header session_token is invalid.</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="500">
+        /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
+        /// </response>
+        [HttpPost("")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AdminUserLogoutSuccessExample))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
+        [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public IActionResult AdminUserLogout()
         {
             if (!LoadConfigSuccess) {
@@ -62,7 +98,7 @@ namespace CoreApi.Controllers.Admin
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!CoreApi.Common.Utils.IsValidSessionToken(sessionToken)) {
+                if (!Utils.IsValidSessionToken(sessionToken)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -82,17 +118,21 @@ namespace CoreApi.Controllers.Admin
 
                 #region Remove session and clear expried session
                 var user = session.User;
-                __SessionAdminUserManagement.RemoveSession(session, out error);
-                __SessionAdminUserManagement.ClearExpiredSession(user, EXPIRY_TIME, out error);
+                if (!__SessionAdminUserManagement.RemoveSession(session, out error)) {
+                    throw new Exception("Internal Server Error. RemoveSessionAdminUser failed.");
+                }
+                if (!__SessionAdminUserManagement.ClearExpiredSession(user, EXPIRY_TIME, out error)) {
+                    throw new Exception("Internal Server Error. ClearExpiredSessionAdminUser failed.");
+                }
                 #endregion
 
                 LogInformation($"Logout success, user_name: { user.UserName }, session_token: { sessionToken.Substring(0, 15) }");
                 return Ok( new JObject(){
                     { "status", 200 },
-                    { "message", "success" },
+                    { "message", "Success." },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.Message }");
+                LogError($"Unhandle exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");
             }
         }

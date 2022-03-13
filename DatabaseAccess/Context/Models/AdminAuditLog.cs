@@ -49,14 +49,15 @@ namespace DatabaseAccess.Context.Models
             get { return NewValue.ToString(); }
             set { NewValue = new LogValue(value); }
         }
-        [Required]
-        [Column("user")]
-        [StringLength(50)]
-        public string User { get; set; }
+        [Column("user_id")]
+        public Guid UserId { get; set; }
         [Column("timestamp", TypeName = "timestamp with time zone")]
         public DateTime Timestamp { get; private set; }
         [Column("search_vector")]
         public NpgsqlTsVector SearchVector { get; set; }
+        [ForeignKey(nameof(UserId))]
+        [InverseProperty(nameof(AdminUser.AdminAuditLogs))]
+        public virtual AdminUser User { get; set; }
 
         public AdminAuditLog()
         {
@@ -82,7 +83,7 @@ namespace DatabaseAccess.Context.Models
                 { "action", Action },
                 { "old_value", OldValue.Data },
                 { "new_value", NewValue.Data },
-                { "user", User },
+                { "user_id", UserId },
                 { "timestamp", Timestamp },
 #if DEBUG
                 {"__ModelName", __ModelName }

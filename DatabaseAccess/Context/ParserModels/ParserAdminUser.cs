@@ -14,13 +14,13 @@ namespace DatabaseAccess.Context.ParserModels
 {
     public class ParserAdminUser : IBaseParserModel
     {
-        [DefaultValue("hello")]
+        [DefaultValue("user_name")]
         public string user_name { get; set; }
-        [DefaultValue("era001")]
+        [DefaultValue("display_name")]
         public string display_name { get; set; }
-        [DefaultValue("hello")]
+        [DefaultValue("password")]
         public string password { get; set; }
-        [DefaultValue("era@era.com")]
+        [DefaultValue("email@email.com")]
         public string email { get; set; }
         [DefaultValue("{}")]
         public JObject settings { get; set; }

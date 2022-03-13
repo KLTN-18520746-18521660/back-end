@@ -7,7 +7,9 @@ using System.Linq;
 using DatabaseAccess.Common;
 using DatabaseAccess.Common.Status;
 using DatabaseAccess.Common.Models;
+using Microsoft.EntityFrameworkCore;
 using System;
+using System.Threading.Tasks;
 
 using CoreApi.Common;
 
@@ -30,11 +32,13 @@ namespace CoreApi.Services
                 users = __DBContext.AdminUsers
                         .Where<AdminUser>(e => e.Email == UserName
                             && e.StatusStr != BaseStatus.StatusToString(AdminUserStatus.Deleted, EntityStatus.AdminUserStatus))
+                        .Include(e => e.AdminUserRoleOfUsers)
                         .ToList<AdminUser>();
             } else {
                 users = __DBContext.AdminUsers
                         .Where<AdminUser>(e => e.UserName == UserName
                             && e.StatusStr != BaseStatus.StatusToString(AdminUserStatus.Deleted, EntityStatus.AdminUserStatus))
+                        .Include(e => e.AdminUserRoleOfUsers)
                         .ToList<AdminUser>();
             }
             if (users.Count > 0) {
@@ -53,10 +57,12 @@ namespace CoreApi.Services
             if (isEmail) {
                 users = __DBContext.AdminUsers
                         .Where<AdminUser>(e => e.Email == UserName)
+                        .Include(e => e.AdminUserRoleOfUsers)
                         .ToList<AdminUser>();
             } else {
                 users = __DBContext.AdminUsers
                         .Where<AdminUser>(e => e.UserName == UserName)
+                        .Include(e => e.AdminUserRoleOfUsers)
                         .ToList<AdminUser>();
             }
             if (users.Count > 0) {
@@ -74,6 +80,7 @@ namespace CoreApi.Services
             List<AdminUser> users;
             users = __DBContext.AdminUsers
                     .Where<AdminUser>(e => e.Id == Id)
+                    .Include(e => e.AdminUserRoleOfUsers)
                     .ToList<AdminUser>();
             if (users.Count > 0) {
                 User = users.First();
@@ -138,9 +145,7 @@ namespace CoreApi.Services
         public bool HandleLoginSuccess(AdminUser User, out ErrorCodes Error)
         {
             Error = ErrorCodes.NO_ERROR;
-            if (!User.Settings.ContainsKey("__login_config")) {
-                return true;
-            }
+            User.LastAccessTimestamp = DateTime.UtcNow;
             User.Settings.Remove("__login_config");
             if (__DBContext.SaveChanges() > 0) {
                 return true;
@@ -153,7 +158,11 @@ namespace CoreApi.Services
         #region Permission
         public bool HaveReadPermission(AdminUser User, string Right)
         {
-            var rights = User.Rights;
+            var user = __DBContext.AdminUsers
+                .Where(e => e.Id == User.Id)
+                .Include(e => e.AdminUserRoleOfUsers)
+                .First();
+            var rights = user.Rights;
             if (rights.ContainsKey(Right)) {
                 var right = rights[Right];
                 if (right["read"] != null &&
@@ -166,7 +175,11 @@ namespace CoreApi.Services
 
         public bool HaveFullPermission(AdminUser User, string Right)
         {
-            var rights = User.Rights;
+            var user = __DBContext.AdminUsers
+                .Where(e => e.Id == User.Id)
+                .Include(e => e.AdminUserRoleOfUsers)
+                .First();
+            var rights = user.Rights;
             if (rights.ContainsKey(Right)) {
                 var right = rights[Right];
                 if (right["read"] != null && right["write"] != null &&
@@ -182,19 +195,20 @@ namespace CoreApi.Services
         public bool AddNewUser(AdminUser User, AdminUser NewUser, out ErrorCodes Error)
         {
             Error = ErrorCodes.NO_ERROR;
-            __DBContext.AdminUsers.Add(User);
+            __DBContext.AdminUsers.Add(NewUser);
             if (__DBContext.SaveChanges() > 0) {
-                // Write audit log
+                #region [ADMIN] Write audit log
                 AdminAuditLog log = new AdminAuditLog();
                 log.Table = NewUser.GetModelName();
                 log.TableKey = NewUser.Id.ToString();
                 log.Action = LOG_ACTIONS.CREATE;
-                log.User = User.UserName;
+                log.UserId = User.Id;
                 log.OldValue = new LogValue();
                 log.NewValue = new LogValue(NewUser.GetJsonObject());
 
                 __DBContext.AdminAuditLogs.Add(log);
                 __DBContext.SaveChanges();
+                #endregion
                 return true;
             }
             Error = ErrorCodes.INTERNAL_SERVER_ERROR;

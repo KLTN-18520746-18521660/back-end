@@ -5,7 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using DatabaseAccess.Common.Models;
+using Common;
 using System.Text;
+using CoreApi;
 
 namespace MyConsole
 {
@@ -25,10 +27,10 @@ namespace MyConsole
         }
 
         static void PrintPassEncrypt() {
-            string passCert = CoreApi.ConfigurationDefaultVariable.PASSWORD_CERTIFICATE;
+            string passCert = "Ndh90768";
             string passDb = "a";
-            Console.WriteLine(CoreApi.Common.StringDecryptor.Encrypt(passCert));
-            Console.WriteLine(CoreApi.Common.StringDecryptor.Encrypt(passDb));
+            Console.WriteLine(StringDecryptor.Encrypt(passCert));
+            Console.WriteLine(StringDecryptor.Encrypt(passDb));
         }
         static void Main(string[] args)
         {

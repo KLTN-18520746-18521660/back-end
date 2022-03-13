@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Text;
+using Common;
+using Microsoft.AspNetCore.Http;
 
 namespace CoreApi.Controllers.Admin
 {
@@ -47,7 +49,7 @@ namespace CoreApi.Controllers.Admin
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.Message);
+                StringBuilder msg = new StringBuilder(e.ToString());
                 if (Error != e.Message && Error != "") {
                     msg.Append($" && Error: { Error }");
                 }
@@ -55,8 +57,42 @@ namespace CoreApi.Controllers.Admin
             }
         }
 
+        /// <summary>
+        /// Admin user login
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns><b>Return session_id</b></returns>
+        ///
+        /// <remarks>
+        /// </remarks>
+        ///
+        /// <response code="200">
+        /// <b>Success Case:</b> return 'session_id' and 'user_id'.
+        /// </response>
+        /// 
+        /// <response code="400">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>Bad request body.</li>
+        /// <li>User not found or incorrect password.</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="423">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>User have been locked.</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="500">
+        /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
+        /// </response>
         [HttpPost("")]
-        // [ApiExplorerSettings(GroupName = "admin")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AdminUserLoginSuccessExample))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
+        [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public IActionResult AdminUserLogin(Models.LoginModel model)
         {
             if (!LoadConfigSuccess) {
@@ -65,7 +101,7 @@ namespace CoreApi.Controllers.Admin
             try {
                 #region Find User
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                bool isEmail = CoreApi.Common.Utils.IsEmail(model.user_name);
+                bool isEmail = Utils.IsEmail(model.user_name);
                 LogDebug($"Find user user_name: { model.user_name }, isEmail: { isEmail }");
                 AdminUser user = null;
                 bool found = __AdminUserManagement.FindUser(model.user_name, isEmail, out user, out error);
@@ -117,7 +153,7 @@ namespace CoreApi.Controllers.Admin
                     { "user_id", user.Id },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.Message }");
+                LogError($"Unhandle exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");
             }
         }

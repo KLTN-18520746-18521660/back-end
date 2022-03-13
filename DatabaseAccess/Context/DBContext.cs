@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using DatabaseAccess.Common;
 using System.Linq;
@@ -15,6 +16,8 @@ using DatabaseAccess.Common.Actions;
 using DatabaseAccess.Common.Status;
 using System.Collections;
 
+// using System.Data.Entity;
+// using System.Data.Entity.Infrastructure;
 
 #nullable disable
 
@@ -116,14 +119,17 @@ namespace DatabaseAccess.Context
                     .UseIdentityAlwaysColumn();
                 entity.Property(e => e.Timestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
-                //entity.HasIndex(e => e.SearchVector, "IX_admin_audit_log_search_vector")
-                //    .HasMethod("gin");
-                //entity.Property(e => e.SearchVector).HasComputedColumnSql("to_tsvector('english'::regconfig, (((((((((\"table\")::text || ' '::text) || (table_key)::text) || ' '::text) || old_value) || ' '::text) || new_value) || ' '::text) || (\"user\")::text))", true);
+
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.AdminAuditLogs)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_admin_audit_log_user_id");
                 entity
                     .HasGeneratedTsVectorColumn(
                         e => e.SearchVector,
                         "english",
-                        e => new { e.Table, e.TableKey, e.OldValueStr, e.NewValueStr, e.User }
+                        e => new { e.Table, e.TableKey, e.OldValueStr, e.NewValueStr }
                     )
                     .HasIndex(e => e.SearchVector)
                     .HasMethod("GIN");
@@ -347,19 +353,21 @@ namespace DatabaseAccess.Context
                     .UseIdentityAlwaysColumn();
                 entity.Property(e => e.Timestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
-                //entity.HasIndex(e => e.SearchVector, "IX_admin_audit_log_search_vector")
-                //    .HasMethod("gin");
-                //entity.Property(e => e.SearchVector).HasComputedColumnSql("to_tsvector('english'::regconfig, (((((((((\"table\")::text || ' '::text) || (table_key)::text) || ' '::text) || old_value) || ' '::text) || new_value) || ' '::text) || (\"user\")::text))", true);
+
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.SocialAuditLogs)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_social_audit_log_user_id");
                 entity
                     .HasGeneratedTsVectorColumn(
                         e => e.SearchVector,
                         "english",
-                        e => new { e.Table, e.TableKey, e.OldValueStr, e.NewValueStr, e.User }
+                        e => new { e.Table, e.TableKey, e.OldValueStr, e.NewValueStr }
                     )
                     .HasIndex(e => e.SearchVector)
                     .HasMethod("GIN");
             });
-
         }
         #endregion
         #region Table SocialCategory

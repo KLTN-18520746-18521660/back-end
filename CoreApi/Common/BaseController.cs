@@ -1,12 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 using Serilog;
-using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using System.Text;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using Newtonsoft.Json.Linq;
 
 namespace CoreApi.Common
 {
@@ -102,35 +98,4 @@ namespace CoreApi.Common
             return obj;
         }
     }
-
-    #region Examples response
-    public class StatusCode500Examples
-    {
-        [DefaultValue(500)]
-        public int status { get; set; }
-        [DefaultValue("Internal Server error.")]
-        public string error { get; set; }
-    }
-    public class StatusCode400Examples
-    {
-        [DefaultValue(400)]
-        public int status { get; set; }
-        [DefaultValue("Bad body data.")]
-        public string error { get; set; }
-    }
-    public class StatusCode401Examples
-    {
-        [DefaultValue(401)]
-        public int status { get; set; }
-        [DefaultValue("Session has expired.")]
-        public string error { get; set; }
-    }
-    public class StatusCode403Examples
-    {
-        [DefaultValue(403)]
-        public int status { get; set; }
-        [DefaultValue("Missing header authorization.")]
-        public string error { get; set; }
-    }
-    #endregion
 }

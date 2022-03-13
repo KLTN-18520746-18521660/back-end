@@ -1,22 +1,18 @@
-
+using CoreApi.Common;
+using CoreApi.Services;
+using DatabaseAccess.Context;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Serilog;
-using FluentValidation.AspNetCore;
-using Microsoft.AspNetCore.Mvc.NewtonsoftJson;
-using DatabaseAccess.Context;
-using DatabaseAccess;
-using Microsoft.AspNetCore.Mvc;
-using CoreApi.Common;
-using CoreApi.Services;
 using System;
-using System.Reflection;
 using System.IO;
-using System.ComponentModel;
+using System.Reflection;
 
 namespace CoreApi
 {
@@ -30,7 +26,7 @@ namespace CoreApi
             __Configuration = configuration;
         }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
+        // [INFO] This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
             services
@@ -38,17 +34,24 @@ namespace CoreApi
                 .AddNewtonsoftJson()
                 .AddFluentValidation(FluentValidationConfig =>
                 {
-                    // Dot not use base validate with Annotation
+                    // [INFO] Dot not use base validate with Annotation
                     FluentValidationConfig.DisableDataAnnotationsValidation = true;
-                    // Register Validators -- Will get all validators match with class contained in Assembly 'DBContext'
+                    // Register Validators -- Will get all validators match with class contained in Assembly
                     FluentValidationConfig.RegisterValidatorsFromAssemblyContaining<DBContext>();
                     FluentValidationConfig.RegisterValidatorsFromAssemblyContaining<Startup>();
                 });
-            services.AddDbContext<DBContext>();
-            services.AddSingleton<BaseConfig, BaseConfig>();
-            services.AddSingleton<AdminAuditLogManagement, AdminAuditLogManagement>();
-            services.AddSingleton<AdminUserManagement, AdminUserManagement>();
-            services.AddSingleton<SessionAdminUserManagement, SessionAdminUserManagement>();
+            #region Add services
+            // [IMPORTANT] Only inject DBContext to controller when necessary, must use define service instead of DBContext
+            services.AddDbContext<DBContext>(ServiceLifetime.Transient);
+            // Defind services
+            services.AddTransient<BaseConfig, BaseConfig>();
+            services.AddTransient<AdminUserManagement, AdminUserManagement>();
+            services.AddTransient<AdminAuditLogManagement, AdminAuditLogManagement>();
+            services.AddTransient<SessionAdminUserManagement, SessionAdminUserManagement>();
+            services.AddTransient<SocialUserManagement, SocialUserManagement>();
+            services.AddTransient<SocialAuditLogManagement, SocialAuditLogManagement>();
+            services.AddTransient<SessionSocialUserManagement, SessionSocialUserManagement>();
+            #endregion
 #if DEBUG
             services.AddMvcCore(options => {
                 options.Filters.Add<ValidatorFilter>();
@@ -79,7 +82,7 @@ namespace CoreApi
                         Url = new Uri("https://github.com/KLTN-18520746-18521660/back-end"),
                     },
                 });
-                c.SwaggerDoc("test", new OpenApiInfo {
+                c.SwaggerDoc("testing", new OpenApiInfo {
                     Title = "CoreApi",
                     Version = "v1",
                     Description = "Api testing blog. (KLTN-UIT-18520746-18521660)",
@@ -98,8 +101,8 @@ namespace CoreApi
 #endif
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, 
+        // [INFO] This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        public void Configure(IApplicationBuilder app,
             IWebHostEnvironment env,
             IHostApplicationLifetime hostApplicationLifetime)
         {
@@ -109,13 +112,13 @@ namespace CoreApi
             if (env.IsDevelopment()) {
                 app.UseDeveloperExceptionPage();
                 app.UseSwagger(c => {
-                    // c.SerializeAsV2 = true;
+                    c.SerializeAsV2 = true;
                 });
                 app.UseSwaggerUI(c => {
                     c.SwaggerEndpoint("/swagger/admin/swagger.json", "CoreApi - Admin");
                     c.SwaggerEndpoint("/swagger/social/swagger.json", "CoreApi - Social");
-                    c.SwaggerEndpoint("/swagger/test/swagger.json", "CoreApi - Testing");
-                    
+                    c.SwaggerEndpoint("/swagger/testing/swagger.json", "CoreApi - Testing");
+
                     c.RoutePrefix = string.Empty;
                 });
 

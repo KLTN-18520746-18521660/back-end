@@ -50,7 +50,7 @@ namespace DatabaseAccess.Migrations
                         .HasColumnType("tsvector")
                         .HasColumnName("search_vector")
                         .HasAnnotation("Npgsql:TsVectorConfig", "english")
-                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Table", "TableKey", "OldValueStr", "NewValueStr", "User" });
+                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Table", "TableKey", "OldValueStr", "NewValueStr" });
 
                     b.Property<string>("Table")
                         .IsRequired()
@@ -70,16 +70,16 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("timestamp")
                         .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
 
-                    b.Property<string>("User")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("user");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
 
                     b.HasKey("Id");
 
                     b.HasIndex("SearchVector")
                         .HasMethod("GIN");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("admin_audit_log");
                 });
@@ -128,14 +128,14 @@ namespace DatabaseAccess.Migrations
                             Id = 1,
                             ConfigKey = "AdminUserLoginConfig",
                             StatusStr = "Enabled",
-                            ValueStr = "{\r\n  \"number\": 5,\r\n  \"time\": 5,\r\n  \"lock\": 360\r\n}"
+                            ValueStr = "{\r\n  \"number\": 5,\r\n  \"lock\": 360\r\n}"
                         },
                         new
                         {
                             Id = 2,
                             ConfigKey = "SocialUserLoginConfig",
                             StatusStr = "Enabled",
-                            ValueStr = "{\r\n  \"number\": 5,\r\n  \"time\": 5,\r\n  \"lock\": 360\r\n}"
+                            ValueStr = "{\r\n  \"number\": 5,\r\n  \"lock\": 360\r\n}"
                         },
                         new
                         {
@@ -233,14 +233,14 @@ namespace DatabaseAccess.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("aef445ea-10f2-469a-bf08-0425f403030c"),
-                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 32, DateTimeKind.Utc).AddTicks(4268),
+                            Id = new Guid("46b8baef-a388-4f74-b0d1-05d79d187fd8"),
+                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 70, DateTimeKind.Utc).AddTicks(1526),
                             DisplayName = "Administrator",
                             Email = "admin@admin",
-                            Salt = "3c6efe21",
+                            Salt = "99fd78dc",
                             SettingsStr = "{}",
                             StatusStr = "Readonly",
-                            StorePassword = "0AFC343755FA7D0BA5B9D31A5062E165",
+                            StorePassword = "F285FB2202959C257BECC9A2199D1D6B",
                             UserName = "admin"
                         });
                 });
@@ -532,7 +532,7 @@ namespace DatabaseAccess.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = new Guid("aef445ea-10f2-469a-bf08-0425f403030c"),
+                            UserId = new Guid("46b8baef-a388-4f74-b0d1-05d79d187fd8"),
                             RoleId = 1
                         });
                 });
@@ -654,7 +654,7 @@ namespace DatabaseAccess.Migrations
                         .HasColumnType("tsvector")
                         .HasColumnName("search_vector")
                         .HasAnnotation("Npgsql:TsVectorConfig", "english")
-                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Table", "TableKey", "OldValueStr", "NewValueStr", "User" });
+                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Table", "TableKey", "OldValueStr", "NewValueStr" });
 
                     b.Property<string>("Table")
                         .IsRequired()
@@ -674,16 +674,16 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("timestamp")
                         .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
 
-                    b.Property<string>("User")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("user");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
 
                     b.HasKey("Id");
 
                     b.HasIndex("SearchVector")
                         .HasMethod("GIN");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("social_audit_log");
                 });
@@ -773,7 +773,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8249),
+                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7125),
                             Describe = "This not a bug this a feature",
                             DisplayName = "Technology",
                             Name = "technology",
@@ -783,7 +783,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 2L,
-                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8294),
+                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7347),
                             Describe = "Do not click to this",
                             DisplayName = "Developer",
                             Name = "developer",
@@ -793,7 +793,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 3L,
-                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8300),
+                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7362),
                             Describe = "Search google to have better solution",
                             DisplayName = "Dicussion",
                             Name = "dicussion",
@@ -803,7 +803,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 4L,
-                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8305),
+                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7368),
                             Describe = "Nothing in here",
                             DisplayName = "Blog",
                             Name = "blog",
@@ -813,7 +813,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 5L,
-                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 67, DateTimeKind.Utc).AddTicks(8314),
+                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7415),
                             Describe = "Life die have number",
                             DisplayName = "Left",
                             Name = "left",
@@ -1184,7 +1184,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8159),
+                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2509),
                             Describe = "Angular",
                             StatusStr = "Readonly",
                             Tag = "#angular"
@@ -1192,7 +1192,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 2L,
-                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8210),
+                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2593),
                             Describe = "Something is not thing",
                             StatusStr = "Readonly",
                             Tag = "#life-die-have-number"
@@ -1200,7 +1200,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 3L,
-                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8216),
+                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2598),
                             Describe = "Dot not choose this tag",
                             StatusStr = "Readonly",
                             Tag = "#develop"
@@ -1208,7 +1208,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 4L,
-                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8220),
+                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2604),
                             Describe = "Nothing in here",
                             StatusStr = "Readonly",
                             Tag = "#nothing"
@@ -1216,7 +1216,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 5L,
-                            CreatedTimestamp = new DateTime(2022, 3, 6, 4, 15, 33, 90, DateTimeKind.Utc).AddTicks(8225),
+                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2608),
                             Describe = "hi hi",
                             StatusStr = "Readonly",
                             Tag = "#hihi"
@@ -1670,6 +1670,17 @@ namespace DatabaseAccess.Migrations
                     b.ToTable("social_user_role_of_user");
                 });
 
+            modelBuilder.Entity("DatabaseAccess.Context.Models.AdminAuditLog", b =>
+                {
+                    b.HasOne("DatabaseAccess.Context.Models.AdminUser", "User")
+                        .WithMany("AdminAuditLogs")
+                        .HasForeignKey("UserId")
+                        .HasConstraintName("FK_admin_audit_log_user_id")
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("DatabaseAccess.Context.Models.AdminUserRoleDetail", b =>
                 {
                     b.HasOne("DatabaseAccess.Context.Models.AdminUserRight", "Right")
@@ -1725,6 +1736,17 @@ namespace DatabaseAccess.Migrations
                         .WithMany("SessionSocialUsers")
                         .HasForeignKey("UserId")
                         .HasConstraintName("FK_session_social_user_user_id")
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DatabaseAccess.Context.Models.SocialAuditLog", b =>
+                {
+                    b.HasOne("DatabaseAccess.Context.Models.SocialUser", "User")
+                        .WithMany("SocialAuditLogs")
+                        .HasForeignKey("UserId")
+                        .HasConstraintName("FK_social_audit_log_user_id")
                         .IsRequired();
 
                     b.Navigation("User");
@@ -1986,6 +2008,8 @@ namespace DatabaseAccess.Migrations
 
             modelBuilder.Entity("DatabaseAccess.Context.Models.AdminUser", b =>
                 {
+                    b.Navigation("AdminAuditLogs");
+
                     b.Navigation("AdminUserRoleOfUsers");
 
                     b.Navigation("SessionAdminUsers");
@@ -2044,6 +2068,8 @@ namespace DatabaseAccess.Migrations
             modelBuilder.Entity("DatabaseAccess.Context.Models.SocialUser", b =>
                 {
                     b.Navigation("SessionSocialUsers");
+
+                    b.Navigation("SocialAuditLogs");
 
                     b.Navigation("SocialComments");
 

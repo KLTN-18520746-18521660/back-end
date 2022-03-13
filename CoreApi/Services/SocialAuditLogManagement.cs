@@ -10,38 +10,37 @@ using Microsoft.EntityFrameworkCore;
 using DatabaseAccess.Common.Status;
 using DatabaseAccess.Common.Models;
 using CoreApi.Common;
-using System.Threading.Tasks;
 
 namespace CoreApi.Services
 {
-    public class AdminAuditLogManagement : BaseService
+    public class SocialAuditLogManagement : BaseService
     {
         protected DBContext __DBContext;
-        public AdminAuditLogManagement() : base()
+        public SocialAuditLogManagement() : base()
         {
             __DBContext = new DBContext();
-            __ServiceName = "AdminAuditLogManagement";
+            __ServiceName = "SocialAuditLogManagement";
         }
 
-        public async Task<(List<AdminAuditLog> AuditLogs, int TotalSize)> GetAllAuditLog(int Start, int Size, string SearchTerm = null)
+        public List<SocialAuditLog> GetAllAuditLog(out int TotalSize, Guid UserId, int Start, int Size, string SearchTerm = null)
         {
-            var TotalSize = 0;
             if (SearchTerm == null || SearchTerm == "") {
-                TotalSize = await __DBContext.AdminAuditLogs.CountAsync();
-                return (await __DBContext.AdminAuditLogs
+                TotalSize = __DBContext.SocialAuditLogs.Count();
+                return __DBContext.SocialAuditLogs
+                    .Where(e => e.UserId == UserId)
                     .OrderBy(e => e.Id)
                     .Skip(Start)
                     .Take(Size)
-                    .ToListAsync(), TotalSize);
+                    .ToList();
             }
-            TotalSize = await __DBContext.AdminAuditLogs
-                .CountAsync(e => e.SearchVector.Matches(SearchTerm));
-            return (await __DBContext.AdminAuditLogs
-                .Where(e => e.SearchVector.Matches(SearchTerm))
+            TotalSize = __DBContext.SocialAuditLogs
+                .Count(e => e.SearchVector.Matches(SearchTerm) && e.UserId == UserId);
+            return __DBContext.SocialAuditLogs
+                .Where(e => e.SearchVector.Matches(SearchTerm) && e.UserId == UserId)
                 .OrderBy(e => e.Id)
                 .Skip(Start)
                 .Take(Size)
-                .ToListAsync(), TotalSize);
+                .ToList();
         }
 
         public void AddAuditLog(
@@ -52,7 +51,7 @@ namespace CoreApi.Services
             JObject OldValue,
             JObject NewValue
         ) {
-            AdminAuditLog log = new AdminAuditLog();
+            SocialAuditLog log = new SocialAuditLog();
             log.Table = TableName;
             log.TableKey = TableKey;
             log.Action = Action;
@@ -60,12 +59,12 @@ namespace CoreApi.Services
             log.OldValue = new LogValue(OldValue);
             log.NewValue = new LogValue(NewValue);
 
-            __DBContext.AdminAuditLogs.Add(log);
+            __DBContext.SocialAuditLogs.Add(log);
             __DBContext.SaveChanges();
         }
 
-        public void AddAuditLog(AdminAuditLog AuditLog) {
-            __DBContext.AdminAuditLogs.Add(AuditLog);
+        public void AddAuditLog(SocialAuditLog AuditLog) {
+            __DBContext.SocialAuditLogs.Add(AuditLog);
             __DBContext.SaveChanges();
         }
     }
