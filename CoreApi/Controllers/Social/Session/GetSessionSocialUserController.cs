@@ -52,8 +52,8 @@ namespace CoreApi.Controllers.Social.Session
         {
             string Error = "";
             try {
-                EXTENSION_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, "extension_time", out Error);
-                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, "expiry_time", out Error);
+                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
+                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
@@ -112,7 +112,7 @@ namespace CoreApi.Controllers.Social.Session
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public IActionResult GetAllSession()
+        public async Task<IActionResult> GetAllSessionAsync()
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -133,8 +133,9 @@ namespace CoreApi.Controllers.Social.Session
                 #region Find session for use
                 SessionSocialUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
+                (session, error) = await __SessionSocialUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME);
 
-                if (!__SessionSocialUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME, out session, out error)) {
+                if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
                         LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
                         return Problem(400, "Session not found.");
@@ -152,10 +153,10 @@ namespace CoreApi.Controllers.Social.Session
                 #endregion
 
                 #region Get all sessions
-                var user = session.User;
                 List<SessionSocialUser> allSessionOfUser = null;
-                if (!__SessionSocialUserManagement.GetAllSessionOfUser(user.Id, out allSessionOfUser, out error)) {
-                    throw new Exception("Internal Server Error. GetAllSocialUserSessions Failed.");
+                (allSessionOfUser, error) = await __SessionSocialUserManagement.GetAllSessionOfUser(session.UserId);
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"GetAllSocialUserSessions Failed. ErrorCode: { error }");
                 }
 
                 List<JObject> rawReturn = new();
@@ -163,13 +164,13 @@ namespace CoreApi.Controllers.Social.Session
                 var ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(rawReturn));
                 #endregion
 
-                LogDebug($"Get all session success, user_name: { user.UserName }");
+                LogDebug($"Get all session success, user_name: { session.User.UserName }");
                 return Ok( new JObject(){
                     { "status", 200 },
                     { "sessions", ret },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.ToString() }");
+                LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");
             }
         }
@@ -230,7 +231,7 @@ namespace CoreApi.Controllers.Social.Session
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public IActionResult GetSessionById(string session_token)
+        public async Task<IActionResult> GetSessionById(string session_token)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -257,8 +258,9 @@ namespace CoreApi.Controllers.Social.Session
                 #region Find session for use
                 SessionSocialUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
+                (session, error) = await __SessionSocialUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME);
 
-                if (!__SessionSocialUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME, out session, out error)) {
+                if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
                         LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
                         return Problem(400, "Session not found.");
@@ -271,21 +273,15 @@ namespace CoreApi.Controllers.Social.Session
                         LogInformation($"User has been locked, session_token: { sessionToken.Substring(0, 15) }");
                         return Problem(423, "You have been locked.");
                     }
-                    throw new Exception("Internal Server Error. FindSessionForUse Failed.");
+                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
                 }
                 #endregion
 
                 #region Get session
                 var user = session.User;
                 SessionSocialUser ret = null;
-                if (!__SessionSocialUserManagement.FindSession(session_token, out ret, out error)) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(404, "Session not found.");
-                    }
-                    throw new Exception("Internal Server Error. FindSessionSocialUser Failed.");
-                }
-                if (ret.User.Id != user.Id) {
+                (ret, error) = await __SessionSocialUserManagement.FindSession(session_token);
+                if (error != ErrorCodes.NO_ERROR || ret.UserId != session.UserId) {
                     LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
                     return Problem(404, "Session not found.");
                 }
@@ -297,7 +293,7 @@ namespace CoreApi.Controllers.Social.Session
                     { "session", ret.GetJsonObject() },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.ToString() }");
+                LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");
             }
         }

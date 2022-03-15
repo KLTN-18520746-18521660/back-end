@@ -16,35 +16,38 @@ namespace CoreApi.Services
 {
     public class AdminAuditLogManagement : BaseService
     {
-        protected DBContext __DBContext;
         public AdminAuditLogManagement() : base()
         {
-            __DBContext = new DBContext();
             __ServiceName = "AdminAuditLogManagement";
         }
 
         public async Task<(List<AdminAuditLog> AuditLogs, int TotalSize)> GetAllAuditLog(int Start, int Size, string SearchTerm = null)
         {
-            var TotalSize = 0;
             if (SearchTerm == null || SearchTerm == "") {
-                TotalSize = await __DBContext.AdminAuditLogs.CountAsync();
-                return (await __DBContext.AdminAuditLogs
+                return 
+                (
+                    await __DBContext.AdminAuditLogs
+                        .OrderBy(e => e.Id)
+                        .Skip(Start)
+                        .Take(Size)
+                        .ToListAsync(),
+                    await __DBContext.AdminAuditLogs.CountAsync()
+                );
+            }
+            return
+            (
+                await __DBContext.AdminAuditLogs
+                    .Where(e => e.SearchVector.Matches(SearchTerm))
                     .OrderBy(e => e.Id)
                     .Skip(Start)
                     .Take(Size)
-                    .ToListAsync(), TotalSize);
-            }
-            TotalSize = await __DBContext.AdminAuditLogs
-                .CountAsync(e => e.SearchVector.Matches(SearchTerm));
-            return (await __DBContext.AdminAuditLogs
-                .Where(e => e.SearchVector.Matches(SearchTerm))
-                .OrderBy(e => e.Id)
-                .Skip(Start)
-                .Take(Size)
-                .ToListAsync(), TotalSize);
+                    .ToListAsync(),
+                await __DBContext.AdminAuditLogs
+                    .CountAsync(e => e.SearchVector.Matches(SearchTerm))
+            );
         }
 
-        public void AddAuditLog(
+        public async Task AddAuditLog(
             string TableName,
             string TableKey,
             string Action,
@@ -61,12 +64,12 @@ namespace CoreApi.Services
             log.NewValue = new LogValue(NewValue);
 
             __DBContext.AdminAuditLogs.Add(log);
-            __DBContext.SaveChanges();
+            await __DBContext.SaveChangesAsync();
         }
 
-        public void AddAuditLog(AdminAuditLog AuditLog) {
+        public async Task AddAuditLog(AdminAuditLog AuditLog) {
             __DBContext.AdminAuditLogs.Add(AuditLog);
-            __DBContext.SaveChanges();
+            await __DBContext.SaveChangesAsync();
         }
     }
 }

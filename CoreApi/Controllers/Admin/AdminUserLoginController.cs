@@ -6,6 +6,7 @@ using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Threading.Tasks;
 using System.Text;
 using Common;
 using Microsoft.AspNetCore.Http;
@@ -44,8 +45,8 @@ namespace CoreApi.Controllers.Admin
         {
             string Error = "";
             try {
-                NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG, "number", out Error);
-                LOCK_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG, "lock", out Error);
+                (NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG, SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE);
+                (LOCK_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG, SUB_CONFIG_KEY.LOCK_TIME);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
@@ -93,25 +94,22 @@ namespace CoreApi.Controllers.Admin
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public IActionResult AdminUserLogin(Models.LoginModel model)
+        public async Task<IActionResult> AdminUserLogin(Models.LoginModel model)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
             try {
                 #region Find User
-                ErrorCodes error = ErrorCodes.NO_ERROR;
                 bool isEmail = Utils.IsEmail(model.user_name);
                 LogDebug($"Find user user_name: { model.user_name }, isEmail: { isEmail }");
+                ErrorCodes error = ErrorCodes.NO_ERROR;
                 AdminUser user = null;
-                bool found = __AdminUserManagement.FindUser(model.user_name, isEmail, out user, out error);
+                (user, error) = await __AdminUserManagement.FindUser(model.user_name, isEmail);
 
-                if (!found) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Not found user_name: { model.user_name }, isEmail: { isEmail }");
-                        return Problem(400, "User not found or incorrect password.");
-                    }
-                    throw new Exception("Internal Server Error. Find AdminUser failed.");
+                if (error != ErrorCodes.NO_ERROR) {
+                    LogDebug($"Not found user_name: { model.user_name }, isEmail: { isEmail }");
+                    return Problem(400, "User not found or incorrect password.");
                 }
                 #endregion
 
@@ -125,9 +123,9 @@ namespace CoreApi.Controllers.Admin
                 #region Compare password
                 if (PasswordEncryptor.EncryptPassword(model.password, user.Salt) != user.Password) {
                     LogInformation($"Incorrect password user_name: { model.user_name }, isEmail: { isEmail }");
-                    __AdminUserManagement.HandleLoginFail(user, LOCK_TIME, NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE, out error);
+                    error = await __AdminUserManagement.HandleLoginFail(user.Id, LOCK_TIME, NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE);
                     if (error != ErrorCodes.NO_ERROR) {
-                        throw new Exception("Internal Server Error. Handle AdminUseLoginFail failed.");
+                        throw new Exception($"Handle AdminUseLoginFail failed. ErrorCode: { error }");
                     }
                     return Problem(400, "User not found or incorrect password.");
                 }
@@ -136,13 +134,14 @@ namespace CoreApi.Controllers.Admin
                 #region Create session
                 SessionAdminUser session = null;
                 var data = model.data == null ? new JObject() : model.data;
-                if (!__SessionAdminUserManagement.NewSession(user.Id, model.remember, data, out session, out error)) {
-                    throw new Exception("Internal Server Error. CreateNewAdminSession Failed.");
+                (session, error) = await __SessionAdminUserManagement.NewSession(user.Id, model.remember, data);
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"CreateNewAdminSession Failed. ErrorCode: { error }");
                 }
 
-                __AdminUserManagement.HandleLoginSuccess(user, out error);
+                error = await __AdminUserManagement.HandleLoginSuccess(user.Id);
                 if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception("Internal Server Error. Handle AdminUserLoginSuccess failed.");
+                    throw new Exception($"Handle AdminUserLoginSuccess failed. ErrorCode: { error }");
                 }
                 #endregion
 
@@ -153,7 +152,7 @@ namespace CoreApi.Controllers.Admin
                     { "user_id", user.Id },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.ToString() }");
+                LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");
             }
         }

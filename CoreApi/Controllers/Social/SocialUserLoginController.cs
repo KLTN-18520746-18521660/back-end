@@ -53,8 +53,8 @@ namespace CoreApi.Controllers.Social
         {
             string Error = "";
             try {
-                NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG, "number", out Error);
-                LOCK_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG, "lock", out Error);
+                (NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG, SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE);
+                (LOCK_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG, SUB_CONFIG_KEY.LOCK_TIME);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
@@ -102,25 +102,22 @@ namespace CoreApi.Controllers.Social
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public IActionResult SocialUserLogin(Models.LoginModel model)
+        public async Task<IActionResult> SocialUserLogin(Models.LoginModel model)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
             try {
                 #region Find User
-                ErrorCodes error = ErrorCodes.NO_ERROR;
                 bool isEmail = Utils.IsEmail(model.user_name);
                 LogDebug($"Find user user_name: { model.user_name }, isEmail: { isEmail }");
+                ErrorCodes error = ErrorCodes.NO_ERROR;
                 SocialUser user = null;
-                bool found = __SocialUserManagement.FindUser(model.user_name, isEmail, out user, out error);
+                (user, error) = await __SocialUserManagement.FindUser(model.user_name, isEmail);
 
-                if (!found) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Not found user_name: { model.user_name }, isEmail: { isEmail }");
-                        return Problem(400, "User not found or incorrect password.");
-                    }
-                    throw new Exception("Internal Server Error. Find AdminUser failed.");
+                if (error != ErrorCodes.NO_ERROR) {
+                    LogDebug($"Not found user_name: { model.user_name }, isEmail: { isEmail }");
+                    return Problem(400, "User not found or incorrect password.");
                 }
                 #endregion
 
@@ -134,9 +131,9 @@ namespace CoreApi.Controllers.Social
                 #region Compare password
                 if (PasswordEncryptor.EncryptPassword(model.password, user.Salt) != user.Password) {
                     LogInformation($"Incorrect password user_name: { model.user_name }, isEmail: { isEmail }");
-                    __SocialUserManagement.HandleLoginFail(user, LOCK_TIME, NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE, out error);
+                    error = await __SocialUserManagement.HandleLoginFail(user.Id, LOCK_TIME, NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE);
                     if (error != ErrorCodes.NO_ERROR) {
-                        throw new Exception("Internal Server Error. Handle SocialUseLoginFail failed.");
+                        throw new Exception($"Handle SocialUseLoginFail failed. ErrorCode: { error }");
                     }
                     return Problem(400, "User not found or incorrect password.");
                 }
@@ -145,13 +142,14 @@ namespace CoreApi.Controllers.Social
                 #region Create session
                 SessionSocialUser session = null;
                 var data = model.data == null ? new JObject() : model.data;
-                if (!__SessionSocialUserManagement.NewSession(user.Id, model.remember, data, out session, out error)) {
-                    throw new Exception("Internal Server Error. CreateNewSocialSession Failed.");
+                (session, error) = await __SessionSocialUserManagement.NewSession(user.Id, model.remember, data);
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"CreateNewSocialSession Failed. ErrorCode: { error }");
                 }
 
-                __SocialUserManagement.HandleLoginSuccess(user, out error);
+                error = await __SocialUserManagement.HandleLoginSuccess(user.Id);
                 if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception("Internal Server Error. Handle SocialUserLoginSuccess failed.");
+                    throw new Exception($"Handle SocialUserLoginSuccess failed. ErrorCode: { error }");
                 }
                 #endregion
 
@@ -162,7 +160,7 @@ namespace CoreApi.Controllers.Social
                     { "user_id", user.Id },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.ToString() }");
+                LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");
             }
         }

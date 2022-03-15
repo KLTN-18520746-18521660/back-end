@@ -7,6 +7,7 @@ using System;
 using Common;
 using System.Text;
 using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 
 namespace CoreApi.Controllers.Admin
 {
@@ -38,7 +39,7 @@ namespace CoreApi.Controllers.Admin
         {
             string Error = "";
             try {
-                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "expiry_time", out Error);
+                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
@@ -85,7 +86,7 @@ namespace CoreApi.Controllers.Admin
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public IActionResult AdminUserLogout()
+        public async Task<IActionResult> AdminUserLogoutAsync()
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -106,23 +107,23 @@ namespace CoreApi.Controllers.Admin
                 #region Find session token
                 SessionAdminUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
+                (session, error) = await __SessionAdminUserManagement.FindSession(sessionToken);
 
-                if (!__SessionAdminUserManagement.FindSession(sessionToken, out session, out error)) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
-                        return Problem(400, "Session not found.");
-                    }
-                    throw new Exception("Internal Server Error. FindSessionAdminUser failed.");
+                if (error != ErrorCodes.NO_ERROR) {
+                    LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
+                    return Problem(400, "Session not found.");
                 }
                 #endregion
 
                 #region Remove session and clear expried session
                 var user = session.User;
-                if (!__SessionAdminUserManagement.RemoveSession(session, out error)) {
-                    throw new Exception("Internal Server Error. RemoveSessionAdminUser failed.");
+                error = await __SessionAdminUserManagement.RemoveSession(session.SessionToken);
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"RemoveSessionAdminUser failed. ErrorCode: { error }");
                 }
-                if (!__SessionAdminUserManagement.ClearExpiredSession(user, EXPIRY_TIME, out error)) {
-                    throw new Exception("Internal Server Error. ClearExpiredSessionAdminUser failed.");
+                error = await __SessionAdminUserManagement.ClearExpiredSession(user.GetExpiredSessions(EXPIRY_TIME));
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"ClearExpiredSessionAdminUser failed. ErrorCode: { error }");
                 }
                 #endregion
 
@@ -132,7 +133,7 @@ namespace CoreApi.Controllers.Admin
                     { "message", "Success." },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.ToString() }");
+                LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");
             }
         }

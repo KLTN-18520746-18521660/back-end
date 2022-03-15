@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using Common;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace CoreApi.Controllers.Social.AuditLog
 {
@@ -46,8 +47,8 @@ namespace CoreApi.Controllers.Social.AuditLog
         {
             string Error = "";
             try {
-                EXTENSION_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, "extension_time", out Error);
-                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, "expiry_time", out Error);
+                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
+                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
@@ -60,7 +61,7 @@ namespace CoreApi.Controllers.Social.AuditLog
         }
 
         [HttpGet]
-        public IActionResult GetAuditLogs(int start = 0, int size = 20, string search_term = null)
+        public async Task<IActionResult> GetAuditLogs(int start = 0, int size = 20, string search_term = null)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -81,8 +82,8 @@ namespace CoreApi.Controllers.Social.AuditLog
                 #region Find session for use
                 SessionSocialUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-
-                if (!__SessionSocialUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME, out session, out error)) {
+                (session, error) = await __SessionSocialUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME);
+                if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
                         LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
                         return Problem(400, "Session not found.");
@@ -95,14 +96,15 @@ namespace CoreApi.Controllers.Social.AuditLog
                         LogInformation($"User has been locked, session_token: { sessionToken.Substring(0, 15) }");
                         return Problem(423, "You have been locked.");
                     }
-                    throw new Exception("Internal Server Error. FindSessionForUse Failed.");
+                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
                 }
                 #endregion
 
                 #region Get all audit logs
                 var user = session.User;
+                List<SocialAuditLog> logs = null;
                 int totalSize = 0;
-                var logs = __SocialAuditLogManagement.GetAllAuditLog(out totalSize, user.Id, start, size, search_term);
+                (logs, totalSize)= await __SocialAuditLogManagement.GetAllAuditLog(user.Id, start, size, search_term);
 
                 List<JObject> rawReturn = new();
                 logs.ForEach(e => rawReturn.Add(e.GetJsonObject()));
@@ -123,7 +125,7 @@ namespace CoreApi.Controllers.Social.AuditLog
                     { "total_size", totalSize },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.ToString() }");
+                LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");
             }
         }

@@ -7,6 +7,7 @@ using System;
 using System.Text;
 using Common;
 using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 
 namespace CoreApi.Controllers.Admin.User
 {
@@ -42,8 +43,8 @@ namespace CoreApi.Controllers.Admin.User
         {
             string Error = "";
             try {
-                EXTENSION_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, "extension_time", out Error);
-                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, "expiry_time", out Error);
+                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
+                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
@@ -114,7 +115,7 @@ namespace CoreApi.Controllers.Admin.User
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public IActionResult GetSocialUserByApiKey(Guid id)
+        public async Task<IActionResult> GetSocialUserByApiKeyAsync(Guid id)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -135,8 +136,9 @@ namespace CoreApi.Controllers.Admin.User
                 #region Find session for use
                 SessionAdminUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
+                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME);
 
-                if (!__SessionAdminUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME, out session, out error)) {
+                if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
                         LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
                         return Problem(400, "Session not found.");
@@ -149,13 +151,13 @@ namespace CoreApi.Controllers.Admin.User
                         LogInformation($"User has been locked, session_token: { sessionToken.Substring(0, 15) }");
                         return Problem(423, "You have been locked.");
                     }
-                    throw new Exception("Internal Server Error. FindSessionForUse Failed.");
+                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
                 }
                 #endregion
 
                 #region Check Permission
                 var user = session.User;
-                if (!__AdminUserManagement.HaveReadPermission(user, ADMIN_RIGHTS.ADMIN_USER)) {
+                if (__AdminUserManagement.HaveReadPermission(user.Rights, ADMIN_RIGHTS.ADMIN_USER) == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
                     LogInformation($"User doesn't have permission for get admin user, user_name: { user.UserName }");
                     return Problem(403, "User doesn't have permission for get admin user.");
                 }
@@ -163,12 +165,10 @@ namespace CoreApi.Controllers.Admin.User
 
                 #region Get Admin user info by id
                 AdminUser retUser = null;
-                if (!__AdminUserManagement.FindUserById(id, out retUser, out error)) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"User not found by id: { id }");
-                        return Problem(404, "User not found.");
-                    }
-                    throw new Exception("Internal Server Error. FindAdminUserById failed.");
+                (retUser, error) = await __AdminUserManagement.FindUserById(id);
+                if (error != ErrorCodes.NO_ERROR) {
+                    LogDebug($"User not found by id: { id }");
+                    return Problem(404, "User not found.");
                 }
                 #endregion
 
@@ -178,7 +178,7 @@ namespace CoreApi.Controllers.Admin.User
                     { "user", retUser.GetJsonObject() },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.ToString() }");
+                LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");
             }
         }

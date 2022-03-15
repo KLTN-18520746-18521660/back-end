@@ -16,87 +16,89 @@ namespace CoreApi.Services
 {
     public class SocialUserManagement : BaseService
     {
-        protected DBContext __DBContext;
-        public SocialUserManagement() : base() {
-            __DBContext = new DBContext();
+        public SocialUserManagement() : base()
+        {
             __ServiceName = "SocialUserManagement";
         }
 
         #region Find user, handle user login
-        public bool FindUser(string UserName, bool isEmail, out SocialUser User, out ErrorCodes Error)
+        public async Task<(SocialUser, ErrorCodes)> FindUser(string UserName, bool isEmail)
         {
-            Error = ErrorCodes.NO_ERROR;
-            List<SocialUser> users;
+            SocialUser user;
             if (isEmail) {
-                users = __DBContext.SocialUsers
-                        .Where<SocialUser>(e => e.Email == UserName
+                user = (await __DBContext.SocialUsers
+                        .Where(e => e.Email == UserName
                             && e.StatusStr != BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus))
-                        .Include(e => e.SocialUserRoleOfUsers)
-                        .ToList<SocialUser>();
+                        .ToListAsync())
+                        .DefaultIfEmpty(null)
+                        .FirstOrDefault();
             } else {
-                users = __DBContext.SocialUsers
-                        .Where<SocialUser>(e => e.UserName == UserName
+                user = (await __DBContext.SocialUsers
+                        .Where(e => e.UserName == UserName
                             && e.StatusStr != BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus))
-                        .ToList<SocialUser>();
+                        .ToListAsync())
+                        .DefaultIfEmpty(null)
+                        .FirstOrDefault();
             }
-            if (users.Count > 0) {
-                User = users.First();
-                return true;
+            if (user != null) {
+                return (user, ErrorCodes.NO_ERROR);
             }
-            Error = ErrorCodes.NOT_FOUND;
-            User = null;
-            return false;
+            return (null, ErrorCodes.NOT_FOUND);
         }
 
-        public bool FindUserIgnoreStatus(string UserName, bool isEmail, out SocialUser User, out ErrorCodes Error)
+        public async Task<(SocialUser, ErrorCodes)> FindUserIgnoreStatus(string UserName, bool isEmail)
         {
-            Error = ErrorCodes.NO_ERROR;
-            List<SocialUser> users;
+            SocialUser user;
             if (isEmail) {
-                users = __DBContext.SocialUsers
+                user = (await __DBContext.SocialUsers
                         .Where<SocialUser>(e => e.Email == UserName)
-                        .Include(e => e.SocialUserRoleOfUsers)
-                        .ToList<SocialUser>();
+                        .ToListAsync())
+                        .DefaultIfEmpty(null)
+                        .FirstOrDefault();
             } else {
-                users = __DBContext.SocialUsers
+                user = (await __DBContext.SocialUsers
                         .Where<SocialUser>(e => e.UserName == UserName)
-                        .Include(e => e.SocialUserRoleOfUsers)
-                        .ToList<SocialUser>();
+                        .ToListAsync())
+                        .DefaultIfEmpty(null)
+                        .FirstOrDefault();
             }
-            if (users.Count > 0) {
-                User = users.First();
-                return true;
+            if (user != null) {
+                return (user, ErrorCodes.NO_ERROR);
             }
-            Error = ErrorCodes.NOT_FOUND;
-            User = null;
-            return false;
+            return (null, ErrorCodes.NOT_FOUND);
         }
 
-        public bool FindUserById(Guid Id, out SocialUser User, out ErrorCodes Error)
+        public async Task<(SocialUser, ErrorCodes)> FindUserById(Guid Id)
         {
-            Error = ErrorCodes.NO_ERROR;
-            List<SocialUser> users;
-            users = __DBContext.SocialUsers
-                    .Where<SocialUser>(e => e.Id == Id)
-                    .Include(e => e.SocialUserRoleOfUsers)
-                    .ToList<SocialUser>();
-            if (users.Count > 0) {
-                User = users.First();
-                return true;
+            SocialUser user;
+            user = (await __DBContext.SocialUsers
+                    .Where(e => e.Id == Id)
+                    .ToListAsync())
+                    .DefaultIfEmpty(null)
+                    .FirstOrDefault();
+
+            if (user != null) {
+                return (user, ErrorCodes.NO_ERROR);
             }
-            Error = ErrorCodes.NOT_FOUND;
-            User = null;
-            return false;
+            return (null, ErrorCodes.NOT_FOUND);
         }
 
-        public bool HandleLoginFail(SocialUser User, int LockTime, int NumberOfTimesAllowLoginFailure, out ErrorCodes Error)
+        public async Task<ErrorCodes> HandleLoginFail(Guid UserId, int LockTime, int NumberOfTimesAllowLoginFailure)
         {
-            Error = ErrorCodes.NO_ERROR;
+            #region Find user info
+            ErrorCodes Error = ErrorCodes.NO_ERROR;
+            SocialUser User = null;
+            (User, Error) = await FindUserById(UserId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
             JObject config;
             if (!User.Settings.ContainsKey("__login_config")) {
                 config = new JObject{
                     { "number", 1 },
-                    { "last_login", DateTimeOffset.Now.ToUnixTimeSeconds()}
+                    { "last_login", DateTimeOffset.Now.ToUnixTimeSeconds() }
                 };
             } else {
                 try {
@@ -117,7 +119,7 @@ namespace CoreApi.Services
                     }
 
                     if (numberLoginFailure >= NumberOfTimesAllowLoginFailure) {
-                        User.Status = (int) SocialUserStatus.Blocked;
+                        User.Status = SocialUserStatus.Blocked;
                     }
 
                     config["number"] = numberLoginFailure;
@@ -125,64 +127,88 @@ namespace CoreApi.Services
                 } catch (Exception) {
                     config = new JObject(){
                         { "number", 1 },
-                        { "last_login", DateTimeOffset.Now.ToUnixTimeSeconds()}
+                        { "last_login", DateTimeOffset.Now.ToUnixTimeSeconds() }
                     };
                 }
             }
-
             User.Settings["__login_config"] = config;
-            if (__DBContext.SaveChanges() > 0) {
-                return true;
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                return ErrorCodes.NO_ERROR;
             }
-            Error = ErrorCodes.INTERNAL_SERVER_ERROR;
-            return false;
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
         }
 
-        public bool HandleLoginSuccess(SocialUser User, out ErrorCodes Error)
+        public async Task<ErrorCodes> HandleLoginSuccess(Guid UserId)
         {
-            Error = ErrorCodes.NO_ERROR;
+            #region Find user info
+            ErrorCodes Error = ErrorCodes.NO_ERROR;
+            SocialUser User = null;
+            (User, Error) = await FindUserById(UserId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
             User.LastAccessTimestamp = DateTime.UtcNow;
             User.Settings.Remove("__login_config");
-            if (__DBContext.SaveChanges() > 0) {
-                return true;
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                return ErrorCodes.NO_ERROR;
             }
-            Error = ErrorCodes.INTERNAL_SERVER_ERROR;
-            return false;
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
         }
         #endregion
 
         #region Permission
-        public bool HaveReadPermission(SocialUser User, string Right)
+        public async Task<ErrorCodes> HaveReadPermission(Guid UserId, string Right)
         {
+            #region Find user info
+            ErrorCodes Error = ErrorCodes.NO_ERROR;
+            SocialUser User = null;
+            (User, Error) = await FindUserById(UserId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
             var rights = User.Rights;
             if (rights.ContainsKey(Right)) {
                 var right = rights[Right];
                 if (right["read"] != null &&
                     ((bool)right["read"]) == true) {
-                    return true;
+                    return ErrorCodes.NO_ERROR;
                 }
             }
-            return false;
+            return ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION;
         }
 
-        public bool HaveFullPermission(SocialUser User, string Right)
+        public async Task<ErrorCodes> HaveFullPermission(Guid UserId, string Right)
         {
+            #region Find user info
+            ErrorCodes Error = ErrorCodes.NO_ERROR;
+            SocialUser User = null;
+            (User, Error) = await FindUserById(UserId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
             var rights = User.Rights;
             if (rights.ContainsKey(Right)) {
                 var right = rights[Right];
                 if (right["read"] != null && right["write"] != null &&
                     ((bool)right["read"]) == true && ((bool)right["write"]) == true) {
-                    return true;
+                    return ErrorCodes.NO_ERROR;
                 }
             }
-            return false;
+            return ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION;
         }
         #endregion
 
         #region Add user
-        public bool AddNewUser(SocialUser NewUser, out ErrorCodes Error)
+        public async Task<ErrorCodes> AddNewUser(SocialUser NewUser)
         {
-            Error = ErrorCodes.NO_ERROR;
             __DBContext.SocialUsers.Add(NewUser);
             #region Add default role
             SocialUserRoleOfUser defaultRole = new SocialUserRoleOfUser();
@@ -192,8 +218,8 @@ namespace CoreApi.Services
             NewUser.SocialUserRoleOfUsers.Add(defaultRole);
             #endregion
 
-            if (__DBContext.SaveChanges() > 0) {
-                #region  [SOCIAL] Write audit log
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [SOCIAL] Write audit log
                 SocialAuditLog log = new SocialAuditLog();
                 log.Table = NewUser.GetModelName();
                 log.TableKey = NewUser.Id.ToString();
@@ -203,12 +229,11 @@ namespace CoreApi.Services
                 log.NewValue = new LogValue(NewUser.GetJsonObject());
 
                 __DBContext.SocialAuditLogs.Add(log);
-                __DBContext.SaveChanges();
+                await __DBContext.SaveChangesAsync();
                 #endregion
-                return true;
+                return ErrorCodes.NO_ERROR;
             }
-            Error = ErrorCodes.INTERNAL_SERVER_ERROR;
-            return false;
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
         }
         #endregion
     }

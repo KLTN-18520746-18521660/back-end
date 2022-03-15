@@ -48,7 +48,7 @@ namespace CoreApi.Controllers.Social
         {
             string Error = "";
             try {
-                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, "expiry_time", out Error);
+                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
@@ -95,7 +95,7 @@ namespace CoreApi.Controllers.Social
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public IActionResult SocialUserLogout()
+        public async Task<IActionResult> SocialUserLogoutAsync()
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -116,23 +116,23 @@ namespace CoreApi.Controllers.Social
                 #region Find session token
                 SessionSocialUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
+                (session, error) = await __SessionSocialUserManagement.FindSession(sessionToken);
 
-                if (!__SessionSocialUserManagement.FindSession(sessionToken, out session, out error)) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
-                        return Problem(400, "Session not found.");
-                    }
-                    throw new Exception("Internal Server Error. FindSessionSocialUser failed.");
+                if (error != ErrorCodes.NO_ERROR) {
+                    LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
+                    return Problem(400, "Session not found.");
                 }
                 #endregion
 
                 #region Remove session and clear expried session
                 var user = session.User;
-                if (!__SessionSocialUserManagement.RemoveSession(session, out error)) {
-                    throw new Exception("Internal Server Error. RemoveSessionSocialUser failed.");
+                error = await __SessionSocialUserManagement.RemoveSession(session.SessionToken);
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"RemoveSessionSocialUser failed. ErrorCode: { error }");
                 }
-                if (!__SessionSocialUserManagement.ClearExpiredSession(user, EXPIRY_TIME, out error)) {
-                    throw new Exception("Internal Server Error. ClearExpiredSessionSocialUser failed.");
+                error = await __SessionSocialUserManagement.ClearExpiredSession(user.GetExpiredSessions(EXPIRY_TIME));
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"ClearExpiredSessionSocialUser failed. ErrorCode: { error }");
                 }
                 #endregion
 
@@ -142,7 +142,7 @@ namespace CoreApi.Controllers.Social
                     { "message", "Success." },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.ToString() }");
+                LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");
             }
         }

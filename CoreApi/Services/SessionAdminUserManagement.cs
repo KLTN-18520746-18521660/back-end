@@ -16,130 +16,127 @@ namespace CoreApi.Services
 {
     public class SessionAdminUserManagement : BaseService
     {
-        protected DBContext __DBContext;
         public SessionAdminUserManagement() : base()
         {
-            __DBContext = new DBContext();
+            __ServiceName = "SessionAdminUserManagement";
         }
 
-        public bool NewSession(Guid UserId, bool Remember, JObject Data, out SessionAdminUser Session, out ErrorCodes Error)
+        public async Task<(SessionAdminUser, ErrorCodes)> NewSession(Guid UserId, bool Remember, JObject Data)
         {
-            Error = ErrorCodes.NO_ERROR;
-            Session = new();
-            Session.UserId = UserId;
-            Session.Saved = Remember;
-            Session.Data = Data;
-            __DBContext.SessionAdminUsers.Add(Session);
-            if (__DBContext.SaveChanges() > 0) {
-                return true;
+            SessionAdminUser session = new();
+            session.UserId = UserId;
+            session.Saved = Remember;
+            session.Data = Data;
+            __DBContext.SessionAdminUsers.Add(session);
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                return (session, ErrorCodes.NO_ERROR);
             }
-            Error = ErrorCodes.INTERNAL_SERVER_ERROR;
-            return false;
+            return (null, ErrorCodes.INTERNAL_SERVER_ERROR);
         }
 
-        public bool FindSession(string SessionToken, out SessionAdminUser Session, out ErrorCodes Error)
+        public async Task<(SessionAdminUser, ErrorCodes)> FindSession(string SessionToken)
         {
-            Error = ErrorCodes.NO_ERROR;
-            var sessions = __DBContext.SessionAdminUsers
+            var session = (await __DBContext.SessionAdminUsers
                             .Where(e => e.SessionToken == SessionToken)
-                            .Include(e => e.User.AdminUserRoleOfUsers)
-                            .ToList();
-            if (sessions.Count > 0) {
-                Session = sessions.First();
-                return true;
+                            .Include(e => e.User)
+                            .ToListAsync())
+                            .DefaultIfEmpty(null)
+                            .FirstOrDefault();
+            if (session != null) {
+                return (session, ErrorCodes.NO_ERROR);
             }
-            Error = ErrorCodes.NOT_FOUND;
-            Session = null;
-            return false;
+            return (null, ErrorCodes.NOT_FOUND);
         }
 
-        public bool FindSessionForUse(string SessionToken,
+        public async Task<(SessionAdminUser, ErrorCodes)> FindSessionForUse(string SessionToken,
                                     int ExpiryTime,
-                                    int ExtensionTime,
-                                    out SessionAdminUser Session,
-                                    out ErrorCodes Error)
+                                    int ExtensionTime)
         {
-            Error = ErrorCodes.NO_ERROR;
-            if (FindSession(SessionToken, out Session, out Error)) {
-                if (!ClearExpiredSession(Session.User, ExpiryTime, out Error)) {
-                    Error = ErrorCodes.INTERNAL_SERVER_ERROR;
-                    Session = null;
-                    return false;
-                }
-                if (FindSession(SessionToken, out Session, out Error)) {
-                    if (Session.User.Status == (int) AdminUserStatus.Blocked) {
-                        Error = ErrorCodes.USER_HAVE_BEEN_LOCKED;
-                        Session = null;
-                        return false;
-                    }
-                    if (ExtensionSession(SessionToken, ExtensionTime, out Error)) {
-                        Session.User.LastAccessTimestamp = Session.LastInteractionTime;
-                        __DBContext.SaveChangesAsync();
-                        return true;
-                    }
-                    Error = ErrorCodes.INTERNAL_SERVER_ERROR;
-                    Session = null;
-                    return false;
-                }
-                Error = ErrorCodes.SESSION_HAS_EXPIRED;
-                Session = null;
-                return false;
+            ErrorCodes error = ErrorCodes.NO_ERROR;
+            SessionAdminUser session = null;
+            (session, error) = await FindSession(SessionToken);
+            if (error != ErrorCodes.NO_ERROR) {
+                return (session, error);
             }
-            Error = ErrorCodes.NOT_FOUND;
-            Session = null;
-            return false;
+
+            if (session.User.Status == AdminUserStatus.Blocked) {
+                return (null, ErrorCodes.USER_HAVE_BEEN_LOCKED);
+            }
+            // Clear expired session
+            error = await ClearExpiredSession(session.User.GetExpiredSessions(ExpiryTime));
+            if (error != ErrorCodes.NO_ERROR) {
+                return (null, ErrorCodes.INTERNAL_SERVER_ERROR);
+            }
+            // Find session again if session if expired
+            (session, error) = await FindSession(SessionToken);
+            if (error == ErrorCodes.NO_ERROR) {
+                error = await ExtensionSession(SessionToken, ExtensionTime);
+                if (error == ErrorCodes.NO_ERROR) {
+                    session.User.LastAccessTimestamp = session.LastInteractionTime;
+                    if (await __DBContext.SaveChangesAsync() > 0) {
+                        return (session, ErrorCodes.NO_ERROR);
+                    }
+                }
+            } else if (error == ErrorCodes.NOT_FOUND) {
+                return (null, ErrorCodes.SESSION_HAS_EXPIRED);
+            }
+            return (null, ErrorCodes.INTERNAL_SERVER_ERROR);
         }
 
-        public bool RemoveSession(SessionAdminUser Session, out ErrorCodes Error)
+        public async Task<ErrorCodes> RemoveSession(string SessionToken)
         {
-            Error = ErrorCodes.NO_ERROR;
-            __DBContext.SessionAdminUsers.Remove(Session);
-            if (__DBContext.SaveChanges() > 0) {
-                return true;
+            ErrorCodes error = ErrorCodes.NO_ERROR;
+            SessionAdminUser session = null;
+            (session, error) = await FindSession(SessionToken);
+            if (error != ErrorCodes.NO_ERROR) {
+                return error;
             }
-            Error = ErrorCodes.INTERNAL_SERVER_ERROR;
-            return false;
+            __DBContext.SessionAdminUsers.Remove(session);
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
         }
 
-        public bool ClearExpiredSession(AdminUser User, int ExpiryTime, out ErrorCodes Error)
+        public async Task<ErrorCodes> ClearExpiredSession(List<string> ExpiredSessions)
         {
-            Error = ErrorCodes.NO_ERROR;
-            var expiredSessions = User.GetExpiredSessions(ExpiryTime);
-            if (expiredSessions.Count == 0) {
-                return true;
+            if (ExpiredSessions.Count == 0) {
+                return ErrorCodes.NO_ERROR;
             }
-            var sessions = __DBContext.SessionAdminUsers.Where(e => expiredSessions.Contains(e.SessionToken));
+            var sessions = await __DBContext.SessionAdminUsers
+                .Where(e => ExpiredSessions.Contains(e.SessionToken)).ToListAsync();
             __DBContext.SessionAdminUsers.RemoveRange(sessions);
-            if (__DBContext.SaveChanges() > 0) {
-                return true;
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                return ErrorCodes.NO_ERROR;
             }
-            Error = ErrorCodes.INTERNAL_SERVER_ERROR;
-            return false;
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
         }
 
-        public bool ExtensionSession(string SessionToken, int ExtensionTime, out ErrorCodes Error)
+        public async Task<ErrorCodes> ExtensionSession(string SessionToken, int ExtensionTime)
         {
-            Error = ErrorCodes.NO_ERROR;
             var now = DateTime.UtcNow.AddMinutes(ExtensionTime);
-            var session = __DBContext.SessionAdminUsers.Where<SessionAdminUser>(e => e.SessionToken == SessionToken).ToList().First();
-            session.LastInteractionTime = now;
-            if (__DBContext.SaveChanges() > 0) {
-                return true;
+            ErrorCodes error = ErrorCodes.NO_ERROR;
+            SessionAdminUser session = null;
+            (session, error) = await FindSession(SessionToken);
+            if (error != ErrorCodes.NO_ERROR) {
+                return error;
             }
-            Error = ErrorCodes.INTERNAL_SERVER_ERROR;
-            return false;
+            session.LastInteractionTime = now;
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
         }
 
-        public bool GetAllSessionOfUser(Guid UserId, out List<SessionAdminUser> Sessions, out ErrorCodes Error)
+        public async Task<(List<SessionAdminUser>, ErrorCodes)> GetAllSessionOfUser(Guid UserId)
         {
-            Error = ErrorCodes.NO_ERROR;
-            Sessions = __DBContext.SessionAdminUsers
-                .Where(e => e.UserId == UserId).ToList();
+            var Sessions = await __DBContext.SessionAdminUsers
+                .Where(e => e.UserId == UserId).ToListAsync();
             if (Sessions.Count > 0) {
-                return true;
+                return (Sessions, ErrorCodes.NO_ERROR);
             }
-            Error = ErrorCodes.INTERNAL_SERVER_ERROR;
-            return false;
+            return (null, ErrorCodes.NOT_FOUND);
         }
     }
 }

@@ -12,93 +12,96 @@ using System;
 using System.Threading.Tasks;
 
 using CoreApi.Common;
+using System.Linq.Expressions;
 
 namespace CoreApi.Services
 {
     public class AdminUserManagement : BaseService
     {
-        protected DBContext __DBContext;
         public AdminUserManagement() : base() {
-            __DBContext = new DBContext();
             __ServiceName = "AdminUserManagement";
         }
 
         #region Find user, handle user login
-        public bool FindUser(string UserName, bool isEmail, out AdminUser User, out ErrorCodes Error)
+        public async Task<(AdminUser, ErrorCodes)> FindUser(string UserName, bool isEmail)
         {
-            Error = ErrorCodes.NO_ERROR;
-            List<AdminUser> users;
+            AdminUser user;
             if (isEmail) {
-                users = __DBContext.AdminUsers
+                user = (await __DBContext.AdminUsers
                         .Where<AdminUser>(e => e.Email == UserName
                             && e.StatusStr != BaseStatus.StatusToString(AdminUserStatus.Deleted, EntityStatus.AdminUserStatus))
-                        .Include(e => e.AdminUserRoleOfUsers)
-                        .ToList<AdminUser>();
+                        // .DefaultIfEmpty(null)
+                        .ToListAsync())
+                        .DefaultIfEmpty(null)
+                        .FirstOrDefault();
             } else {
-                users = __DBContext.AdminUsers
+                user = (await __DBContext.AdminUsers
                         .Where<AdminUser>(e => e.UserName == UserName
                             && e.StatusStr != BaseStatus.StatusToString(AdminUserStatus.Deleted, EntityStatus.AdminUserStatus))
-                        .Include(e => e.AdminUserRoleOfUsers)
-                        .ToList<AdminUser>();
+                        .ToListAsync())
+                        .DefaultIfEmpty(null)
+                        .FirstOrDefault();
+                        // .ToListAsync();
             }
-            if (users.Count > 0) {
-                User = users.First();
-                return true;
+            if (user != null) {
+                return (user, ErrorCodes.NO_ERROR);
             }
-            Error = ErrorCodes.NOT_FOUND;
-            User = null;
-            return false;
+            return (null, ErrorCodes.NOT_FOUND);
         }
 
-        public bool FindUserIgnoreStatus(string UserName, bool isEmail, out AdminUser User, out ErrorCodes Error)
+        public async Task<(AdminUser, ErrorCodes)> FindUserIgnoreStatus(string UserName, bool isEmail)
         {
-            Error = ErrorCodes.NO_ERROR;
-            List<AdminUser> users;
+            AdminUser user;
             if (isEmail) {
-                users = __DBContext.AdminUsers
-                        .Where<AdminUser>(e => e.Email == UserName)
-                        .Include(e => e.AdminUserRoleOfUsers)
-                        .ToList<AdminUser>();
+                user = (await __DBContext.AdminUsers
+                        .Where(e => e.Email == UserName)
+                        .ToListAsync())
+                        .DefaultIfEmpty(null)
+                        .FirstOrDefault();
             } else {
-                users = __DBContext.AdminUsers
-                        .Where<AdminUser>(e => e.UserName == UserName)
-                        .Include(e => e.AdminUserRoleOfUsers)
-                        .ToList<AdminUser>();
+                user = (await __DBContext.AdminUsers
+                        .Where(e => e.UserName == UserName)
+                        .ToListAsync())
+                        .DefaultIfEmpty(null)
+                        .FirstOrDefault();
             }
-            if (users.Count > 0) {
-                User = users.First();
-                return true;
+            if (user != null) {
+                return (user, ErrorCodes.NO_ERROR);
             }
-            Error = ErrorCodes.NOT_FOUND;
-            User = null;
-            return false;
+            return (null, ErrorCodes.NOT_FOUND);
         }
 
-        public bool FindUserById(Guid Id, out AdminUser User, out ErrorCodes Error)
+        public async Task<(AdminUser, ErrorCodes)> FindUserById(Guid Id)
         {
-            Error = ErrorCodes.NO_ERROR;
-            List<AdminUser> users;
-            users = __DBContext.AdminUsers
-                    .Where<AdminUser>(e => e.Id == Id)
-                    .Include(e => e.AdminUserRoleOfUsers)
-                    .ToList<AdminUser>();
-            if (users.Count > 0) {
-                User = users.First();
-                return true;
+            AdminUser user;
+            user = (await __DBContext.AdminUsers
+                    .Where(e => e.Id == Id)
+                    .ToListAsync())
+                    .DefaultIfEmpty(null)
+                    .FirstOrDefault();
+
+            if (user != null) {
+                return (user, ErrorCodes.NO_ERROR);
             }
-            Error = ErrorCodes.NOT_FOUND;
-            User = null;
-            return false;
+            return (null, ErrorCodes.NOT_FOUND);
         }
 
-        public bool HandleLoginFail(AdminUser User, int LockTime, int NumberOfTimesAllowLoginFailure, out ErrorCodes Error)
+        public async Task<ErrorCodes> HandleLoginFail(Guid UserId, int LockTime, int NumberOfTimesAllowLoginFailure)
         {
-            Error = ErrorCodes.NO_ERROR;
+            #region Find user info
+            ErrorCodes Error = ErrorCodes.NO_ERROR;
+            AdminUser User = null;
+            (User, Error) = await FindUserById(UserId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
             JObject config;
             if (!User.Settings.ContainsKey("__login_config")) {
                 config = new JObject{
                     { "number", 1 },
-                    { "last_login", DateTimeOffset.Now.ToUnixTimeSeconds()}
+                    { "last_login", DateTimeOffset.Now.ToUnixTimeSeconds() }
                 };
             } else {
                 try {
@@ -120,7 +123,7 @@ namespace CoreApi.Services
 
                     if (numberLoginFailure >= NumberOfTimesAllowLoginFailure) {
                         if (User.UserName != AdminUser.GetAdminUserName()) {
-                            User.Status = (int) AdminUserStatus.Blocked;
+                            User.Status = AdminUserStatus.Blocked;
                         }
                     }
 
@@ -129,90 +132,113 @@ namespace CoreApi.Services
                 } catch (Exception) {
                     config = new JObject(){
                         { "number", 1 },
-                        { "last_login", DateTimeOffset.Now.ToUnixTimeSeconds()}
+                        { "last_login", DateTimeOffset.Now.ToUnixTimeSeconds() }
                     };
                 }
             }
-
             User.Settings["__login_config"] = config;
-            if (__DBContext.SaveChanges() > 0) {
-                return true;
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                return ErrorCodes.NO_ERROR;
             }
-            Error = ErrorCodes.INTERNAL_SERVER_ERROR;
-            return false;
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
         }
 
-        public bool HandleLoginSuccess(AdminUser User, out ErrorCodes Error)
+        public async Task<ErrorCodes> HandleLoginSuccess(Guid UserId)
         {
-            Error = ErrorCodes.NO_ERROR;
+            #region Find user info
+            ErrorCodes Error = ErrorCodes.NO_ERROR;
+            AdminUser User = null;
+            (User, Error) = await FindUserById(UserId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
             User.LastAccessTimestamp = DateTime.UtcNow;
             User.Settings.Remove("__login_config");
-            if (__DBContext.SaveChanges() > 0) {
-                return true;
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                return ErrorCodes.NO_ERROR;
             }
-            Error = ErrorCodes.INTERNAL_SERVER_ERROR;
-            return false;
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
         }
         #endregion
 
         #region Permission
-        public bool HaveReadPermission(AdminUser User, string Right)
+        public async Task<ErrorCodes> HaveReadPermission(Guid UserId, string Right)
         {
-            var user = __DBContext.AdminUsers
-                .Where(e => e.Id == User.Id)
-                .Include(e => e.AdminUserRoleOfUsers)
-                .First();
-            var rights = user.Rights;
-            if (rights.ContainsKey(Right)) {
-                var right = rights[Right];
-                if (right["read"] != null &&
-                    ((bool)right["read"]) == true) {
-                    return true;
-                }
+            #region Find user info
+            ErrorCodes Error = ErrorCodes.NO_ERROR;
+            AdminUser User = null;
+            (User, Error) = await FindUserById(UserId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
             }
-            return false;
+            #endregion
+
+            return HaveReadPermission(User.Rights, Right);
         }
 
-        public bool HaveFullPermission(AdminUser User, string Right)
+        public ErrorCodes HaveReadPermission(Dictionary<string, JObject> UserRights, string Right)
         {
-            var user = __DBContext.AdminUsers
-                .Where(e => e.Id == User.Id)
-                .Include(e => e.AdminUserRoleOfUsers)
-                .First();
-            var rights = user.Rights;
-            if (rights.ContainsKey(Right)) {
-                var right = rights[Right];
-                if (right["read"] != null && right["write"] != null &&
-                    ((bool)right["read"]) == true && ((bool)right["write"]) == true) {
-                    return true;
+            if (UserRights.ContainsKey(Right)) {
+                var right = UserRights[Right];
+                if (right["read"] != null &&
+                    ((bool)right["read"]) == true) {
+                    return ErrorCodes.NO_ERROR;
                 }
             }
-            return false;
+            return ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION;
+        }
+
+        public async Task<ErrorCodes> HaveFullPermission(Guid UserId, string Right)
+        {
+            #region Find user info
+            ErrorCodes Error = ErrorCodes.NO_ERROR;
+            AdminUser User = null;
+            (User, Error) = await FindUserById(UserId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
+            return HaveFullPermission(User.Rights, Right);
+        }
+
+        public ErrorCodes HaveFullPermission(Dictionary<string, JObject> UserRights, string Right)
+        {
+            if (UserRights.ContainsKey(Right)) {
+                var right = UserRights[Right];
+                if (right["read"] != null && right["write"] != null &&
+                    ((bool)right["read"]) == true && ((bool)right["write"]) == true) {
+                    return ErrorCodes.NO_ERROR;
+                }
+            }
+            return ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION;
         }
         #endregion
 
         #region Add user
-        public bool AddNewUser(AdminUser User, AdminUser NewUser, out ErrorCodes Error)
+        public async Task<ErrorCodes> AddNewUser(Guid UserId, AdminUser NewUser)
         {
-            Error = ErrorCodes.NO_ERROR;
             __DBContext.AdminUsers.Add(NewUser);
-            if (__DBContext.SaveChanges() > 0) {
+            if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [ADMIN] Write audit log
                 AdminAuditLog log = new AdminAuditLog();
                 log.Table = NewUser.GetModelName();
                 log.TableKey = NewUser.Id.ToString();
                 log.Action = LOG_ACTIONS.CREATE;
-                log.UserId = User.Id;
+                log.UserId = UserId;
                 log.OldValue = new LogValue();
                 log.NewValue = new LogValue(NewUser.GetJsonObject());
 
                 __DBContext.AdminAuditLogs.Add(log);
-                __DBContext.SaveChanges();
+                await __DBContext.SaveChangesAsync();
                 #endregion
-                return true;
+                return ErrorCodes.NO_ERROR;
             }
-            Error = ErrorCodes.INTERNAL_SERVER_ERROR;
-            return false;
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
         }
         #endregion
     }

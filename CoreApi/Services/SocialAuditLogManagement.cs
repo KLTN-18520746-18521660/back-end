@@ -10,40 +10,45 @@ using Microsoft.EntityFrameworkCore;
 using DatabaseAccess.Common.Status;
 using DatabaseAccess.Common.Models;
 using CoreApi.Common;
+using System.Threading.Tasks;
 
 namespace CoreApi.Services
 {
     public class SocialAuditLogManagement : BaseService
     {
-        protected DBContext __DBContext;
         public SocialAuditLogManagement() : base()
         {
-            __DBContext = new DBContext();
             __ServiceName = "SocialAuditLogManagement";
         }
 
-        public List<SocialAuditLog> GetAllAuditLog(out int TotalSize, Guid UserId, int Start, int Size, string SearchTerm = null)
+        public async Task<(List<SocialAuditLog> AuditLogs, int TotalSize)> GetAllAuditLog(Guid UserId, int Start, int Size, string SearchTerm = null)
         {
             if (SearchTerm == null || SearchTerm == "") {
-                TotalSize = __DBContext.SocialAuditLogs.Count();
-                return __DBContext.SocialAuditLogs
-                    .Where(e => e.UserId == UserId)
+                return
+                (
+                    await __DBContext.SocialAuditLogs
+                        .Where(e => e.UserId == UserId)
+                        .OrderBy(e => e.Id)
+                        .Skip(Start)
+                        .Take(Size)
+                        .ToListAsync(),
+                    await __DBContext.SocialAuditLogs.CountAsync(e => e.UserId == UserId)
+                );
+            }
+            return
+            (
+                await __DBContext.SocialAuditLogs
+                    .Where(e => e.SearchVector.Matches(SearchTerm) && e.UserId == UserId)
                     .OrderBy(e => e.Id)
                     .Skip(Start)
                     .Take(Size)
-                    .ToList();
-            }
-            TotalSize = __DBContext.SocialAuditLogs
-                .Count(e => e.SearchVector.Matches(SearchTerm) && e.UserId == UserId);
-            return __DBContext.SocialAuditLogs
-                .Where(e => e.SearchVector.Matches(SearchTerm) && e.UserId == UserId)
-                .OrderBy(e => e.Id)
-                .Skip(Start)
-                .Take(Size)
-                .ToList();
+                    .ToListAsync(),
+                await __DBContext.SocialAuditLogs
+                    .CountAsync(e => e.SearchVector.Matches(SearchTerm) && e.UserId == UserId)
+            );
         }
 
-        public void AddAuditLog(
+        public async Task AddAuditLog(
             string TableName,
             string TableKey,
             string Action,
@@ -60,12 +65,12 @@ namespace CoreApi.Services
             log.NewValue = new LogValue(NewValue);
 
             __DBContext.SocialAuditLogs.Add(log);
-            __DBContext.SaveChanges();
+            await __DBContext.SaveChangesAsync();
         }
 
-        public void AddAuditLog(SocialAuditLog AuditLog) {
+        public async Task AddAuditLog(SocialAuditLog AuditLog) {
             __DBContext.SocialAuditLogs.Add(AuditLog);
-            __DBContext.SaveChanges();
+            await __DBContext.SaveChangesAsync();
         }
     }
 }

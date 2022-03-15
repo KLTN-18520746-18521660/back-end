@@ -8,5 +8,6 @@ namespace CoreApi.Common
         NOT_FOUND = 3,
         SESSION_HAS_EXPIRED = 4,
         USER_HAVE_BEEN_LOCKED = 5,
+        USER_DOES_NOT_HAVE_PERMISSION = 6,
     }
 }

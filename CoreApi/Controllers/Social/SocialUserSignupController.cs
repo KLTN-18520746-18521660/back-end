@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Threading.Tasks;
 
 namespace CoreApi.Controllers.Social
 {
@@ -52,7 +53,7 @@ namespace CoreApi.Controllers.Social
         [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(SocialUserSignupSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public IActionResult SocialUserSignup(ParserSocialUser parser)
+        public async Task<IActionResult> SocialUserSignupAsync(ParserSocialUser parser)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -70,19 +71,22 @@ namespace CoreApi.Controllers.Social
                 #region Check unique user_name, email
                 SocialUser tmpUser = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                if (__SocialUserManagement.FindUser(newUser.UserName, false, out tmpUser, out error)) {
+                (tmpUser, error) = await __SocialUserManagement.FindUser(newUser.UserName, false);
+                if (error == ErrorCodes.NO_ERROR) {
                     LogDebug($"UserName have been used, user_name: { newUser.UserName }");
                     return Problem(400, "UserName have been used.");
                 }
-                if (__SocialUserManagement.FindUser(newUser.Email, true, out tmpUser, out error)) {
+                (tmpUser, error) = await __SocialUserManagement.FindUser(newUser.Email, true);
+                if (error == ErrorCodes.NO_ERROR) {
                     LogDebug($"Email have been used, user_name: { newUser.Email }");
                     return Problem(400, "Email have been used.");
                 }
                 #endregion
 
                 #region Add new social user
-                if (!__SocialUserManagement.AddNewUser(newUser, out error)) {
-                    throw new Exception("Internal Server Error. AddNewSocialUser Failed.");
+                error = await __SocialUserManagement.AddNewUser(newUser);
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"AddNewSocialUser Failed. ErrorCode: { error }");
                 }
                 #endregion
 
@@ -93,7 +97,7 @@ namespace CoreApi.Controllers.Social
                     { "user_id", newUser.Id },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.ToString() }");
+                LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");
             }
         }

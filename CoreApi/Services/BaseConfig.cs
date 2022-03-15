@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using System;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 using CoreApi.Common;
 
@@ -12,56 +14,117 @@ namespace CoreApi.Services
 {
     public class BaseConfig : BaseService
     {
-        protected DBContext __DBContext;
+        List<AdminBaseConfig> AllConfigs;
         public BaseConfig() : base()
         {
-            __DBContext = new DBContext();
             __ServiceName = "BaseConfig";
+            AllConfigs = __DBContext.AdminBaseConfigs.ToList();
+            LogInformation("Init load all config successfully.");
         }
 
-        public JObject GetConfigValue(CONFIG_KEY ConfigKey, out string Error)
+        public async Task ReLoadConfig()
         {
-            Error = "";
+            AllConfigs = await __DBContext.AdminBaseConfigs.ToListAsync();
+            LogInformation("Reload all config successfully.");
+        }
+
+        public (JObject Value, string Error) GetConfigValue(CONFIG_KEY ConfigKey)
+        {
             string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
-            var configs = __DBContext.AdminBaseConfigs
+            var config = AllConfigs
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
                             .Select(e => e.Value)
-                            .ToList();
-            if (configs.Count > 0) {
-                return configs.First();
+                            .DefaultIfEmpty(null)
+                            .FirstOrDefault();
+            if (config != null) {
+                return (config, "");
             }
 
+            string Error = "";
             Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }.";
             LogWarning(Error);
-            return DefaultBaseConfig.GetConfig(ConfigKey);
+            return (DefaultBaseConfig.GetConfig(ConfigKey), Error);
         }
 
-        public T GetConfigValue<T>(CONFIG_KEY ConfigKey, string SubKey, out string Error)
+        public (T Value, string Error) GetConfigValue<T>(CONFIG_KEY ConfigKey, SUB_CONFIG_KEY SubConfigKey)
         {
-            Error = "";
+            string Error = "";
             if (typeof(T) != typeof(string) && typeof(T) != typeof(int)) {
                 Error = $"GetConfigValue. Unsupport convert type: { typeof(T) }";
                 throw new Exception(Error);
             }
             string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
-            var configs = __DBContext.AdminBaseConfigs
+            string subConfigKeyStr = DefaultBaseConfig.SubConfigKeyToString(SubConfigKey);
+            var config = AllConfigs
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
                             .Select(e => e.Value)
-                            .ToList();
+                            .DefaultIfEmpty(null)
+                            .FirstOrDefault();
 
-            if (configs.Count > 0 && configs.First()[SubKey] != null) {
-                return (T) System.Convert.ChangeType(configs.First()[SubKey], typeof(T));
+            if (config != null && config[subConfigKeyStr] != null) {
+                return ((T) System.Convert.ChangeType(config[subConfigKeyStr], typeof(T)), Error);
             } else {
                 var defaultConfig = DefaultBaseConfig.GetConfig(ConfigKey, Error);
                 if (Error != null && Error != "") {
                     throw new Exception(Error);
                 }
-                if (defaultConfig[SubKey] == null) {
-                    throw new Exception("Invalid subkey.");
+                if (defaultConfig[subConfigKeyStr] == null) {
+                    throw new Exception($"Invalid pair, config_key: { configKeyStr }, sub_config_key: { subConfigKeyStr }.");
                 }
-                Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }, subkey: { SubKey }.";
+                Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }, sub_config_key: { subConfigKeyStr }.";
                 LogWarning(Error);
-                return (T) System.Convert.ChangeType(defaultConfig[SubKey], typeof(T));
+                return ((T) System.Convert.ChangeType(defaultConfig[subConfigKeyStr], typeof(T)), Error);
+            }
+        }
+
+        public async Task<(JObject Value, string Error)> GetConfigValueFromDB(CONFIG_KEY ConfigKey)
+        {
+            string Error = "";
+            string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
+            var config = (await __DBContext.AdminBaseConfigs
+                            .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
+                            .Select(e => e.Value)
+                            .ToListAsync())
+                            .DefaultIfEmpty(null)
+                            .FirstOrDefault();
+            if (config != null) {
+                return (config, Error);
+            }
+
+            Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }.";
+            LogWarning(Error);
+            return (DefaultBaseConfig.GetConfig(ConfigKey), Error);
+        }
+
+        public async Task<(T Value, string Error)> GetConfigValueFromDB<T>(CONFIG_KEY ConfigKey, SUB_CONFIG_KEY SubConfigKey)
+        {
+            string Error = "";
+            if (typeof(T) != typeof(string) && typeof(T) != typeof(int)) {
+                Error = $"GetConfigValue. Unsupport convert type: { typeof(T) }";
+                throw new Exception(Error);
+            }
+            string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
+            string subConfigKeyStr = DefaultBaseConfig.SubConfigKeyToString(SubConfigKey);
+            var config = (await __DBContext.AdminBaseConfigs
+                            .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
+                            .Select(e => e.Value)
+                            .ToListAsync())
+                            .DefaultIfEmpty(null)
+                            .FirstOrDefault();
+
+            if (config != null && config[subConfigKeyStr] != null) {
+                return ((T) System.Convert.ChangeType(config[subConfigKeyStr], typeof(T)), Error);
+            } else {
+                var defaultConfig = DefaultBaseConfig.GetConfig(ConfigKey, Error);
+                if (Error != null && Error != "") {
+                    throw new Exception(Error);
+                }
+                if (defaultConfig[subConfigKeyStr] == null) {
+                    throw new Exception($"Invalid pair, config_key: { configKeyStr }, sub_config_key: { subConfigKeyStr }.");
+                }
+                Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }, sub_config_key: { subConfigKeyStr }.";
+                LogWarning(Error);
+                return ((T) System.Convert.ChangeType(defaultConfig[subConfigKeyStr], typeof(T)), Error);
             }
         }
     }

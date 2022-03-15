@@ -44,13 +44,13 @@ namespace CoreApi
             // [IMPORTANT] Only inject DBContext to controller when necessary, must use define service instead of DBContext
             services.AddDbContext<DBContext>(ServiceLifetime.Transient);
             // Defind services
-            services.AddTransient<BaseConfig, BaseConfig>();
-            services.AddTransient<AdminUserManagement, AdminUserManagement>();
-            services.AddTransient<AdminAuditLogManagement, AdminAuditLogManagement>();
-            services.AddTransient<SessionAdminUserManagement, SessionAdminUserManagement>();
-            services.AddTransient<SocialUserManagement, SocialUserManagement>();
-            services.AddTransient<SocialAuditLogManagement, SocialAuditLogManagement>();
-            services.AddTransient<SessionSocialUserManagement, SessionSocialUserManagement>();
+            services.AddSingleton<BaseConfig, BaseConfig>();
+            services.AddSingleton<AdminUserManagement, AdminUserManagement>();
+            services.AddSingleton<AdminAuditLogManagement, AdminAuditLogManagement>();
+            services.AddSingleton<SessionAdminUserManagement, SessionAdminUserManagement>();
+            services.AddSingleton<SocialUserManagement, SocialUserManagement>();
+            services.AddSingleton<SocialAuditLogManagement, SocialAuditLogManagement>();
+            services.AddSingleton<SessionSocialUserManagement, SessionSocialUserManagement>();
             #endregion
 #if DEBUG
             services.AddMvcCore(options => {
@@ -124,6 +124,8 @@ namespace CoreApi
 
                 __Logger.Warning($"Application is running in development mode will include: swagger.");
             }
+
+            app.ApplicationServices.GetService<BaseConfig>();
 
             app.UseRouting();
             app.UseAuthorization();

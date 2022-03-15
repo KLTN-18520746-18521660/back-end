@@ -10,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.ComponentModel;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace CoreApi.Controllers.Admin.User
 {
@@ -45,8 +46,8 @@ namespace CoreApi.Controllers.Admin.User
         {
             string Error = "";
             try {
-                EXTENSION_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, "extension_time", out Error);
-                EXPIRY_TIME = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, "expiry_time", out Error);
+                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
+                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
@@ -117,7 +118,7 @@ namespace CoreApi.Controllers.Admin.User
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public IActionResult CreateAdminUser(ParserAdminUser parser)
+        public async Task<IActionResult> CreateAdminUserAsync(ParserAdminUser parser)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -147,8 +148,9 @@ namespace CoreApi.Controllers.Admin.User
                 #region Find session for use
                 SessionAdminUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
+                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME);
 
-                if (!__SessionAdminUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME, out session, out error)) {
+                if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
                         LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
                         return Problem(400, "Session not found.");
@@ -161,13 +163,13 @@ namespace CoreApi.Controllers.Admin.User
                         LogInformation($"User has been locked, session_token: { sessionToken.Substring(0, 15) }");
                         return Problem(423, "You have been locked.");
                     }
-                    throw new Exception("Internal Server Error. FindSessionForUse Failed.");
+                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
                 }
                 #endregion
 
                 #region Check Permission
                 var user = session.User;
-                if (!__AdminUserManagement.HaveFullPermission(user, ADMIN_RIGHTS.ADMIN_USER)) {
+                if (__AdminUserManagement.HaveFullPermission(user.Rights, ADMIN_RIGHTS.ADMIN_USER) == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
                     LogInformation($"User doesn't have permission to create admin user, user_name: { user.UserName }");
                     return Problem(403, "User doesn't have permission to create admin user.");
                 }
@@ -175,21 +177,27 @@ namespace CoreApi.Controllers.Admin.User
 
                 #region Check unique user_name, email
                 AdminUser tmpUser = null;
-                if (__AdminUserManagement.FindUser(newUser.UserName, false, out tmpUser, out error)) {
+                (tmpUser, error) = await __AdminUserManagement.FindUser(newUser.UserName, false);
+                if (error == ErrorCodes.NO_ERROR) {
                     LogDebug($"UserName have been used, user_name: { newUser.UserName }");
                     return Problem(400, "UserName have been used.");
                 }
-                if (__AdminUserManagement.FindUser(newUser.Email, true, out tmpUser, out error)) {
+                (tmpUser, error) = await __AdminUserManagement.FindUser(newUser.Email, true);
+                if (error == ErrorCodes.NO_ERROR) {
                     LogDebug($"Email have been used, user_name: { newUser.Email }");
                     return Problem(400, "Email have been used.");
                 }
                 #endregion
 
                 #region Add new admin user
-                if (!__AdminUserManagement.AddNewUser(user, newUser, out error)) {
-                    throw new Exception("Internal Server Error. AddNewAdminUser Failed.");
+                error = await __AdminUserManagement.AddNewUser(user.Id, newUser);
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"AddNewAdminUser Failed. ErrorCode: { error }");
                 }
                 #endregion
+
+                // AdminUser ret = null;
+                // (ret, error) = await __AdminUserManagement.FindUserById(newUser.Id);
 
                 LogInformation($"Create new admin user success, user_name: { newUser.UserName }");
                 return Ok(201, new JObject(){
@@ -198,7 +206,7 @@ namespace CoreApi.Controllers.Admin.User
                     { "user_id", newUser.Id },
                 });
             } catch (Exception e) {
-                LogError($"Unhandle exception, message: { e.ToString() }");
+                LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");
             }
         }
