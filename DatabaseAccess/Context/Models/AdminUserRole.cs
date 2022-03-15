@@ -45,14 +45,14 @@ namespace DatabaseAccess.Context.Models
         }
 
         [InverseProperty(nameof(AdminUserRoleDetail.Role))]
-        public virtual List<AdminUserRoleDetail> AdminUserRoleDetails { get; set; }
+        public virtual ICollection<AdminUserRoleDetail> AdminUserRoleDetails { get; set; }
         [InverseProperty(nameof(AdminUserRoleOfUser.Role))]
-        public virtual List<AdminUserRoleOfUser> AdminUserRoleOfUsers { get; set; }
+        public virtual ICollection<AdminUserRoleOfUser> AdminUserRoleOfUsers { get; set; }
 
         public AdminUserRole()
         {
-            AdminUserRoleDetails = new List<AdminUserRoleDetail>();
-            AdminUserRoleOfUsers = new List<AdminUserRoleOfUser>();
+            AdminUserRoleDetails = new HashSet<AdminUserRoleDetail>();
+            AdminUserRoleOfUsers = new HashSet<AdminUserRoleOfUser>();
             __ModelName = "AdminUserRole";
             Status = AdminUserRoleStatus.Enabled;
         }

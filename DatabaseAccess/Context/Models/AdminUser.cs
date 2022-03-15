@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using DatabaseAccess.Common;
+using Microsoft.EntityFrameworkCore;
 
 #nullable disable
 
@@ -73,17 +74,17 @@ namespace DatabaseAccess.Context.Models
         [Column("created_timestamp", TypeName = "timestamp with time zone")]
         public DateTime CreatedTimestamp { get; private set; }
         [InverseProperty(nameof(AdminUserRoleOfUser.User))]
-        public virtual List<AdminUserRoleOfUser> AdminUserRoleOfUsers { get; set; }
+        public virtual ICollection<AdminUserRoleOfUser> AdminUserRoleOfUsers { get; set; }
         [InverseProperty(nameof(SessionAdminUser.User))]
-        public virtual List<SessionAdminUser> SessionAdminUsers { get; set; }
+        public virtual ICollection<SessionAdminUser> SessionAdminUsers { get; set; }
         [InverseProperty(nameof(AdminAuditLog.User))]
-        public virtual List<AdminAuditLog> AdminAuditLogs { get; set; }
+        public virtual ICollection<AdminAuditLog> AdminAuditLogs { get; set; }
 
         public AdminUser() : base()
         {
-            AdminUserRoleOfUsers = new List<AdminUserRoleOfUser>();
-            SessionAdminUsers = new List<SessionAdminUser>();
-            AdminAuditLogs = new List<AdminAuditLog>();
+            AdminUserRoleOfUsers = new HashSet<AdminUserRoleOfUser>();
+            SessionAdminUsers = new HashSet<SessionAdminUser>();
+            AdminAuditLogs = new HashSet<AdminAuditLog>();
             __ModelName = "AdminUser";
             Id = Guid.NewGuid();
             CreatedTimestamp = DateTime.UtcNow;
@@ -113,18 +114,18 @@ namespace DatabaseAccess.Context.Models
         #region Handle default data
         public List<string> GetRoles()
         {
-            List<string> roles = new();
-            foreach (var item in AdminUserRoleOfUsers) {
-                roles.Add(item.Role.RoleName);
-            }
-            return roles;
+            return AdminUserRoleOfUsers.Select(e => e.Role.RoleName).ToList();
         }
 
         public Dictionary<string, JObject> GetRights()
         {
             Dictionary<string, JObject> rights = new();
-            foreach (var item in AdminUserRoleOfUsers) {
-                foreach (var detail in item.Role.AdminUserRoleDetails) {
+            var allRoleDetails = AdminUserRoleOfUsers
+                .Select(e => e.Role.AdminUserRoleDetails)
+                .ToList();
+
+            foreach(var roleDetails in allRoleDetails) {
+                foreach(var detail in roleDetails) {
                     var _obj = rights.GetValueOrDefault(detail.Right.RightName, new JObject());
                     var obj = detail.Actions;
                     JObject action;
@@ -213,12 +214,6 @@ namespace DatabaseAccess.Context.Models
                     .Where(e => (now - e.LastInteractionTime.ToUniversalTime()).TotalMinutes >= ExpiryTime && e.Saved == false)
                     .Select(e => e.SessionToken)
                     .ToList();
-        }
-        public void SessionExtension(string SessionToken, int ExtensionTime) // minute
-        {
-            var now = DateTime.UtcNow.AddMinutes(ExtensionTime);
-            var session = SessionAdminUsers.Where<SessionAdminUser>(e => e.SessionToken == SessionToken).ToList().First();
-            session.LastInteractionTime = now;
         }
         #endregion
     }

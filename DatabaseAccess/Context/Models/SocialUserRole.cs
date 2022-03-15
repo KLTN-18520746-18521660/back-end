@@ -44,14 +44,14 @@ namespace DatabaseAccess.Context.Models
             set => Status = BaseStatus.StatusFromString(value,  EntityStatus.SocialUserRoleStatus);
         }
         [InverseProperty(nameof(SocialUserRoleDetail.Role))]
-        public virtual List<SocialUserRoleDetail> SocialUserRoleDetails { get; set; }
+        public virtual ICollection<SocialUserRoleDetail> SocialUserRoleDetails { get; set; }
         [InverseProperty(nameof(SocialUserRoleOfUser.Role))]
-        public virtual List<SocialUserRoleOfUser> SocialUserRoleOfUsers { get; set; }
+        public virtual ICollection<SocialUserRoleOfUser> SocialUserRoleOfUsers { get; set; }
         
         public SocialUserRole()
         {
-            SocialUserRoleDetails = new List<SocialUserRoleDetail>();
-            SocialUserRoleOfUsers = new List<SocialUserRoleOfUser>();
+            SocialUserRoleDetails = new HashSet<SocialUserRoleDetail>();
+            SocialUserRoleOfUsers = new HashSet<SocialUserRoleOfUser>();
             __ModelName = "SocialUserRole";
             Status = SocialUserRoleStatus.Enabled;
         }

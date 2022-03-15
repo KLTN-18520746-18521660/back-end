@@ -112,47 +112,47 @@ namespace DatabaseAccess.Context.Models
         public DateTime CreatedTimestamp { get; private set; }
 
         [InverseProperty(nameof(SessionSocialUser.User))]
-        public virtual List<SessionSocialUser> SessionSocialUsers { get; set; }
+        public virtual ICollection<SessionSocialUser> SessionSocialUsers { get; set; }
         [InverseProperty(nameof(SocialAuditLog.User))]
-        public virtual List<SocialAuditLog> SocialAuditLogs { get; set; }
+        public virtual ICollection<SocialAuditLog> SocialAuditLogs { get; set; }
         [InverseProperty(nameof(SocialComment.OwnerNavigation))]
-        public virtual List<SocialComment> SocialComments { get; set; }
+        public virtual ICollection<SocialComment> SocialComments { get; set; }
         [InverseProperty(nameof(SocialNotification.User))]
-        public virtual List<SocialNotification> SocialNotifications { get; set; }
+        public virtual ICollection<SocialNotification> SocialNotifications { get; set; }
         [InverseProperty(nameof(SocialPost.OwnerNavigation))]
-        public virtual List<SocialPost> SocialPosts { get; set; }
+        public virtual ICollection<SocialPost> SocialPosts { get; set; }
         [InverseProperty(nameof(SocialReport.User))]
-        public virtual List<SocialReport> SocialReports { get; set; }
+        public virtual ICollection<SocialReport> SocialReports { get; set; }
         [InverseProperty(nameof(SocialUserActionWithCategory.User))]
-        public virtual List<SocialUserActionWithCategory> SocialUserActionWithCategories { get; set; }
+        public virtual ICollection<SocialUserActionWithCategory> SocialUserActionWithCategories { get; set; }
         [InverseProperty(nameof(SocialUserActionWithComment.User))]
-        public virtual List<SocialUserActionWithComment> SocialUserActionWithComments { get; set; }
+        public virtual ICollection<SocialUserActionWithComment> SocialUserActionWithComments { get; set; }
         [InverseProperty(nameof(SocialUserActionWithPost.User))]
-        public virtual List<SocialUserActionWithPost> SocialUserActionWithPosts { get; set; }
+        public virtual ICollection<SocialUserActionWithPost> SocialUserActionWithPosts { get; set; }
         [InverseProperty(nameof(SocialUserActionWithTag.User))]
-        public virtual List<SocialUserActionWithTag> SocialUserActionWithTags { get; set; }
+        public virtual ICollection<SocialUserActionWithTag> SocialUserActionWithTags { get; set; }
         [InverseProperty(nameof(SocialUserActionWithUser.UserIdDesNavigation))]
-        public virtual List<SocialUserActionWithUser> SocialUserActionWithUserUserIdDesNavigations { get; set; }
+        public virtual ICollection<SocialUserActionWithUser> SocialUserActionWithUserUserIdDesNavigations { get; set; }
         [InverseProperty(nameof(SocialUserActionWithUser.User))]
-        public virtual List<SocialUserActionWithUser> SocialUserActionWithUserUsers { get; set; }
+        public virtual ICollection<SocialUserActionWithUser> SocialUserActionWithUserUsers { get; set; }
         [InverseProperty(nameof(SocialUserRoleOfUser.User))]
-        public virtual List<SocialUserRoleOfUser> SocialUserRoleOfUsers { get; set; }
+        public virtual ICollection<SocialUserRoleOfUser> SocialUserRoleOfUsers { get; set; }
 
         public SocialUser()
         {
-            SessionSocialUsers = new List<SessionSocialUser>();
-            SocialAuditLogs = new List<SocialAuditLog>();
-            SocialComments = new List<SocialComment>();
-            SocialNotifications = new List<SocialNotification>();
-            SocialPosts = new List<SocialPost>();
-            SocialReports = new List<SocialReport>();
-            SocialUserActionWithCategories = new List<SocialUserActionWithCategory>();
-            SocialUserActionWithComments = new List<SocialUserActionWithComment>();
-            SocialUserActionWithPosts = new List<SocialUserActionWithPost>();
-            SocialUserActionWithTags = new List<SocialUserActionWithTag>();
-            SocialUserActionWithUserUserIdDesNavigations = new List<SocialUserActionWithUser>();
-            SocialUserActionWithUserUsers = new List<SocialUserActionWithUser>();
-            SocialUserRoleOfUsers = new List<SocialUserRoleOfUser>();
+            SessionSocialUsers = new HashSet<SessionSocialUser>();
+            SocialAuditLogs = new HashSet<SocialAuditLog>();
+            SocialComments = new HashSet<SocialComment>();
+            SocialNotifications = new HashSet<SocialNotification>();
+            SocialPosts = new HashSet<SocialPost>();
+            SocialReports = new HashSet<SocialReport>();
+            SocialUserActionWithCategories = new HashSet<SocialUserActionWithCategory>();
+            SocialUserActionWithComments = new HashSet<SocialUserActionWithComment>();
+            SocialUserActionWithPosts = new HashSet<SocialUserActionWithPost>();
+            SocialUserActionWithTags = new HashSet<SocialUserActionWithTag>();
+            SocialUserActionWithUserUserIdDesNavigations = new HashSet<SocialUserActionWithUser>();
+            SocialUserActionWithUserUsers = new HashSet<SocialUserActionWithUser>();
+            SocialUserRoleOfUsers = new HashSet<SocialUserRoleOfUser>();
 
             __ModelName = "SocialUser";
             Id = Guid.NewGuid();
@@ -225,18 +225,18 @@ namespace DatabaseAccess.Context.Models
         #region Handle default data
         public List<string> GetRoles()
         {
-            List<string> roles = new();
-            foreach (var item in SocialUserRoleOfUsers) {
-                roles.Add(item.Role.RoleName);
-            }
-            return roles;
+            return SocialUserRoleOfUsers.Select(e => e.Role.RoleName).ToList();
         }
 
         public Dictionary<string, JObject> GetRights()
         {
             Dictionary<string, JObject> rights = new();
-            foreach (var item in SocialUserRoleOfUsers) {
-                foreach (var detail in item.Role.SocialUserRoleDetails) {
+            var allRoleDetails = SocialUserRoleOfUsers
+                .Select(e => e.Role.SocialUserRoleDetails)
+                .ToList();
+
+            foreach(var roleDetails in allRoleDetails) {
+                foreach(var detail in roleDetails) {
                     var _obj = rights.GetValueOrDefault(detail.Right.RightName, new JObject());
                     var obj = detail.Actions;
                     JObject action;

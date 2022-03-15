@@ -25,12 +25,12 @@ namespace DatabaseAccess.Context.Models
         [Column("tag_id")]
         public long TagId { get; set; }
         [NotMapped]
-        public JArray Actions { get; set; }
+        public List<string> Actions { get; set; }
         [Required]
         [Column("actions", TypeName = "json")]
         public string ActionsStr {
-            get { return Actions.ToString(); }
-            set { Actions = JsonConvert.DeserializeObject<JArray>(value); }
+            get { return JArray.FromObject(Actions).ToString(); }
+            set { Actions = JsonConvert.DeserializeObject<List<string>>(value); }
         }
 
         [ForeignKey(nameof(TagId))]

@@ -730,7 +730,7 @@ namespace DatabaseAccess.Migrations
             migrationBuilder.InsertData(
                 table: "admin_user",
                 columns: new[] { "id", "created_timestamp", "display_name", "email", "last_access_timestamp", "salt", "settings", "status", "password", "user_name" },
-                values: new object[] { new Guid("46b8baef-a388-4f74-b0d1-05d79d187fd8"), new DateTime(2022, 3, 13, 19, 57, 29, 70, DateTimeKind.Utc).AddTicks(1526), "Administrator", "admin@admin", null, "99fd78dc", "{}", "Readonly", "F285FB2202959C257BECC9A2199D1D6B", "admin" });
+                values: new object[] { new Guid("1bc69c16-6a6a-4136-840b-3c7ad8233018"), new DateTime(2022, 3, 15, 17, 11, 55, 108, DateTimeKind.Utc).AddTicks(5290), "Administrator", "admin@admin", null, "a24fa309", "{}", "Readonly", "BBE1CE8AC9208AA8CE39C68B4740691C", "admin" });
 
             migrationBuilder.InsertData(
                 table: "admin_user_right",
@@ -759,11 +759,11 @@ namespace DatabaseAccess.Migrations
                 columns: new[] { "id", "created_timestamp", "describe", "display_name", "last_modified_timestamp", "name", "parent_id", "slug", "status", "thumbnail" },
                 values: new object[,]
                 {
-                    { 5L, new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7415), "Life die have number", "Left", null, "left", null, "left", "Readonly", null },
-                    { 3L, new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7362), "Search google to have better solution", "Dicussion", null, "dicussion", null, "dicussion", "Readonly", null },
-                    { 4L, new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7368), "Nothing in here", "Blog", null, "blog", null, "blog", "Readonly", null },
-                    { 1L, new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7125), "This not a bug this a feature", "Technology", null, "technology", null, "technology", "Readonly", null },
-                    { 2L, new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7347), "Do not click to this", "Developer", null, "developer", null, "developer", "Readonly", null }
+                    { 5L, new DateTime(2022, 3, 15, 17, 11, 55, 183, DateTimeKind.Utc).AddTicks(3905), "Life die have number", "Left", null, "left", null, "left", "Readonly", null },
+                    { 3L, new DateTime(2022, 3, 15, 17, 11, 55, 183, DateTimeKind.Utc).AddTicks(3877), "Search google to have better solution", "Dicussion", null, "dicussion", null, "dicussion", "Readonly", null },
+                    { 4L, new DateTime(2022, 3, 15, 17, 11, 55, 183, DateTimeKind.Utc).AddTicks(3899), "Nothing in here", "Blog", null, "blog", null, "blog", "Readonly", null },
+                    { 1L, new DateTime(2022, 3, 15, 17, 11, 55, 183, DateTimeKind.Utc).AddTicks(3767), "This not a bug this a feature", "Technology", null, "technology", null, "technology", "Readonly", null },
+                    { 2L, new DateTime(2022, 3, 15, 17, 11, 55, 183, DateTimeKind.Utc).AddTicks(3872), "Do not click to this", "Developer", null, "developer", null, "developer", "Readonly", null }
                 });
 
             migrationBuilder.InsertData(
@@ -771,11 +771,11 @@ namespace DatabaseAccess.Migrations
                 columns: new[] { "id", "created_timestamp", "describe", "last_modified_timestamp", "status", "tag" },
                 values: new object[,]
                 {
-                    { 1L, new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2509), "Angular", null, "Readonly", "#angular" },
-                    { 2L, new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2593), "Something is not thing", null, "Readonly", "#life-die-have-number" },
-                    { 3L, new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2598), "Dot not choose this tag", null, "Readonly", "#develop" },
-                    { 4L, new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2604), "Nothing in here", null, "Readonly", "#nothing" },
-                    { 5L, new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2608), "hi hi", null, "Readonly", "#hihi" }
+                    { 1L, new DateTime(2022, 3, 15, 17, 11, 55, 200, DateTimeKind.Utc).AddTicks(5950), "Angular", null, "Readonly", "#angular" },
+                    { 2L, new DateTime(2022, 3, 15, 17, 11, 55, 200, DateTimeKind.Utc).AddTicks(5987), "Something is not thing", null, "Readonly", "#life-die-have-number" },
+                    { 3L, new DateTime(2022, 3, 15, 17, 11, 55, 200, DateTimeKind.Utc).AddTicks(5991), "Dot not choose this tag", null, "Readonly", "#develop" },
+                    { 4L, new DateTime(2022, 3, 15, 17, 11, 55, 200, DateTimeKind.Utc).AddTicks(5995), "Nothing in here", null, "Readonly", "#nothing" },
+                    { 5L, new DateTime(2022, 3, 15, 17, 11, 55, 200, DateTimeKind.Utc).AddTicks(5998), "hi hi", null, "Readonly", "#hihi" }
                 });
 
             migrationBuilder.InsertData(
@@ -813,7 +813,7 @@ namespace DatabaseAccess.Migrations
             migrationBuilder.InsertData(
                 table: "admin_user_role_of_user",
                 columns: new[] { "role_id", "user_id" },
-                values: new object[] { 1, new Guid("46b8baef-a388-4f74-b0d1-05d79d187fd8") });
+                values: new object[] { 1, new Guid("1bc69c16-6a6a-4136-840b-3c7ad8233018") });
 
             migrationBuilder.InsertData(
                 table: "social_user_role_detail",

@@ -11,7 +11,7 @@ using NpgsqlTypes;
 namespace DatabaseAccess.Migrations
 {
     [DbContext(typeof(DBContext))]
-    [Migration("20220313195731_DBCreation")]
+    [Migration("20220315171156_DBCreation")]
     partial class DBCreation
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -235,14 +235,14 @@ namespace DatabaseAccess.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("46b8baef-a388-4f74-b0d1-05d79d187fd8"),
-                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 70, DateTimeKind.Utc).AddTicks(1526),
+                            Id = new Guid("1bc69c16-6a6a-4136-840b-3c7ad8233018"),
+                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 108, DateTimeKind.Utc).AddTicks(5290),
                             DisplayName = "Administrator",
                             Email = "admin@admin",
-                            Salt = "99fd78dc",
+                            Salt = "a24fa309",
                             SettingsStr = "{}",
                             StatusStr = "Readonly",
-                            StorePassword = "F285FB2202959C257BECC9A2199D1D6B",
+                            StorePassword = "BBE1CE8AC9208AA8CE39C68B4740691C",
                             UserName = "admin"
                         });
                 });
@@ -534,7 +534,7 @@ namespace DatabaseAccess.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = new Guid("46b8baef-a388-4f74-b0d1-05d79d187fd8"),
+                            UserId = new Guid("1bc69c16-6a6a-4136-840b-3c7ad8233018"),
                             RoleId = 1
                         });
                 });
@@ -775,7 +775,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7125),
+                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 183, DateTimeKind.Utc).AddTicks(3767),
                             Describe = "This not a bug this a feature",
                             DisplayName = "Technology",
                             Name = "technology",
@@ -785,7 +785,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 2L,
-                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7347),
+                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 183, DateTimeKind.Utc).AddTicks(3872),
                             Describe = "Do not click to this",
                             DisplayName = "Developer",
                             Name = "developer",
@@ -795,7 +795,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 3L,
-                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7362),
+                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 183, DateTimeKind.Utc).AddTicks(3877),
                             Describe = "Search google to have better solution",
                             DisplayName = "Dicussion",
                             Name = "dicussion",
@@ -805,7 +805,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 4L,
-                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7368),
+                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 183, DateTimeKind.Utc).AddTicks(3899),
                             Describe = "Nothing in here",
                             DisplayName = "Blog",
                             Name = "blog",
@@ -815,7 +815,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 5L,
-                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 189, DateTimeKind.Utc).AddTicks(7415),
+                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 183, DateTimeKind.Utc).AddTicks(3905),
                             Describe = "Life die have number",
                             DisplayName = "Left",
                             Name = "left",
@@ -1186,7 +1186,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2509),
+                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 200, DateTimeKind.Utc).AddTicks(5950),
                             Describe = "Angular",
                             StatusStr = "Readonly",
                             Tag = "#angular"
@@ -1194,7 +1194,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 2L,
-                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2593),
+                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 200, DateTimeKind.Utc).AddTicks(5987),
                             Describe = "Something is not thing",
                             StatusStr = "Readonly",
                             Tag = "#life-die-have-number"
@@ -1202,7 +1202,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 3L,
-                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2598),
+                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 200, DateTimeKind.Utc).AddTicks(5991),
                             Describe = "Dot not choose this tag",
                             StatusStr = "Readonly",
                             Tag = "#develop"
@@ -1210,7 +1210,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 4L,
-                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2604),
+                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 200, DateTimeKind.Utc).AddTicks(5995),
                             Describe = "Nothing in here",
                             StatusStr = "Readonly",
                             Tag = "#nothing"
@@ -1218,7 +1218,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 5L,
-                            CreatedTimestamp = new DateTime(2022, 3, 13, 19, 57, 29, 223, DateTimeKind.Utc).AddTicks(2608),
+                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 200, DateTimeKind.Utc).AddTicks(5998),
                             Describe = "hi hi",
                             StatusStr = "Readonly",
                             Tag = "#hihi"

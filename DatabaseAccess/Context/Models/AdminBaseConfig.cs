@@ -21,6 +21,14 @@ namespace DatabaseAccess.Context.Models
         SESSION_SOCIAL_USER_CONFIG = 4,
     }
 
+    public enum SUB_CONFIG_KEY
+    {
+        NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE = 1,
+        LOCK_TIME = 2,
+        EXPIRY_TIME = 3,
+        EXTENSION_TIME = 4,
+    }
+
     public static class DefaultBaseConfig
     {
         #region Default Config
@@ -73,6 +81,23 @@ namespace DatabaseAccess.Context.Models
                 default:
                     Error ??= "Invalid config key.";
                     return "Invalid config key.";
+            }
+        }
+        public static string SubConfigKeyToString(SUB_CONFIG_KEY SubConfigKey, string Error = null)
+        {
+            Error ??= "";
+            switch(SubConfigKey) {
+                case SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE:
+                    return "number";
+                case SUB_CONFIG_KEY.LOCK_TIME:
+                    return "lock";
+                case SUB_CONFIG_KEY.EXPIRY_TIME:
+                    return "expiry_time";
+                case SUB_CONFIG_KEY.EXTENSION_TIME:
+                    return "extension_time";
+                default:
+                    Error ??= "Invalid sub config key.";
+                    return "Invalid sub config key.";
             }
         }
     }

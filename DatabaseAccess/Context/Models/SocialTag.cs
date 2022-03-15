@@ -41,16 +41,16 @@ namespace DatabaseAccess.Context.Models
         [Column("last_modified_timestamp", TypeName = "timestamp with time zone")]
         public DateTime? LastModifiedTimestamp { get; set; }
         [InverseProperty(nameof(SocialPostTag.Tag))]
-        public virtual List<SocialPostTag> SocialPostTags { get; set; }
+        public virtual ICollection<SocialPostTag> SocialPostTags { get; set; }
 
         [InverseProperty(nameof(SocialUserActionWithTag.Tag))]
-        public virtual List<SocialUserActionWithTag> SocialUserActionWithTags { get; set; }
+        public virtual ICollection<SocialUserActionWithTag> SocialUserActionWithTags { get; set; }
 
         
         public SocialTag()
         {
-            SocialPostTags = new List<SocialPostTag>();
-            SocialUserActionWithTags = new List<SocialUserActionWithTag>();
+            SocialPostTags = new HashSet<SocialPostTag>();
+            SocialUserActionWithTags = new HashSet<SocialUserActionWithTag>();
 
             __ModelName = "SocialTag";
             CreatedTimestamp = DateTime.UtcNow;
