@@ -1,12 +1,12 @@
+using Common;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Text;
-using Common;
-using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
 namespace CoreApi.Controllers.Admin.User
@@ -15,25 +15,13 @@ namespace CoreApi.Controllers.Admin.User
     [Route("/admin/user")]
     public class GetAdminUserByIdController : BaseController
     {
-        #region Services
-        private AdminUserManagement __AdminUserManagement;
-        private SessionAdminUserManagement __SessionAdminUserManagement;
-        private BaseConfig __BaseConfig;
-        #endregion
-
-        #region Config Value
+        #region Config Values
         private int EXTENSION_TIME; // minutes
         private int EXPIRY_TIME; // minute
         #endregion
 
-        public GetAdminUserByIdController(
-            AdminUserManagement _AdminUserManagement,
-            SessionAdminUserManagement _SessionAdminUserManagement,
-            BaseConfig _BaseConfig
-        ) : base() {
-            __AdminUserManagement = _AdminUserManagement;
-            __SessionAdminUserManagement = _SessionAdminUserManagement;
-            __BaseConfig = _BaseConfig;
+        public GetAdminUserByIdController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        {
             __ControllerName = "GetAdminUserById";
             LoadConfig();
         }
@@ -59,6 +47,9 @@ namespace CoreApi.Controllers.Admin.User
         /// <summary>
         /// Get admin user info by id
         /// </summary>
+        /// <param name="__AdminUserManagement"></param>
+        /// <param name="__SessionAdminUserManagement"></param>
+        /// <param name="session_token"></param>
         /// <param name="id"></param>
         /// <returns><b>Get admin user info by id</b></returns>
         ///
@@ -115,20 +106,26 @@ namespace CoreApi.Controllers.Admin.User
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetSocialUserByApiKeyAsync(Guid id)
+        public async Task<IActionResult> GetSocialUserByApiKey([FromServices] AdminUserManagement __AdminUserManagement,
+                                                               [FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
+                                                               [FromHeader] string session_token,
+                                                               [FromRoute] Guid id)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
+            #region Set TraceId for services
+            __AdminUserManagement.SetTraceId(TraceId);
+            __SessionAdminUserManagement.SetTraceId(TraceId);
+            #endregion
             try {
                 #region Get session token
-                string sessionToken = "";
-                if (!GetHeader(HEADER_KEYS.API_KEY, out sessionToken)) {
+                if (session_token == null) {
                     LogDebug($"Missing header authorization.");
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(sessionToken)) {
+                if (!Utils.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -136,19 +133,19 @@ namespace CoreApi.Controllers.Admin.User
                 #region Find session for use
                 SessionAdminUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME);
+                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
 
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
+                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
                         return Problem(400, "Session not found.");
                     }
                     if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogInformation($"Session has expired, session_token: { sessionToken.Substring(0, 15) }");
+                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session has expired.");
                     }
                     if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogInformation($"User has been locked, session_token: { sessionToken.Substring(0, 15) }");
+                        LogInformation($"User has been locked, session_token: { session_token.Substring(0, 15) }");
                         return Problem(423, "You have been locked.");
                     }
                     throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");

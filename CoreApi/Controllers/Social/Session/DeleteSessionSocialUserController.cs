@@ -1,28 +1,11 @@
-
-// using System.Data.Entity;
-// using System.Text.Json;
 using Common;
 using CoreApi.Common;
 using CoreApi.Services;
-using DatabaseAccess.Common;
-using DatabaseAccess.Common.Status;
-using DatabaseAccess.Context;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Swashbuckle;
-using Swashbuckle.AspNetCore;
-using Swashbuckle.AspNetCore.Swagger;
-using Swashbuckle.AspNetCore.SwaggerGen;
-using Swashbuckle.AspNetCore.SwaggerUI;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -32,22 +15,13 @@ namespace CoreApi.Controllers.Social.Session
     [Route("/session")]
     public class DeleteSessionSocialUserController : BaseController
     {
-        #region Services
-        private BaseConfig __BaseConfig;
-        private SessionSocialUserManagement __SessionSocialUserManagement;
-        #endregion
-
-        #region Config Value
+        #region Config Values
         private int EXTENSION_TIME; // minutes
         private int EXPIRY_TIME; // minutes
         #endregion
 
-        public DeleteSessionSocialUserController(
-            BaseConfig _BaseConfig,
-            SessionSocialUserManagement _SessionSocialUserManagement
-        ) : base() {
-            __BaseConfig = _BaseConfig;
-            __SessionSocialUserManagement = _SessionSocialUserManagement;
+        public DeleteSessionSocialUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        {
             __ControllerName = "DeleteSessionSocialUser";
             LoadConfig();
         }
@@ -73,7 +47,9 @@ namespace CoreApi.Controllers.Social.Session
         /// <summary>
         /// Delete social session
         /// </summary>
+        /// <param name="__SessionSocialUserManagement"></param>
         /// <param name="session_token"></param>
+        /// <param name="delete_session_token"></param>
         /// <returns><b>Message ok</b></returns>
         ///
         /// <remarks>
@@ -120,36 +96,40 @@ namespace CoreApi.Controllers.Social.Session
         /// <response code="500">
         /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i> See server log for detail.</i>
         /// </response>
-        [HttpDelete("{session_token}")]
+        [HttpDelete("{delete_session_token}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(DeleteSessionSocialUserSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> ExtensionSession(string session_token)
+        public async Task<IActionResult> DeleteSession([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                       [FromHeader] string session_token,
+                                                       [FromRoute] string delete_session_token)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
+            #region Set TraceId for services
+            __SessionSocialUserManagement.SetTraceId(TraceId);
+            #endregion
             try {
                 #region Get session token
-                string sessionToken = "";
-                if (!GetHeader(HEADER_KEYS.API_KEY, out sessionToken)) {
+                if (session_token == null) {
                     LogDebug($"Missing header authorization.");
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(sessionToken)) {
+                if (!Utils.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
 
                 #region Compare with present session token
-                if (!Utils.IsValidSessionToken(session_token)) {
+                if (!Utils.IsValidSessionToken(delete_session_token)) {
                     return Problem(400, "Invalid session token.");
                 }
-                if (session_token == sessionToken) {
+                if (delete_session_token == session_token) {
                     return Problem(400, "Not allow delete session. Try logout.");
                 }
                 #endregion
@@ -157,19 +137,19 @@ namespace CoreApi.Controllers.Social.Session
                 #region Find session for use
                 SessionSocialUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionSocialUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME);
+                (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
 
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
+                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
                         return Problem(400, "Session not found.");
                     }
                     if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogInformation($"Session has expired, session_token: { sessionToken.Substring(0, 15) }");
+                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session has expired.");
                     }
                     if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogInformation($"User has been locked, session_token: { sessionToken.Substring(0, 15) }");
+                        LogInformation($"User has been locked, session_token: { session_token.Substring(0, 15) }");
                         return Problem(423, "You have been locked.");
                     }
                     throw new Exception($"FindSessionSocialForUse Failed. ErrorCode: { error }");
@@ -179,9 +159,9 @@ namespace CoreApi.Controllers.Social.Session
                 #region Delete session
                 var user = session.User;
                 SessionSocialUser delSession = null;
-                (delSession, error) = await __SessionSocialUserManagement.FindSession(session_token);
+                (delSession, error) = await __SessionSocialUserManagement.FindSession(delete_session_token);
                 if (error != ErrorCodes.NO_ERROR || delSession.UserId != session.UserId) {
-                    LogInformation($"Delete session not found, session_token: { session_token.Substring(0, 15) }");
+                    LogInformation($"Delete session not found, session_token: { delete_session_token.Substring(0, 15) }");
                     return Problem(404, "Delete session not found.");
                 }
                 error = await __SessionSocialUserManagement.RemoveSession(delSession.SessionToken);
@@ -190,7 +170,7 @@ namespace CoreApi.Controllers.Social.Session
                 }
                 #endregion
 
-                LogInformation($"Delete session success, session_token: { session_token.Substring(0, 15) }");
+                LogInformation($"Delete session success, session_token: { delete_session_token.Substring(0, 15) }");
                 return Ok( new JObject(){
                     { "status", 200 },
                     { "message", "Success." },

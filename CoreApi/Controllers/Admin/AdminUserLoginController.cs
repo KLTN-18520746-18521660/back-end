@@ -1,15 +1,15 @@
+using Common;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Common;
 using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Threading.Tasks;
 using System.Text;
-using Common;
-using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 
 namespace CoreApi.Controllers.Admin
 {
@@ -17,25 +17,13 @@ namespace CoreApi.Controllers.Admin
     [Route("/admin/login")]
     public class AdminUserLoginController : BaseController
     {
-        #region Services
-        private BaseConfig __BaseConfig;
-        private AdminUserManagement __AdminUserManagement;
-        private SessionAdminUserManagement __SessionAdminUserManagement;
-        #endregion
-
-        #region Config Value
+        #region Config Values
         private int NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE;
         private int LOCK_TIME; // minute
         #endregion
 
-        public AdminUserLoginController(
-            BaseConfig _BaseConfig,
-            AdminUserManagement _AdminUserManagement,
-            SessionAdminUserManagement _SessionAdminUserManagement
-        ) : base() {
-            __BaseConfig = _BaseConfig;
-            __AdminUserManagement = _AdminUserManagement;
-            __SessionAdminUserManagement = _SessionAdminUserManagement;
+        public AdminUserLoginController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        {
             __ControllerName = "AdminUserLogin";
             LoadConfig();
         }
@@ -61,6 +49,8 @@ namespace CoreApi.Controllers.Admin
         /// <summary>
         /// Admin user login
         /// </summary>
+        /// <param name="__AdminUserManagement"></param>
+        /// <param name="__SessionAdminUserManagement"></param>
         /// <param name="model"></param>
         /// <returns><b>Return session_id</b></returns>
         ///
@@ -94,11 +84,17 @@ namespace CoreApi.Controllers.Admin
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> AdminUserLogin(Models.LoginModel model)
+        public async Task<IActionResult> AdminUserLogin([FromServices] AdminUserManagement __AdminUserManagement,
+                                                        [FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
+                                                        [FromBody] Models.LoginModel model)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
+            #region Set TraceId for services
+            __AdminUserManagement.SetTraceId(TraceId);
+            __SessionAdminUserManagement.SetTraceId(TraceId);
+            #endregion
             try {
                 #region Find User
                 bool isEmail = Utils.IsEmail(model.user_name);

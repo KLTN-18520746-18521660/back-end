@@ -1,3 +1,4 @@
+using CoreApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Serilog;
@@ -9,24 +10,25 @@ namespace CoreApi.Common
     public static class HEADER_KEYS {
         public static readonly string API_KEY = "session_token";
     }
-    public static class STATUS_CODE_TITLE {
-        public static readonly string BAD_REQUEST = "Bad Request";
-    }
     [Controller]
     [Produces("application/json")]
     public class BaseController : ControllerBase
     {
-        protected string __ControllerName;
         private ILogger __Logger;
-        private string __TraceId;
+        protected string __ControllerName;
+        protected string __TraceId;
+        protected BaseConfig __BaseConfig;
         protected bool __LoadConfigSuccess = false;
         public string ControllerName { get => __ControllerName; }
+        public string TraceId { get => __TraceId; }
         public bool LoadConfigSuccess { get => __LoadConfigSuccess; }
-        public BaseController()
+        public BaseController(BaseConfig _BaseConfig)
         {
             __Logger = Log.Logger;
             __TraceId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+            __BaseConfig = _BaseConfig;
             __ControllerName = "BaseController";
+            __BaseConfig.SetTraceId(__TraceId);
         }
         [NonAction]
         public virtual void LoadConfig()
@@ -34,39 +36,38 @@ namespace CoreApi.Common
             __LoadConfigSuccess = true;
         }
         [NonAction]
-        public void LogDebug(string Msg)
+        protected virtual string CreateLogMessage(string Msg)
+        {
+            StringBuilder msg = new StringBuilder($"Controller: { __ControllerName }, TraceId: { __TraceId }");
+            msg.Append(", ").Append(Msg);
+            return msg.ToString();
+        }
+        [NonAction]
+        public virtual void LogDebug(string Msg)
         {
             if (Msg != "") {
-                StringBuilder msg = new StringBuilder($"Controller: { __ControllerName }, TraceId: { __TraceId }");
-                msg.Append(", ").Append(Msg);
-                __Logger.Debug(msg.ToString());
+                __Logger.Debug(CreateLogMessage(Msg));
             }
         }
         [NonAction]
-        public void LogInformation(string Msg)
+        public virtual void LogInformation(string Msg)
         {
             if (Msg != "") {
-                StringBuilder msg = new StringBuilder($"Controller: { __ControllerName }, TraceId: { __TraceId }");
-                msg.Append(", ").Append(Msg);
-                __Logger.Information(msg.ToString());
+                __Logger.Information(CreateLogMessage(Msg));
             }
         }
         [NonAction]
-        public void LogWarning(string Msg)
+        public virtual void LogWarning(string Msg)
         {
             if (Msg != "") {
-                StringBuilder msg = new StringBuilder($"Controller: { __ControllerName }, TraceId: { __TraceId }");
-                msg.Append(", ").Append(Msg);
-                __Logger.Warning(msg.ToString());
+                __Logger.Warning(CreateLogMessage(Msg));
             }
         }
         [NonAction]
-        public void LogError(string Msg)
+        public virtual void LogError(string Msg)
         {
             if (Msg != "") {
-                StringBuilder msg = new StringBuilder($"Controller: { __ControllerName }, TraceId: { __TraceId }");
-                msg.Append(", ").Append(Msg);
-                __Logger.Error(msg.ToString());
+                __Logger.Error(CreateLogMessage(Msg));
             }
         }
         [NonAction]

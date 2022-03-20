@@ -16,11 +16,20 @@ namespace CoreApi.Services
 {
     public class SocialUserManagement : BaseService
     {
-        public SocialUserManagement() : base()
+        private SocialAuditLogManagement __SocialAuditLogManagement;
+        public SocialUserManagement(DBContext _DBContext,
+                                    IServiceProvider _IServiceProvider,
+                                    SocialAuditLogManagement _SocialAuditLogManagement)
+            : base(_DBContext, _IServiceProvider)
         {
+            __SocialAuditLogManagement = _SocialAuditLogManagement;
             __ServiceName = "SocialUserManagement";
         }
-
+        public override void SetTraceId(string TraceId)
+        {
+            base.SetTraceId(TraceId);
+            __SocialAuditLogManagement.SetTraceId(TraceId);
+        }
         #region Find user, handle user login
         public async Task<(SocialUser, ErrorCodes)> FindUser(string UserName, bool isEmail)
         {
@@ -220,16 +229,19 @@ namespace CoreApi.Services
 
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [SOCIAL] Write audit log
-                SocialAuditLog log = new SocialAuditLog();
-                log.Table = NewUser.GetModelName();
-                log.TableKey = NewUser.Id.ToString();
-                log.Action = LOG_ACTIONS.CREATE;
-                log.UserId = NewUser.Id;
-                log.OldValue = new LogValue();
-                log.NewValue = new LogValue(NewUser.GetJsonObject());
-
-                __DBContext.SocialAuditLogs.Add(log);
-                await __DBContext.SaveChangesAsync();
+                (var user, var error) = await FindUserById(NewUser.Id);
+                if (error == ErrorCodes.NO_ERROR) {
+                    await __SocialAuditLogManagement.AddAuditLog(
+                        user.GetModelName(),
+                        user.Id.ToString(),
+                        LOG_ACTIONS.CREATE,
+                        user.Id,
+                        new JObject(),
+                        user.GetJsonObject()
+                    );
+                } else {
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
                 #endregion
                 return ErrorCodes.NO_ERROR;
             }

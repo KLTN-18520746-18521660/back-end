@@ -1,12 +1,12 @@
+using Common;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
-using Common;
 using System.Text;
-using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
 namespace CoreApi.Controllers.Admin
@@ -15,21 +15,12 @@ namespace CoreApi.Controllers.Admin
     [Route("/admin/logout")]
     public class AdminUserLogoutController : BaseController
     {
-        #region Services
-        private BaseConfig __BaseConfig;
-        private SessionAdminUserManagement __SessionAdminUserManagement;
-        #endregion
-
-        #region Config Value
+        #region Config Values
         private int EXPIRY_TIME; // minute
         #endregion
 
-        public AdminUserLogoutController(
-            BaseConfig _BaseConfig,
-            SessionAdminUserManagement _SessionAdminUserManagement
-        ) : base() {
-            __BaseConfig = _BaseConfig;
-            __SessionAdminUserManagement = _SessionAdminUserManagement;
+        public AdminUserLogoutController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        {
             __ControllerName = "AdminUserLogout";
             LoadConfig();
         }
@@ -55,6 +46,8 @@ namespace CoreApi.Controllers.Admin
         /// Admin user logout
         /// </summary>
         /// <returns><b>Return message ok</b></returns>
+        /// <param name="__SessionAdminUserManagement"></param>
+        /// <param name="session_token"></param>
         ///
         /// <remarks>
         /// </remarks>
@@ -86,20 +79,23 @@ namespace CoreApi.Controllers.Admin
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> AdminUserLogoutAsync()
+        public async Task<IActionResult> AdminUserLogout([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
+                                                         [FromHeader] string session_token)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
+            #region Set TraceId for services
+            __SessionAdminUserManagement.SetTraceId(TraceId);
+            #endregion
             try {
                 #region Get session token
-                string sessionToken = "";
-                if (!GetHeader(HEADER_KEYS.API_KEY, out sessionToken)) {
+                if (session_token == null) {
                     LogDebug($"Missing header authorization.");
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(sessionToken)) {
+                if (!Utils.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -107,10 +103,10 @@ namespace CoreApi.Controllers.Admin
                 #region Find session token
                 SessionAdminUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionAdminUserManagement.FindSession(sessionToken);
+                (session, error) = await __SessionAdminUserManagement.FindSession(session_token);
 
                 if (error != ErrorCodes.NO_ERROR) {
-                    LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
+                    LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
                     return Problem(400, "Session not found.");
                 }
                 #endregion
@@ -127,7 +123,7 @@ namespace CoreApi.Controllers.Admin
                 }
                 #endregion
 
-                LogInformation($"Logout success, user_name: { user.UserName }, session_token: { sessionToken.Substring(0, 15) }");
+                LogInformation($"Logout success, user_name: { user.UserName }, session_token: { session_token.Substring(0, 15) }");
                 return Ok( new JObject(){
                     { "status", 200 },
                     { "message", "Success." },

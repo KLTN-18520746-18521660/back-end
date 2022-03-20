@@ -4,6 +4,7 @@ using Common.Validate;
 using DatabaseAccess;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using System;
@@ -32,17 +33,25 @@ namespace CoreApi
 
     public class Program
     {
+        #region Variables
         private static ILogger __Logger;
         private static IConfigurationRoot __Configuration;
         private static IHost __Host;
         private static int _Port;
-        private static bool _EnableSSL;
+        private static bool _EnableSSL = false;
+        private static bool _EnableSwagger = false;
         private static string _TmpPath = ConfigurationDefaultVariable.TMP_FOLDER;
         private static string _CertPath;
         private static string _LogFilePath;
         private static string _PasswordCert;
         private static DatabaseAccessConfiguration DBAccessConfig;
         private static readonly List<string> _ValidParamsFromArgs = new List<string>();
+
+        #endregion
+        #region Property
+        public static bool EnableSSL { get => _EnableSSL; }
+        public static bool EnableSwagger { get => _EnableSwagger; }
+        #endregion
         private static void SetParamsFromConfiguration(in IConfigurationRoot configuration, out List<string> warnings)
         {
             warnings = new List<string>();
@@ -104,6 +113,10 @@ namespace CoreApi
             if (args.Contains("ssl")) {
                 _EnableSSL = true;
             }
+            // [INFO] run with param swagger to enable swagger document
+            if (args.Contains("swagger")) {
+                _EnableSwagger = true;
+            }
         }
         private static string[] GetValidParamsFromArgs(in List<string> args)
         {
@@ -123,6 +136,8 @@ namespace CoreApi
                 .UseEnvironment(Environments.Production)
 #endif
                 .UseSerilog()
+                .UseConsoleLifetime()
+                .ConfigureServices(s => s.AddSingleton<IConfigurationRoot>(__Configuration))
                 .ConfigureWebHostDefaults(webBuilder => {
                     webBuilder.UseKestrel(kestrelServerOptions => {
                         // [INFO] Listen on any IP
@@ -142,22 +157,22 @@ namespace CoreApi
             __Logger.Information("=================START=================");
             __Logger.Information($"Logs folder: { CommonValidate.ValidateDirectoryPath(System.IO.Path.GetDirectoryName(_LogFilePath)) }");
             __Logger.Information($"Temp folder: { _TmpPath }");
-            string ipStr = "";
-            if (Utils.GetIpAddress(out ipStr)) {
-                __Logger.Information( string.Format(
-                    "Listening on: {0}://{1}:{2}",
-                    _EnableSSL ? "https" : "http",
-                    ipStr,
-                    _Port.ToString()
-                ));
-            } else {
-                __Logger.Information( string.Format(
-                    "Listening on: {0}://{1}:{2}",
-                    _EnableSSL ? "https" : "http",
-                    System.Net.IPAddress.Any.ToString(),
-                    _Port.ToString()
-                ));
+            if (Utils.GetIpAddress(out var Ips)) {
+                foreach (var ipStr in Ips) {
+                    __Logger.Information( string.Format(
+                        "Listening on: {0}://{1}:{2}",
+                        _EnableSSL ? "https" : "http",
+                        ipStr,
+                        _Port.ToString()
+                    ));
+                }
             }
+            __Logger.Information( string.Format(
+                "Listening on: {0}://{1}:{2}",
+                _EnableSSL ? "https" : "http",
+                System.Net.IPAddress.Any.ToString(),
+                _Port.ToString()
+            ));
         }
         private static void LogEndInformation()
         {
@@ -220,6 +235,7 @@ namespace CoreApi
                 }
             }
             LogEndInformation();
+            Log.CloseAndFlush();
         }
     }
 }

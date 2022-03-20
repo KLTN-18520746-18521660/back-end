@@ -55,9 +55,10 @@
 ## Build and Run CoreApi
 > cd CoreApi
 - debug mode + environment develop
-> dotnet run ssl
+> dotnet run [ssl]
 - release mode + environment production
-> dotnet run ssl --launch-profile pro -c release
+> dotnet run [ssl] [swagger] --launch-profile pro -c release
+> dotnet run ssl swagger --launch-profile pro -c release
 - run without ssl + environment develop
 > dotnet run
 

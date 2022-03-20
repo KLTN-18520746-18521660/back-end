@@ -1,25 +1,13 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using DatabaseAccess.Context;
-using DatabaseAccess.Common;
-using DatabaseAccess.Common.Status;
-using DatabaseAccess.Context.Models;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using CoreApi.Common;
-
-// using System.Data.Entity;
-using System.Diagnostics;
-using System.Text;
-// using System.Text.Json;
-using CoreApi.Services;
-using System.ComponentModel;
 using Common;
+using CoreApi.Common;
+using CoreApi.Services;
+using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CoreApi.Controllers.Social.Session
 {
@@ -27,22 +15,13 @@ namespace CoreApi.Controllers.Social.Session
     [Route("/session")]
     public class ExtensionSessionSocialUserController : BaseController
     {
-        #region Services
-        private BaseConfig __BaseConfig;
-        private SessionSocialUserManagement __SessionSocialUserManagement;
-        #endregion
-
-        #region Config Value
+        #region Config Values
         private int EXTENSION_TIME; // minute
         private int EXPIRY_TIME; // minute
         #endregion
 
-        public ExtensionSessionSocialUserController(
-            BaseConfig _BaseConfig,
-            SessionSocialUserManagement _SessionSocialUserManagement
-        ) : base() {
-            __BaseConfig = _BaseConfig;
-            __SessionSocialUserManagement = _SessionSocialUserManagement;
+        public ExtensionSessionSocialUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        {
             __ControllerName = "ExtensionSessionSocialUser";
             LoadConfig();
         }
@@ -68,6 +47,8 @@ namespace CoreApi.Controllers.Social.Session
         /// Extension social session
         /// </summary>
         /// <returns><b>Extension social session</b></returns>
+        /// <param name="__SessionSocialUserManagement"></param>
+        /// <param name="session_token"></param>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
@@ -112,20 +93,23 @@ namespace CoreApi.Controllers.Social.Session
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> ExtensionSessionAsync()
+        public async Task<IActionResult> ExtensionSession([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                          [FromHeader] string session_token)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
+            #region Set TraceId for services
+            __SessionSocialUserManagement.SetTraceId(TraceId);
+            #endregion
             try {
                 #region Get session token
-                string sessionToken = "";
-                if (!GetHeader(HEADER_KEYS.API_KEY, out sessionToken)) {
+                if (session_token == null) {
                     LogDebug($"Missing header authorization.");
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(sessionToken)) {
+                if (!Utils.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -133,26 +117,26 @@ namespace CoreApi.Controllers.Social.Session
                 #region Find session for use
                 SessionSocialUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionSocialUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME);
+                (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
 
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
+                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
                         return Problem(400, "Session not found.");
                     }
                     if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogInformation($"Session has expired, session_token: { sessionToken.Substring(0, 15) }");
+                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session has expired.");
                     }
                     if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogInformation($"User has been locked, session_token: { sessionToken.Substring(0, 15) }");
+                        LogInformation($"User has been locked, session_token: { session_token.Substring(0, 15) }");
                         return Problem(423, "You have been locked.");
                     }
                     throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
                 }
                 #endregion
 
-                LogDebug($"Session extension success, session_token: { sessionToken.Substring(0, 15) }");
+                LogDebug($"Session extension success, session_token: { session_token.Substring(0, 15) }");
                 return Ok( new JObject(){
                     { "status", 200 },
                     { "message", "Success." },

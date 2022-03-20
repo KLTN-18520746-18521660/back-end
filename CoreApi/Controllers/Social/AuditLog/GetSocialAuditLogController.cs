@@ -1,3 +1,4 @@
+using Common;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -6,7 +7,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using Common;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -16,28 +16,13 @@ namespace CoreApi.Controllers.Social.AuditLog
     [Route("/auditlog")]
     public class GetSocialAuditLogController : BaseController
     {
-        #region Services
-        private BaseConfig __BaseConfig;
-        private SocialUserManagement __SocialUserManagement;
-        private SocialAuditLogManagement __SocialAuditLogManagement;
-        private SessionSocialUserManagement __SessionSocialUserManagement;
-        #endregion
-
-        #region Config Value
+        #region Config Values
         private int EXTENSION_TIME; // minutes
         private int EXPIRY_TIME; // minutes
         #endregion
 
-        public GetSocialAuditLogController(
-            BaseConfig _BaseConfig,
-            SocialUserManagement _SocialUserManagement,
-            SocialAuditLogManagement _SocialAuditLogManagement,
-            SessionSocialUserManagement _SessionSocialUserManagement
-        ) : base() {
-            __BaseConfig = _BaseConfig;
-            __SocialUserManagement = _SocialUserManagement;
-            __SocialAuditLogManagement = _SocialAuditLogManagement;
-            __SessionSocialUserManagement = _SessionSocialUserManagement;
+        public GetSocialAuditLogController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        {
             __ControllerName = "GetSocialAuditLog";
             LoadConfig();
         }
@@ -61,20 +46,30 @@ namespace CoreApi.Controllers.Social.AuditLog
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAuditLogs(int start = 0, int size = 20, string search_term = null)
+        public async Task<IActionResult> GetAuditLogs([FromServices] SocialUserManagement __SocialUserManagement,
+                                                      [FromServices] SocialAuditLogManagement __SocialAuditLogManagement,
+                                                      [FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                      [FromHeader] string session_token,
+                                                      [FromQuery] int start = 0,
+                                                      [FromQuery] int size = 20,
+                                                      [FromQuery] string search_term = null)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
+            #region Set TraceId for services
+            __SocialUserManagement.SetTraceId(TraceId);
+            __SocialAuditLogManagement.SetTraceId(TraceId);
+            __SessionSocialUserManagement.SetTraceId(TraceId);
+            #endregion
             try {
                 #region Get session token
-                string sessionToken = "";
-                if (!GetHeader(HEADER_KEYS.API_KEY, out sessionToken)) {
+                if (session_token == null) {
                     LogDebug($"Missing header authorization.");
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(sessionToken)) {
+                if (!Utils.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -82,18 +77,18 @@ namespace CoreApi.Controllers.Social.AuditLog
                 #region Find session for use
                 SessionSocialUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionSocialUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME);
+                (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
+                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
                         return Problem(400, "Session not found.");
                     }
                     if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogInformation($"Session has expired, session_token: { sessionToken.Substring(0, 15) }");
+                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session has expired.");
                     }
                     if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogInformation($"User has been locked, session_token: { sessionToken.Substring(0, 15) }");
+                        LogInformation($"User has been locked, session_token: { session_token.Substring(0, 15) }");
                         return Problem(423, "You have been locked.");
                     }
                     throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
@@ -112,7 +107,7 @@ namespace CoreApi.Controllers.Social.AuditLog
                 #endregion
 
                 #region Validate params: start, size, total_size
-                if (start >= totalSize) {
+                if (totalSize != 0 && start >= totalSize) {
                     LogInformation($"Invalid request params for get audit log, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
                     return Problem(400, $"Invalid request params start: { start }. Total size is { totalSize }");
                 }

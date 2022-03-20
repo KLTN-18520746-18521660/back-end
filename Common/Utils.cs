@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using System.Text;
+using System.Collections.Generic;
 
 namespace Common
 {
@@ -17,17 +18,16 @@ namespace Common
         {
             return Regex.IsMatch(Input, EmailRegex);
         }
-        public static bool GetIpAddress(out string Ip)
+        public static bool GetIpAddress(out List<string> Ip)
         {
-            Ip = "";
+            Ip = new List<string>();
             var host = Dns.GetHostEntry(Dns.GetHostName());
             foreach (var ip in host.AddressList) {
                 if (ip.AddressFamily == AddressFamily.InterNetwork) {
-                    Ip = ip.ToString();
-                    return true;
+                    Ip.Add(ip.ToString());
                 }
             }
-            return false;
+            return Ip.Count > 0;
         }
         public static string RandomString(int StringLen)
         {

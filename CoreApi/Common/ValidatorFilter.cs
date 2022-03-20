@@ -20,7 +20,7 @@ namespace CoreApi.Common
                     errResp.Add(error.Key, error.Value.First());
                 }
 
-                var resp = new BadRequestObjectResult(new JObject(){
+                var resp = new BadRequestObjectResult(new JObject() {
                     { "status", 400 },
                     { "error",  JToken.FromObject(errResp) },
                 });

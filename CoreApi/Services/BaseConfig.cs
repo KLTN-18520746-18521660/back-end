@@ -9,29 +9,32 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 using CoreApi.Common;
+using System.Text;
 
 namespace CoreApi.Services
 {
     public class BaseConfig : BaseService
     {
-        List<AdminBaseConfig> AllConfigs;
-        public BaseConfig() : base()
+        List<AdminBaseConfig> Configs;
+        public BaseConfig(DBContext _DBContext,
+                          IServiceProvider _IServiceProvider)
+            : base(_DBContext, _IServiceProvider)
         {
             __ServiceName = "BaseConfig";
-            AllConfigs = __DBContext.AdminBaseConfigs.ToList();
+            Configs = __DBContext.AdminBaseConfigs.ToList();
             LogInformation("Init load all config successfully.");
         }
 
         public async Task ReLoadConfig()
         {
-            AllConfigs = await __DBContext.AdminBaseConfigs.ToListAsync();
+            Configs = await __DBContext.AdminBaseConfigs.ToListAsync();
             LogInformation("Reload all config successfully.");
         }
 
         public (JObject Value, string Error) GetConfigValue(CONFIG_KEY ConfigKey)
         {
             string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
-            var config = AllConfigs
+            var config = Configs
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
                             .Select(e => e.Value)
                             .DefaultIfEmpty(null)
@@ -55,7 +58,7 @@ namespace CoreApi.Services
             }
             string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
             string subConfigKeyStr = DefaultBaseConfig.SubConfigKeyToString(SubConfigKey);
-            var config = AllConfigs
+            var config = Configs
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
                             .Select(e => e.Value)
                             .DefaultIfEmpty(null)

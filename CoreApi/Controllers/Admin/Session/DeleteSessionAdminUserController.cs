@@ -1,14 +1,12 @@
+using Common;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Text;
-using Common;
-using Microsoft.AspNetCore.Http;
-using System.ComponentModel;
-using DatabaseAccess.Common.Status;
 using System.Threading.Tasks;
 
 namespace CoreApi.Controllers.Admin.Session
@@ -17,22 +15,13 @@ namespace CoreApi.Controllers.Admin.Session
     [Route("/admin/session")]
     public class DeleteSessionAdminUserController : BaseController
     {
-        #region Services
-        private BaseConfig __BaseConfig;
-        private SessionAdminUserManagement __SessionAdminUserManagement;
-        #endregion
-
-        #region Config Value
+        #region Config Values
         private int EXTENSION_TIME; // minutes
         private int EXPIRY_TIME; // minutes
         #endregion
 
-        public DeleteSessionAdminUserController(
-            BaseConfig _BaseConfig,
-            SessionAdminUserManagement _SessionAdminUserManagement
-        ) : base() {
-            __BaseConfig = _BaseConfig;
-            __SessionAdminUserManagement = _SessionAdminUserManagement;
+        public DeleteSessionAdminUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        {
             __ControllerName = "DeleteSessionAdminUser";
             LoadConfig();
         }
@@ -58,7 +47,9 @@ namespace CoreApi.Controllers.Admin.Session
         /// <summary>
         /// Delete admin session
         /// </summary>
+        /// <param name="__SessionAdminUserManagement"></param>
         /// <param name="session_token"></param>
+        /// <param name="delete_session_token"></param>
         /// <returns><b>Message ok</b></returns>
         ///
         /// <remarks>
@@ -113,7 +104,7 @@ namespace CoreApi.Controllers.Admin.Session
         /// <response code="500">
         /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
         /// </response>
-        [HttpDelete("{session_token}")]
+        [HttpDelete("{delete_session_token}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(DeleteSessionAdminUserSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
@@ -121,29 +112,33 @@ namespace CoreApi.Controllers.Admin.Session
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> ExtensionSession(string session_token)
+        public async Task<IActionResult> DeleteSession([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
+                                                       [FromHeader] string session_token,
+                                                       [FromRoute] string delete_session_token)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
+            #region Set TraceId for services
+            __SessionAdminUserManagement.SetTraceId(TraceId);
+            #endregion
             try {
                 #region Get session token
-                string sessionToken = "";
-                if (!GetHeader(HEADER_KEYS.API_KEY, out sessionToken)) {
+                if (session_token == null) {
                     LogDebug($"Missing header authorization.");
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(sessionToken)) {
+                if (!Utils.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
 
                 #region Compare with present session token
-                if (!Utils.IsValidSessionToken(session_token)) {
+                if (!Utils.IsValidSessionToken(delete_session_token)) {
                     return Problem(400, "Invalid session token.");
                 }
-                if (session_token == sessionToken) {
+                if (delete_session_token == session_token) {
                     return Problem(400, "Not allow delete session. Try logout.");
                 }
                 #endregion
@@ -151,19 +146,19 @@ namespace CoreApi.Controllers.Admin.Session
                 #region Find session for use
                 SessionAdminUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME);
+                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
 
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
+                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
                         return Problem(400, "Session not found.");
                     }
                     if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogInformation($"Session has expired, session_token: { sessionToken.Substring(0, 15) }");
+                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session has expired.");
                     }
                     if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogInformation($"User has been locked, session_token: { sessionToken.Substring(0, 15) }");
+                        LogInformation($"User has been locked, session_token: { session_token.Substring(0, 15) }");
                         return Problem(423, "You have been locked.");
                     }
                     throw new Exception($"FindSessionAdminForUse Failed. ErrorCode: { error }");
@@ -172,9 +167,9 @@ namespace CoreApi.Controllers.Admin.Session
 
                 #region Delete session
                 SessionAdminUser delSession = null;
-                (delSession, error) = await __SessionAdminUserManagement.FindSession(session_token);
+                (delSession, error) = await __SessionAdminUserManagement.FindSession(delete_session_token);
                 if (error != ErrorCodes.NO_ERROR || delSession.UserId != session.UserId) {
-                    LogInformation($"Delete session not found, session_token: { session_token.Substring(0, 15) }");
+                    LogInformation($"Delete session not found, session_token: { delete_session_token.Substring(0, 15) }");
                     return Problem(404, "Delete session not found.");
                 }
                 error = await __SessionAdminUserManagement.RemoveSession(delSession.SessionToken);
@@ -183,7 +178,7 @@ namespace CoreApi.Controllers.Admin.Session
                 }
                 #endregion
 
-                LogInformation($"Delete session success, session_token: { session_token.Substring(0, 15) }");
+                LogInformation($"Delete session success, session_token: { delete_session_token.Substring(0, 15) }");
                 return Ok( new JObject(){
                     { "status", 200 },
                     { "message", "Success." },

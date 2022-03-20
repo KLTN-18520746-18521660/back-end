@@ -16,7 +16,9 @@ namespace CoreApi.Services
 {
     public class AdminAuditLogManagement : BaseService
     {
-        public AdminAuditLogManagement() : base()
+        public AdminAuditLogManagement(DBContext _DBContext,
+                                       IServiceProvider _IServiceProvider)
+            : base(_DBContext, _IServiceProvider)
         {
             __ServiceName = "AdminAuditLogManagement";
         }

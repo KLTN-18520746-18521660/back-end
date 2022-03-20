@@ -1,23 +1,9 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
-using DatabaseAccess.Common;
-using System.Linq;
-using System.Collections.Generic;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-// using System.Text.Json;
+﻿using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
-using DatabaseAccess.Common.Models;
-using DatabaseAccess.Common.Actions;
-using DatabaseAccess.Common.Status;
-using System.Collections;
-
-// using System.Data.Entity;
-// using System.Data.Entity.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 #nullable disable
 
@@ -934,16 +920,14 @@ namespace DatabaseAccess.Context
         #endregion
         #endregion
         #region Function Handle
-        #region Session
-        public virtual void ClearExpriedSessionAdminUser(List<string> sessionTokens)
+        #region GetStatus
+        public virtual bool GetStatus()
         {
-            var sessions = SessionAdminUsers.Where(e => sessionTokens.Contains(e.SessionToken));
-            SessionAdminUsers.RemoveRange(sessions);
+            return this.Database.CanConnect();
         }
-        public virtual void ClearExpriedSessionSocialUser(List<string> sessionTokens)
+        public virtual async Task<bool> GetStatusAsync()
         {
-            var sessions = SessionSocialUsers.Where(e => sessionTokens.Contains(e.SessionToken));
-            SessionSocialUsers.RemoveRange(sessions);
+            return await this.Database.CanConnectAsync();
         }
         #endregion
         #endregion

@@ -1,6 +1,4 @@
 using FluentValidation;
-using System;
-using CoreApi.Models;
 
 namespace CoreApi.Models.Validators
 {

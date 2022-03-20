@@ -1,23 +1,15 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using DatabaseAccess.Context;
+using Common;
+using CoreApi.Common;
+using CoreApi.Services;
 using DatabaseAccess.Common;
 using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
-using Newtonsoft.Json;
-using Common;
-using Newtonsoft.Json.Linq;
-using CoreApi.Common;
-
-using System.Text;
-// using System.Data.Entity;
-using System.Diagnostics;
-using CoreApi.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CoreApi.Controllers.Social
 {
@@ -25,25 +17,13 @@ namespace CoreApi.Controllers.Social
     [Route("/login")]
     public class SocialUserLoginController : BaseController
     {
-        #region Services
-        private BaseConfig __BaseConfig;
-        private SocialUserManagement __SocialUserManagement;
-        private SessionSocialUserManagement __SessionSocialUserManagement;
-        #endregion
-
-        #region Config Value
+        #region Config Values
         private int NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE;
         private int LOCK_TIME; // minute
         #endregion
 
-        public SocialUserLoginController(
-            BaseConfig _BaseConfig,
-            SocialUserManagement _SocialUserManagement,
-            SessionSocialUserManagement _SessionSocialUserManagement
-        ) : base() {
-            __BaseConfig = _BaseConfig;
-            __SocialUserManagement = _SocialUserManagement;
-            __SessionSocialUserManagement = _SessionSocialUserManagement;
+        public SocialUserLoginController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        {
             __ControllerName = "SocialUserLogin";
             LoadConfig();
         }
@@ -69,6 +49,8 @@ namespace CoreApi.Controllers.Social
         /// <summary>
         /// Social user login
         /// </summary>
+        /// <param name="__SocialUserManagement"></param>
+        /// <param name="__SessionSocialUserManagement"></param>
         /// <param name="model"></param>
         /// <returns><b>Return session_id</b></returns>
         ///
@@ -102,11 +84,17 @@ namespace CoreApi.Controllers.Social
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> SocialUserLogin(Models.LoginModel model)
+        public async Task<IActionResult> SocialUserLogin([FromServices] SocialUserManagement __SocialUserManagement,
+                                                         [FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                         [FromBody] Models.LoginModel model)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
+            #region Set TraceId for services
+            __SocialUserManagement.SetTraceId(TraceId);
+            __SessionSocialUserManagement.SetTraceId(TraceId);
+            #endregion
             try {
                 #region Find User
                 bool isEmail = Utils.IsEmail(model.user_name);

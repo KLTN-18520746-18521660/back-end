@@ -1,3 +1,4 @@
+using Common;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -6,7 +7,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using Common;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -16,28 +16,13 @@ namespace CoreApi.Controllers.Admin.AuditLog
     [Route("/admin/auditlog")]
     public class GetAdminAuditLogController : BaseController
     {
-        #region Services
-        private BaseConfig __BaseConfig;
-        private AdminUserManagement __AdminUserManagement;
-        private AdminAuditLogManagement __AdminAuditLogManagement;
-        private SessionAdminUserManagement __SessionAdminUserManagement;
-        #endregion
-
-        #region Config Value
+        #region Config Values
         private int EXTENSION_TIME; // minutes
         private int EXPIRY_TIME; // minutes
         #endregion
 
-        public GetAdminAuditLogController(
-            BaseConfig _BaseConfig,
-            AdminUserManagement _AdminUserManagement,
-            AdminAuditLogManagement _AdminAuditLogManagement,
-            SessionAdminUserManagement _SessionAdminUserManagement
-        ) : base() {
-            __BaseConfig = _BaseConfig;
-            __AdminUserManagement = _AdminUserManagement;
-            __AdminAuditLogManagement = _AdminAuditLogManagement;
-            __SessionAdminUserManagement = _SessionAdminUserManagement;
+        public GetAdminAuditLogController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        {
             __ControllerName = "GetAdminAuditLog";
             LoadConfig();
         }
@@ -61,20 +46,30 @@ namespace CoreApi.Controllers.Admin.AuditLog
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAuditLogsAsync(int start = 0, int size = 20, string search_term = null)
+        public async Task<IActionResult> GetAuditLogs([FromServices] AdminUserManagement __AdminUserManagement,
+                                                      [FromServices] AdminAuditLogManagement __AdminAuditLogManagement,
+                                                      [FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
+                                                      [FromHeader] string session_token,
+                                                      [FromQuery] int start = 0,
+                                                      [FromQuery] int size = 20,
+                                                      [FromQuery] string search_term = null)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
+            #region Set TraceId for services
+            __AdminUserManagement.SetTraceId(TraceId);
+            __AdminAuditLogManagement.SetTraceId(TraceId);
+            __SessionAdminUserManagement.SetTraceId(TraceId);
+            #endregion
             try {
                 #region Get session token
-                string sessionToken = "";
-                if (!GetHeader(HEADER_KEYS.API_KEY, out sessionToken)) {
+                if (session_token == null) {
                     LogDebug($"Missing header authorization.");
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(sessionToken)) {
+                if (!Utils.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -82,19 +77,19 @@ namespace CoreApi.Controllers.Admin.AuditLog
                 #region Find session for use
                 SessionAdminUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(sessionToken, EXPIRY_TIME, EXTENSION_TIME);
+                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
 
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
+                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
                         return Problem(400, "Session not found.");
                     }
                     if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogInformation($"Session has expired, session_token: { sessionToken.Substring(0, 15) }");
+                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session has expired.");
                     }
                     if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogInformation($"User has been locked, session_token: { sessionToken.Substring(0, 15) }");
+                        LogInformation($"User has been locked, session_token: { session_token.Substring(0, 15) }");
                         return Problem(423, "You have been locked.");
                     }
                     throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");

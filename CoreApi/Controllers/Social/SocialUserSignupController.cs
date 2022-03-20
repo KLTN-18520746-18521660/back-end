@@ -14,14 +14,8 @@ namespace CoreApi.Controllers.Social
     [Route("/signup")]
     public class SocialUserSignupController : BaseController
     {
-        #region Services
-        private SocialUserManagement __SocialUserManagement;
-        #endregion
-
-        public SocialUserSignupController(
-            SocialUserManagement _SocialUserManagement
-        ) : base() {
-            __SocialUserManagement = _SocialUserManagement;
+        public SocialUserSignupController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        {
             __ControllerName = "SocialUserSignup";
             LoadConfig();
         }
@@ -30,6 +24,8 @@ namespace CoreApi.Controllers.Social
         /// Social user signup
         /// </summary>
         /// <returns><b>Return message ok</b></returns>
+        /// <param name="__SocialUserManagement"></param>
+        /// <param name="parser"></param>
         ///
         /// <remarks>
         /// </remarks>
@@ -53,11 +49,15 @@ namespace CoreApi.Controllers.Social
         [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(SocialUserSignupSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> SocialUserSignupAsync(ParserSocialUser parser)
+        public async Task<IActionResult> SocialUserSignup([FromServices] SocialUserManagement __SocialUserManagement,
+                                                          [FromBody] ParserSocialUser parser)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
+            #region Set TraceId for services
+            __SocialUserManagement.SetTraceId(TraceId);
+            #endregion
             try {
                 #region Parse Social User
                 SocialUser newUser = new SocialUser();
@@ -91,7 +91,7 @@ namespace CoreApi.Controllers.Social
                 #endregion
 
                 LogInformation($"Signup social user success, user_name: { newUser.UserName }");
-                return Ok(new JObject(){
+                return Ok(201, new JObject(){
                     { "status", 201 },
                     { "message", "Success." },
                     { "user_id", newUser.Id },

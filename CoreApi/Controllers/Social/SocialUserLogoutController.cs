@@ -1,23 +1,13 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using DatabaseAccess.Context;
-using DatabaseAccess.Common;
-using DatabaseAccess.Common.Status;
-using DatabaseAccess.Context.Models;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using CoreApi.Common;
 using Common;
-using System.Text;
-// using System.Data.Entity;
-using System.Diagnostics;
-// using System.Text.Json;
+using CoreApi.Common;
 using CoreApi.Services;
+using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CoreApi.Controllers.Social
 {
@@ -25,20 +15,11 @@ namespace CoreApi.Controllers.Social
     [Route("/logout")]
     public class SocialUserLogoutController : BaseController
     {
-        #region Services
-        private BaseConfig __BaseConfig;
-        private SessionSocialUserManagement __SessionSocialUserManagement;
-        #endregion
-
-        #region Config Value
+        #region Config Values
         private int EXPIRY_TIME; // minute
         #endregion
-        public SocialUserLogoutController(
-            BaseConfig _BaseConfig,
-            SessionSocialUserManagement _SessionSocialUserManagement
-        ) : base() {
-            __BaseConfig = _BaseConfig;
-            __SessionSocialUserManagement = _SessionSocialUserManagement;
+        public SocialUserLogoutController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        {
             __ControllerName = "SocialUserLogout";
             LoadConfig();
         }
@@ -64,6 +45,8 @@ namespace CoreApi.Controllers.Social
         /// Social user logout
         /// </summary>
         /// <returns><b>Return message ok</b></returns>
+        /// <param name="__SessionSocialUserManagement"></param>
+        /// <param name="session_token"></param>
         ///
         /// <remarks>
         /// </remarks>
@@ -95,20 +78,23 @@ namespace CoreApi.Controllers.Social
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> SocialUserLogoutAsync()
+        public async Task<IActionResult> SocialUserLogout([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                          [FromHeader] string session_token)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
+            #region Set TraceId for services
+            __SessionSocialUserManagement.SetTraceId(TraceId);
+            #endregion
             try {
                 #region Get session token
-                string sessionToken = "";
-                if (!GetHeader(HEADER_KEYS.API_KEY, out sessionToken)) {
+                if (session_token == null) {
                     LogDebug($"Missing header authorization.");
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(sessionToken)) {
+                if (!Utils.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -116,10 +102,10 @@ namespace CoreApi.Controllers.Social
                 #region Find session token
                 SessionSocialUser session = null;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionSocialUserManagement.FindSession(sessionToken);
+                (session, error) = await __SessionSocialUserManagement.FindSession(session_token);
 
                 if (error != ErrorCodes.NO_ERROR) {
-                    LogDebug($"Session not found, session_token: { sessionToken.Substring(0, 15) }");
+                    LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
                     return Problem(400, "Session not found.");
                 }
                 #endregion
@@ -136,7 +122,7 @@ namespace CoreApi.Controllers.Social
                 }
                 #endregion
 
-                LogInformation($"Logout success, user_name: { user.UserName }, session_token: { sessionToken.Substring(0, 15) }");
+                LogInformation($"Logout success, user_name: { user.UserName }, session_token: { session_token.Substring(0, 15) }");
                 return Ok( new JObject(){
                     { "status", 200 },
                     { "message", "Success." },

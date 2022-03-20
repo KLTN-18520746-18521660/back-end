@@ -15,7 +15,9 @@ namespace CoreApi.Services
 {
     public class SessionSocialUserManagement : BaseService
     {
-        public SessionSocialUserManagement() : base()
+        public SessionSocialUserManagement(DBContext _DBContext,
+                                           IServiceProvider _IServiceProvider)
+            : base(_DBContext, _IServiceProvider)
         {
             __ServiceName = "SessionSocialUserManagement";
         }

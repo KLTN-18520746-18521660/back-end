@@ -11,6 +11,7 @@
     },
     "pro": {
       "commandName": "Project",
+      "commandLineArgs": "ssl swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Production"
       },
