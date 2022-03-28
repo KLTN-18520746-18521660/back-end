@@ -43,28 +43,28 @@ namespace CoreApi.Common
             return msg.ToString();
         }
         [NonAction]
-        public virtual void LogDebug(string Msg)
+        protected virtual void LogDebug(string Msg)
         {
             if (Msg != "") {
                 __Logger.Debug(CreateLogMessage(Msg));
             }
         }
         [NonAction]
-        public virtual void LogInformation(string Msg)
+        protected virtual void LogInformation(string Msg)
         {
             if (Msg != "") {
                 __Logger.Information(CreateLogMessage(Msg));
             }
         }
         [NonAction]
-        public virtual void LogWarning(string Msg)
+        protected virtual void LogWarning(string Msg)
         {
             if (Msg != "") {
                 __Logger.Warning(CreateLogMessage(Msg));
             }
         }
         [NonAction]
-        public virtual void LogError(string Msg)
+        protected virtual void LogError(string Msg)
         {
             if (Msg != "") {
                 __Logger.Error(CreateLogMessage(Msg));
@@ -82,7 +82,7 @@ namespace CoreApi.Common
             }
         }
         [NonAction]
-        public ObjectResult Problem(int statusCode, object msg)
+        protected ObjectResult Problem(int statusCode, object msg)
         {
             ObjectResult obj = new(new JObject(){
                 { "status", statusCode },
@@ -92,7 +92,7 @@ namespace CoreApi.Common
             return obj;
         }
         [NonAction]
-        public ObjectResult Ok(int statusCode, JObject body)
+        protected ObjectResult Ok(int statusCode, JObject body)
         {
             ObjectResult obj = new(body);
             obj.StatusCode = statusCode;

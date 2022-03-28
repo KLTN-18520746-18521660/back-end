@@ -19,6 +19,7 @@ namespace DatabaseAccess.Context.Models
         SOCIAL_USER_LOGIN_CONFIG = 2,
         SESSION_ADMIN_USER_CONFIG = 3,
         SESSION_SOCIAL_USER_CONFIG = 4,
+        EMAIL_CLIENT_CONFIG = 5,
     }
 
     public enum SUB_CONFIG_KEY
@@ -27,6 +28,8 @@ namespace DatabaseAccess.Context.Models
         LOCK_TIME = 2,
         EXPIRY_TIME = 3,
         EXTENSION_TIME = 4,
+        EMAIL_LIMIT_SENDER = 5,
+        EMAIL_TEMPLATE_USER_SIGNUP = 6,
     }
 
     public static class DefaultBaseConfig
@@ -48,6 +51,13 @@ namespace DatabaseAccess.Context.Models
             { "expiry_time", 5 },
             { "extension_time", 5 },
         };
+        public static readonly Dictionary<string, object> EmailClientConfig = new() {
+            { "limit_sender", 5 },
+            { "template_user_signup", @"<p>Dear @Model.UserName,</p>
+                                        <p>Confirm link here: <a href='@UserName.ConfirmLink'>@Model.ConfirmLink</a><br>
+                                        Send datetime: @Model.DateTimeSend</p>
+                                        <p>Thanks for your register.</p>" },
+        };
         #endregion
         public static JObject GetConfig(CONFIG_KEY ConfigKey, string Error = null)
         {
@@ -61,6 +71,8 @@ namespace DatabaseAccess.Context.Models
                     return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(SessionAdminUserConfig));
                 case CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG:
                     return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(SessionSocialUserConfig));
+                case CONFIG_KEY.EMAIL_CLIENT_CONFIG:
+                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(EmailClientConfig));
                 default:
                     Error ??= "Invalid config key.";
                     return new JObject();
@@ -78,6 +90,8 @@ namespace DatabaseAccess.Context.Models
                     return "SessionAdminUserConfig";
                 case CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG:
                     return "SessionSocialUserConfig";
+                case CONFIG_KEY.EMAIL_CLIENT_CONFIG:
+                    return "EmailClientConfig";
                 default:
                     Error ??= "Invalid config key.";
                     return "Invalid config key.";
@@ -95,6 +109,10 @@ namespace DatabaseAccess.Context.Models
                     return "expiry_time";
                 case SUB_CONFIG_KEY.EXTENSION_TIME:
                     return "extension_time";
+                case SUB_CONFIG_KEY.EMAIL_LIMIT_SENDER:
+                    return "limit_sender";
+                case SUB_CONFIG_KEY.EMAIL_TEMPLATE_USER_SIGNUP:
+                    return "template_user_signup";
                 default:
                     Error ??= "Invalid sub config key.";
                     return "Invalid sub config key.";
@@ -191,6 +209,12 @@ namespace DatabaseAccess.Context.Models
                     Id = 4,
                     ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG),
                     Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG),
+                    Status = AdminBaseConfigStatus.Enabled
+                },
+                new AdminBaseConfig() {
+                    Id = 5,
+                    ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.EMAIL_CLIENT_CONFIG),
+                    Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.EMAIL_CLIENT_CONFIG),
                     Status = AdminBaseConfigStatus.Enabled
                 },
             };

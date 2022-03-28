@@ -14,6 +14,7 @@ namespace Common
         public static string EmailRegex = "^[a-z0-9_\\.]{1,64}@[a-z]+\\.[a-z]{2,3}$";
         public static readonly int SeesionTokenLength = 30;
         public static readonly string SessionTokenRegex = "^[a-z-0-9]{30}$";
+        public static readonly string PrefixUrlConfirmSignup = "/user/confirm";
         public static bool IsEmail(string Input)
         {
             return Regex.IsMatch(Input, EmailRegex);
@@ -28,6 +29,10 @@ namespace Common
                 }
             }
             return Ip.Count > 0;
+        }
+        public static bool IsValidDomainName(string name)
+        {
+            return Uri.CheckHostName(name) != UriHostNameType.Unknown;
         }
         public static string RandomString(int StringLen)
         {
@@ -72,6 +77,21 @@ namespace Common
         public static string TakeContentForSearchFromRawContent(string RawContent)
         {
             return "";
+        }
+        #endregion
+
+        #region User
+        public static string GenerateUrlConfirm(Guid id, string host)
+        {
+            var uri = new Uri(host);
+            StringBuilder url = new StringBuilder(PrefixUrlConfirmSignup);
+            url.Append($"?i={ StringDecryptor.Encrypt(id.ToString()) }");
+            url.Append($"&d={ StringDecryptor.Encrypt(DateTime.UtcNow.ToString()) }");
+            return url.ToString();
+        }
+        public static (Guid, DateTime) ParseParamsFromUserlConfirm(string url)
+        {
+            return (Guid.NewGuid(), DateTime.UtcNow);
         }
         #endregion
     }

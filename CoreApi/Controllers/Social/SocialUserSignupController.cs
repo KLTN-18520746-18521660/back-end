@@ -1,11 +1,13 @@
 using CoreApi.Common;
 using CoreApi.Services;
+using CoreApi.Services.Background;
 using DatabaseAccess.Context.Models;
 using DatabaseAccess.Context.ParserModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace CoreApi.Controllers.Social
@@ -25,6 +27,7 @@ namespace CoreApi.Controllers.Social
         /// </summary>
         /// <returns><b>Return message ok</b></returns>
         /// <param name="__SocialUserManagement"></param>
+        /// <param name="__EmailChannel"></param>
         /// <param name="parser"></param>
         ///
         /// <remarks>
@@ -50,6 +53,7 @@ namespace CoreApi.Controllers.Social
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> SocialUserSignup([FromServices] SocialUserManagement __SocialUserManagement,
+                                                          [FromServices] Channel<EmailChannel> __EmailChannel,
                                                           [FromBody] ParserSocialUser parser)
         {
             if (!LoadConfigSuccess) {
@@ -91,6 +95,14 @@ namespace CoreApi.Controllers.Social
                 #endregion
 
                 LogInformation($"Signup social user success, user_name: { newUser.UserName }");
+                // var _ = __EmailSender.SendEmailUserSignUp(newUser.Id, __TraceId);
+                await __EmailChannel.Writer.WriteAsync(new EmailChannel() {
+                    TraceId = __TraceId,
+                    Type = RequestToSendEmailType.UserSignup,
+                    Data = new JObject() {
+                        { "UserId", newUser.Id },
+                    }
+                });
                 return Ok(201, new JObject(){
                     { "status", 201 },
                     { "message", "Success." },

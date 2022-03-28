@@ -57,7 +57,7 @@
 - debug mode + environment develop
 > dotnet run [ssl]
 - release mode + environment production
-> dotnet run [ssl] [swagger] --launch-profile pro -c release
+> dotnet run [ssl] [swagger] [allow-any-origin] --launch-profile pro -c release
 > dotnet run ssl swagger --launch-profile pro -c release
 - run without ssl + environment develop
 > dotnet run

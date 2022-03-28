@@ -1,11 +1,11 @@
 using CoreApi.Common;
 using CoreApi.Services;
+using CoreApi.Services.Background;
 using DatabaseAccess;
 using DatabaseAccess.Context;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +15,10 @@ using Serilog;
 using System;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Mail;
 using System.Reflection;
+using System.Threading.Channels;
 
 namespace CoreApi
 {
@@ -43,6 +46,18 @@ namespace CoreApi
                     FluentValidationConfig.RegisterValidatorsFromAssemblyContaining<DBContext>();
                     FluentValidationConfig.RegisterValidatorsFromAssemblyContaining<Startup>();
                 });
+            #region Add email client
+            services
+                .AddFluentEmail(Program.EmailClientConfig.User)
+                .AddRazorRenderer()
+                .AddSmtpSender(new SmtpClient(){
+                    Host = Program.EmailClientConfig.Host,
+                    Port = int.Parse(Program.EmailClientConfig.Port),
+                    EnableSsl = Program.EmailClientConfig.EnableSSL,
+                    Credentials = new NetworkCredential(Program.EmailClientConfig.User, Program.EmailClientConfig.Password),
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                });
+            #endregion
             #region Add services
             // [IMPORTANT] Only inject DBContext to controller when necessary, must use define service instead of DBContext
             services
@@ -63,7 +78,10 @@ namespace CoreApi
                     }, Microsoft.Extensions.Logging.LogLevel.Information, DbContextLoggerOptions.Category | DbContextLoggerOptions.Level | DbContextLoggerOptions.SingleLine);
                 }, ServiceLifetime.Singleton);
             // Defind services
-            services.AddSingleton<BaseConfig>()
+            services.AddHostedService<EmailDispatcher>();
+            services.AddSingleton(Channel.CreateUnbounded<EmailChannel>())
+                    .AddSingleton<BaseConfig>()
+                    .AddSingleton<EmailSender>()
                     .AddTransient<AdminUserManagement>()
                     .AddTransient<AdminAuditLogManagement>()
                     .AddTransient<SessionAdminUserManagement>()
@@ -72,14 +90,14 @@ namespace CoreApi
                     .AddTransient<SessionSocialUserManagement>();
             #endregion
 
-            services.AddMvcCore(options => {
-                options.Filters.Add<ValidatorFilter>();
-                options.Conventions.Add(new ApiExplorerConvention());
-            });
-            services.Configure<ApiBehaviorOptions>(options =>
-            {
-                options.SuppressModelStateInvalidFilter = true;
-            });
+            services
+                .AddMvcCore(options => {
+                    options.Filters.Add<ValidatorFilter>();
+                    options.Conventions.Add(new ApiExplorerConvention());
+                })
+                .ConfigureApiBehaviorOptions(options => {
+                    options.SuppressMapClientErrors = true;
+                });
             #region Config Swagger document
             services.AddSwaggerGen(c => {
                 c.SwaggerDoc("admin", new OpenApiInfo {
@@ -118,6 +136,8 @@ namespace CoreApi
                 c.IncludeXmlComments(xmlPath);
             });
             #endregion
+
+            services.AddCors();
         }
 
         // [INFO] This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -152,9 +172,22 @@ namespace CoreApi
                 throw new Exception($"Failed to connect to database, host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }");
             }
             app.ApplicationServices.GetService<BaseConfig>();
+            app.ApplicationServices.GetService<EmailSender>();
 
             app.UseRouting();
-            app.UseAuthorization();
+            app.UseCors(builder =>
+            {
+                builder.SetIsOriginAllowedToAllowWildcardSubdomains();
+                builder.SetIsOriginAllowed((origin) =>
+                {
+                    return
+                        Program.AllowAnyOrigin ||
+                        Program.ListeningAddress.Contains(origin) ||
+                        Program.HostName == origin;
+                });
+                builder.WithMethods(Program.AllowMethods.ToArray());
+                builder.WithHeaders(Program.AllowHeaders.ToArray());
+            });
             app.UseEndpoints(endpoints => {
                 endpoints.MapControllers();
             });

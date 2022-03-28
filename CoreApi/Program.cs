@@ -25,10 +25,18 @@ namespace CoreApi
 
     struct DatabaseAccessConfiguration {
         public string Host { get; set; }
+        public string Port { get; set; }
         public string User { get; set; }
         public string Password { get; set; }
-        public string Port { get; set; }
         public string DBName { get; set; }
+    }
+
+    public struct EmailClientConfiguration {
+        public string Host { get; set; }
+        public string Port { get; set; }
+        public string User { get; set; }
+        public string Password { get; set; }
+        public bool EnableSSL { get; set; }
     }
 
     public class Program
@@ -40,17 +48,28 @@ namespace CoreApi
         private static int _Port;
         private static bool _EnableSSL = false;
         private static bool _EnableSwagger = false;
+        private static bool _AllowAnyOrigin = false;
         private static string _TmpPath = ConfigurationDefaultVariable.TMP_FOLDER;
         private static string _CertPath;
         private static string _LogFilePath;
         private static string _PasswordCert;
-        private static DatabaseAccessConfiguration DBAccessConfig;
+        private static DatabaseAccessConfiguration _DBAccessConfig;
+        private static EmailClientConfiguration _EmailClientConfig;
         private static readonly List<string> _ValidParamsFromArgs = new List<string>();
-
+        private static string _HostName;
+        private static List<string> _ListeningAddress = new List<string>();
+        private static List<string> _AllowMethods = new List<string>() { "GET", "POST", "DELETE", "PUT" };
+        private static List<string> _AllowHeaders = new List<string>() { "session_token" };
         #endregion
         #region Property
+        public static string HostName { get => _HostName; }
         public static bool EnableSSL { get => _EnableSSL; }
         public static bool EnableSwagger { get => _EnableSwagger; }
+        public static bool AllowAnyOrigin { get => _AllowAnyOrigin; }
+        public static List<string> ListeningAddress { get => _ListeningAddress; }
+        public static List<string> AllowMethods { get => _AllowMethods; }
+        public static List<string> AllowHeaders { get => _AllowHeaders; }
+        public static EmailClientConfiguration EmailClientConfig { get => _EmailClientConfig;  }
         #endregion
         private static void SetParamsFromConfiguration(in IConfigurationRoot configuration, out List<string> warnings)
         {
@@ -89,23 +108,56 @@ namespace CoreApi
             }
             // [INFO] Configure connect string
             if (configuration.GetSection("DatabaseAccess") != null) {
-                DBAccessConfig.Host = configuration.GetSection("DatabaseAccess").GetValue<string>("Host");
-                DBAccessConfig.User = configuration.GetSection("DatabaseAccess").GetValue<string>("Username");
-                DBAccessConfig.Password = configuration.GetSection("DatabaseAccess").GetValue<string>("Password");
-                DBAccessConfig.Port = configuration.GetSection("DatabaseAccess").GetValue<string>("Port");
-                DBAccessConfig.DBName = configuration.GetSection("DatabaseAccess").GetValue<string>("DBName");
-                DBAccessConfig.Password = StringDecryptor.Decrypt(DBAccessConfig.Password);
+                _DBAccessConfig.Host = configuration.GetSection("DatabaseAccess").GetValue<string>("Host");
+                _DBAccessConfig.User = configuration.GetSection("DatabaseAccess").GetValue<string>("Username");
+                _DBAccessConfig.Password = configuration.GetSection("DatabaseAccess").GetValue<string>("Password");
+                _DBAccessConfig.Port = configuration.GetSection("DatabaseAccess").GetValue<string>("Port");
+                _DBAccessConfig.DBName = configuration.GetSection("DatabaseAccess").GetValue<string>("DBName");
+                _DBAccessConfig.Password = StringDecryptor.Decrypt(_DBAccessConfig.Password == null ? "" : _DBAccessConfig.Password);
 
-                if (DBAccessConfig.Port == null || !CommonValidate.ValidatePort(DBAccessConfig.Port)) {
+                if (_DBAccessConfig.Port == null || !CommonValidate.ValidatePort(_DBAccessConfig.Port)) {
                     warnings.Add($"Configured database port is invalid or null. Use default port: { IBaseConfigurationDB.Port }");
-                    DBAccessConfig.Port = IBaseConfigurationDB.Port;
+                    _DBAccessConfig.Port = IBaseConfigurationDB.Port;
                 }
 
-                BaseConfigurationDB.Configure(DBAccessConfig.Host, DBAccessConfig.User, DBAccessConfig.Password, DBAccessConfig.Port, DBAccessConfig.DBName);
+                BaseConfigurationDB.Configure(_DBAccessConfig.Host, _DBAccessConfig.User, _DBAccessConfig.Password, _DBAccessConfig.Port, _DBAccessConfig.DBName);
             } else {
                 warnings.Add($"DatabaseAccess configuration not configured. Use default config.");
                 BaseConfigurationDB.Configure(); // Use default value
             }
+            // [INFO] Configure for email client
+            if (configuration.GetSection("Email") != null) {
+                _EmailClientConfig.Host = configuration.GetSection("Email").GetValue<string>("Host");
+                _EmailClientConfig.User = configuration.GetSection("Email").GetValue<string>("Username");
+                _EmailClientConfig.Password = configuration.GetSection("Email").GetValue<string>("Password");
+                _EmailClientConfig.Port = configuration.GetSection("Email").GetValue<string>("Port");
+                _EmailClientConfig.EnableSSL = configuration.GetSection("Email").GetValue<bool>("EnableSSL");
+                _EmailClientConfig.Password = StringDecryptor.Decrypt(_EmailClientConfig.Password == null ? "" : _EmailClientConfig.Password);
+
+                if (_EmailClientConfig.Host == null || _EmailClientConfig.Host == string.Empty) {
+                    throw new Exception("Configured email server is invalid or null.");
+                }
+                if (_EmailClientConfig.Port == null || !CommonValidate.ValidatePort(_EmailClientConfig.Port)) {
+                    throw new Exception("Configured email server port is invalid or null.");
+                }
+                if (_EmailClientConfig.User == null || !Utils.IsEmail(_EmailClientConfig.User)) {
+                    throw new Exception("User of email client must be an email.");
+                }
+            } else {
+                throw new Exception("Missing email client configuration.");
+            }
+            // [INFO] Get host name from config || default is 'localhost'
+            _HostName = configuration.GetValue<string>("HostName");
+            if (_HostName == null || !Utils.IsValidDomainName(_HostName)) {
+                _HostName = "localhost";
+                warnings.Add($"Invalid host name config. Use default host name: { _HostName }.");
+            }
+            _HostName = string.Format(
+                "{0}://{1}:{2}",
+                _EnableSSL ? "https" : "http",
+                _HostName,
+                _Port.ToString()
+            );
         }
         private static void SetParamsFromArgs(in List<string> args)
         {
@@ -116,6 +168,10 @@ namespace CoreApi
             // [INFO] run with param swagger to enable swagger document
             if (args.Contains("swagger")) {
                 _EnableSwagger = true;
+            }
+            // [INFO] allow any origin
+            if (args.Contains("allow-any-origin")) {
+                _AllowAnyOrigin = true;
             }
         }
         private static string[] GetValidParamsFromArgs(in List<string> args)
@@ -159,20 +215,17 @@ namespace CoreApi
             __Logger.Information($"Temp folder: { _TmpPath }");
             if (Utils.GetIpAddress(out var Ips)) {
                 foreach (var ipStr in Ips) {
-                    __Logger.Information( string.Format(
-                        "Listening on: {0}://{1}:{2}",
+                    var listeningAddress = string.Format(
+                        "{0}://{1}:{2}",
                         _EnableSSL ? "https" : "http",
                         ipStr,
                         _Port.ToString()
-                    ));
+                    );
+                    __Logger.Information($"Listening on: { listeningAddress }");
+                    _ListeningAddress.Add(listeningAddress);
                 }
             }
-            __Logger.Information( string.Format(
-                "Listening on: {0}://{1}:{2}",
-                _EnableSSL ? "https" : "http",
-                System.Net.IPAddress.Any.ToString(),
-                _Port.ToString()
-            ));
+            __Logger.Information($"Host URL: { _HostName }");
         }
         private static void LogEndInformation()
         {
