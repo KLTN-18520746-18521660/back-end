@@ -93,7 +93,7 @@
 		```
 	- *Drop database*
 		```
-		dotnet ef database drop DBCreation --context DBContext
+		dotnet ef database drop --context DBContext --no-build
 		```
 	- *Generate script database*
 		```

@@ -55,7 +55,9 @@ namespace MyConsole
         }
         static void Main(string[] args)
         {
-            PrintPassEncrypt();
+            // PrintPassEncrypt();
+            // var s = "2022-03-31 15:11:50 PM";
+            
         }
     }
 }

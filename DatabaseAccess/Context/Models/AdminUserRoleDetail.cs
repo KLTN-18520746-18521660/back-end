@@ -28,7 +28,7 @@ namespace DatabaseAccess.Context.Models
         [NotMapped]
         public JObject Actions { get; set; }
         [Required]
-        [Column("actions", TypeName = "json")]
+        [Column("actions", TypeName = "jsonb")]
         public string ActionsStr {
             get { return Actions.ToString(); }
             set { Actions = JsonConvert.DeserializeObject<JObject>(value); }

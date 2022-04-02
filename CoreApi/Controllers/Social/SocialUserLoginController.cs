@@ -111,7 +111,7 @@ namespace CoreApi.Controllers.Social
 
                 #region Check user is lock or not
                 if (user.Status == AdminUserStatus.Blocked) {
-                    LogInformation($"User has been locked user_name: { model.user_name }, isEmail: { isEmail }");
+                    LogWarning($"User has been locked user_name: { model.user_name }, isEmail: { isEmail }");
                     return Problem(423, "You have been locked.");
                 }
                 #endregion

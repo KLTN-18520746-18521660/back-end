@@ -169,6 +169,14 @@ namespace DatabaseAccess.Context.Models
                     DisplayName = "Log",
                     Describe = "See and tracking log file.",
                     Status = AdminUserRightStatus.Readonly
+                },
+                new AdminUserRight()
+                {
+                    Id = 11,
+                    RightName = "config",
+                    DisplayName = "Config",
+                    Describe = "Modify, get config of server.",
+                    Status = AdminUserRightStatus.Readonly
                 }
             };
             return ListData;
@@ -187,5 +195,6 @@ namespace DatabaseAccess.Context.Models
         public static readonly string SOCIAL_USER = "social_user";
         public static readonly string ADMIN_USER = "admin_user";
         public static readonly string LOG = "log";
+        public static readonly string CONFIG = "config";
     }
 }

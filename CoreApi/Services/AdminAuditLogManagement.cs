@@ -49,7 +49,7 @@ namespace CoreApi.Services
             );
         }
 
-        public async Task AddAuditLog(
+        public async Task AddNewAuditLog(
             string TableName,
             string TableKey,
             string Action,
@@ -65,12 +65,12 @@ namespace CoreApi.Services
             log.OldValue = new LogValue(OldValue);
             log.NewValue = new LogValue(NewValue);
 
-            __DBContext.AdminAuditLogs.Add(log);
+            await __DBContext.AdminAuditLogs.AddAsync(log);
             await __DBContext.SaveChangesAsync();
         }
 
-        public async Task AddAuditLog(AdminAuditLog AuditLog) {
-            __DBContext.AdminAuditLogs.Add(AuditLog);
+        public async Task AddNewAuditLog(AdminAuditLog AuditLog) {
+            await __DBContext.AdminAuditLogs.AddAsync(AuditLog);
             await __DBContext.SaveChangesAsync();
         }
     }

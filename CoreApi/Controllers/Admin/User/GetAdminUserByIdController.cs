@@ -99,7 +99,7 @@ namespace CoreApi.Controllers.Admin.User
         /// <response code="500">
         /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
         /// </response>
-        [HttpGet("/admin/user/{id}")]
+        [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetAdminUserByIdSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
@@ -145,7 +145,7 @@ namespace CoreApi.Controllers.Admin.User
                         return Problem(401, "Session has expired.");
                     }
                     if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogInformation($"User has been locked, session_token: { session_token.Substring(0, 15) }");
+                        LogWarning($"User has been locked, session_token: { session_token.Substring(0, 15) }");
                         return Problem(423, "You have been locked.");
                     }
                     throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
@@ -155,7 +155,7 @@ namespace CoreApi.Controllers.Admin.User
                 #region Check Permission
                 var user = session.User;
                 if (__AdminUserManagement.HaveReadPermission(user.Rights, ADMIN_RIGHTS.ADMIN_USER) == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogInformation($"User doesn't have permission for get admin user, user_name: { user.UserName }");
+                    LogWarning($"User doesn't have permission for get admin user, user_name: { user.UserName }");
                     return Problem(403, "User doesn't have permission for get admin user.");
                 }
                 #endregion

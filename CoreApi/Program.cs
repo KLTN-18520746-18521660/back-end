@@ -1,6 +1,5 @@
 using Common;
 using Common.Logger;
-using Common.Validate;
 using DatabaseAccess;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -94,7 +93,7 @@ namespace CoreApi
             }
             // [INFO] Get custom passeord cert
             _PasswordCert =  configuration.GetSection("Certificate").GetValue<string>("Password");
-            if (_PasswordCert == null) {
+            if (_PasswordCert == null || StringDecryptor.Decrypt(_PasswordCert) == default) {
                 _PasswordCert = ConfigurationDefaultVariable.PASSWORD_CERTIFICATE;
                 warnings.Add($"Password certificate not configured. Use default password: ***");
             } else {
@@ -120,6 +119,11 @@ namespace CoreApi
                     _DBAccessConfig.Port = IBaseConfigurationDB.Port;
                 }
 
+                if (_DBAccessConfig.Password == default) {
+                    warnings.Add($"Configured database password is invalid or null. Use default password.");
+                    _DBAccessConfig.Password = string.Empty;
+                }
+
                 BaseConfigurationDB.Configure(_DBAccessConfig.Host, _DBAccessConfig.User, _DBAccessConfig.Password, _DBAccessConfig.Port, _DBAccessConfig.DBName);
             } else {
                 warnings.Add($"DatabaseAccess configuration not configured. Use default config.");
@@ -142,6 +146,9 @@ namespace CoreApi
                 }
                 if (_EmailClientConfig.User == null || !Utils.IsEmail(_EmailClientConfig.User)) {
                     throw new Exception("User of email client must be an email.");
+                }
+                if (_EmailClientConfig.Password == default) {
+                    throw new Exception("Invalid password for credential of email client.");
                 }
             } else {
                 throw new Exception("Missing email client configuration.");

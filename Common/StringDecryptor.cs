@@ -23,9 +23,13 @@ namespace Common
             }
         }
 
-        public static string Decrypt(string cipher)
+        public static string Decrypt(string text)
         {
-            var data = Convert.FromBase64String(cipher);
+            var spanData = new Span<byte>(new byte[256]);
+            if (!Convert.TryFromBase64String(text, spanData, out int bytesWritten)) {
+                return default;
+            }
+            var data = Convert.FromBase64String(text);
             using (var md5 = new MD5CryptoServiceProvider())
             {
                 var keys = md5.ComputeHash(Encoding.UTF8.GetBytes(key));

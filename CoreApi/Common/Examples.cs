@@ -235,6 +235,13 @@ namespace CoreApi.Common
         [DefaultValue("Not found.")]
         public string error { get; set; }
     }
+    public class StatusCode410Examples
+    {
+        [DefaultValue(410)]
+        public int status { get; set; }
+        [DefaultValue("Link has expired.")]
+        public string error { get; set; }
+    }
     public class StatusCode423Examples
     {
         [DefaultValue(423)]

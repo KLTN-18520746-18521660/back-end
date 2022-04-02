@@ -16,7 +16,6 @@ namespace DatabaseAccess.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("Relational:Collation", "en_US.utf8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63)
                 .HasAnnotation("ProductVersion", "5.0.10")
                 .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
@@ -128,14 +127,14 @@ namespace DatabaseAccess.Migrations
                             Id = 1,
                             ConfigKey = "AdminUserLoginConfig",
                             StatusStr = "Enabled",
-                            ValueStr = "{\r\n  \"number\": 5,\r\n  \"lock\": 360\r\n}"
+                            ValueStr = "{\r\n  \"number_of_times_allow_login_failure\": 5,\r\n  \"lock_time\": 360\r\n}"
                         },
                         new
                         {
                             Id = 2,
                             ConfigKey = "SocialUserLoginConfig",
                             StatusStr = "Enabled",
-                            ValueStr = "{\r\n  \"number\": 5,\r\n  \"lock\": 360\r\n}"
+                            ValueStr = "{\r\n  \"number_of_times_allow_login_failure\": 5,\r\n  \"lock_time\": 360\r\n}"
                         },
                         new
                         {
@@ -150,6 +149,20 @@ namespace DatabaseAccess.Migrations
                             ConfigKey = "SessionSocialUserConfig",
                             StatusStr = "Enabled",
                             ValueStr = "{\r\n  \"expiry_time\": 5,\r\n  \"extension_time\": 5\r\n}"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            ConfigKey = "EmailClientConfig",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\r\n  \"limit_sender\": 5,\r\n  \"template_user_signup\": \"<p>Dear @Model.UserName,</p>\\r\\n                                        <p>Confirm link here: <a href='@UserName.ConfirmLink'>@Model.ConfirmLink</a><br>\\r\\n                                        Send datetime: @Model.DateTimeSend</p>\\r\\n                                        <p>Thanks for your register.</p>\"\r\n}"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            ConfigKey = "SocialUserConfirmConfig",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\r\n  \"expiry_time\": 2880,\r\n  \"number_of_times_allow_confirm_failure\": 3\r\n}"
                         });
                 });
 
@@ -194,7 +207,7 @@ namespace DatabaseAccess.Migrations
                     b.Property<string>("SettingsStr")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
+                        .HasColumnType("jsonb")
                         .HasColumnName("settings")
                         .HasDefaultValueSql("'{}'");
 
@@ -233,14 +246,14 @@ namespace DatabaseAccess.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("1bc69c16-6a6a-4136-840b-3c7ad8233018"),
-                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 108, DateTimeKind.Utc).AddTicks(5290),
+                            Id = new Guid("bc70663e-2772-4cef-aee0-a82c0e941383"),
+                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 909, DateTimeKind.Utc).AddTicks(2613),
                             DisplayName = "Administrator",
                             Email = "admin@admin",
-                            Salt = "a24fa309",
+                            Salt = "bcd98f60",
                             SettingsStr = "{}",
                             StatusStr = "Readonly",
-                            StorePassword = "BBE1CE8AC9208AA8CE39C68B4740691C",
+                            StorePassword = "B2B7DBDEBBF745D90F884F4212799BA8",
                             UserName = "admin"
                         });
                 });
@@ -369,6 +382,14 @@ namespace DatabaseAccess.Migrations
                             DisplayName = "Log",
                             RightName = "log",
                             StatusStr = "Readonly"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Describe = "Modify, get config of server.",
+                            DisplayName = "Config",
+                            RightName = "config",
+                            StatusStr = "Readonly"
                         });
                 });
 
@@ -440,9 +461,9 @@ namespace DatabaseAccess.Migrations
                     b.Property<string>("ActionsStr")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
+                        .HasColumnType("jsonb")
                         .HasColumnName("actions")
-                        .HasDefaultValueSql("'{}'");
+                        .HasDefaultValueSql("'{\r\n  \"read\": false,\r\n  \"write\": false\r\n}'");
 
                     b.HasKey("RoleId", "RightId");
 
@@ -510,6 +531,12 @@ namespace DatabaseAccess.Migrations
                             RoleId = 1,
                             RightId = 10,
                             ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 11,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
                         });
                 });
 
@@ -532,7 +559,7 @@ namespace DatabaseAccess.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = new Guid("1bc69c16-6a6a-4136-840b-3c7ad8233018"),
+                            UserId = new Guid("bc70663e-2772-4cef-aee0-a82c0e941383"),
                             RoleId = 1
                         });
                 });
@@ -553,7 +580,7 @@ namespace DatabaseAccess.Migrations
                     b.Property<string>("DataStr")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
+                        .HasColumnType("jsonb")
                         .HasColumnName("data")
                         .HasDefaultValueSql("'{}'");
 
@@ -597,7 +624,7 @@ namespace DatabaseAccess.Migrations
                     b.Property<string>("DataStr")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
+                        .HasColumnType("jsonb")
                         .HasColumnName("data")
                         .HasDefaultValueSql("'{}'");
 
@@ -773,7 +800,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 183, DateTimeKind.Utc).AddTicks(3767),
+                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 935, DateTimeKind.Utc).AddTicks(9476),
                             Describe = "This not a bug this a feature",
                             DisplayName = "Technology",
                             Name = "technology",
@@ -783,7 +810,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 2L,
-                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 183, DateTimeKind.Utc).AddTicks(3872),
+                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 935, DateTimeKind.Utc).AddTicks(9549),
                             Describe = "Do not click to this",
                             DisplayName = "Developer",
                             Name = "developer",
@@ -793,7 +820,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 3L,
-                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 183, DateTimeKind.Utc).AddTicks(3877),
+                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 935, DateTimeKind.Utc).AddTicks(9555),
                             Describe = "Search google to have better solution",
                             DisplayName = "Dicussion",
                             Name = "dicussion",
@@ -803,7 +830,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 4L,
-                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 183, DateTimeKind.Utc).AddTicks(3899),
+                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 935, DateTimeKind.Utc).AddTicks(9559),
                             Describe = "Nothing in here",
                             DisplayName = "Blog",
                             Name = "blog",
@@ -813,7 +840,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 5L,
-                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 183, DateTimeKind.Utc).AddTicks(3905),
+                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 935, DateTimeKind.Utc).AddTicks(9580),
                             Describe = "Life die have number",
                             DisplayName = "Left",
                             Name = "left",
@@ -901,7 +928,7 @@ namespace DatabaseAccess.Migrations
                     b.Property<string>("ContentStr")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
+                        .HasColumnType("jsonb")
                         .HasColumnName("content")
                         .HasDefaultValueSql("'{}'");
 
@@ -946,6 +973,12 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("id")
                         .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn);
 
+                    b.Property<string>("ContenTypeStr")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)")
+                        .HasColumnName("content_type");
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("text")
@@ -976,6 +1009,11 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("search_vector")
                         .HasAnnotation("Npgsql:TsVectorConfig", "english")
                         .HasAnnotation("Npgsql:TsVectorProperties", new[] { "ContentSearch", "Title" });
+
+                    b.Property<string>("ShortContent")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("short_content");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -1021,9 +1059,11 @@ namespace DatabaseAccess.Migrations
 
                     b.HasIndex(new[] { "Slug" }, "IX_social_post_slug")
                         .IsUnique()
-                        .HasFilter("(status) <> 'Deleted'");
+                        .HasFilter("((status = 'Approved') AND (slug <> ''))");
 
                     b.ToTable("social_post");
+
+                    b.HasCheckConstraint("CK_social_post_content_type_valid_value", "content_type = 'HTML' OR content_type = 'markdown'");
 
                     b.HasCheckConstraint("CK_social_post_status_valid_value", "status = 'Pending' OR status = 'Approved' OR status = 'Private' OR status = 'Deleted'");
 
@@ -1184,7 +1224,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 200, DateTimeKind.Utc).AddTicks(5950),
+                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 954, DateTimeKind.Utc).AddTicks(8682),
                             Describe = "Angular",
                             StatusStr = "Readonly",
                             Tag = "#angular"
@@ -1192,7 +1232,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 2L,
-                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 200, DateTimeKind.Utc).AddTicks(5987),
+                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 954, DateTimeKind.Utc).AddTicks(8721),
                             Describe = "Something is not thing",
                             StatusStr = "Readonly",
                             Tag = "#life-die-have-number"
@@ -1200,7 +1240,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 3L,
-                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 200, DateTimeKind.Utc).AddTicks(5991),
+                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 954, DateTimeKind.Utc).AddTicks(8727),
                             Describe = "Dot not choose this tag",
                             StatusStr = "Readonly",
                             Tag = "#develop"
@@ -1208,7 +1248,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 4L,
-                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 200, DateTimeKind.Utc).AddTicks(5995),
+                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 954, DateTimeKind.Utc).AddTicks(8730),
                             Describe = "Nothing in here",
                             StatusStr = "Readonly",
                             Tag = "#nothing"
@@ -1216,7 +1256,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 5L,
-                            CreatedTimestamp = new DateTime(2022, 3, 15, 17, 11, 55, 200, DateTimeKind.Utc).AddTicks(5998),
+                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 954, DateTimeKind.Utc).AddTicks(8734),
                             Describe = "hi hi",
                             StatusStr = "Readonly",
                             Tag = "#hihi"
@@ -1292,7 +1332,7 @@ namespace DatabaseAccess.Migrations
                     b.Property<string>("RanksStr")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
+                        .HasColumnType("jsonb")
                         .HasColumnName("ranks")
                         .HasDefaultValueSql("'{}'");
 
@@ -1314,7 +1354,7 @@ namespace DatabaseAccess.Migrations
                     b.Property<string>("SettingsStr")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
+                        .HasColumnType("jsonb")
                         .HasColumnName("settings")
                         .HasDefaultValueSql("'{}'");
 
@@ -1376,7 +1416,7 @@ namespace DatabaseAccess.Migrations
                     b.Property<string>("ActionsStr")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
+                        .HasColumnType("jsonb")
                         .HasColumnName("actions")
                         .HasDefaultValueSql("'[]'");
 
@@ -1400,7 +1440,7 @@ namespace DatabaseAccess.Migrations
                     b.Property<string>("ActionsStr")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
+                        .HasColumnType("jsonb")
                         .HasColumnName("actions")
                         .HasDefaultValueSql("'[]'");
 
@@ -1424,7 +1464,7 @@ namespace DatabaseAccess.Migrations
                     b.Property<string>("ActionsStr")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
+                        .HasColumnType("jsonb")
                         .HasColumnName("actions")
                         .HasDefaultValueSql("'[]'");
 
@@ -1448,7 +1488,7 @@ namespace DatabaseAccess.Migrations
                     b.Property<string>("ActionsStr")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
+                        .HasColumnType("jsonb")
                         .HasColumnName("actions")
                         .HasDefaultValueSql("'[]'");
 
@@ -1472,7 +1512,7 @@ namespace DatabaseAccess.Migrations
                     b.Property<string>("ActionsStr")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
+                        .HasColumnType("jsonb")
                         .HasColumnName("actions")
                         .HasDefaultValueSql("'[]'");
 
@@ -1481,6 +1521,61 @@ namespace DatabaseAccess.Migrations
                     b.HasIndex("UserIdDes");
 
                     b.ToTable("social_user_action_with_user");
+                });
+
+            modelBuilder.Entity("DatabaseAccess.Context.Models.SocialUserAuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("action");
+
+                    b.Property<string>("NewValueStr")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("new_value");
+
+                    b.Property<string>("OldValueStr")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("old_value");
+
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .HasColumnType("tsvector")
+                        .HasColumnName("search_vector");
+
+                    b.Property<string>("Table")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("table");
+
+                    b.Property<string>("TableKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("table_key");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("timestamp");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("social_user_audit_log");
                 });
 
             modelBuilder.Entity("DatabaseAccess.Context.Models.SocialUserRight", b =>
@@ -1622,9 +1717,9 @@ namespace DatabaseAccess.Migrations
                     b.Property<string>("ActionsStr")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("json")
+                        .HasColumnType("jsonb")
                         .HasColumnName("actions")
-                        .HasDefaultValueSql("'{}'");
+                        .HasDefaultValueSql("'{\r\n  \"read\": false,\r\n  \"write\": false\r\n}'");
 
                     b.HasKey("RoleId", "RightId");
 
@@ -1743,7 +1838,7 @@ namespace DatabaseAccess.Migrations
 
             modelBuilder.Entity("DatabaseAccess.Context.Models.SocialAuditLog", b =>
                 {
-                    b.HasOne("DatabaseAccess.Context.Models.SocialUser", "User")
+                    b.HasOne("DatabaseAccess.Context.Models.AdminUser", "User")
                         .WithMany("SocialAuditLogs")
                         .HasForeignKey("UserId")
                         .HasConstraintName("FK_social_audit_log_user_id")
@@ -1968,6 +2063,17 @@ namespace DatabaseAccess.Migrations
                     b.Navigation("UserIdDesNavigation");
                 });
 
+            modelBuilder.Entity("DatabaseAccess.Context.Models.SocialUserAuditLog", b =>
+                {
+                    b.HasOne("DatabaseAccess.Context.Models.SocialUser", "User")
+                        .WithMany("SocialUserAuditLogs")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("DatabaseAccess.Context.Models.SocialUserRoleDetail", b =>
                 {
                     b.HasOne("DatabaseAccess.Context.Models.SocialUserRight", "Right")
@@ -2013,6 +2119,8 @@ namespace DatabaseAccess.Migrations
                     b.Navigation("AdminUserRoleOfUsers");
 
                     b.Navigation("SessionAdminUsers");
+
+                    b.Navigation("SocialAuditLogs");
                 });
 
             modelBuilder.Entity("DatabaseAccess.Context.Models.AdminUserRight", b =>
@@ -2069,8 +2177,6 @@ namespace DatabaseAccess.Migrations
                 {
                     b.Navigation("SessionSocialUsers");
 
-                    b.Navigation("SocialAuditLogs");
-
                     b.Navigation("SocialComments");
 
                     b.Navigation("SocialNotifications");
@@ -2090,6 +2196,8 @@ namespace DatabaseAccess.Migrations
                     b.Navigation("SocialUserActionWithUserUserIdDesNavigations");
 
                     b.Navigation("SocialUserActionWithUserUsers");
+
+                    b.Navigation("SocialUserAuditLogs");
 
                     b.Navigation("SocialUserRoleOfUsers");
                 });

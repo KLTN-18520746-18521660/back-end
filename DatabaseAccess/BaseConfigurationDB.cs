@@ -17,7 +17,7 @@ namespace DatabaseAccess
 
     public class BaseConfigurationDB : IBaseConfigurationDB
     {
-        private static string _DBName = "postgres";
+        private static string _DBName = "db_pro_vip";
         protected static bool _IsConfigured = false;
 
         public static string DBName { get => _DBName; }

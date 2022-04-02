@@ -23,34 +23,33 @@ namespace CoreApi.Services
             __ServiceName = "SocialAuditLogManagement";
         }
 
-        public async Task<(List<SocialAuditLog> AuditLogs, int TotalSize)> GetAllAuditLog(Guid UserId, int Start, int Size, string SearchTerm = null)
+        public async Task<(List<SocialAuditLog> AuditLogs, int TotalSize)> GetAllAuditLog(int Start, int Size, string SearchTerm = null)
         {
             if (SearchTerm == null || SearchTerm == "") {
-                return
+                return 
                 (
                     await __DBContext.SocialAuditLogs
-                        .Where(e => e.UserId == UserId)
                         .OrderBy(e => e.Id)
                         .Skip(Start)
                         .Take(Size)
                         .ToListAsync(),
-                    await __DBContext.SocialAuditLogs.CountAsync(e => e.UserId == UserId)
+                    await __DBContext.SocialAuditLogs.CountAsync()
                 );
             }
             return
             (
                 await __DBContext.SocialAuditLogs
-                    .Where(e => e.SearchVector.Matches(SearchTerm) && e.UserId == UserId)
+                    .Where(e => e.SearchVector.Matches(SearchTerm))
                     .OrderBy(e => e.Id)
                     .Skip(Start)
                     .Take(Size)
                     .ToListAsync(),
                 await __DBContext.SocialAuditLogs
-                    .CountAsync(e => e.SearchVector.Matches(SearchTerm) && e.UserId == UserId)
+                    .CountAsync(e => e.SearchVector.Matches(SearchTerm))
             );
         }
 
-        public async Task AddAuditLog(
+        public async Task AddNewAuditLog(
             string TableName,
             string TableKey,
             string Action,
@@ -66,12 +65,12 @@ namespace CoreApi.Services
             log.OldValue = new LogValue(OldValue);
             log.NewValue = new LogValue(NewValue);
 
-            __DBContext.SocialAuditLogs.Add(log);
+            await __DBContext.SocialAuditLogs.AddAsync(log);
             await __DBContext.SaveChangesAsync();
         }
 
-        public async Task AddAuditLog(SocialAuditLog AuditLog) {
-            __DBContext.SocialAuditLogs.Add(AuditLog);
+        public async Task AddNewAuditLog(SocialAuditLog AuditLog) {
+            await __DBContext.SocialAuditLogs.AddAsync(AuditLog);
             await __DBContext.SaveChangesAsync();
         }
     }

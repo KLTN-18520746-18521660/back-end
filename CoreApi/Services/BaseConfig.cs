@@ -10,29 +10,48 @@ using Microsoft.EntityFrameworkCore;
 
 using CoreApi.Common;
 using System.Text;
+using Newtonsoft.Json;
+using System.Threading;
 
 namespace CoreApi.Services
 {
     public class BaseConfig : BaseService
     {
         List<AdminBaseConfig> Configs;
+        SemaphoreSlim Gate;
+        bool isReloadConfig;
         public BaseConfig(DBContext _DBContext,
                           IServiceProvider _IServiceProvider)
             : base(_DBContext, _IServiceProvider)
         {
             __ServiceName = "BaseConfig";
             Configs = __DBContext.AdminBaseConfigs.ToList();
+            Gate = new SemaphoreSlim(1);
+            isReloadConfig = false;
             LogInformation("Init load all config successfully.");
         }
 
         public async Task ReLoadConfig()
         {
+            await Gate.WaitAsync();
+            isReloadConfig = true;
             Configs = await __DBContext.AdminBaseConfigs.ToListAsync();
+            isReloadConfig = false;
+            Gate.Release();
             LogInformation("Reload all config successfully.");
+        }
+
+        public (JArray Value, string Error) GetAllConfig()
+        {
+            while(isReloadConfig);
+            JArray ret = new JArray();
+            Configs.ForEach(e => ret.Add(e.GetJsonObject()));
+            return (ret, "");
         }
 
         public (JObject Value, string Error) GetConfigValue(CONFIG_KEY ConfigKey)
         {
+            while(isReloadConfig);
             string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
             var config = Configs
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
@@ -51,6 +70,7 @@ namespace CoreApi.Services
 
         public (T Value, string Error) GetConfigValue<T>(CONFIG_KEY ConfigKey, SUB_CONFIG_KEY SubConfigKey)
         {
+            while(isReloadConfig);
             string Error = "";
             if (typeof(T) != typeof(string) && typeof(T) != typeof(int)) {
                 Error = $"GetConfigValue. Unsupport convert type: { typeof(T) }";

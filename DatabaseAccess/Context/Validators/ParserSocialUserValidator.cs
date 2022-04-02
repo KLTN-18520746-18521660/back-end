@@ -36,16 +36,18 @@ namespace DatabaseAccess.Context.Validators
                 .Length(4, 25)
                     .WithMessage("Length of {PropertyName} must be from 4 to 25.");
 
-            RuleFor(entity => entity.display_name)
-                .Cascade(CascadeMode.Stop)
-                .NotNull()
-                    .WithMessage("{PropertyName} is null.")
-                .NotEmpty()
-                    .WithMessage("{PropertyName} is empty.")
-                .Length(4, 50)
-                    .WithMessage("Length of {PropertyName} must be from 4 to 50.")
-                .Matches("^.+$")
-                    .WithMessage("{PropertyName} only accept [0-9a-zA-Z], '_'.");
+            When(entity => entity.display_name != default, () => {
+                RuleFor(entity => entity.display_name)
+                    .Cascade(CascadeMode.Stop)
+                    .NotNull()
+                        .WithMessage("{PropertyName} is null.")
+                    .NotEmpty()
+                        .WithMessage("{PropertyName} is empty.")
+                    .Length(4, 50)
+                        .WithMessage("Length of {PropertyName} must be from 4 to 50.")
+                    .Matches("^.+$")
+                        .WithMessage("{PropertyName} only accept [0-9a-zA-Z], '_'.");
+            });
 
             RuleFor(entity => entity.password)
                 .Cascade(CascadeMode.Stop)
@@ -67,59 +69,71 @@ namespace DatabaseAccess.Context.Validators
                 .Matches("^[a-z0-9_\\.]{1,64}@[a-z]+\\.[a-z]{2,3}$")
                     .WithMessage("Email is invalid.");
 
-            RuleFor(entity => entity.sex)
-                .Cascade(CascadeMode.Stop)
-                .NotNull()
-                    .WithMessage("{PropertyName} is null.")
-                .NotEmpty()
-                    .WithMessage("{PropertyName} is empty.")
-                .MaximumLength(10)
-                    .WithMessage("Length of {PropertyName} must be equals or less than 10.");
+            When(entity => entity.sex != default, () => {
+                RuleFor(entity => entity.sex)
+                    .Cascade(CascadeMode.Stop)
+                    .NotNull()
+                        .WithMessage("{PropertyName} is null.")
+                    .NotEmpty()
+                        .WithMessage("{PropertyName} is empty.")
+                    .MaximumLength(10)
+                        .WithMessage("Length of {PropertyName} must be equals or less than 10.");
+            });
 
-            RuleFor(entity => entity.phone)
-                .Cascade(CascadeMode.Stop)
-                .NotNull()
-                    .WithMessage("{PropertyName} is null.")
-                .NotEmpty()
-                    .WithMessage("{PropertyName} is empty.")
-                .Length(8, 20)
-                    .WithMessage("Length of {PropertyName} must be from 8 to 20.")
-                .Matches("^[+]{0,1}[0-9]+$")
-                    .WithMessage("{PropertyName} only accept [0-9], '+'.");
-            
-            RuleFor(entity => entity.city)
-                .Cascade(CascadeMode.Stop)
-                .NotNull()
-                    .WithMessage("{PropertyName} is null.")
-                .NotEmpty()
-                    .WithMessage("{PropertyName} is empty.")
-                .MaximumLength(20)
-                    .WithMessage("Length of {PropertyName} must be equals or less than 20.");
+            When(entity => entity.phone != default, () => {
+                RuleFor(entity => entity.phone)
+                    .Cascade(CascadeMode.Stop)
+                    .NotNull()
+                        .WithMessage("{PropertyName} is null.")
+                    .NotEmpty()
+                        .WithMessage("{PropertyName} is empty.")
+                    .Length(8, 20)
+                        .WithMessage("Length of {PropertyName} must be from 8 to 20.")
+                    .Matches("^[+]{0,1}[0-9]+$")
+                        .WithMessage("{PropertyName} only accept [0-9], '+'.");
+            });
 
-            RuleFor(entity => entity.province)
-                .Cascade(CascadeMode.Stop)
-                .NotNull()
-                    .WithMessage("{PropertyName} is null.")
-                .NotEmpty()
-                    .WithMessage("{PropertyName} is empty.")
-                .MaximumLength(20)
-                    .WithMessage("Length of {PropertyName} must be equals or less than 10.");
+            When(entity => entity.city != default, () => {
+                RuleFor(entity => entity.city)
+                    .Cascade(CascadeMode.Stop)
+                    .NotNull()
+                        .WithMessage("{PropertyName} is null.")
+                    .NotEmpty()
+                        .WithMessage("{PropertyName} is empty.")
+                    .MaximumLength(20)
+                        .WithMessage("Length of {PropertyName} must be equals or less than 20.");
+            });
 
-            RuleFor(entity => entity.country)
-                .Cascade(CascadeMode.Stop)
-                .NotNull()
-                    .WithMessage("{PropertyName} is null.")
-                .NotEmpty()
-                    .WithMessage("{PropertyName} is empty.")
-                .MaximumLength(20)
-                    .WithMessage("Length of {PropertyName} must be equals or less than 20.");
+            When(entity => entity.province != default, () => {
+                RuleFor(entity => entity.province)
+                    .Cascade(CascadeMode.Stop)
+                    .NotNull()
+                        .WithMessage("{PropertyName} is null.")
+                    .NotEmpty()
+                        .WithMessage("{PropertyName} is empty.")
+                    .MaximumLength(20)
+                        .WithMessage("Length of {PropertyName} must be equals or less than 10.");
+            });
 
+            When(entity => entity.country != default, () => {
+                RuleFor(entity => entity.country)
+                    .Cascade(CascadeMode.Stop)
+                    .NotNull()
+                        .WithMessage("{PropertyName} is null.")
+                    .NotEmpty()
+                        .WithMessage("{PropertyName} is empty.")
+                    .MaximumLength(20)
+                        .WithMessage("Length of {PropertyName} must be equals or less than 20.");
+            });
+
+            When(entity => entity.settings != default, () => {
             RuleFor(entity => entity.settings)
                 .Cascade(CascadeMode.Stop)
                 .NotNull()
                     .WithMessage("{PropertyName} is null.")
                 .Must(rights => rights.Type == Newtonsoft.Json.Linq.JTokenType.Object)
                     .WithMessage("{PropertyName} must be a Json object.");
+            });
         }
     }
 }

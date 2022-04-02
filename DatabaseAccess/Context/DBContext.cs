@@ -1,6 +1,7 @@
 ﻿using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -42,6 +43,7 @@ namespace DatabaseAccess.Context
         public virtual DbSet<SocialUserActionWithPost> SocialUserActionWithPosts { get; set; }
         public virtual DbSet<SocialUserActionWithTag> SocialUserActionWithTags { get; set; }
         public virtual DbSet<SocialUserActionWithUser> SocialUserActionWithUsers { get; set; }
+        public virtual DbSet<SocialUserAuditLog> SocialUserAuditLogs { get; set; }
         public virtual DbSet<SocialUserRight> SocialUserRights { get; set; }
         public virtual DbSet<SocialUserRole> SocialUserRoles { get; set; }
 
@@ -64,7 +66,7 @@ namespace DatabaseAccess.Context
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            modelBuilder.HasAnnotation("Relational:Collation", "en_US.utf8");
+            // modelBuilder.HasAnnotation("Relational:Collation", "en_US.utf8");
             ConfigureEnityAdminAuditLog(modelBuilder);
             ConfigureEnityAdminBaseConfig(modelBuilder);
             ConfigureEnityAdminUser(modelBuilder);
@@ -243,9 +245,13 @@ namespace DatabaseAccess.Context
         {
             modelBuilder.Entity<AdminUserRoleDetail>(entity =>
             {
+                var DefaultActions = new JObject{
+                    { "read",  false },
+                    { "write", false }
+                };
                 entity.HasKey(e => new { e.RoleId, e.RightId });
                 entity.Property(e => e.ActionsStr)
-                    .HasDefaultValueSql("'{}'");
+                    .HasDefaultValueSql($"'{ DefaultActions.ToString() }'");
 
                 entity.HasOne(d => d.Right)
                     .WithMany(p => p.AdminUserRoleDetails)
@@ -502,7 +508,7 @@ namespace DatabaseAccess.Context
             {
                 entity.HasIndex(e => e.Slug, "IX_social_post_slug")
                     .IsUnique()
-                    .HasFilter($"(status) <> '{ BaseStatus.StatusToString(SocialPostStatus.Deleted, EntityStatus.SocialPostStatus) }'");
+                    .HasFilter($"((status = '{ BaseStatus.StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus) }') AND (slug <> ''))");
 
                 entity.Property(e => e.Id)
                     .UseIdentityAlwaysColumn();
@@ -523,6 +529,14 @@ namespace DatabaseAccess.Context
                     )
                     .HasIndex(e => e.SearchVector)
                     .HasMethod("GIST");
+                entity
+                    .HasCheckConstraint(
+                        "CK_social_post_content_type_valid_value",
+                        string.Format("content_type = '{0}' OR content_type = '{1}'",
+                            SocialPost.ContentTypeToString(CONTENT_TYPE.HTML),
+                            SocialPost.ContentTypeToString(CONTENT_TYPE.MARKDOWN)
+                        )
+                    );
                 entity
                     .HasCheckConstraint(
                         "CK_social_post_status_valid_value",
@@ -826,6 +840,32 @@ namespace DatabaseAccess.Context
             });
         }
         #endregion
+        #region Table SocialUserAuditLog
+        private static void ConfigureEnitySocialUserAuditLog(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<SocialUserAuditLog>(entity =>
+            {
+                entity.Property(e => e.Id)
+                    .UseIdentityAlwaysColumn();
+                entity.Property(e => e.Timestamp)
+                    .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
+
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.SocialUserAuditLogs)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_social_user_audit_log_user_id");
+                entity
+                    .HasGeneratedTsVectorColumn(
+                        e => e.SearchVector,
+                        "english",
+                        e => new { e.Table, e.TableKey, e.OldValueStr, e.NewValueStr }
+                    )
+                    .HasIndex(e => e.SearchVector)
+                    .HasMethod("GIN");
+            });
+        }
+        #endregion
         #region Table SocialUserRight
         private static void ConfigureEnitySocialUserRight(ModelBuilder modelBuilder)
         {
@@ -880,9 +920,13 @@ namespace DatabaseAccess.Context
         {
             modelBuilder.Entity<SocialUserRoleDetail>(entity =>
             {
+                var DefaultActions = new JObject{
+                    { "read",  false },
+                    { "write", false }
+                };
                 entity.HasKey(e => new { e.RoleId, e.RightId });
                 entity.Property(e => e.ActionsStr)
-                    .HasDefaultValueSql("'{}'");
+                    .HasDefaultValueSql($"'{ DefaultActions.ToString() }'");
 
                 entity.HasOne(d => d.Right)
                     .WithMany(p => p.SocialUserRoleDetails)

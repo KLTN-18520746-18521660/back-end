@@ -129,4 +129,10 @@ namespace DatabaseAccess.Context.Models
             return Rights;
         }
     }
+    public static class SOCIAL_RIGHTS
+    {
+        public static readonly string POST = "post";
+        public static readonly string COMMENT = "comment";
+        public static readonly string REPORT = "report";
+    }
 }

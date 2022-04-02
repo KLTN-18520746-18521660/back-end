@@ -29,7 +29,7 @@ namespace DatabaseAccess.Context.Models
         [NotMapped]
         public JObject Data { get; set; }
         [Required]
-        [Column("data", TypeName = "json")]
+        [Column("data", TypeName = "jsonb")]
         public string DataStr {
             get { return Data.ToString(); }
             set { Data = JsonConvert.DeserializeObject<JObject>(value); }

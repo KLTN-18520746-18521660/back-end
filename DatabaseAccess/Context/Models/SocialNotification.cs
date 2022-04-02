@@ -34,7 +34,7 @@ namespace DatabaseAccess.Context.Models
         [NotMapped]
         public JObject Content { get; set; }
         [Required]
-        [Column("content", TypeName = "json")]
+        [Column("content", TypeName = "jsonb")]
         public string ContentStr {
             get { return Content.ToString(); }
             set { Content = JsonConvert.DeserializeObject<JObject>(value); }

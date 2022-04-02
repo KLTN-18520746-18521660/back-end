@@ -16,6 +16,11 @@ using Common;
 
 namespace DatabaseAccess.Context.Models
 {
+    public enum CONTENT_TYPE {
+        INVALID = 0,
+        HTML = 1,
+        MARKDOWN = 2,
+    }
     [Table("social_post")]
     public class SocialPost : BaseModel
     {
@@ -68,7 +73,22 @@ namespace DatabaseAccess.Context.Models
             set {
                 _content = value;
                 ContentSearch = Utils.TakeContentForSearchFromRawContent(value);
+                if (ShortContent == default || ShortContent == string.Empty) {
+                    ShortContent = Utils.TakeShortContentFromContentSearch(ContentSearch);
+                }
             }
+        }
+        [Required]
+        [Column("short_content")]
+        public string ShortContent { get; set; }
+        [NotMapped]
+        public CONTENT_TYPE ContentType;
+        [Required]
+        [Column("content_type")]
+        [StringLength(15)]
+        public string ContenTypeStr {
+            get => ContentTypeToString(ContentType);
+            set => ContentType = StringToContentType(value);
         }
         [Column("search_vector")]
         public NpgsqlTsVector SearchVector { get; set; }
@@ -107,11 +127,11 @@ namespace DatabaseAccess.Context.Models
             Error = "";
             try {
                 var parser = (ParserModels.ParserSocialPost)Parser;
-                Owner = parser.owner;
                 Title = parser.title;
                 Thumbnail = parser.thumbnail;
                 Content = parser.content;
-                
+                ContenTypeStr = parser.content_type;
+
                 return true;
             } catch (Exception ex) {
                 Error = ex.ToString();
@@ -132,6 +152,7 @@ namespace DatabaseAccess.Context.Models
                 // { "comments", SocialComments.Count<SocialComment>(p => p.Status != SocialCommentStatus.Deleted) },
                 // { "likes", SocialUserActionWithPosts.Count<SocialUserActionWithPost>(p => p.Actions.li) },
                 { "content", Content },
+                { "content_type", ContenTypeStr },
                 { "status", StatusStr },
                 { "created_timestamp", CreatedTimestamp },
                 { "last_modified_timestamp", LastModifiedTimestamp },
@@ -141,6 +162,25 @@ namespace DatabaseAccess.Context.Models
             };
             return true;
         }
-
+        public static CONTENT_TYPE StringToContentType(string ContentType) {
+            switch (ContentType) {
+                case "HTML":
+                    return CONTENT_TYPE.HTML;
+                case "MARKDOWN":
+                    return CONTENT_TYPE.MARKDOWN;
+                default:
+                    return CONTENT_TYPE.INVALID;
+            }
+        }
+        public static string ContentTypeToString(CONTENT_TYPE ContentType) {
+            switch (ContentType) {
+                case CONTENT_TYPE.HTML:
+                    return "HTML";
+                case CONTENT_TYPE.MARKDOWN:
+                    return "markdown";
+                default:
+                    return "Invalid content type.";
+            }
+        }
     }
 }

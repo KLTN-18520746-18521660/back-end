@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using Serilog.Core;
 using Serilog.Events;
+using System.Text;
 
 namespace Common.Logger
 {
@@ -19,12 +20,12 @@ namespace Common.Logger
 #if DEBUG
             logEventProperty = propertyFactory.CreateProperty(
                 "EscapedException",
-                Regex.Replace(logEvent.Exception.ToString(), Environment.NewLine, " ")
+                (new StringBuilder(Regex.Replace(logEvent.Exception.ToString(), Environment.NewLine, " ")).Append(Environment.NewLine)).ToString()
             );
 #else
             logEventProperty = propertyFactory.CreateProperty(
                 "EscapedException",
-                "logEvent.Exception.ToString().Split(System.Environment.NewLine)[0]"
+                (new StringBuilder(logEvent.Exception.ToString().Split(System.Environment.NewLine)[0]).Append(Environment.NewLine)).ToString()
             );
 #endif
             logEvent.AddPropertyIfAbsent(logEventProperty);

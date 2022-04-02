@@ -6,6 +6,7 @@ using DatabaseAccess.Context;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -85,7 +86,9 @@ namespace CoreApi
                     .AddTransient<AdminUserManagement>()
                     .AddTransient<AdminAuditLogManagement>()
                     .AddTransient<SessionAdminUserManagement>()
+                    .AddTransient<SocialPostManagement>()
                     .AddTransient<SocialUserManagement>()
+                    .AddTransient<SocialUserAuditLogManagement>()
                     .AddTransient<SocialAuditLogManagement>()
                     .AddTransient<SessionSocialUserManagement>();
             #endregion
@@ -97,6 +100,7 @@ namespace CoreApi
                 })
                 .ConfigureApiBehaviorOptions(options => {
                     options.SuppressMapClientErrors = true;
+                    options.SuppressModelStateInvalidFilter = true;
                 });
             #region Config Swagger document
             services.AddSwaggerGen(c => {

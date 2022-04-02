@@ -39,6 +39,9 @@ namespace DatabaseAccess.Common.Models
         public JObject GetJsonObject() {
             return JsonConvert.DeserializeObject<JObject>(ToJsonString());
         }
+        public virtual JObject GetPublicJsonObject(List<string> publicFields = null) {
+            return JsonConvert.DeserializeObject<JObject>(ToJsonString());
+        }
 
         public abstract bool PrepareExportObjectJson();
         public abstract bool Parse(IBaseParserModel Parser, out string Error);

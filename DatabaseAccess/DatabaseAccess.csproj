@@ -17,14 +17,10 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.10" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Contexts\CachedDB\Validators\" />
-    <Folder Include="Contexts\CachedDB\ParserModels\" />
-    <Folder Include="Contexts\ConfigDB\Validators\" />
     <Folder Include="Migrations\" />
   </ItemGroup>
 

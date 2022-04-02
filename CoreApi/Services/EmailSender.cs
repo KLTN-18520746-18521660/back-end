@@ -186,6 +186,7 @@ namespace CoreApi.Services
         {
             SocialUser user = null;
             bool sendSuccess = false;
+            string RequestState = string.Empty;
             using (var scope = __ServiceProvider.CreateScope())
             {
                 var __SocialUserManagement = scope.ServiceProvider.GetRequiredService<SocialUserManagement>();
@@ -196,7 +197,7 @@ namespace CoreApi.Services
                     return;
                 }
                 if (user.VerifiedEmail) {
-                    LogWarning($"TraceId: { TraceId }, User have verified email, user_id: { user.Id }");
+                    LogInformation($"TraceId: { TraceId }, User has verified email, user_id: { user.Id }");
                     return;
                 }
                 user.Settings.Remove("confirm_email");
@@ -208,9 +209,11 @@ namespace CoreApi.Services
                     return;
                 }
                 #region Send Email
+                var urlConfirm = "";
+                (urlConfirm, RequestState) = Utils.GenerateUrlConfirm(user.Id, Program.HostName);
                 var model = new UserSignUpEmailModel() {
                     UserName = user.UserName,
-                    ConfirmLink = Utils.GenerateUrlConfirm(user.Id, Program.HostName),
+                    ConfirmLink = urlConfirm,
                 };
                 sendSuccess = await SendEmail<UserSignUpEmailModel>(new EmailForm() {
                     ToEmail = user.Email,
@@ -225,7 +228,9 @@ namespace CoreApi.Services
             user.Settings.Add("confirm_email", new JObject(){
                 { "is_sending", false },
                 { "send_success", sendSuccess },
-                { "date", DateTime.UtcNow },
+                { "send_date", DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT) },
+                { "confirm_date", null },
+                { "state", RequestState },
             });
             if (await __DBContext.SaveChangesAsync() <= 0) {
                 LogError($"TraceId: { TraceId }, 'SendEmailUserSignUp', Can't save changes after send email, user_id: { user.Id }");

@@ -55,8 +55,8 @@ namespace DatabaseAccess.Context.Models
         [Column("search_vector")]
         public NpgsqlTsVector SearchVector { get; set; }
         [ForeignKey(nameof(UserId))]
-        [InverseProperty(nameof(SocialUser.SocialAuditLogs))]
-        public virtual SocialUser User { get; set; }
+        [InverseProperty(nameof(AdminUser.SocialAuditLogs))]
+        public virtual AdminUser User { get; set; }
 
         public SocialAuditLog()
         {

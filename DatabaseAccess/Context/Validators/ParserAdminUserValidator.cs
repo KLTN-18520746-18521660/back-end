@@ -53,7 +53,7 @@ namespace DatabaseAccess.Context.Validators
                 .Cascade(CascadeMode.Stop)
                 .NotNull()
                     .WithMessage("{PropertyName} is null.")
-                .Must(rights => rights.Type == Newtonsoft.Json.Linq.JTokenType.Object)
+                .Must(settings => settings.Type == Newtonsoft.Json.Linq.JTokenType.Object)
                     .WithMessage("{PropertyName} must be a Json object.");
         }
     }

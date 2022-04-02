@@ -11,24 +11,25 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Threading.Tasks;
 using CoreApi.Common;
+using Common;
 
 namespace CoreApi.Services
 {
     public class SocialUserManagement : BaseService
     {
-        private SocialAuditLogManagement __SocialAuditLogManagement;
+        private SocialUserAuditLogManagement __SocialUserAuditLogManagement;
         public SocialUserManagement(DBContext _DBContext,
                                     IServiceProvider _IServiceProvider,
-                                    SocialAuditLogManagement _SocialAuditLogManagement)
+                                    SocialUserAuditLogManagement _SocialUserAuditLogManagement)
             : base(_DBContext, _IServiceProvider)
         {
-            __SocialAuditLogManagement = _SocialAuditLogManagement;
+            __SocialUserAuditLogManagement = _SocialUserAuditLogManagement;
             __ServiceName = "SocialUserManagement";
         }
         public override void SetTraceId(string TraceId)
         {
             base.SetTraceId(TraceId);
-            __SocialAuditLogManagement.SetTraceId(TraceId);
+            __SocialUserAuditLogManagement.SetTraceId(TraceId);
         }
         #region Find user, handle user login
         public async Task<(SocialUser, ErrorCodes)> FindUser(string UserName, bool isEmail)
@@ -95,9 +96,7 @@ namespace CoreApi.Services
         public async Task<ErrorCodes> HandleLoginFail(Guid UserId, int LockTime, int NumberOfTimesAllowLoginFailure)
         {
             #region Find user info
-            ErrorCodes Error = ErrorCodes.NO_ERROR;
-            SocialUser User = null;
-            (User, Error) = await FindUserById(UserId);
+            var (User, Error) = await FindUserById(UserId);
             if (Error != ErrorCodes.NO_ERROR) {
                 return Error;
             }
@@ -151,13 +150,15 @@ namespace CoreApi.Services
         public async Task<ErrorCodes> HandleLoginSuccess(Guid UserId)
         {
             #region Find user info
-            ErrorCodes Error = ErrorCodes.NO_ERROR;
-            SocialUser User = null;
-            (User, Error) = await FindUserById(UserId);
+            var (User, Error) = await FindUserById(UserId);
             if (Error != ErrorCodes.NO_ERROR) {
                 return Error;
             }
             #endregion
+
+            if (User.LastAccessTimestamp == DateTime.UtcNow && !User.Settings.ContainsKey("__login_config")) {
+                return ErrorCodes.NO_ERROR;
+            }
 
             User.LastAccessTimestamp = DateTime.UtcNow;
             User.Settings.Remove("__login_config");
@@ -173,9 +174,7 @@ namespace CoreApi.Services
         public async Task<ErrorCodes> HaveReadPermission(Guid UserId, string Right)
         {
             #region Find user info
-            ErrorCodes Error = ErrorCodes.NO_ERROR;
-            SocialUser User = null;
-            (User, Error) = await FindUserById(UserId);
+            var (User, Error) = await FindUserById(UserId);
             if (Error != ErrorCodes.NO_ERROR) {
                 return Error;
             }
@@ -195,9 +194,7 @@ namespace CoreApi.Services
         public async Task<ErrorCodes> HaveFullPermission(Guid UserId, string Right)
         {
             #region Find user info
-            ErrorCodes Error = ErrorCodes.NO_ERROR;
-            SocialUser User = null;
-            (User, Error) = await FindUserById(UserId);
+            var (User, Error) = await FindUserById(UserId);
             if (Error != ErrorCodes.NO_ERROR) {
                 return Error;
             }
@@ -218,7 +215,7 @@ namespace CoreApi.Services
         #region Add user
         public async Task<ErrorCodes> AddNewUser(SocialUser NewUser)
         {
-            __DBContext.SocialUsers.Add(NewUser);
+            await __DBContext.SocialUsers.AddAsync(NewUser);
             #region Add default role
             SocialUserRoleOfUser defaultRole = new SocialUserRoleOfUser();
             defaultRole.UserId = NewUser.Id;
@@ -228,10 +225,10 @@ namespace CoreApi.Services
             #endregion
 
             if (await __DBContext.SaveChangesAsync() > 0) {
-                #region [SOCIAL] Write audit log
+                #region [SOCIAL] Write user activity
                 (var user, var error) = await FindUserById(NewUser.Id);
                 if (error == ErrorCodes.NO_ERROR) {
-                    await __SocialAuditLogManagement.AddAuditLog(
+                    await __SocialUserAuditLogManagement.AddNewUserAuditLog(
                         user.GetModelName(),
                         user.Id.ToString(),
                         LOG_ACTIONS.CREATE,
@@ -243,6 +240,72 @@ namespace CoreApi.Services
                     return ErrorCodes.INTERNAL_SERVER_ERROR;
                 }
                 #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        #endregion
+
+        #region Confirm Email
+        public async Task<ErrorCodes> HandleConfirmEmailSuccessfully(Guid Id)
+        {
+            #region Find user info
+            var (User, Error) = await FindUserById(Id);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
+            if (User.Status == SocialUserStatus.Deleted) {
+                return ErrorCodes.DELETED;
+            } else if (User.Status == SocialUserStatus.Blocked) {
+                return ErrorCodes.USER_HAVE_BEEN_LOCKED;
+            }
+
+            var confirm_email = User.Settings.Value<JObject>("confirm_email");
+            if (confirm_email == default) {
+                return ErrorCodes.INTERNAL_SERVER_ERROR;
+            }
+            confirm_email.Remove("confirm_date");
+            confirm_email.Add("confirm_date", DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT));
+
+            User.Settings.Remove("confirm_email");
+            User.Settings.Add("confirm_email", confirm_email);
+
+            User.VerifiedEmail = true;
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        public async Task<ErrorCodes> HandleConfirmEmailFailed(Guid Id)
+        {
+            #region Find user info
+            var (User, Error) = await FindUserById(Id);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
+            if (User.Status == SocialUserStatus.Deleted) {
+                return ErrorCodes.DELETED;
+            } else if (User.Status == SocialUserStatus.Blocked) {
+                return ErrorCodes.USER_HAVE_BEEN_LOCKED;
+            }
+
+            var confirm_email = User.Settings.Value<JObject>("confirm_email");
+            if (confirm_email == default) {
+                return ErrorCodes.INTERNAL_SERVER_ERROR;
+            }
+            var numberConfirmFailure = confirm_email.Value<int>("confirm_failure") + 1;
+            confirm_email.Remove("confirm_failure");
+            confirm_email.Add("confirm_failure", numberConfirmFailure);
+
+            User.Settings.Remove("confirm_email");
+            User.Settings.Add("confirm_email", confirm_email);
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
                 return ErrorCodes.NO_ERROR;
             }
             return ErrorCodes.INTERNAL_SERVER_ERROR;

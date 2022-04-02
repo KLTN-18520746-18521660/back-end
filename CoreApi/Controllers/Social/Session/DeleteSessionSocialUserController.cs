@@ -149,7 +149,7 @@ namespace CoreApi.Controllers.Social.Session
                         return Problem(401, "Session has expired.");
                     }
                     if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogInformation($"User has been locked, session_token: { session_token.Substring(0, 15) }");
+                        LogWarning($"User has been locked, session_token: { session_token.Substring(0, 15) }");
                         return Problem(423, "You have been locked.");
                     }
                     throw new Exception($"FindSessionSocialForUse Failed. ErrorCode: { error }");

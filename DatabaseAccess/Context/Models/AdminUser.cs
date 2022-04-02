@@ -64,7 +64,7 @@ namespace DatabaseAccess.Context.Models
         [NotMapped]
         public JObject Settings { get; set; }
         [Required]
-        [Column("settings", TypeName = "json")]
+        [Column("settings", TypeName = "jsonb")]
         public string SettingsStr {
             get { return Settings.ToString(); }
             set { Settings = JsonConvert.DeserializeObject<JObject>(value); }
@@ -79,12 +79,15 @@ namespace DatabaseAccess.Context.Models
         public virtual ICollection<SessionAdminUser> SessionAdminUsers { get; set; }
         [InverseProperty(nameof(AdminAuditLog.User))]
         public virtual ICollection<AdminAuditLog> AdminAuditLogs { get; set; }
+        [InverseProperty(nameof(SocialAuditLog.User))]
+        public virtual ICollection<SocialAuditLog> SocialAuditLogs { get; set; }
 
         public AdminUser() : base()
         {
             AdminUserRoleOfUsers = new HashSet<AdminUserRoleOfUser>();
             SessionAdminUsers = new HashSet<SessionAdminUser>();
             AdminAuditLogs = new HashSet<AdminAuditLog>();
+            SocialAuditLogs = new HashSet<SocialAuditLog>();
             __ModelName = "AdminUser";
             Id = Guid.NewGuid();
             CreatedTimestamp = DateTime.UtcNow;

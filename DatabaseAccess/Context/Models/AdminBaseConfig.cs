@@ -15,33 +15,37 @@ namespace DatabaseAccess.Context.Models
 {
     public enum CONFIG_KEY
     {
+        INVALID = 0,
         ADMIN_USER_LOGIN_CONFIG = 1,
         SOCIAL_USER_LOGIN_CONFIG = 2,
         SESSION_ADMIN_USER_CONFIG = 3,
         SESSION_SOCIAL_USER_CONFIG = 4,
         EMAIL_CLIENT_CONFIG = 5,
+        SOCIAL_USER_CONFIRM_CONFIG = 6,
     }
 
     public enum SUB_CONFIG_KEY
     {
+        INVALID = 0,
         NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE = 1,
         LOCK_TIME = 2,
         EXPIRY_TIME = 3,
         EXTENSION_TIME = 4,
         EMAIL_LIMIT_SENDER = 5,
         EMAIL_TEMPLATE_USER_SIGNUP = 6,
+        NUMBER_OF_TIMES_ALLOW_CONFIRM_FAILURE = 7,
     }
 
     public static class DefaultBaseConfig
     {
         #region Default Config
         public static readonly Dictionary<string, int> AdminUserLoginConfig = new() {
-            { "number", 5 },
-            { "lock", 360 },
+            { "number_of_times_allow_login_failure", 5 },
+            { "lock_time", 360 },
         };
         public static readonly Dictionary<string, int> SocialUserLoginConfig = new() {
-            { "number", 5 },
-            { "lock", 360 },
+            { "number_of_times_allow_login_failure", 5 },
+            { "lock_time", 360 },
         };
         public static readonly Dictionary<string, int> SessionAdminUserConfig = new() {
             { "expiry_time", 5 },
@@ -54,9 +58,13 @@ namespace DatabaseAccess.Context.Models
         public static readonly Dictionary<string, object> EmailClientConfig = new() {
             { "limit_sender", 5 },
             { "template_user_signup", @"<p>Dear @Model.UserName,</p>
-                                        <p>Confirm link here: <a href='@UserName.ConfirmLink'>@Model.ConfirmLink</a><br>
+                                        <p>Confirm link here: <a href='@Model.ConfirmLink'>@Model.ConfirmLink</a><br>
                                         Send datetime: @Model.DateTimeSend</p>
                                         <p>Thanks for your register.</p>" },
+        };
+        public static readonly Dictionary<string, object> SocialUserConfirmConfig = new() {
+            { "expiry_time", 2880 }, // 2 days
+            { "number_of_times_allow_confirm_failure", 3 }
         };
         #endregion
         public static JObject GetConfig(CONFIG_KEY ConfigKey, string Error = null)
@@ -73,9 +81,32 @@ namespace DatabaseAccess.Context.Models
                     return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(SessionSocialUserConfig));
                 case CONFIG_KEY.EMAIL_CLIENT_CONFIG:
                     return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(EmailClientConfig));
+                case CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG:
+                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(SocialUserConfirmConfig));
                 default:
                     Error ??= "Invalid config key.";
                     return new JObject();
+            }
+        }
+        public static CONFIG_KEY StringToConfigKey(string ConfigKey, string Error = null)
+        {
+            Error ??= "";
+            switch(ConfigKey) {
+                case "AdminUserLoginConfig":
+                    return CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG;
+                case "SocialUserLoginConfig":
+                    return CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG;
+                case "SessionAdminUserConfig":
+                    return CONFIG_KEY.SESSION_ADMIN_USER_CONFIG;
+                case "SessionSocialUserConfig":
+                    return CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG;
+                case "EmailClientConfig":
+                    return CONFIG_KEY.EMAIL_CLIENT_CONFIG;
+                case "SocialUserConfirmConfig":
+                    return CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG;
+                default:
+                    Error ??= "Invalid config key.";
+                    return CONFIG_KEY.INVALID;
             }
         }
         public static string ConfigKeyToString(CONFIG_KEY ConfigKey, string Error = null)
@@ -92,6 +123,8 @@ namespace DatabaseAccess.Context.Models
                     return "SessionSocialUserConfig";
                 case CONFIG_KEY.EMAIL_CLIENT_CONFIG:
                     return "EmailClientConfig";
+                case CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG:
+                    return "SocialUserConfirmConfig";
                 default:
                     Error ??= "Invalid config key.";
                     return "Invalid config key.";
@@ -102,9 +135,9 @@ namespace DatabaseAccess.Context.Models
             Error ??= "";
             switch(SubConfigKey) {
                 case SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE:
-                    return "number";
+                    return "number_of_times_allow_login_failure";
                 case SUB_CONFIG_KEY.LOCK_TIME:
-                    return "lock";
+                    return "lock_time";
                 case SUB_CONFIG_KEY.EXPIRY_TIME:
                     return "expiry_time";
                 case SUB_CONFIG_KEY.EXTENSION_TIME:
@@ -113,6 +146,8 @@ namespace DatabaseAccess.Context.Models
                     return "limit_sender";
                 case SUB_CONFIG_KEY.EMAIL_TEMPLATE_USER_SIGNUP:
                     return "template_user_signup";
+                case SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_CONFIRM_FAILURE:
+                    return "number_of_times_allow_confirm_failure";
                 default:
                     Error ??= "Invalid sub config key.";
                     return "Invalid sub config key.";
@@ -215,6 +250,12 @@ namespace DatabaseAccess.Context.Models
                     Id = 5,
                     ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.EMAIL_CLIENT_CONFIG),
                     Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.EMAIL_CLIENT_CONFIG),
+                    Status = AdminBaseConfigStatus.Enabled
+                },
+                new AdminBaseConfig() {
+                    Id = 6,
+                    ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG),
+                    Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG),
                     Status = AdminBaseConfigStatus.Enabled
                 },
             };

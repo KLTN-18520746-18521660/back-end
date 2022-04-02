@@ -91,7 +91,7 @@ namespace DatabaseAccess.Context.Models
         [NotMapped]
         public JObject Settings { get; set; }
         [Required]
-        [Column("settings", TypeName = "json")]
+        [Column("settings", TypeName = "jsonb")]
         public string SettingsStr {
             get { return Settings.ToString(); }
             set { Settings = JsonConvert.DeserializeObject<JObject>(value); }
@@ -99,10 +99,18 @@ namespace DatabaseAccess.Context.Models
         [NotMapped]
         public JObject Ranks { get; set; }
         [Required]
-        [Column("ranks", TypeName = "json")]
+        [Column("ranks", TypeName = "jsonb")]
         public string RanksStr {
             get { return Ranks.ToString(); }
             set { Ranks = JsonConvert.DeserializeObject<JObject>(value); }
+        }
+        [NotMapped]
+        public JObject Publics { get; set; }
+        [Required]
+        [Column("publics", TypeName = "jsonb")]
+        public string PublicsStr {
+            get { return Publics.ToString(); }
+            set { Publics = JsonConvert.DeserializeObject<JObject>(value); }
         }
         [Column("search_vector")]
         public NpgsqlTsVector SearchVector { get; set; }
@@ -113,8 +121,8 @@ namespace DatabaseAccess.Context.Models
 
         [InverseProperty(nameof(SessionSocialUser.User))]
         public virtual ICollection<SessionSocialUser> SessionSocialUsers { get; set; }
-        [InverseProperty(nameof(SocialAuditLog.User))]
-        public virtual ICollection<SocialAuditLog> SocialAuditLogs { get; set; }
+        [InverseProperty(nameof(SocialUserAuditLog.User))]
+        public virtual ICollection<SocialUserAuditLog> SocialUserAuditLogs { get; set; }
         [InverseProperty(nameof(SocialComment.OwnerNavigation))]
         public virtual ICollection<SocialComment> SocialComments { get; set; }
         [InverseProperty(nameof(SocialNotification.User))]
@@ -141,7 +149,7 @@ namespace DatabaseAccess.Context.Models
         public SocialUser()
         {
             SessionSocialUsers = new HashSet<SessionSocialUser>();
-            SocialAuditLogs = new HashSet<SocialAuditLog>();
+            SocialUserAuditLogs = new HashSet<SocialUserAuditLog>();
             SocialComments = new HashSet<SocialComment>();
             SocialNotifications = new HashSet<SocialNotification>();
             SocialPosts = new HashSet<SocialPost>();
@@ -182,6 +190,10 @@ namespace DatabaseAccess.Context.Models
                 Avatar = parser.avatar;
                 Settings = parser.settings;
 
+                if (DisplayName == default) {
+                    DisplayName = $"{ FirstName } { LastName }";
+                }
+
                 return true;
             } catch (Exception ex) {
                 Error = ex.ToString();
@@ -220,6 +232,33 @@ namespace DatabaseAccess.Context.Models
 #endif
             };
             return true;
+        }
+
+        public override JObject GetPublicJsonObject(List<string> publicFields = null)
+        {
+            if (publicFields == null) {
+                publicFields = new List<string>(){
+                    "display_name",
+                    "user_name",
+                    "email",
+                    "sex",
+                    "phone",
+                    "country",
+                    "city",
+                    "province",
+                    "avatar",
+                    "status",
+                    "ranks",
+                    "last_access_timestamp",
+                };
+            }
+            var ret = GetJsonObject();
+            foreach (var x in __ObjectJson) {
+                if (!publicFields.Contains(x.Key)) {
+                    ret.Remove(x.Key);
+                }
+            }
+            return ret;
         }
 
         #region Handle default data

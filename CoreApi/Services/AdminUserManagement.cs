@@ -99,9 +99,7 @@ namespace CoreApi.Services
         public async Task<ErrorCodes> HandleLoginFail(Guid UserId, int LockTime, int NumberOfTimesAllowLoginFailure)
         {
             #region Find user info
-            ErrorCodes Error = ErrorCodes.NO_ERROR;
-            AdminUser User = null;
-            (User, Error) = await FindUserById(UserId);
+            var (User, Error) = await FindUserById(UserId);
             if (Error != ErrorCodes.NO_ERROR) {
                 return Error;
             }
@@ -157,13 +155,15 @@ namespace CoreApi.Services
         public async Task<ErrorCodes> HandleLoginSuccess(Guid UserId)
         {
             #region Find user info
-            ErrorCodes Error = ErrorCodes.NO_ERROR;
-            AdminUser User = null;
-            (User, Error) = await FindUserById(UserId);
+            var (User, Error) = await FindUserById(UserId);
             if (Error != ErrorCodes.NO_ERROR) {
                 return Error;
             }
             #endregion
+
+            if (User.LastAccessTimestamp == DateTime.UtcNow && !User.Settings.ContainsKey("__login_config")) {
+                return ErrorCodes.NO_ERROR;
+            }
 
             User.LastAccessTimestamp = DateTime.UtcNow;
             User.Settings.Remove("__login_config");
@@ -179,9 +179,7 @@ namespace CoreApi.Services
         public async Task<ErrorCodes> HaveReadPermission(Guid UserId, string Right)
         {
             #region Find user info
-            ErrorCodes Error = ErrorCodes.NO_ERROR;
-            AdminUser User = null;
-            (User, Error) = await FindUserById(UserId);
+            var (User, Error) = await FindUserById(UserId);
             if (Error != ErrorCodes.NO_ERROR) {
                 return Error;
             }
@@ -205,9 +203,7 @@ namespace CoreApi.Services
         public async Task<ErrorCodes> HaveFullPermission(Guid UserId, string Right)
         {
             #region Find user info
-            ErrorCodes Error = ErrorCodes.NO_ERROR;
-            AdminUser User = null;
-            (User, Error) = await FindUserById(UserId);
+            var (User, Error) = await FindUserById(UserId);
             if (Error != ErrorCodes.NO_ERROR) {
                 return Error;
             }
@@ -232,12 +228,12 @@ namespace CoreApi.Services
         #region Add user
         public async Task<ErrorCodes> AddNewUser(Guid UserId, AdminUser NewUser)
         {
-            __DBContext.AdminUsers.Add(NewUser);
+            await __DBContext.AdminUsers.AddAsync(NewUser);
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [ADMIN] Write audit log
                 (var user, var error) = await FindUserById(NewUser.Id);
                 if (error == ErrorCodes.NO_ERROR) {
-                    await __AdminAuditLogManagement.AddAuditLog(
+                    await __AdminAuditLogManagement.AddNewAuditLog(
                         user.GetModelName(),
                         user.Id.ToString(),
                         LOG_ACTIONS.CREATE,

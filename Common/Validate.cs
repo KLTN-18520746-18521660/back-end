@@ -1,7 +1,7 @@
 using System;
 using System.Text.RegularExpressions;
 
-namespace Common.Validate
+namespace Common
 {
     public class CommonValidate
     {

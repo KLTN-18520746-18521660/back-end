@@ -28,7 +28,7 @@ namespace CoreApi.Services
             session.UserId = UserId;
             session.Saved = Remember;
             session.Data = Data;
-            __DBContext.SessionSocialUsers.Add(session);
+            await __DBContext.SessionSocialUsers.AddAsync(session);
 
             if (await __DBContext.SaveChangesAsync() > 0) {
                 return (session, ErrorCodes.NO_ERROR);
