@@ -9,6 +9,7 @@ using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
 using DatabaseAccess.Common.Status;
 using Common;
+using Newtonsoft.Json.Linq;
 
 #nullable disable
 
@@ -121,6 +122,27 @@ namespace DatabaseAccess.Context.Models
 #endif
             };
             return true;
+        }
+
+        public override JObject GetPublicJsonObject(List<string> publicFields = null) {
+            if (publicFields == null) {
+                publicFields = new List<string>(){
+                    "id",
+                    "parent_id",
+                    "name",
+                    "display_name",
+                    "describe",
+                    "slug",
+                    "thumbnail",
+                };
+            }
+            var ret = GetJsonObject();
+            foreach (var x in __ObjectJson) {
+                if (!publicFields.Contains(x.Key)) {
+                    ret.Remove(x.Key);
+                }
+            }
+            return ret;
         }
 
         public static List<SocialCategory> GetDefaultData()

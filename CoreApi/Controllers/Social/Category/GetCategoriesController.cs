@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CoreApi.Controllers.Social.Session
+namespace CoreApi.Controllers.Social.Category
 {
     [ApiController]
     [Route("/category")]
@@ -61,13 +61,14 @@ namespace CoreApi.Controllers.Social.Session
             __SocialCategoryManagement.SetTraceId(TraceId);
             #endregion
             try {
-                bool isSessionInvalid = false;
+                bool isSessionInvalid = true;
                 #region Get session token
                 if (session_token == null) {
                     LogDebug($"Missing header authorization.");
+                    isSessionInvalid = false;
                 }
 
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
+                if (isSessionInvalid && !CommonValidate.IsValidSessionToken(session_token)) {
                     LogDebug("Invalid header authorization.");
                 }
                 #endregion
@@ -86,10 +87,14 @@ namespace CoreApi.Controllers.Social.Session
 
                 IReadOnlyList<SocialCategory> categories = null;
                 (categories, error) = await __SocialCategoryManagement.GetCategories();
+                var ret = new JArray();
+                foreach (SocialCategory it in categories) {
+                    ret.Add(it.GetPublicJsonObject());
+                }
 
                 LogDebug("GetCategories success.");
                 return Ok(200, "Ok", new JObject(){
-                    { "categories", Utils.ObjectToJsonToken(categories) },
+                    { "categories", ret },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");

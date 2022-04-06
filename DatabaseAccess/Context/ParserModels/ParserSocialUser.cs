@@ -20,8 +20,6 @@ namespace DatabaseAccess.Context.ParserModels
         public string last_name { get; set; }
         [DefaultValue("display_name")]
         public string display_name { get; set; }
-        [DefaultValue("user_name")]
-        public string user_name { get; set; }
         [DefaultValue("password")]
         public string password { get; set; }
         [DefaultValue("email@email.com")]

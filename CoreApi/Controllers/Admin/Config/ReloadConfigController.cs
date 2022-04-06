@@ -9,7 +9,7 @@ using System;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CoreApi.Controllers.Admin.User
+namespace CoreApi.Controllers.Admin.Config
 {
     [ApiController]
     [Route("/admin/config")]

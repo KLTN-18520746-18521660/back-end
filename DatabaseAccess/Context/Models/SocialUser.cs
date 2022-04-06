@@ -192,12 +192,8 @@ namespace DatabaseAccess.Context.Models
                 City = parser.city;
                 Province = parser.province;
                 Avatar = parser.avatar;
+                UserName = Utils.GenerateUserName();
 
-                if (parser.user_name != default) {
-                    UserName = parser.user_name;
-                } else {
-                    UserName = Utils.GenerateUserName();
-                }
                 if (parser.settings != default) {
                     Settings = parser.settings;
                 }
@@ -222,6 +218,7 @@ namespace DatabaseAccess.Context.Models
                 { "display_name", DisplayName },
                 { "user_name", UserName },
                 { "email", Email },
+                { "description", Description },
                 { "sex", Sex },
                 { "phone", Phone },
                 { "country", Country },
@@ -269,6 +266,7 @@ namespace DatabaseAccess.Context.Models
                 "display_name",
                 "user_name",
                 "email",
+                "description",
                 "sex",
                 "country",
                 "avatar",

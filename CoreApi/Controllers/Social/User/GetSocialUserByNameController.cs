@@ -62,13 +62,14 @@ namespace CoreApi.Controllers.Social.Session
             __SocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                bool isSessionInvalid = false;
+                bool isSessionInvalid = true;
                 #region Get session token
                 if (session_token == null) {
                     LogDebug($"Missing header authorization.");
+                    isSessionInvalid = false;
                 }
 
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
+                if (isSessionInvalid && !CommonValidate.IsValidSessionToken(session_token)) {
                     LogDebug("Invalid header authorization.");
                 }
                 #endregion

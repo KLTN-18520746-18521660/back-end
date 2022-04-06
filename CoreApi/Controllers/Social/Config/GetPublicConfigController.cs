@@ -9,7 +9,7 @@ using System;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CoreApi.Controllers.Admin.User
+namespace CoreApi.Controllers.Admin.Config
 {
     [ApiController]
     [Route("/config")]
@@ -61,13 +61,14 @@ namespace CoreApi.Controllers.Admin.User
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                bool isSessionInvalid = false;
+                bool isSessionInvalid = true;
                 #region Get session token
                 if (session_token == null) {
                     LogDebug($"Missing header authorization.");
+                    isSessionInvalid = false;
                 }
 
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
+                if (isSessionInvalid && !CommonValidate.IsValidSessionToken(session_token)) {
                     LogDebug("Invalid header authorization.");
                 }
                 #endregion
