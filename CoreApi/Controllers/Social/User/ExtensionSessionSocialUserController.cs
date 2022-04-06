@@ -109,7 +109,7 @@ namespace CoreApi.Controllers.Social.Session
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(session_token)) {
+                if (!CommonValidate.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -137,10 +137,7 @@ namespace CoreApi.Controllers.Social.Session
                 #endregion
 
                 LogDebug($"Session extension success, session_token: { session_token.Substring(0, 15) }");
-                return Ok( new JObject(){
-                    { "status", 200 },
-                    { "message", "Success." },
-                });
+                return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");

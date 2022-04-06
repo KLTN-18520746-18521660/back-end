@@ -508,7 +508,7 @@ namespace DatabaseAccess.Context
             {
                 entity.HasIndex(e => e.Slug, "IX_social_post_slug")
                     .IsUnique()
-                    .HasFilter($"((status = '{ BaseStatus.StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus) }') AND (slug <> ''))");
+                    .HasFilter($"((status = '{ BaseStatus.StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus) }' OR status = '{ BaseStatus.StatusToString(SocialPostStatus.Private, EntityStatus.SocialPostStatus) }') AND (slug <> ''))");
 
                 entity.Property(e => e.Id)
                     .UseIdentityAlwaysColumn();
@@ -525,7 +525,7 @@ namespace DatabaseAccess.Context
                     .HasGeneratedTsVectorColumn(
                         e => e.SearchVector,
                         "english",
-                        e => new { e.ContentSearch, e.Title }
+                        e => new { e.ContentSearch, e.Title, e.ShortContent }
                     )
                     .HasIndex(e => e.SearchVector)
                     .HasMethod("GIST");
@@ -685,17 +685,14 @@ namespace DatabaseAccess.Context
         {
              modelBuilder.Entity<SocialUser>(entity =>
             {
-                // entity.HasIndex(e => e.SearchVector, "IX_social_user_search_vector")
-                //     .HasMethod("gist");
-                // entity.Property(e => e.SearchVector).HasComputedColumnSql("to_tsvector('english'::regconfig, (((display_name)::text || ' '::text) || (user_name)::text))", true);
-
-
                 entity.Property(e => e.Id)
                     .HasDefaultValueSql("gen_random_uuid()");
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.RanksStr)
                     .HasDefaultValueSql("'{}'");
+                entity.Property(e => e.PublicsStr)
+                    .HasDefaultValueSql("'[]'");
                 entity.Property(e => e.SettingsStr)
                     .HasDefaultValueSql("'{}'");
                 entity.Property(e => e.Salt)

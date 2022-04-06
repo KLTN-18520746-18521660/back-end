@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Admin.User
 {
     [ApiController]
-    [Route("/admin/user/config")]
+    [Route("/admin/config")]
     public class GetConfigController : BaseController
     {
         #region Config Values
@@ -69,7 +69,7 @@ namespace CoreApi.Controllers.Admin.User
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(session_token)) {
+                if (!CommonValidate.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -99,8 +99,8 @@ namespace CoreApi.Controllers.Admin.User
                 #region Check Permission
                 var user = session.User;
                 if (__AdminUserManagement.HaveReadPermission(user.Rights, ADMIN_RIGHTS.CONFIG) == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogInformation($"User doesn't have permission for get admin user, user_name: { user.UserName }");
-                    return Problem(403, "User doesn't have permission for get admin user.");
+                    LogInformation($"User doesn't have permission for get admin config, user_name: { user.UserName }");
+                    return Problem(403, "User doesn't have permission for get admin config.");
                 }
                 #endregion
 
@@ -112,8 +112,7 @@ namespace CoreApi.Controllers.Admin.User
                 #endregion
 
                 LogInformation($"Get all config success.");
-                return Ok( new JObject(){
-                    { "status", 200 },
+                return Ok(200, "OK", new JObject(){
                     { "configs", ret },
                 });
             } catch (Exception e) {
@@ -148,7 +147,7 @@ namespace CoreApi.Controllers.Admin.User
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(session_token)) {
+                if (!CommonValidate.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -185,21 +184,23 @@ namespace CoreApi.Controllers.Admin.User
                 #region Check Permission
                 var user = session.User;
                 if (__AdminUserManagement.HaveReadPermission(user.Rights, ADMIN_RIGHTS.CONFIG) == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogInformation($"User doesn't have permission for get admin user, user_name: { user.UserName }");
-                    return Problem(403, "User doesn't have permission for get admin user.");
+                    LogInformation($"User doesn't have permission for get admin config, user_name: { user.UserName }");
+                    return Problem(403, "User doesn't have permission for get admin config.");
                 }
                 #endregion
 
-                #region Get all config
+                #region Get config by key
+                if (DefaultBaseConfig.StringToConfigKey(config_key) == CONFIG_KEY.INVALID) {
+                    return Problem(400, "Invalid config_key.");
+                }
                 var (ret, errMsg) = __BaseConfig.GetConfigValue(DefaultBaseConfig.StringToConfigKey(config_key));
                 if (errMsg != string.Empty) {
                     throw new Exception($"GetConfigValue Failed. ErrorMsg: { errMsg }");
                 }
                 #endregion
 
-                LogInformation($"Get all config success.");
-                return Ok( new JObject(){
-                    { "status", 200 },
+                LogInformation($"Get config by key success.");
+                return Ok(200, "OK", new JObject(){
                     { "config", ret },
                 });
             } catch (Exception e) {

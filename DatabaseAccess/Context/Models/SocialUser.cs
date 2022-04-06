@@ -11,6 +11,7 @@ using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
 using DatabaseAccess.Common.Status;
 using DatabaseAccess.Common;
+using Common;
 
 
 #nullable disable
@@ -56,6 +57,9 @@ namespace DatabaseAccess.Context.Models
         [Column("email")]
         [StringLength(320)]
         public string Email { get; set; }
+        [Column("description")]
+        [StringLength(2048)]
+        public string Description { get; set; }
         [Column("sex")]
         [StringLength(10)]
         public string Sex { get; set; }
@@ -105,12 +109,12 @@ namespace DatabaseAccess.Context.Models
             set { Ranks = JsonConvert.DeserializeObject<JObject>(value); }
         }
         [NotMapped]
-        public JObject Publics { get; set; }
+        public JArray Publics { get; set; }
         [Required]
         [Column("publics", TypeName = "jsonb")]
         public string PublicsStr {
             get { return Publics.ToString(); }
-            set { Publics = JsonConvert.DeserializeObject<JObject>(value); }
+            set { Publics = JsonConvert.DeserializeObject<JArray>(value); }
         }
         [Column("search_vector")]
         public NpgsqlTsVector SearchVector { get; set; }
@@ -167,6 +171,7 @@ namespace DatabaseAccess.Context.Models
             CreatedTimestamp = DateTime.UtcNow;
             Status = SocialUserStatus.Activated;
             Salt = PasswordEncryptor.GenerateSalt();
+            Publics = GetDefaultPublicFields();
             SettingsStr = "{}";
             RanksStr = "{}";
         }
@@ -179,7 +184,6 @@ namespace DatabaseAccess.Context.Models
                 FirstName = parser.first_name;
                 LastName = parser.last_name;
                 DisplayName = parser.display_name;
-                UserName = parser.user_name;
                 Password = parser.password;
                 Email = parser.email;
                 Sex = parser.sex;
@@ -188,8 +192,15 @@ namespace DatabaseAccess.Context.Models
                 City = parser.city;
                 Province = parser.province;
                 Avatar = parser.avatar;
-                Settings = parser.settings;
 
+                if (parser.user_name != default) {
+                    UserName = parser.user_name;
+                } else {
+                    UserName = Utils.GenerateUserName();
+                }
+                if (parser.settings != default) {
+                    Settings = parser.settings;
+                }
                 if (DisplayName == default) {
                     DisplayName = $"{ FirstName } { LastName }";
                 }
@@ -222,6 +233,7 @@ namespace DatabaseAccess.Context.Models
                 { "roles", Roles },
                 { "rights", Rights },
                 { "settings", Settings },
+                { "publics", Publics },
                 { "ranks", Ranks },
                 { "last_access_timestamp", LastAccessTimestamp },
                 { "created_timestamp", CreatedTimestamp },
@@ -237,20 +249,10 @@ namespace DatabaseAccess.Context.Models
         public override JObject GetPublicJsonObject(List<string> publicFields = null)
         {
             if (publicFields == null) {
-                publicFields = new List<string>(){
-                    "display_name",
-                    "user_name",
-                    "email",
-                    "sex",
-                    "phone",
-                    "country",
-                    "city",
-                    "province",
-                    "avatar",
-                    "status",
-                    "ranks",
-                    "last_access_timestamp",
-                };
+                publicFields = new List<string>();
+                foreach(var item in Publics.ToArray()) {
+                    publicFields.Add(item.ToString());
+                }
             }
             var ret = GetJsonObject();
             foreach (var x in __ObjectJson) {
@@ -259,6 +261,21 @@ namespace DatabaseAccess.Context.Models
                 }
             }
             return ret;
+        }
+
+        public JArray GetDefaultPublicFields()
+        {
+            return new JArray(){
+                "display_name",
+                "user_name",
+                "email",
+                "sex",
+                "country",
+                "avatar",
+                "status",
+                "ranks",
+                "publics",
+            };
         }
 
         #region Handle default data

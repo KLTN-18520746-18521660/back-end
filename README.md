@@ -57,8 +57,8 @@
 - debug mode + environment develop
 > dotnet run [ssl]
 - release mode + environment production
-> dotnet run [ssl] [swagger] [allow-any-origin] --launch-profile pro -c release
-> dotnet run ssl swagger --launch-profile pro -c release
+> dotnet run [ssl] [swagger] [disable-cors] [show-sql-command] --launch-profile pro -c release
+> dotnet run ssl swagger disable-cors --launch-profile pro -c release
 - run without ssl + environment develop
 > dotnet run
 
@@ -93,7 +93,7 @@
 		```
 	- *Drop database*
 		```
-		dotnet ef database drop --context DBContext --no-build
+		dotnet ef database drop --context DBContext --no-build -f
 		```
 	- *Generate script database*
 		```

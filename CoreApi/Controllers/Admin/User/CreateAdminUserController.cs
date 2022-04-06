@@ -127,7 +127,7 @@ namespace CoreApi.Controllers.Admin.User
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(session_token)) {
+                if (!CommonValidate.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -172,15 +172,15 @@ namespace CoreApi.Controllers.Admin.User
                 #endregion
 
                 #region Check unique user_name, email
-                AdminUser tmpUser = null;
-                (tmpUser, error) = await __AdminUserManagement.FindUser(newUser.UserName, false);
-                if (error == ErrorCodes.NO_ERROR) {
+                bool username_existed = false, email_existed = false;
+                (username_existed, email_existed, error) = await __AdminUserManagement.IsUserExsiting(newUser.UserName, newUser.Email);
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"IsUserExsiting Failed. ErrorCode: { error }");
+                } else if (username_existed) {
                     LogDebug($"UserName have been used, user_name: { newUser.UserName }");
                     return Problem(400, "UserName have been used.");
-                }
-                (tmpUser, error) = await __AdminUserManagement.FindUser(newUser.Email, true);
-                if (error == ErrorCodes.NO_ERROR) {
-                    LogDebug($"Email have been used, user_name: { newUser.Email }");
+                } else if (email_existed) {
+                    LogDebug($"Email have been used, email: { newUser.Email }");
                     return Problem(400, "Email have been used.");
                 }
                 #endregion
@@ -193,9 +193,7 @@ namespace CoreApi.Controllers.Admin.User
                 #endregion
 
                 LogInformation($"Create new admin user success, user_name: { newUser.UserName }");
-                return Ok(201, new JObject(){
-                    { "status", 201 },
-                    { "message", "Success." },
+                return Ok(201, "OK", new JObject(){
                     { "user_id", newUser.Id },
                 });
             } catch (Exception e) {

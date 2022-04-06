@@ -36,7 +36,7 @@ namespace DatabaseAccess.Context.Models
         }
 
         public override bool Parse(IBaseParserModel Parser, out string Error)
-        {            
+        {
             Error = "Not Implemented Error";
             return false;
         }

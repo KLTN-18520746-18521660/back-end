@@ -71,8 +71,8 @@ namespace CoreApi.Controllers.Social.Session
                     return Problem(400, "Invalid params.");
                 }
                 var now = DateTime.UtcNow;
-                var Id = Utils.IsValidUUID(StringDecryptor.Decrypt(Uri.UnescapeDataString(i)));
-                var Date = Utils.IsValidDateTime(StringDecryptor.Decrypt(Uri.UnescapeDataString(d)), CommonDefine.DATE_TIME_FORMAT);
+                var Id = CommonValidate.IsValidUUID(StringDecryptor.Decrypt(Uri.UnescapeDataString(i)));
+                var Date = CommonValidate.IsValidDateTime(StringDecryptor.Decrypt(Uri.UnescapeDataString(d)), CommonDefine.DATE_TIME_FORMAT);
                 if (Id == default || Date == default || state == string.Empty || state.Length != 8) {
                     return Problem(400, "Invalid params.");
                 }
@@ -101,10 +101,7 @@ namespace CoreApi.Controllers.Social.Session
                 #region Validate user
                 if (user.VerifiedEmail) {
                     LogInformation($"User has verified email, user_id: { Id } ");
-                    return Ok(204, new JObject(){
-                        { "status", 204 },
-                        { "msg", "User has verified email." },
-                    });
+                    return Ok(200, "User has verified email.");
                 }
                 var confirm_email = user.Settings.Value<JObject>("confirm_email");
                 if (confirm_email == default ||
@@ -132,8 +129,8 @@ namespace CoreApi.Controllers.Social.Session
                 }
                 #endregion
 
-                return Ok(200, new JObject(){
-                    { "status", 200 },
+                LogInformation($"Get user info confirm successfully, user_name: { user.UserName }");
+                return Ok(200, "OK", new JObject(){
                     { "user", user.GetPublicJsonObject() },
                 });
             } catch (Exception e) {
@@ -148,10 +145,7 @@ namespace CoreApi.Controllers.Social.Session
         [ProducesResponseType(StatusCodes.Status410Gone, Type = typeof(StatusCode410Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> Confirm([FromServices] SocialUserManagement __SocialUserManagement,
-                                                 [FromBody] ConfirmUserModel parser,
-                                                 [FromQuery(Name = "i")] string i,
-                                                 [FromQuery(Name = "d")] string d,
-                                                 [FromQuery(Name = "s")] string state)
+                                                 [FromBody] ConfirmUserModel parser)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -161,14 +155,14 @@ namespace CoreApi.Controllers.Social.Session
             #endregion
             try {
                 #region Validate params
-                if (StringDecryptor.Decrypt(Uri.UnescapeDataString(i)) == default ||
-                    StringDecryptor.Decrypt(Uri.UnescapeDataString(d)) == default) {
+                if (StringDecryptor.Decrypt(Uri.UnescapeDataString(parser.i)) == default ||
+                    StringDecryptor.Decrypt(Uri.UnescapeDataString(parser.d)) == default) {
                     return Problem(400, "Invalid params.");
                 }
                 var now = DateTime.UtcNow;
-                var Id = Utils.IsValidUUID(StringDecryptor.Decrypt(Uri.UnescapeDataString(i)));
-                var Date = Utils.IsValidDateTime(StringDecryptor.Decrypt(Uri.UnescapeDataString(d)), CommonDefine.DATE_TIME_FORMAT);
-                if (Id == default || Date == default || state == string.Empty || state.Length != 8) {
+                var Id = CommonValidate.IsValidUUID(StringDecryptor.Decrypt(Uri.UnescapeDataString(parser.i)));
+                var Date = CommonValidate.IsValidDateTime(StringDecryptor.Decrypt(Uri.UnescapeDataString(parser.d)), CommonDefine.DATE_TIME_FORMAT);
+                if (Id == default || Date == default || parser.s == string.Empty || parser.s.Length != 8) {
                     return Problem(400, "Invalid params.");
                 }
                 if ((now - Date.ToUniversalTime()).TotalMinutes > REQUEST_EXPIRY_TIME) {
@@ -196,10 +190,7 @@ namespace CoreApi.Controllers.Social.Session
                 #region Validate user
                 if (user.VerifiedEmail) {
                     LogInformation($"User has verified email, user_id: { Id } ");
-                    return Ok(204, new JObject(){
-                        { "status", 204 },
-                        { "msg", "User has verified email." },
-                    });
+                    return Ok(200, "User has verified email.");
                 }
                 var confirm_email = user.Settings.Value<JObject>("confirm_email");
                 if (confirm_email == default ||
@@ -215,7 +206,7 @@ namespace CoreApi.Controllers.Social.Session
                     LogWarning($"Invalid confirm state from DB, user_id: { Id } ");
                     return Problem(410, "Request have expired.");
                 }
-                if (confirmState != state) {
+                if (confirmState != parser.s) {
                     LogInformation($"Invalid confirm state from request, user_id: { Id } ");
                     return Problem(410, "Request have expired.");
                 }
@@ -241,7 +232,7 @@ namespace CoreApi.Controllers.Social.Session
                         }
                         throw new Exception($"HandleConfirmEmailFailed failed, ErrorCode: { error }");
                     }
-                    return Problem(401, "Incorrect password.");
+                    return Problem(400, "Incorrect password.");
                 }
 
                 error = await __SocialUserManagement.HandleConfirmEmailSuccessfully(user.Id);
@@ -257,8 +248,8 @@ namespace CoreApi.Controllers.Social.Session
                     throw new Exception($"HandleConfirmEmailSuccessfully failed, ErrorCode: { error }");
                 }
 
-                return Ok(200, new JObject(){
-                    { "status", 200 },
+                LogInformation($"User confirm successfully, user_name: { user.UserName }");
+                return Ok(200, "OK", new JObject(){
                     { "user", user.GetPublicJsonObject() },
                 });
             } catch (Exception e) {

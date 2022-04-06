@@ -111,7 +111,7 @@ namespace CoreApi.Controllers.Social.Session
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(session_token)) {
+                if (!CommonValidate.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -151,8 +151,7 @@ namespace CoreApi.Controllers.Social.Session
                 #endregion
 
                 LogDebug($"Get all session success, user_name: { session.User.UserName }");
-                return Ok( new JObject(){
-                    { "status", 200 },
+                return Ok(200, "OK", new JObject(){
                     { "sessions", ret },
                 });
             } catch (Exception e) {
@@ -233,13 +232,13 @@ namespace CoreApi.Controllers.Social.Session
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(session_token)) {
+                if (!CommonValidate.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
 
                 #region Check param get_session_token
-                if (!Utils.IsValidSessionToken(get_session_token)) {
+                if (!CommonValidate.IsValidSessionToken(get_session_token)) {
                     return Problem(400, "Invalid header authorization.");
                 }
                 #endregion
@@ -277,8 +276,7 @@ namespace CoreApi.Controllers.Social.Session
                 #endregion
 
                 LogDebug($"Get session success, user_name: { user.UserName }, session_token: { get_session_token.Substring(0, 15) }");
-                return Ok( new JObject(){
-                    { "status", 200 },
+                return Ok(200, "OK", new JObject(){
                     { "session", ret.GetJsonObject() },
                 });
             } catch (Exception e) {

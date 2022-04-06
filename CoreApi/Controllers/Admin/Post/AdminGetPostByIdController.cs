@@ -49,6 +49,8 @@ namespace CoreApi.Controllers.Admin.Post
         /// </summary>
         /// <returns><b>Admin user of session_token</b></returns>
         /// <param name="__SessionAdminUserManagement"></param>
+        /// <param name="__SocialPostManagement"></param>
+        /// <param name="post_id"></param>
         /// <param name="session_token"></param>
         ///
         /// <remarks>
@@ -102,25 +104,31 @@ namespace CoreApi.Controllers.Admin.Post
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> GetPostById([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
-                                                          [FromHeader] string session_token)
+                                                     [FromServices] SocialPostManagement __SocialPostManagement,
+                                                     [FromRoute] long post_id,
+                                                     [FromHeader] string session_token)
         {
-            //////////////////////
-            return Problem(500, "Not implement.");
-            //////////////////////
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
             #region Set TraceId for services
             __SessionAdminUserManagement.SetTraceId(TraceId);
+            __SocialPostManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Validate params
+                if (post_id <= 0) {
+                    return Problem(400, "Invalid params.");
+                }
+                #endregion
+
                 #region Get session token
                 if (session_token == null) {
                     LogDebug($"Missing header authorization.");
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(session_token)) {
+                if (!CommonValidate.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -147,11 +155,20 @@ namespace CoreApi.Controllers.Admin.Post
                 }
                 #endregion
 
-                var user = session.User;
-                LogInformation($"Get info user by apikey success, user_name: { user.UserName }");
-                return Ok( new JObject(){
-                    { "status", 200 },
-                    { "user", user.GetJsonObject() },
+                #region Get post info
+                SocialPost post = null;
+                (post, error) = await __SocialPostManagement.FindPostById(post_id);
+                if (error != ErrorCodes.NO_ERROR) {
+                    if (error == ErrorCodes.NOT_FOUND) {
+                        return Problem(404, "Not found post.");
+                    }
+                    throw new Exception($"FindPostById failed. Post_id: { post_id }, ErrorCode: { error} ");
+                }
+                #endregion
+
+                LogInformation($"FindPostById success, post_id: { post_id }");
+                return Ok(200, "Ok", new JObject(){
+                    { "post", post.GetJsonObject() }
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");

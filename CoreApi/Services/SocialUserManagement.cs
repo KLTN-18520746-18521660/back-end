@@ -93,6 +93,18 @@ namespace CoreApi.Services
             return (null, ErrorCodes.NOT_FOUND);
         }
 
+        // username_existed, email_existed, ERROR
+        public async Task<(bool, bool, ErrorCodes)> IsUserExsiting(string UserName, string Email)
+        {
+            var count_email = (await __DBContext.SocialUsers
+                    .CountAsync(e => e.Email == UserName
+                        && e.StatusStr != BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus)));
+            var count_username = (await __DBContext.SocialUsers
+                    .CountAsync(e => e.UserName == UserName
+                        && e.StatusStr != BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus)));
+            return (count_username > 0, count_email > 0, ErrorCodes.NO_ERROR);
+        }
+
         public async Task<ErrorCodes> HandleLoginFail(Guid UserId, int LockTime, int NumberOfTimesAllowLoginFailure)
         {
             #region Find user info

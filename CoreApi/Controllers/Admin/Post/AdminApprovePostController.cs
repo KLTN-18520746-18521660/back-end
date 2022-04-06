@@ -1,6 +1,7 @@
 using Common;
 using CoreApi.Common;
 using CoreApi.Services;
+using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -49,6 +50,8 @@ namespace CoreApi.Controllers.Admin.Post
         /// </summary>
         /// <returns><b>Admin user of session_token</b></returns>
         /// <param name="__SessionAdminUserManagement"></param>
+        /// <param name="__SocialPostManagement"></param>
+        /// <param name="__AdminUserManagement"></param>
         /// <param name="post_id"></param>
         /// <param name="session_token"></param>
         ///
@@ -103,31 +106,33 @@ namespace CoreApi.Controllers.Admin.Post
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> ApprovePost([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
+                                                     [FromServices] SocialPostManagement __SocialPostManagement,
+                                                     [FromServices] AdminUserManagement __AdminUserManagement,
                                                      [FromRoute] long post_id,
                                                      [FromHeader] string session_token)
         {
-            //////////////////////
-            return Problem(500, "Not implement.");
-            //////////////////////
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
             #region Set TraceId for services
             __SessionAdminUserManagement.SetTraceId(TraceId);
+            __SocialPostManagement.SetTraceId(TraceId);
+            __AdminUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Validate post_id
+                #region Validate params
                 if (post_id <= 0) {
-                    return Problem(400, "Invalid request.");
+                    return Problem(400, "Invalid params.");
                 }
                 #endregion
+
                 #region Get session token
                 if (session_token == null) {
                     LogDebug($"Missing header authorization.");
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(session_token)) {
+                if (!CommonValidate.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -154,12 +159,36 @@ namespace CoreApi.Controllers.Admin.Post
                 }
                 #endregion
 
+                #region Check Permission
                 var user = session.User;
-                LogInformation($"Get info user by apikey success, user_name: { user.UserName }");
-                return Ok( new JObject(){
-                    { "status", 200 },
-                    { "user", user.GetJsonObject() },
-                });
+                error = __AdminUserManagement.HaveFullPermission(user.Rights, ADMIN_RIGHTS.POST);
+                if (error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
+                    LogInformation($"User doesn't have permission to approve social post, user_name: { user.UserName }");
+                    return Problem(403, "User doesn't have permission to approve social post.");
+                }
+                #endregion
+
+                #region Get post info
+                SocialPost post = null;
+                (post, error) = await __SocialPostManagement.FindPostById(post_id);
+                if (error != ErrorCodes.NO_ERROR) {
+                    if (error == ErrorCodes.NOT_FOUND) {
+                        return Problem(404, "Not found post.");
+                    }
+                    throw new Exception($"FindPostById failed. Post_id: { post_id }, ErrorCode: { error} ");
+                }
+                if (__SocialPostManagement.ValidateChangeStatusAction(post.Status, SocialPostStatus.Approved) != ErrorCodes.INVALID_ACTION) {
+                    return Problem(400, "Invalid action.");
+                }
+                #endregion
+
+                error = await __SocialPostManagement.ApprovePost(post.Id, user.Id);
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"ApprovePost Failed, ErrorCode: { error }");
+                }
+
+                LogInformation($"ApprovePost success, post_id: { post_id }");
+                return Ok(200, "Ok");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");

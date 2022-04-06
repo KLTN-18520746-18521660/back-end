@@ -9,8 +9,9 @@ namespace CoreApi.Common
         SESSION_HAS_EXPIRED = 4,
         USER_HAVE_BEEN_LOCKED = 5,
         USER_DOES_NOT_HAVE_PERMISSION = 6,
-        INVALID_USER = 7,
-        DELETED = 8,
-        USER_IS_NOT_OWNER = 9,
+        DELETED = 7,
+        USER_IS_NOT_OWNER = 8,
+        INVALID_ACTION = 9,
+        INVALID_PARAMS = 10,
     }
 }

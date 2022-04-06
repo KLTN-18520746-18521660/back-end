@@ -5,58 +5,35 @@ using System.Text.RegularExpressions;
 using System.Text;
 using System.Collections.Generic;
 using System.Web;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
+using Newtonsoft.Json;
+using System.Linq;
+using System.Globalization;
+using Newtonsoft.Json.Linq;
 
 namespace Common
 {
     public class Utils
     {
-        // Email Format: {64}@{255} ----------- RFC 3696 - Session 3
-        // Total length: 320
-        public static string EmailRegex = "^[a-z0-9_\\.]{1,64}@[a-z]+\\.[a-z]{2,3}$";
-        public static readonly int SeesionTokenLength = 30;
-        public static readonly string SessionTokenRegex = "^[a-z-0-9]{30}$";
-        public static readonly string PrefixUrlConfirmSignup = "/user/confirm";
-        #region Common validate
-        public static bool IsEmail(string Input)
+        #region Common functions
+        public static T DeepClone<T>(T source)
         {
-            return Regex.IsMatch(Input, EmailRegex);
+            // Don't serialize a null object, simply return the default for that object
+            if (ReferenceEquals(source, null)) return default;
+
+            // initialize inner objects individually
+            // for example in default constructor some list property initialized with some values,
+            // but in 'source' these items are cleaned -
+            // without ObjectCreationHandling.Replace default constructor values will be added to result
+            var deserializeSettings = new JsonSerializerSettings {ObjectCreationHandling = ObjectCreationHandling.Replace};
+
+            return JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(source), deserializeSettings);
         }
-        public static Guid IsValidUUID(string id)
+        public static JToken ObjectToJsonToken(object source)
         {
-            if (!Guid.TryParse(id, out var tmpRs)) {
-                return default;
-            }
-            var parser = new Guid(id);
-            if (parser.ToString() != id) {
-                return default;
-            }
-            return parser;
+            return JsonConvert.DeserializeObject<JToken>(JsonConvert.SerializeObject(source));
         }
-        public static DateTime IsValidDateTime(string date, string format)
-        {
-            if (!DateTime.TryParseExact(date, format, null, System.Globalization.DateTimeStyles.None, out var tmpDate)) {
-                return default;
-            }
-            var parser = DateTime.ParseExact(date, format, null);
-            if (parser.ToString(format) != date) {
-                return default;
-            }
-            return parser;
-        }
-        public static bool IsValidUrl(string URL, bool AllowHttp = true)
-        {
-            bool result = Uri.TryCreate(URL, UriKind.Absolute, out var uriResult);
-            if (AllowHttp) {
-                return result && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
-            }
-            return result && uriResult.Scheme == Uri.UriSchemeHttps;
-        }
-        public static bool IsValidDomainName(string name)
-        {
-            return Uri.CheckHostName(name) != UriHostNameType.Unknown;
-        }
-        #endregion
-        #region Common functions]
         public static string RandomString(int StringLen)
         {
             string possibleChar = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -79,34 +56,54 @@ namespace Common
             }
             return Ip.Count > 0;
         }
+        public static string GenerateOrderString((string, bool)[] orders)
+        {
+            /* Example
+            * orders = [{"views", false}, {"created_timestamp", true}]
+            * ==>
+            * ORDER BY views ASC, created_timestamp DESC
+            */
+            var retBuilder = new StringBuilder();
+            foreach (var order in orders) {
+                retBuilder.Append($"{ order.Item1 } ");
+                if (order.Item2 == true) {
+                    retBuilder.Append("desc ");
+                } else {
+                    retBuilder.Append("asc ");
+                }
+            }
+            return retBuilder.ToString().Trim();
+        }
         #endregion
         #region Session
-        public static bool IsValidSessionToken(string session_token)
-        {
-            if (session_token.Length != SeesionTokenLength ||
-                !Regex.IsMatch(session_token, SessionTokenRegex)) {
-                return false;
-            }
-            return true;
-        }
         public static string GenerateSessionToken()
         {
-            return RandomString(SeesionTokenLength);
+            return RandomString(CommonDefine.SESSION_TOKEN_LENGTH);
         }
         #endregion
-
         #region Slug
-        public static string GenerateSlug(string Original)
+        public static string GenerateSlug(string Original, bool appendTimeStamp = false)
         {
-            return "";
-        }
-        // [TODO] -- wait from fe
-        public static bool ValidateSlug(string Slug, string Original)
-        {
-            return true;
+            var rawStr = Original
+                .Normalize(System.Text.NormalizationForm.FormD)
+                .ToCharArray()
+                .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                .ToArray();
+            var retStr = new string(rawStr);
+            retStr = retStr.ToLower();
+            retStr = Regex.Replace(retStr, "\\s\\s+", " ");
+            retStr = Regex.Replace(retStr, "[\\u0300-\\u036f]", "");
+            retStr = Regex.Replace(retStr, "đ", "d");
+            retStr = Regex.Replace(retStr, "[-,\\/]+", "-");
+            retStr = Regex.Replace(retStr, "[~`!@#$%^&*()+={}\\[\\];:\\'\\\"<>.,\\/\\\\?-_]", "");
+            retStr = Regex.Replace(retStr, "\\s", "-");
+            retStr = Regex.Replace(retStr, "\\-\\-+", "-");
+            if (appendTimeStamp) {
+                return $"{ retStr }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }";
+            }
+            return Uri.EscapeDataString(retStr);
         }
         #endregion
-
         #region Post
         public static string TakeContentForSearchFromRawContent(string RawContent)
         {
@@ -114,23 +111,31 @@ namespace Common
         }
         public static string TakeShortContentFromContentSearch(string ContentSearch)
         {
-            return "";
+            return "demo_short_content";
         }
         #endregion
-
         #region User
-        public static (string url, string state) GenerateUrlConfirm(Guid id, string host)
+        public static string GenerateUserName()
+        {
+            string possibleChar = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var raw = StringDecryptor.Encrypt(new Guid().ToString());
+            var raw2 = RandomString(15);
+            var ret = new StringBuilder();
+            foreach(var chr in raw) {
+                if (possibleChar.Contains(chr)){
+                    ret.Append(chr);
+                }
+            }
+            return ret.Append(raw2).ToString();
+        }
+        public static (string url, string state) GenerateUrlConfirm(Guid id, string host, string prefixUrl)
         {
             string state = RandomString(8);
-            StringBuilder path = new StringBuilder(PrefixUrlConfirmSignup);
+            StringBuilder path = new StringBuilder(prefixUrl);
             path.Append($"?i={ Uri.EscapeDataString(StringDecryptor.Encrypt(id.ToString())) }");
             path.Append($"&d={ Uri.EscapeDataString(StringDecryptor.Encrypt(DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT))) }");
             path.Append($"&s={ state }");
             return (Uri.EscapeUriString($"{ host }{ path.ToString() }"), state);
-        }
-        public static (Guid, DateTime) ParseParamsFromUserlConfirm(string url)
-        {
-            return (Guid.NewGuid(), DateTime.UtcNow);
         }
         #endregion
     }

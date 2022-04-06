@@ -3,10 +3,12 @@ using CoreApi.Services;
 using CoreApi.Services.Background;
 using DatabaseAccess;
 using DatabaseAccess.Context;
+using DatabaseAccess.Context.Models;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -64,7 +66,7 @@ namespace CoreApi
             services
                 .AddDbContext<DBContext>(o => {
                     o.LogTo((string msg) => {
-                        if (msg.Contains("Microsoft.EntityFrameworkCore.Database.Command")) {
+                        if (!Program.ShowSQLCommandInLog && msg.Contains("Microsoft.EntityFrameworkCore.Database.Command")) {
                             return;
                         }
                         string level = msg.TrimStart().Substring(0, 1);
@@ -87,6 +89,7 @@ namespace CoreApi
                     .AddTransient<AdminAuditLogManagement>()
                     .AddTransient<SessionAdminUserManagement>()
                     .AddTransient<SocialPostManagement>()
+                    .AddTransient<SocialCategoryManagement>()
                     .AddTransient<SocialUserManagement>()
                     .AddTransient<SocialUserAuditLogManagement>()
                     .AddTransient<SocialAuditLogManagement>()
@@ -172,6 +175,36 @@ namespace CoreApi
 
             if (app.ApplicationServices.GetService<DBContext>().GetStatus()) {
                 __Logger.Information($"Connected to database, host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }");
+                #region Turn off caching on entity
+                app.ApplicationServices.GetService<DBContext>().Set<AdminBaseConfig>().AsNoTracking();
+    #if DEBUG
+                app.ApplicationServices.GetService<DBContext>().Set<AdminAuditLog>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<AdminUser>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<AdminUserRight>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<AdminUserRole>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SessionAdminUser>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SessionSocialUser>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialAuditLog>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialCategory>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialComment>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialNotification>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialPost>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialPostCategory>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialPostTag>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialReport>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialTag>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialUser>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialUserActionWithCategory>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialUserActionWithComment>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialUserActionWithPost>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialUserActionWithTag>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialUserActionWithUser>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialUserAuditLog>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialUserRight>().AsNoTracking();
+                app.ApplicationServices.GetService<DBContext>().Set<SocialUserRole>().AsNoTracking();
+    #endif
+                #endregion
+
             } else {
                 throw new Exception($"Failed to connect to database, host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }");
             }
@@ -181,16 +214,21 @@ namespace CoreApi
             app.UseRouting();
             app.UseCors(builder =>
             {
-                builder.SetIsOriginAllowedToAllowWildcardSubdomains();
-                builder.SetIsOriginAllowed((origin) =>
-                {
-                    return
-                        Program.AllowAnyOrigin ||
-                        Program.ListeningAddress.Contains(origin) ||
-                        Program.HostName == origin;
-                });
-                builder.WithMethods(Program.AllowMethods.ToArray());
-                builder.WithHeaders(Program.AllowHeaders.ToArray());
+                if (Program.DisableCORS) {
+                    builder.AllowAnyHeader();
+                    builder.AllowAnyMethod();
+                    builder.AllowAnyOrigin();
+                } else {
+                    builder.SetIsOriginAllowedToAllowWildcardSubdomains();
+                    builder.SetIsOriginAllowed((origin) =>
+                    {
+                        return
+                            Program.ListeningAddress.Contains(origin) ||
+                            Program.HostName == origin;
+                    });
+                    builder.WithMethods(Program.AllowMethods.ToArray());
+                    builder.WithHeaders(Program.AllowHeaders.ToArray());
+                }
             });
             app.UseEndpoints(endpoints => {
                 endpoints.MapControllers();

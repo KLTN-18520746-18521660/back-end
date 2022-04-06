@@ -33,7 +33,7 @@ namespace DatabaseAccess.Context.Validators
                     .Cascade(CascadeMode.Stop)
                     .NotEmpty()
                         .WithMessage("{PropertyName} is empty.")
-                    .Must(thumbnail => Utils.IsValidUrl(thumbnail))
+                    .Must(thumbnail => CommonValidate.IsValidUrl(thumbnail))
                         .WithMessage("{PropertyName} is is invalid.");
 
             });
@@ -66,6 +66,13 @@ namespace DatabaseAccess.Context.Validators
                     .WithMessage("{PropertyName} is empty.")
                 .Must(content_type => SocialPost.StringToContentType(content_type) != CONTENT_TYPE.INVALID)
                     .WithMessage("{PropertyName} is invalid.");
+
+            RuleFor(entity => entity.categories)
+                .Cascade(CascadeMode.Stop)
+                .NotNull()
+                    .WithMessage("{PropertyName} is null.")
+                .Must(categories => categories.Count > 0)
+                    .WithMessage("{PropertyName} must belong to at least one category.");
         }
     }
 }

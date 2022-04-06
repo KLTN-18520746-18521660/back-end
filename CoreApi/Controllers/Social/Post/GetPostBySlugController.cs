@@ -100,7 +100,7 @@ namespace CoreApi.Controllers.Social.Post
 
                 #region Get session token
                 if (session_token != null) {
-                    IsValidSession = !Utils.IsValidSessionToken(session_token);
+                    IsValidSession = !CommonValidate.IsValidSessionToken(session_token);
                 }
                 #endregion
 
@@ -131,8 +131,7 @@ namespace CoreApi.Controllers.Social.Post
                     throw new Exception($"FindPostBySlug failed, ErrorCode: { error }");
                 }
                 var ret = (error == ErrorCodes.USER_IS_NOT_OWNER) ? post.GetPublicJsonObject() : post.GetJsonObject();
-                return Ok( new JObject(){
-                    { "status", 200 },
+                return Ok(200, "OK", new JObject(){
                     { "post", ret },
                 });
             } catch (Exception e) {

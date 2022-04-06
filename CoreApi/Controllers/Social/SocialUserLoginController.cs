@@ -97,7 +97,7 @@ namespace CoreApi.Controllers.Social
             #endregion
             try {
                 #region Find User
-                bool isEmail = Utils.IsEmail(model.user_name);
+                bool isEmail = CommonValidate.IsEmail(model.user_name);
                 LogDebug($"Find user user_name: { model.user_name }, isEmail: { isEmail }");
                 ErrorCodes error = ErrorCodes.NO_ERROR;
                 SocialUser user = null;
@@ -142,8 +142,7 @@ namespace CoreApi.Controllers.Social
                 #endregion
 
                 LogInformation($"User login success user_name: { model.user_name }, isEmail: { isEmail }");
-                return Ok( new JObject(){
-                    { "status", 200 },
+                return Ok(200, "OK", new JObject(){
                     { "session_id", session.SessionToken },
                     { "user_id", user.Id },
                 });

@@ -1,6 +1,7 @@
 using Common;
 using CoreApi.Common;
 using CoreApi.Services;
+using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -45,10 +46,12 @@ namespace CoreApi.Controllers.Social.Post
         }
 
         /// <summary>
-        /// Get social user by header session_token
+        /// Delete post by id
         /// </summary>
         /// <returns><b>Social user of session_token</b></returns>
         /// <param name="__SessionSocialUserManagement"></param>
+        /// <param name="__SocialPostManagement"></param>
+        /// <param name="post_id"></param>
         /// <param name="session_token"></param>
         ///
         /// <remarks>
@@ -59,13 +62,14 @@ namespace CoreApi.Controllers.Social.Post
         /// </remarks>
         ///
         /// <response code="200">
-        /// <b>Success Case:</b> Social session of user.
+        /// <b>Success Case:</b> 200 ok.
         /// </response>
         /// 
         /// <response code="400">
         /// <b>Error case, reasons:</b>
         /// <ul>
         /// <li>Session not found.</li>
+        /// <li>Post already deleted.</li>
         /// </ul>
         /// </response>
         /// 
@@ -84,35 +88,47 @@ namespace CoreApi.Controllers.Social.Post
         /// </ul>
         /// </response>
         /// 
+        /// <response code="404">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>Not found post.</li>
+        /// <li>User not is owner.</li>
+        /// </ul>
+        /// </response>
+        /// 
         /// <response code="500">
         /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
         /// </response>
         [HttpDelete("id/{post_id}")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> GetUserBySession([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                          [FromServices] SocialPostManagement __SocialPostManagement,
+                                                          [FromRoute] long post_id,
                                                           [FromHeader] string session_token)
         {
-            //////////////////////
-            return Problem(500, "Not implement.");
-            //////////////////////
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
+            __SocialPostManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Validate params
+                if (post_id <= 0) {
+                    return Problem(400, "Invalid params.");
+                }
+                #endregion
+
                 #region Get session token
                 if (session_token == null) {
                     LogDebug($"Missing header authorization.");
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(session_token)) {
+                if (!CommonValidate.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -139,12 +155,34 @@ namespace CoreApi.Controllers.Social.Post
                 }
                 #endregion
 
-                var user = session.User;
-                LogInformation($"Get info user by apikey success, user_name: { user.UserName }");
-                return Ok( new JObject(){
-                    { "status", 200 },
-                    { "user", user.GetJsonObject() },
-                });
+                #region Get post info
+                SocialPost post = null;
+                (post, error) = await __SocialPostManagement.FindPostById(post_id);
+                if (error != ErrorCodes.NO_ERROR) {
+                    if (error == ErrorCodes.NOT_FOUND) {
+                        return Problem(404, "Not found post.");
+                    }
+                    throw new Exception($"FindPostById failed. Post_id: { post_id }, ErrorCode: { error} ");
+                }
+
+                if (post.Owner != session.UserId) {
+                    return Problem(404, "Not found post.");
+                }
+                if (post.Status == SocialPostStatus.Deleted) {
+                    return Problem(400, "Post already deleted.");
+                }
+                if (__SocialPostManagement.ValidateChangeStatusAction(post.Status, SocialPostStatus.Deleted) != ErrorCodes.INVALID_ACTION) {
+                    return Problem(400, "Invalid action.");
+                }
+                #endregion
+
+                error = await __SocialPostManagement.DeletedPost(post.Id, post.Owner);
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"DeletedPost Failed, ErrorCode: { error }");
+                }
+
+                LogInformation($"DeletedPost success, post_id: { post_id }");
+                return Ok(200, "Ok");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");

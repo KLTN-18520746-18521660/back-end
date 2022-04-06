@@ -6,9 +6,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-
+using System.Linq.Expressions;
 namespace CoreApi.Controllers.Social.Post
 {
     [ApiController]
@@ -46,12 +47,6 @@ namespace CoreApi.Controllers.Social.Post
 
         /// <summary>
         /// Get all post attach to user
-        /// If have session_token --> compare user is owner ?
-        ///     - Is owner --> return full info of post (include post is pendding, reject, private)
-        ///     - Else --> return info of public post (just post approve)
-        /// <i>Not allow search post of user have delete status.</i>
-        /// Must have query params for paging 'first', 'size'
-        /// Support query params 'status' (approve | pendding | reject | private) for filter
         /// </summary>
         /// <returns><b>Social user of session_token</b></returns>
         /// <param name="__SessionSocialUserManagement"></param>
@@ -61,12 +56,19 @@ namespace CoreApi.Controllers.Social.Post
         /// <param name="first"></param>
         /// <param name="size"></param>
         /// <param name="search_term"></param>
+        /// <param name="status"></param>
+        /// <param name="orders"></param>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
         /// 
         /// - Header 'session_token' is optional.
-        /// 
+        /// - If have session_token --> compare user is owner ?
+        ///     - Is owner --> return full info of post (include post is pendding, reject, private)
+        ///     - Else --> return info of public post (just post approve)
+        /// - <i>Not allow search post of user have delete status.</i>
+        /// - Must have query params for paging 'first', 'size'
+        /// - Support query params 'status' (approve | pendding | reject | private) for filter
         /// </remarks>
         ///
         /// <response code="200">
@@ -83,19 +85,32 @@ namespace CoreApi.Controllers.Social.Post
         /// <response code="500">
         /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
         /// </response>
-        [HttpGet("/user/{user_name}")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
-        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
-        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
+        [HttpGet("user/{user_name}")]
+        // [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
+        // [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
+        // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
+        // [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> GetPostsByUserName([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
                                                             [FromServices] SocialPostManagement __SocialPostManagement,
                                                             [FromRoute] string user_name,
                                                             [FromHeader] string session_token,
                                                             [FromQuery] int first = 0,
                                                             [FromQuery] int size = 20,
-                                                            [FromQuery] string search_term = null)
+                                                            [FromQuery] string search_term = default,
+                                                            [FromQuery] string[] status = default,
+                                                            [FromQuery] Models.OrderModel[] orders = default)
         {
+            var s = new List<string>(){"Private"}.ToArray();
+            var o = new List<(string, bool)>(){
+                ( "created_timestamp", true ),
+            }.ToArray();
+            await (_ = __SocialPostManagement.GetPostsAttachedToUser(new Guid("babb04a9-ab1f-49b9-a6c0-7df47c02a6c9"),
+            true,
+            0,
+            20,
+            default,
+            s,
+            o));
             //////////////////////
             return Problem(500, "Not implement.");
             //////////////////////
@@ -116,7 +131,7 @@ namespace CoreApi.Controllers.Social.Post
 
                 // #region Get session token
                 // if (session_token != null) {
-                //     IsValidSession = !Utils.IsValidSessionToken(session_token);
+                //     IsValidSession = !CommonValidate.IsValidSessionToken(session_token);
                 // }
                 // #endregion
 

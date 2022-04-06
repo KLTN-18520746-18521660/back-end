@@ -69,7 +69,7 @@ namespace CoreApi.Controllers.Social.AuditLog
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(session_token)) {
+                if (!CommonValidate.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -112,8 +112,7 @@ namespace CoreApi.Controllers.Social.AuditLog
                 #endregion
 
                 LogDebug($"Get all auditlog success, user_name: { user.UserName }, start: { start }, size: { size }, search_term: { search_term }");
-                return Ok( new JObject(){
-                    { "status", 200 },
+                return Ok(200, "OK", new JObject(){
                     { "logs", ret },
                     { "total_size", totalSize },
                 });

@@ -10,5 +10,11 @@ namespace CoreApi.Models
     {
         [DefaultValue("password")]
         public string password { get; set; }
+        [DefaultValue("tmp")]
+        public string i { get; set; }
+        [DefaultValue("tmp")]
+        public string d { get; set; }
+        [DefaultValue("tmp")]
+        public string s { get; set; }
     }
 }

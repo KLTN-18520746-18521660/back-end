@@ -82,19 +82,27 @@ namespace CoreApi.Common
             }
         }
         [NonAction]
-        protected ObjectResult Problem(int statusCode, object msg)
+        protected ObjectResult Problem(int statusCode, string msg)
         {
             ObjectResult obj = new(new JObject(){
                 { "status", statusCode },
-                { "error", JToken.FromObject(msg) }
+                { "message", msg }
             });
             obj.StatusCode = statusCode;
             return obj;
         }
         [NonAction]
-        protected ObjectResult Ok(int statusCode, JObject body)
+        protected ObjectResult Ok(int statusCode, string message, JObject data = default)
         {
-            ObjectResult obj = new(body);
+            var respBody = new JObject(){
+                { "status", statusCode },
+                { "message", message },
+                { "data", data },
+            };
+            if (data == default) {
+                respBody.Remove("data");
+            }
+            ObjectResult obj = new (respBody);
             obj.StatusCode = statusCode;
             return obj;
         }

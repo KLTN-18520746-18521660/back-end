@@ -47,7 +47,8 @@ namespace CoreApi
         private static int _Port;
         private static bool _EnableSSL = false;
         private static bool _EnableSwagger = false;
-        private static bool _AllowAnyOrigin = false;
+        private static bool _DisableCORS = false;
+        private static bool _ShowSQLCommandInLog = false;
         private static string _TmpPath = ConfigurationDefaultVariable.TMP_FOLDER;
         private static string _CertPath;
         private static string _LogFilePath;
@@ -64,7 +65,8 @@ namespace CoreApi
         public static string HostName { get => _HostName; }
         public static bool EnableSSL { get => _EnableSSL; }
         public static bool EnableSwagger { get => _EnableSwagger; }
-        public static bool AllowAnyOrigin { get => _AllowAnyOrigin; }
+        public static bool DisableCORS { get => _DisableCORS; }
+        public static bool ShowSQLCommandInLog { get => _ShowSQLCommandInLog; }
         public static List<string> ListeningAddress { get => _ListeningAddress; }
         public static List<string> AllowMethods { get => _AllowMethods; }
         public static List<string> AllowHeaders { get => _AllowHeaders; }
@@ -144,7 +146,7 @@ namespace CoreApi
                 if (_EmailClientConfig.Port == null || !CommonValidate.ValidatePort(_EmailClientConfig.Port)) {
                     throw new Exception("Configured email server port is invalid or null.");
                 }
-                if (_EmailClientConfig.User == null || !Utils.IsEmail(_EmailClientConfig.User)) {
+                if (_EmailClientConfig.User == null || !CommonValidate.IsEmail(_EmailClientConfig.User)) {
                     throw new Exception("User of email client must be an email.");
                 }
                 if (_EmailClientConfig.Password == default) {
@@ -155,7 +157,7 @@ namespace CoreApi
             }
             // [INFO] Get host name from config || default is 'localhost'
             _HostName = configuration.GetValue<string>("HostName");
-            if (_HostName == null || !Utils.IsValidDomainName(_HostName)) {
+            if (_HostName == null || !CommonValidate.IsValidDomainName(_HostName)) {
                 _HostName = "localhost";
                 warnings.Add($"Invalid host name config. Use default host name: { _HostName }.");
             }
@@ -176,9 +178,13 @@ namespace CoreApi
             if (args.Contains("swagger")) {
                 _EnableSwagger = true;
             }
-            // [INFO] allow any origin
-            if (args.Contains("allow-any-origin")) {
-                _AllowAnyOrigin = true;
+            // [INFO] disable cors policy
+            if (args.Contains("disable-cors")) {
+                _DisableCORS = true;
+            }
+            // [INFO] show command query in log
+            if (args.Contains("show-sql-command")) {
+                _ShowSQLCommandInLog = true;
             }
         }
         private static string[] GetValidParamsFromArgs(in List<string> args)

@@ -13,17 +13,17 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Social.Session
 {
     [ApiController]
-    [Route("/user")]
-    public class GetSocialUserByNameController : BaseController
+    [Route("/category")]
+    public class GetCategoriesController : BaseController
     {
         #region Config Values
         private int EXTENSION_TIME; // minutes
         private int EXPIRY_TIME; // minute
         #endregion
 
-        public GetSocialUserByNameController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public GetCategoriesController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetSocialUserByName";
+            __ControllerName = "GetCategories";
             LoadConfig();
         }
 
@@ -45,21 +45,20 @@ namespace CoreApi.Controllers.Social.Session
             }
         }
 
-        [HttpGet("{user_name}")]
+        [HttpGet("")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetUserByUserName([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                           [FromServices] SocialUserManagement __SocialUserManagement,
-                                                           [FromHeader] string session_token,
-                                                           [FromRoute] string user_name)
+        public async Task<IActionResult> GetCategories([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                       [FromServices] SocialCategoryManagement __SocialCategoryManagement,
+                                                       [FromHeader] string session_token)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialUserManagement.SetTraceId(TraceId);
+            __SocialCategoryManagement.SetTraceId(TraceId);
             #endregion
             try {
                 bool isSessionInvalid = false;
@@ -70,12 +69,6 @@ namespace CoreApi.Controllers.Social.Session
 
                 if (!CommonValidate.IsValidSessionToken(session_token)) {
                     LogDebug("Invalid header authorization.");
-                }
-                #endregion
-
-                #region Validate user_name
-                if (user_name == null || user_name == string.Empty || user_name.Length < 4) {
-                    return Problem(400, "Invalid user_name.");
                 }
                 #endregion
 
@@ -91,21 +84,12 @@ namespace CoreApi.Controllers.Social.Session
                 }
                 #endregion
 
-                SocialUser user = null;
-                (user, error) = await __SocialUserManagement.FindUser(user_name, false);
-                if (error != ErrorCodes.NO_ERROR) {
-                    return Problem(404, "Not found any user.");
-                }
-                LogInformation($"Get info user by user_name success, user_name: { user.UserName }");
+                IReadOnlyList<SocialCategory> categories = null;
+                (categories, error) = await __SocialCategoryManagement.GetCategories();
 
-                var ret = (session != null && session.User.Id == user.Id) ? user.GetJsonObject() : user.GetPublicJsonObject();
-
-                return Ok( new JObject(){
-                    { "status", 200 },
-                    { "message", "OK" },
-                    { "data", new JObject(){
-                        { "user", ret },
-                    }},
+                LogDebug("GetCategories success.");
+                return Ok(200, "Ok", new JObject(){
+                    { "categories", Utils.ObjectToJsonToken(categories) },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");

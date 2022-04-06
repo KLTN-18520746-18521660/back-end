@@ -22,10 +22,13 @@ namespace DatabaseAccess.Context.Models
         SESSION_SOCIAL_USER_CONFIG = 4,
         EMAIL_CLIENT_CONFIG = 5,
         SOCIAL_USER_CONFIRM_CONFIG = 6,
+        UI_CONFIG = 7,
+        PUBLIC_CONFIG = 8,
     }
 
     public enum SUB_CONFIG_KEY
     {
+        ALL = -1,
         INVALID = 0,
         NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE = 1,
         LOCK_TIME = 2,
@@ -34,6 +37,8 @@ namespace DatabaseAccess.Context.Models
         EMAIL_LIMIT_SENDER = 5,
         EMAIL_TEMPLATE_USER_SIGNUP = 6,
         NUMBER_OF_TIMES_ALLOW_CONFIRM_FAILURE = 7,
+        PREFIX_URL = 8,
+        HOST_NAME = 10,
     }
 
     public static class DefaultBaseConfig
@@ -64,7 +69,15 @@ namespace DatabaseAccess.Context.Models
         };
         public static readonly Dictionary<string, object> SocialUserConfirmConfig = new() {
             { "expiry_time", 2880 }, // 2 days
-            { "number_of_times_allow_confirm_failure", 3 }
+            { "number_of_times_allow_confirm_failure", 3 },
+            { "prefix_url", "/auth/confirm-account"},
+            { "host_name", "http://localhost:4200" },
+        };
+        public static readonly Dictionary<string, object> UIConfig = new() {};
+        public static readonly Dictionary<string, object> PublicConfig = new() {
+            // { "UIConfig", "all" } --> mean all config in 'UIConfig' is public
+            // { "EmailClientConfig", "limit_sender" } --> mean 'limit_sender' in 'EmailClientConfig' is public config
+            { ConfigKeyToString(CONFIG_KEY.UI_CONFIG), SubConfigKeyToString(SUB_CONFIG_KEY.ALL) }
         };
         #endregion
         public static JObject GetConfig(CONFIG_KEY ConfigKey, string Error = null)
@@ -83,6 +96,10 @@ namespace DatabaseAccess.Context.Models
                     return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(EmailClientConfig));
                 case CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG:
                     return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(SocialUserConfirmConfig));
+                case CONFIG_KEY.UI_CONFIG:
+                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(UIConfig));
+                case CONFIG_KEY.PUBLIC_CONFIG:
+                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(UIConfig));
                 default:
                     Error ??= "Invalid config key.";
                     return new JObject();
@@ -125,15 +142,50 @@ namespace DatabaseAccess.Context.Models
                     return "EmailClientConfig";
                 case CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG:
                     return "SocialUserConfirmConfig";
+                case CONFIG_KEY.UI_CONFIG:
+                    return "UIConfig";
+                case CONFIG_KEY.PUBLIC_CONFIG:
+                    return "PublicConfig";
                 default:
                     Error ??= "Invalid config key.";
                     return "Invalid config key.";
+            }
+        }
+        public static SUB_CONFIG_KEY StringToSubConfigKey(string SubConfigKey, string Error = null)
+        {
+            Error ??= "";
+            switch(SubConfigKey) {
+                case "all":
+                    return SUB_CONFIG_KEY.ALL;
+                case "number_of_times_allow_login_failure":
+                    return SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE;
+                case "lock_time":
+                    return SUB_CONFIG_KEY.LOCK_TIME;
+                case "expiry_time":
+                    return SUB_CONFIG_KEY.EXPIRY_TIME;
+                case "extension_time":
+                    return SUB_CONFIG_KEY.EXTENSION_TIME;
+                case "limit_sender":
+                    return SUB_CONFIG_KEY.EMAIL_LIMIT_SENDER;
+                case "template_user_signup":
+                    return SUB_CONFIG_KEY.EMAIL_TEMPLATE_USER_SIGNUP;
+                case "number_of_times_allow_confirm_failure":
+                    return SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_CONFIRM_FAILURE;
+                case "prefix_url":
+                    return SUB_CONFIG_KEY.PREFIX_URL;
+                case "host_name":
+                    return SUB_CONFIG_KEY.HOST_NAME;
+                default:
+                    Error ??= "Invalid sub config key.";
+                    return SUB_CONFIG_KEY.INVALID;
             }
         }
         public static string SubConfigKeyToString(SUB_CONFIG_KEY SubConfigKey, string Error = null)
         {
             Error ??= "";
             switch(SubConfigKey) {
+                case SUB_CONFIG_KEY.ALL:
+                    return "all";
                 case SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE:
                     return "number_of_times_allow_login_failure";
                 case SUB_CONFIG_KEY.LOCK_TIME:
@@ -148,6 +200,10 @@ namespace DatabaseAccess.Context.Models
                     return "template_user_signup";
                 case SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_CONFIRM_FAILURE:
                     return "number_of_times_allow_confirm_failure";
+                case SUB_CONFIG_KEY.PREFIX_URL:
+                    return "prefix_url";
+                case SUB_CONFIG_KEY.HOST_NAME:
+                    return "host_name";
                 default:
                     Error ??= "Invalid sub config key.";
                     return "Invalid sub config key.";
@@ -217,7 +273,21 @@ namespace DatabaseAccess.Context.Models
             };
             return true;
         }
-
+        public override JObject GetPublicJsonObject(List<string> publicFields = null) {
+            if (publicFields == null) {
+                publicFields = new List<string>(){
+                    "config_key",
+                    "value",
+                };
+            }
+            var ret = GetJsonObject();
+            foreach (var x in __ObjectJson) {
+                if (!publicFields.Contains(x.Key)) {
+                    ret.Remove(x.Key);
+                }
+            }
+            return ret;
+        }
         public static List<AdminBaseConfig> GetDefaultData()
         {
             List<AdminBaseConfig> ListData = new()
@@ -256,6 +326,18 @@ namespace DatabaseAccess.Context.Models
                     Id = 6,
                     ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG),
                     Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG),
+                    Status = AdminBaseConfigStatus.Enabled
+                },
+                new AdminBaseConfig() {
+                    Id = 7,
+                    ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.UI_CONFIG),
+                    Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.UI_CONFIG),
+                    Status = AdminBaseConfigStatus.Enabled
+                },
+                new AdminBaseConfig() {
+                    Id = 8,
+                    ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.PUBLIC_CONFIG),
+                    Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.PUBLIC_CONFIG),
                     Status = AdminBaseConfigStatus.Enabled
                 },
             };

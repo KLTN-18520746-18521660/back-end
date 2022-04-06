@@ -7,16 +7,18 @@ namespace DatabaseAccess.Context.Validators
     {
         public ParserSocialUserValidator()
         {
-            RuleFor(entity => entity.user_name)
-                .Cascade(CascadeMode.Stop)
-                .NotNull()
-                    .WithMessage("{PropertyName} is null.")
-                .NotEmpty()
-                    .WithMessage("{PropertyName} is empty.")
-                .Length(4, 50)
-                    .WithMessage("Length of {PropertyName} must be from 4 to 50.")
-                .Matches("^[a-zA-Z0-9_]+$")
-                    .WithMessage("{PropertyName} only accept [0-9a-zA-Z], '_'.");
+            When(entity => entity.user_name != default, () => {
+                RuleFor(entity => entity.user_name)
+                    .Cascade(CascadeMode.Stop)
+                    .NotNull()
+                        .WithMessage("{PropertyName} is null.")
+                    .NotEmpty()
+                        .WithMessage("{PropertyName} is empty.")
+                    .Length(4, 50)
+                        .WithMessage("Length of {PropertyName} must be from 4 to 50.")
+                    .Matches("^[a-zA-Z0-9_]+$")
+                        .WithMessage("{PropertyName} only accept [0-9a-zA-Z], '_'.");
+            });
             
             RuleFor(entity => entity.first_name)
                 .Cascade(CascadeMode.Stop)
@@ -127,12 +129,12 @@ namespace DatabaseAccess.Context.Validators
             });
 
             When(entity => entity.settings != default, () => {
-            RuleFor(entity => entity.settings)
-                .Cascade(CascadeMode.Stop)
-                .NotNull()
-                    .WithMessage("{PropertyName} is null.")
-                .Must(rights => rights.Type == Newtonsoft.Json.Linq.JTokenType.Object)
-                    .WithMessage("{PropertyName} must be a Json object.");
+                RuleFor(entity => entity.settings)
+                    .Cascade(CascadeMode.Stop)
+                    .NotNull()
+                        .WithMessage("{PropertyName} is null.")
+                    .Must(rights => rights.Type == Newtonsoft.Json.Linq.JTokenType.Object)
+                        .WithMessage("{PropertyName} must be a Json object.");
             });
         }
     }

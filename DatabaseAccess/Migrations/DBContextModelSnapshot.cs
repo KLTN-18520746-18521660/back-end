@@ -155,7 +155,7 @@ namespace DatabaseAccess.Migrations
                             Id = 5,
                             ConfigKey = "EmailClientConfig",
                             StatusStr = "Enabled",
-                            ValueStr = "{\r\n  \"limit_sender\": 5,\r\n  \"template_user_signup\": \"<p>Dear @Model.UserName,</p>\\r\\n                                        <p>Confirm link here: <a href='@UserName.ConfirmLink'>@Model.ConfirmLink</a><br>\\r\\n                                        Send datetime: @Model.DateTimeSend</p>\\r\\n                                        <p>Thanks for your register.</p>\"\r\n}"
+                            ValueStr = "{\r\n  \"limit_sender\": 5,\r\n  \"template_user_signup\": \"<p>Dear @Model.UserName,</p>\\r\\n                                        <p>Confirm link here: <a href='@Model.ConfirmLink'>@Model.ConfirmLink</a><br>\\r\\n                                        Send datetime: @Model.DateTimeSend</p>\\r\\n                                        <p>Thanks for your register.</p>\"\r\n}"
                         },
                         new
                         {
@@ -246,14 +246,14 @@ namespace DatabaseAccess.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("bc70663e-2772-4cef-aee0-a82c0e941383"),
-                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 909, DateTimeKind.Utc).AddTicks(2613),
+                            Id = new Guid("43f8f4c9-338a-42c5-9363-f1c0d61b27a7"),
+                            CreatedTimestamp = new DateTime(2022, 4, 2, 7, 50, 36, 817, DateTimeKind.Utc).AddTicks(2386),
                             DisplayName = "Administrator",
                             Email = "admin@admin",
-                            Salt = "bcd98f60",
+                            Salt = "72fb44d6",
                             SettingsStr = "{}",
                             StatusStr = "Readonly",
-                            StorePassword = "B2B7DBDEBBF745D90F884F4212799BA8",
+                            StorePassword = "077D5A3E413FD3AAD76B29B624BFA354",
                             UserName = "admin"
                         });
                 });
@@ -559,7 +559,7 @@ namespace DatabaseAccess.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = new Guid("bc70663e-2772-4cef-aee0-a82c0e941383"),
+                            UserId = new Guid("43f8f4c9-338a-42c5-9363-f1c0d61b27a7"),
                             RoleId = 1
                         });
                 });
@@ -800,7 +800,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 935, DateTimeKind.Utc).AddTicks(9476),
+                            CreatedTimestamp = new DateTime(2022, 4, 2, 7, 50, 36, 860, DateTimeKind.Utc).AddTicks(3977),
                             Describe = "This not a bug this a feature",
                             DisplayName = "Technology",
                             Name = "technology",
@@ -810,7 +810,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 2L,
-                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 935, DateTimeKind.Utc).AddTicks(9549),
+                            CreatedTimestamp = new DateTime(2022, 4, 2, 7, 50, 36, 860, DateTimeKind.Utc).AddTicks(4095),
                             Describe = "Do not click to this",
                             DisplayName = "Developer",
                             Name = "developer",
@@ -820,7 +820,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 3L,
-                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 935, DateTimeKind.Utc).AddTicks(9555),
+                            CreatedTimestamp = new DateTime(2022, 4, 2, 7, 50, 36, 860, DateTimeKind.Utc).AddTicks(4102),
                             Describe = "Search google to have better solution",
                             DisplayName = "Dicussion",
                             Name = "dicussion",
@@ -830,7 +830,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 4L,
-                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 935, DateTimeKind.Utc).AddTicks(9559),
+                            CreatedTimestamp = new DateTime(2022, 4, 2, 7, 50, 36, 860, DateTimeKind.Utc).AddTicks(4109),
                             Describe = "Nothing in here",
                             DisplayName = "Blog",
                             Name = "blog",
@@ -840,7 +840,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 5L,
-                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 935, DateTimeKind.Utc).AddTicks(9580),
+                            CreatedTimestamp = new DateTime(2022, 4, 2, 7, 50, 36, 860, DateTimeKind.Utc).AddTicks(4116),
                             Describe = "Life die have number",
                             DisplayName = "Left",
                             Name = "left",
@@ -1224,7 +1224,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 954, DateTimeKind.Utc).AddTicks(8682),
+                            CreatedTimestamp = new DateTime(2022, 4, 2, 7, 50, 36, 888, DateTimeKind.Utc).AddTicks(314),
                             Describe = "Angular",
                             StatusStr = "Readonly",
                             Tag = "#angular"
@@ -1232,7 +1232,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 2L,
-                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 954, DateTimeKind.Utc).AddTicks(8721),
+                            CreatedTimestamp = new DateTime(2022, 4, 2, 7, 50, 36, 888, DateTimeKind.Utc).AddTicks(414),
                             Describe = "Something is not thing",
                             StatusStr = "Readonly",
                             Tag = "#life-die-have-number"
@@ -1240,7 +1240,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 3L,
-                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 954, DateTimeKind.Utc).AddTicks(8727),
+                            CreatedTimestamp = new DateTime(2022, 4, 2, 7, 50, 36, 888, DateTimeKind.Utc).AddTicks(419),
                             Describe = "Dot not choose this tag",
                             StatusStr = "Readonly",
                             Tag = "#develop"
@@ -1248,7 +1248,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 4L,
-                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 954, DateTimeKind.Utc).AddTicks(8730),
+                            CreatedTimestamp = new DateTime(2022, 4, 2, 7, 50, 36, 888, DateTimeKind.Utc).AddTicks(424),
                             Describe = "Nothing in here",
                             StatusStr = "Readonly",
                             Tag = "#nothing"
@@ -1256,7 +1256,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 5L,
-                            CreatedTimestamp = new DateTime(2022, 3, 30, 20, 22, 56, 954, DateTimeKind.Utc).AddTicks(8734),
+                            CreatedTimestamp = new DateTime(2022, 4, 2, 7, 50, 36, 888, DateTimeKind.Utc).AddTicks(428),
                             Describe = "hi hi",
                             StatusStr = "Readonly",
                             Tag = "#hihi"
@@ -1328,6 +1328,13 @@ namespace DatabaseAccess.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("province");
+
+                    b.Property<string>("PublicsStr")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("publics")
+                        .HasDefaultValueSql("'{}'");
 
                     b.Property<string>("RanksStr")
                         .IsRequired()

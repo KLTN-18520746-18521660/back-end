@@ -117,7 +117,7 @@ namespace CoreApi.Controllers.Admin.Session
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(session_token)) {
+                if (!CommonValidate.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -146,8 +146,7 @@ namespace CoreApi.Controllers.Admin.Session
 
                 var user = session.User;
                 LogInformation($"Get info user by apikey success, user_name: { user.UserName }");
-                return Ok( new JObject(){
-                    { "status", 200 },
+                return Ok(200, "OK", new JObject(){
                     { "user", user.GetJsonObject() },
                 });
             } catch (Exception e) {

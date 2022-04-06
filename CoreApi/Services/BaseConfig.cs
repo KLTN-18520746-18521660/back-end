@@ -12,6 +12,7 @@ using CoreApi.Common;
 using System.Text;
 using Newtonsoft.Json;
 using System.Threading;
+using Common;
 
 namespace CoreApi.Services
 {
@@ -31,7 +32,7 @@ namespace CoreApi.Services
             LogInformation("Init load all config successfully.");
         }
 
-        public async Task ReLoadConfig()
+        public async Task<ErrorCodes> ReLoadConfig()
         {
             await Gate.WaitAsync();
             isReloadConfig = true;
@@ -39,14 +40,95 @@ namespace CoreApi.Services
             isReloadConfig = false;
             Gate.Release();
             LogInformation("Reload all config successfully.");
+            return ErrorCodes.NO_ERROR;
         }
 
-        public (JArray Value, string Error) GetAllConfig()
+        public (JObject Value, string Error) GetAllConfig()
         {
             while(isReloadConfig);
-            JArray ret = new JArray();
-            Configs.ForEach(e => ret.Add(e.GetJsonObject()));
-            return (ret, "");
+            Dictionary<string, JObject> ret = new Dictionary<string, JObject>();
+            Configs.ForEach(e => {
+                if (!ret.ContainsKey(e.ConfigKey)) {
+                    ret.Add(e.ConfigKey, e.GetJsonObject());
+                }
+            });
+            return (JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret)), "");
+        }
+
+        public (JObject Value, string Error) GetAllPublicConfig()
+        {
+            while(isReloadConfig);
+            List<AdminBaseConfig> configs = Utils.DeepClone<List<AdminBaseConfig>>(Configs);
+            var (publicConfig, error) = GetConfigValue(CONFIG_KEY.PUBLIC_CONFIG);
+
+            Dictionary<string, JObject> ret = new Dictionary<string, JObject>();
+            foreach (var it in publicConfig) {
+                if (it.Value.GetType() != typeof(string)) {
+                    continue;
+                }
+                if (DefaultBaseConfig.StringToConfigKey(it.Key) == CONFIG_KEY.INVALID
+                    || DefaultBaseConfig.StringToSubConfigKey(it.Value.ToString()) == SUB_CONFIG_KEY.INVALID
+                    || ret.ContainsKey(it.Key)) {
+                    continue;
+                }
+
+                var found = configs.Where(e => e.ConfigKey == it.Key).FirstOrDefault();
+                if (found == default) {
+                    continue;
+                }
+
+                if (DefaultBaseConfig.StringToSubConfigKey(it.Value.ToString()) == SUB_CONFIG_KEY.ALL) {
+                    ret.Remove(it.Key);
+                    ret.Add(it.Key, found.Value);
+                } else {
+                    var valStr = found.Value.Value<string>(it.Value.ToString());
+                    var isInt = int.TryParse(valStr, out var valInt);
+                    ret.Add(it.Key, new JObject(){
+                        { it.Value.ToString(), isInt ? valInt : valStr },
+                    });
+                }
+            }
+            return (JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret)), "");
+        }
+
+        public bool IsPublicConfig(CONFIG_KEY ConfigKey)
+        {
+            var (publicConfig, error) = GetConfigValue(CONFIG_KEY.PUBLIC_CONFIG);
+            foreach (var it in publicConfig) {
+                if (it.Key == DefaultBaseConfig.ConfigKeyToString(ConfigKey)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public (JObject Value, string Error) GetPublicConfig(CONFIG_KEY ConfigKey)
+        {
+            while(isReloadConfig);
+            List<AdminBaseConfig> configs = Utils.DeepClone<List<AdminBaseConfig>>(Configs);
+            var (publicConfig, error) = GetConfigValue(CONFIG_KEY.PUBLIC_CONFIG);
+
+            foreach (var it in publicConfig) {
+                if (it.Value.GetType() != typeof(string)) {
+                    continue;
+                }
+                var found = configs.Where(e => e.ConfigKey == it.Key).FirstOrDefault();
+                if (found == default) {
+                    return (null, $"Not found config. But key exist on public configs, key: { ConfigKey }");
+                }
+                if (it.Key == DefaultBaseConfig.ConfigKeyToString(ConfigKey)) {
+                    if (DefaultBaseConfig.StringToSubConfigKey(it.Value.ToString()) == SUB_CONFIG_KEY.ALL) {
+                        return (found.Value, "");
+                    }
+                } else {
+                    var valStr = found.Value.Value<string>(it.Value.ToString());
+                    var isInt = int.TryParse(valStr, out var valInt);
+                    return (new JObject(){
+                        { it.Value.ToString(), isInt ? valInt : valStr },
+                    }, "");
+                }
+            }
+            return (null, $"Not found config. key: { ConfigKey }");
         }
 
         public (JObject Value, string Error) GetConfigValue(CONFIG_KEY ConfigKey)
@@ -70,8 +152,12 @@ namespace CoreApi.Services
 
         public (T Value, string Error) GetConfigValue<T>(CONFIG_KEY ConfigKey, SUB_CONFIG_KEY SubConfigKey)
         {
-            while(isReloadConfig);
             string Error = "";
+            if (SubConfigKey == SUB_CONFIG_KEY.ALL) {
+                Error = $"GetConfigValue. Unsupport get sub config type: { SubConfigKey }";
+                throw new Exception(Error);
+            }
+            while(isReloadConfig);
             if (typeof(T) != typeof(string) && typeof(T) != typeof(int)) {
                 Error = $"GetConfigValue. Unsupport convert type: { typeof(T) }";
                 throw new Exception(Error);
@@ -122,6 +208,10 @@ namespace CoreApi.Services
         public async Task<(T Value, string Error)> GetConfigValueFromDB<T>(CONFIG_KEY ConfigKey, SUB_CONFIG_KEY SubConfigKey)
         {
             string Error = "";
+            if (SubConfigKey == SUB_CONFIG_KEY.ALL) {
+                Error = $"GetConfigValue. Unsupport get sub config type: { SubConfigKey }";
+                throw new Exception(Error);
+            }
             if (typeof(T) != typeof(string) && typeof(T) != typeof(int)) {
                 Error = $"GetConfigValue. Unsupport convert type: { typeof(T) }";
                 throw new Exception(Error);

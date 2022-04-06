@@ -23,5 +23,9 @@ namespace DatabaseAccess.Context.ParserModels
         public string short_content { get; set; }
         [DefaultValue("HTML")]
         public string content_type { get; set; }
+        [DefaultValue("[\"technology\"]")]
+        public List<string> categories { get; set; }
+        [DefaultValue("[]")]
+        public List<string> tags { get; set; }
     }
 }

@@ -22,7 +22,7 @@ namespace CoreApi.Common
 
                 var resp = new BadRequestObjectResult(new JObject() {
                     { "status", 400 },
-                    { "error",  JToken.FromObject(errResp) },
+                    { "message",  JToken.FromObject(errResp) },
                 });
                 resp.StatusCode = 400;
                 context.Result = resp;

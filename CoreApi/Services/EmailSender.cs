@@ -125,7 +125,7 @@ namespace CoreApi.Services
         public async Task<bool> ReloadEmailConfig()
         {
             var __BaseConfig = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
-            await __BaseConfig.ReLoadConfig();
+            _ = await __BaseConfig.ReLoadConfig();
             #region limit_sender
             var (Value, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.EMAIL_LIMIT_SENDER);
 
@@ -138,6 +138,17 @@ namespace CoreApi.Services
                 LogWarning($"Can not set 'limit_sender': { Value } for email client, use default 'limit_sender': { __GateLimit }.");
             } else {
                 LogInformation($"Set 'limit_sender' for email client success, value: { Value }");
+            }
+            #endregion
+
+            #region email_templates
+            var templateUserSignupRs = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.EMAIL_TEMPLATE_USER_SIGNUP);
+
+            if (templateUserSignupRs.Error != string.Empty) {
+                LogWarning("Can not get config 'template_user_signup' for email client, use default config.");
+            } else {
+                __EmailTemplates.Remove("UserSignup");
+                __EmailTemplates.Add("UserSignup", templateUserSignupRs.Value);
             }
             #endregion
 
@@ -185,8 +196,18 @@ namespace CoreApi.Services
         public async Task SendEmailUserSignUp(Guid UserId, string TraceId)
         {
             SocialUser user = null;
-            bool sendSuccess = false;
-            string RequestState = string.Empty;
+            var sendSuccess = false;
+            var requestState = string.Empty;
+            var hostName = string.Empty;
+            var prefixUrl = string.Empty;
+            var errMsg = string.Empty;
+
+            #region Load config value
+            var __BaseConfig = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
+            (hostName, errMsg) = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG, SUB_CONFIG_KEY.HOST_NAME);
+            (prefixUrl, errMsg) = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG, SUB_CONFIG_KEY.PREFIX_URL);
+            #endregion
+
             using (var scope = __ServiceProvider.CreateScope())
             {
                 var __SocialUserManagement = scope.ServiceProvider.GetRequiredService<SocialUserManagement>();
@@ -210,7 +231,7 @@ namespace CoreApi.Services
                 }
                 #region Send Email
                 var urlConfirm = "";
-                (urlConfirm, RequestState) = Utils.GenerateUrlConfirm(user.Id, Program.HostName);
+                (urlConfirm, requestState) = Utils.GenerateUrlConfirm(user.Id, hostName, prefixUrl);
                 var model = new UserSignUpEmailModel() {
                     UserName = user.UserName,
                     ConfirmLink = urlConfirm,
@@ -230,7 +251,7 @@ namespace CoreApi.Services
                 { "send_success", sendSuccess },
                 { "send_date", DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT) },
                 { "confirm_date", null },
-                { "state", RequestState },
+                { "state", requestState },
             });
             if (await __DBContext.SaveChangesAsync() <= 0) {
                 LogError($"TraceId: { TraceId }, 'SendEmailUserSignUp', Can't save changes after send email, user_id: { user.Id }");

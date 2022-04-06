@@ -11,6 +11,7 @@ using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
 using DatabaseAccess.Common.Status;
 using Common;
+using DatabaseAccess.Common.Actions;
 
 #nullable disable
 
@@ -37,18 +38,28 @@ namespace DatabaseAccess.Context.Models
             get => _title; 
             set {
                 _title = value;
-                Slug = Utils.GenerateSlug(value);
+                if (Status == SocialPostStatus.Approved || Status == SocialPostStatus.Private) {
+                    Slug = Utils.GenerateSlug(value, true);
+                } else {
+                    Slug = string.Empty;
+                }
             }
         }
         [Required]
         [Column("slug")]
-        public string Slug { get; set; }
+        public string Slug { get; set; } // only != empty when status is approve or private
         [Required]
         [Column("thumbnail")]
         public string Thumbnail { get; set; }
         [Required]
         [Column("views")]
         public int Views { get; set; }
+        [NotMapped]
+        public int Likes { get =>
+            SocialUserActionWithPosts
+                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithPost.Like,
+                                                                         EntityAction.UserActionWithPost))
+                ); }
         [Required]
         [Column("time_read")]
         public int TimeRead { get; set; }
@@ -59,7 +70,14 @@ namespace DatabaseAccess.Context.Models
         [StringLength(15)]
         public string StatusStr {
             get => BaseStatus.StatusToString(Status, EntityStatus.SocialPostStatus);
-            set => Status = BaseStatus.StatusFromString(value, EntityStatus.SocialPostStatus);
+            set {
+                Status = BaseStatus.StatusFromString(value, EntityStatus.SocialPostStatus);
+                if (Status == SocialPostStatus.Approved || Status == SocialPostStatus.Private) {
+                    Slug = Utils.GenerateSlug(value, true);
+                } else {
+                    Slug = string.Empty;
+                }
+            }
         }
         [Required]
         [Column("content_search")]
@@ -149,10 +167,10 @@ namespace DatabaseAccess.Context.Models
                 { "slug", Slug },
                 { "thumbnail", Thumbnail },
                 { "views", Views },
-                // { "comments", SocialComments.Count<SocialComment>(p => p.Status != SocialCommentStatus.Deleted) },
-                // { "likes", SocialUserActionWithPosts.Count<SocialUserActionWithPost>(p => p.Actions.li) },
+                { "likes", Likes },
                 { "content", Content },
                 { "content_type", ContenTypeStr },
+                { "short_content", ShortContent },
                 { "status", StatusStr },
                 { "created_timestamp", CreatedTimestamp },
                 { "last_modified_timestamp", LastModifiedTimestamp },
@@ -162,6 +180,20 @@ namespace DatabaseAccess.Context.Models
             };
             return true;
         }
+        public override JObject GetJsonObjectForLog() {
+            var ret = base.GetJsonObjectForLog();
+            var removeFields = new List<string>(){"views", "likes"};
+            removeFields.ForEach(r => ret.Remove(r));
+            return ret;
+        }
+        #region static func/params
+        public static readonly IEnumerable<string> ColumnAllowOrder = new List<string>(){
+            "views",
+            "title",
+            "time_read",
+            "created_timestamp",
+            "last_modified_timestamp",
+        };
         public static CONTENT_TYPE StringToContentType(string ContentType) {
             switch (ContentType) {
                 case "HTML":
@@ -182,5 +214,6 @@ namespace DatabaseAccess.Context.Models
                     return "Invalid content type.";
             }
         }
+        #endregion
     }
 }

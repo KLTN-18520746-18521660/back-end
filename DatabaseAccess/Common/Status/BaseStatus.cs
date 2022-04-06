@@ -8,70 +8,70 @@ using DatabaseAccess.Common.Interface;
 namespace DatabaseAccess.Common.Status
 {
     #region EntityStatus Status
-    public class AdminBaseConfigStatus {
+    public static class AdminBaseConfigStatus {
         public static readonly int Enabled = 0;
         public static readonly int Disabled = 1;
         public static readonly int Readonly = 2;
     }
-    public class AdminUserRightStatus {
+    public static class AdminUserRightStatus {
         public static readonly int Enabled = 0;
         public static readonly int Disabled = 1;
         public static readonly int Readonly = 2;
     }
-    public class AdminUserRoleStatus {
+    public static class AdminUserRoleStatus {
         public static readonly int Enabled = 0;
         public static readonly int Disabled = 1;
         public static readonly int Readonly = 2;
     }
-    public class AdminUserStatus {
+    public static class AdminUserStatus {
         public static readonly int Activated = 0;
         public static readonly int Deleted = 1;
         public static readonly int Blocked = 2;
         public static readonly int Readonly = 3;
     }
-    public class SocialCategoryStatus {
+    public static class SocialCategoryStatus {
         public static readonly int Enabled = 0;
         public static readonly int Disabled = 1;
         public static readonly int Readonly = 2;
     }
-    public class SocialCommentStatus {
+    public static class SocialCommentStatus {
         public static readonly int Created = 0;
         public static readonly int Deleted = 1;
         public static readonly int Edited = 2;
     }
-    public class SocialNotificationStatus {
+    public static class SocialNotificationStatus {
         public static readonly int Sent = 0;
         public static readonly int Deleted = 1;
         public static readonly int Read = 2;
     }
-    public class SocialPostStatus {
+    public static class SocialPostStatus {
         public static readonly int Pending = 0;
         public static readonly int Deleted = 1;
         public static readonly int Approved = 2;
         public static readonly int Rejected = 3;
         public static readonly int Private = 4;
     }
-    public class SocialReportStatus {
+    public static class SocialReportStatus {
         public static readonly int Pending = 0;
         public static readonly int Ignored = 1;
         public static readonly int Handled = 2;
     }
-    public class SocialTagStatus {
+    public static class SocialTagStatus {
         public static readonly int Enabled = 0;
         public static readonly int Disabled = 1;
         public static readonly int Readonly = 2;
     }
-    public class SocialUserRightStatus {
+    public static class SocialUserRightStatus {
         public static readonly int Enabled = 0;
         public static readonly int Disabled = 1;
         public static readonly int Readonly = 2;
     }
-    public class SocialUserRoleStatus {
+    public static class SocialUserRoleStatus {
         public static readonly int Enabled = 0;
         public static readonly int Disabled = 1;
         public static readonly int Readonly = 2;
     }
-    public class SocialUserStatus {
+    public static class SocialUserStatus {
         public static readonly int Activated = 0;
         public static readonly int Deleted = 1;
         public static readonly int Blocked = 2;

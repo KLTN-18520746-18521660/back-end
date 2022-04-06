@@ -40,7 +40,6 @@ namespace CoreApi.Services
                 user = (await __DBContext.AdminUsers
                         .Where<AdminUser>(e => e.Email == UserName
                             && e.StatusStr != BaseStatus.StatusToString(AdminUserStatus.Deleted, EntityStatus.AdminUserStatus))
-                        // .DefaultIfEmpty(null)
                         .ToListAsync())
                         .DefaultIfEmpty(null)
                         .FirstOrDefault();
@@ -51,7 +50,6 @@ namespace CoreApi.Services
                         .ToListAsync())
                         .DefaultIfEmpty(null)
                         .FirstOrDefault();
-                        // .ToListAsync();
             }
             if (user != null) {
                 return (user, ErrorCodes.NO_ERROR);
@@ -94,6 +92,18 @@ namespace CoreApi.Services
                 return (user, ErrorCodes.NO_ERROR);
             }
             return (null, ErrorCodes.NOT_FOUND);
+        }
+
+        // username_existed, email_existed, ERROR
+        public async Task<(bool, bool, ErrorCodes)> IsUserExsiting(string UserName, string Email)
+        {
+            var count_email = (await __DBContext.AdminUsers
+                    .CountAsync(e => e.Email == UserName
+                        && e.StatusStr != BaseStatus.StatusToString(AdminUserStatus.Deleted, EntityStatus.AdminUserStatus)));
+            var count_username = (await __DBContext.AdminUsers
+                    .CountAsync(e => e.UserName == UserName
+                        && e.StatusStr != BaseStatus.StatusToString(AdminUserStatus.Deleted, EntityStatus.AdminUserStatus)));
+            return (count_username > 0, count_email > 0, ErrorCodes.NO_ERROR);
         }
 
         public async Task<ErrorCodes> HandleLoginFail(Guid UserId, int LockTime, int NumberOfTimesAllowLoginFailure)

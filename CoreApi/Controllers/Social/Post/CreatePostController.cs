@@ -119,7 +119,7 @@ namespace CoreApi.Controllers.Social.Post
                     return Problem(403, "Missing header authorization.");
                 }
 
-                if (!Utils.IsValidSessionToken(session_token)) {
+                if (!CommonValidate.IsValidSessionToken(session_token)) {
                     return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
@@ -160,14 +160,15 @@ namespace CoreApi.Controllers.Social.Post
                     throw new Exception($"Parse social post model failed, error: { errMsg }");
                 }
 
+                // [TODO] check category, tags
+
                 error = await __SocialPostManagement.AddNewPost(post, session.UserId);
                 if (error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"AddNewPost failed, ErrorCode: { error }");
                 }
 
                 LogInformation($"Add new post successfully, user_name: { session.User.UserName }, post_id: { post.Id }");
-                return Ok(201, new JObject(){
-                    { "status", 201 },
+                return Ok(201, "OK", new JObject(){
                     { "post_id", post.Id },
                 });
             } catch (Exception e) {
