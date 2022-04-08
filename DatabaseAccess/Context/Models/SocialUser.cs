@@ -178,7 +178,7 @@ namespace DatabaseAccess.Context.Models
 
         public override bool Parse(IBaseParserModel Parser, out string Error)
         {
-            Error = "";
+            Error = string.Empty;
             try {
                 var parser = (ParserModels.ParserSocialUser)Parser;
                 FirstName = parser.first_name;

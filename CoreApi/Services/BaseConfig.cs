@@ -53,7 +53,7 @@ namespace CoreApi.Services
                     ret.Add(e.ConfigKey, e.GetJsonObject());
                 }
             });
-            return (JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret)), "");
+            return (JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret)), string.Empty);
         }
 
         public (JObject Value, string Error) GetAllPublicConfig()
@@ -86,7 +86,7 @@ namespace CoreApi.Services
                     });
                 }
             }
-            return (JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret)), "");
+            return (JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret)), string.Empty);
         }
 
         public bool IsPublicConfig(CONFIG_KEY ConfigKey)
@@ -113,14 +113,14 @@ namespace CoreApi.Services
                 }
                 if (it.Key == DefaultBaseConfig.ConfigKeyToString(ConfigKey)) {
                     if (DefaultBaseConfig.StringToSubConfigKey(it.Value.ToString()) == SUB_CONFIG_KEY.ALL) {
-                        return (found.Value, "");
+                        return (found.Value, string.Empty);
                     }
                 } else {
                     var valStr = found.Value.Value<string>(it.Value.ToString());
                     var isInt = int.TryParse(valStr, out var valInt);
                     return (new JObject(){
                         { it.Value.ToString(), isInt ? valInt : valStr },
-                    }, "");
+                    }, string.Empty);
                 }
             }
             return (default, $"Not found config. key: { ConfigKey }");
@@ -136,10 +136,10 @@ namespace CoreApi.Services
                             .DefaultIfEmpty(default)
                             .FirstOrDefault();
             if (config != default) {
-                return (config, "");
+                return (config, string.Empty);
             }
 
-            string Error = "";
+            string Error = string.Empty;
             Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }.";
             LogWarning(Error);
             return (DefaultBaseConfig.GetConfig(ConfigKey), Error);
@@ -147,7 +147,7 @@ namespace CoreApi.Services
 
         public (T Value, string Error) GetConfigValue<T>(CONFIG_KEY ConfigKey, SUB_CONFIG_KEY SubConfigKey)
         {
-            string Error = "";
+            string Error = string.Empty;
             if (SubConfigKey == SUB_CONFIG_KEY.ALL) {
                 Error = $"GetConfigValue. Unsupport get sub config type: { SubConfigKey }";
                 throw new Exception(Error);
@@ -169,7 +169,7 @@ namespace CoreApi.Services
                 return ((T) System.Convert.ChangeType(config[subConfigKeyStr], typeof(T)), Error);
             } else {
                 var defaultConfig = DefaultBaseConfig.GetConfig(ConfigKey, Error);
-                if (Error != default && Error != "") {
+                if (Error != default && Error != string.Empty) {
                     throw new Exception(Error);
                 }
                 if (defaultConfig[subConfigKeyStr] == default) {
@@ -183,7 +183,7 @@ namespace CoreApi.Services
 
         public async Task<(JObject Value, string Error)> GetConfigValueFromDB(CONFIG_KEY ConfigKey)
         {
-            string Error = "";
+            string Error = string.Empty;
             string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
             var config = (await __DBContext.AdminBaseConfigs
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
@@ -202,7 +202,7 @@ namespace CoreApi.Services
 
         public async Task<(T Value, string Error)> GetConfigValueFromDB<T>(CONFIG_KEY ConfigKey, SUB_CONFIG_KEY SubConfigKey)
         {
-            string Error = "";
+            string Error = string.Empty;
             if (SubConfigKey == SUB_CONFIG_KEY.ALL) {
                 Error = $"GetConfigValue. Unsupport get sub config type: { SubConfigKey }";
                 throw new Exception(Error);
@@ -224,7 +224,7 @@ namespace CoreApi.Services
                 return ((T) System.Convert.ChangeType(config[subConfigKeyStr], typeof(T)), Error);
             } else {
                 var defaultConfig = DefaultBaseConfig.GetConfig(ConfigKey, Error);
-                if (Error != default && Error != "") {
+                if (Error != default && Error != string.Empty) {
                     throw new Exception(Error);
                 }
                 if (defaultConfig[subConfigKeyStr] == default) {

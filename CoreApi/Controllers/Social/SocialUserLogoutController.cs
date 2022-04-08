@@ -27,14 +27,14 @@ namespace CoreApi.Controllers.Social
         [NonAction]
         public override void LoadConfig()
         {
-            string Error = "";
+            string Error = string.Empty;
             try {
                 (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
                 StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != "") {
+                if (Error != e.Message && Error != string.Empty) {
                     msg.Append($" && Error: { Error }");
                 }
                 LogError($"Load config value failed, message: { msg }");

@@ -142,7 +142,7 @@ namespace DatabaseAccess.Context.Models
         }
         public override bool Parse(IBaseParserModel Parser, out string Error)
         {
-            Error = "";
+            Error = string.Empty;
             try {
                 var parser = (ParserModels.ParserSocialPost)Parser;
                 Title = parser.title;

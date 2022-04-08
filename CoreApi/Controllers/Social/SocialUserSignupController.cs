@@ -65,7 +65,7 @@ namespace CoreApi.Controllers.Social
             try {
                 #region Parse Social User
                 SocialUser newUser = new SocialUser();
-                string Error = "";
+                string Error = string.Empty;
                 if (!newUser.Parse(parser, out Error)) {
                     LogInformation(Error);
                     return Problem(400, "Bad request body.");

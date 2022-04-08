@@ -114,7 +114,7 @@ namespace CoreApi
                 _DBAccessConfig.Password = configuration.GetSection("DatabaseAccess").GetValue<string>("Password");
                 _DBAccessConfig.Port = configuration.GetSection("DatabaseAccess").GetValue<string>("Port");
                 _DBAccessConfig.DBName = configuration.GetSection("DatabaseAccess").GetValue<string>("DBName");
-                _DBAccessConfig.Password = StringDecryptor.Decrypt(_DBAccessConfig.Password == default ? "" : _DBAccessConfig.Password);
+                _DBAccessConfig.Password = StringDecryptor.Decrypt(_DBAccessConfig.Password == default ? string.Empty : _DBAccessConfig.Password);
 
                 if (_DBAccessConfig.Port == default || !CommonValidate.ValidatePort(_DBAccessConfig.Port)) {
                     warnings.Add($"Configured database port is invalid or default. Use default port: { IBaseConfigurationDB.Port }");
@@ -138,7 +138,7 @@ namespace CoreApi
                 _EmailClientConfig.Password = configuration.GetSection("Email").GetValue<string>("Password");
                 _EmailClientConfig.Port = configuration.GetSection("Email").GetValue<string>("Port");
                 _EmailClientConfig.EnableSSL = configuration.GetSection("Email").GetValue<bool>("EnableSSL");
-                _EmailClientConfig.Password = StringDecryptor.Decrypt(_EmailClientConfig.Password == default ? "" : _EmailClientConfig.Password);
+                _EmailClientConfig.Password = StringDecryptor.Decrypt(_EmailClientConfig.Password == default ? string.Empty : _EmailClientConfig.Password);
 
                 if (_EmailClientConfig.Host == default || _EmailClientConfig.Host == string.Empty) {
                     throw new Exception("Configured email server is invalid or default.");

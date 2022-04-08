@@ -18,7 +18,7 @@ namespace CoreApi.Common
                            IServiceProvider _IServiceProvider)
         {
             __Logger = Log.Logger;
-            __TraceId = "";
+            __TraceId = string.Empty;
             __DBContext = _DBContext;
             __ServiceProvider = _IServiceProvider;
             __ServiceName = "BaseService";
@@ -36,25 +36,25 @@ namespace CoreApi.Common
         }
         protected virtual void LogDebug(string Msg)
         {
-            if (Msg != "") {
+            if (Msg != string.Empty) {
                 __Logger.Debug(CreateLogMessage(Msg));
             }
         }
         protected virtual void LogInformation(string Msg)
         {
-            if (Msg != "") {
+            if (Msg != string.Empty) {
                 __Logger.Information(CreateLogMessage(Msg));
             }
         }
         protected virtual void LogWarning(string Msg)
         {
-            if (Msg != "") {
+            if (Msg != string.Empty) {
                 __Logger.Warning(CreateLogMessage(Msg));
             }
         }
         protected virtual void LogError(string Msg)
         {
-            if (Msg != "") {
+            if (Msg != string.Empty) {
                 __Logger.Error(CreateLogMessage(Msg));
             }
         }

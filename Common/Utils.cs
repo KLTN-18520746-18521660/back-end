@@ -38,7 +38,7 @@ namespace Common
         {
             string possibleChar = "abcdefghijklmnopqrstuvwxyz0123456789";
             Random rand = new Random(Guid.NewGuid().GetHashCode());
-            StringBuilder output = new StringBuilder("");
+            StringBuilder output = new StringBuilder(string.Empty);
             for (int i = 0; i < StringLen; i++) {
                 int pos = rand.Next(0, possibleChar.Length);
                 output.Append(possibleChar[pos].ToString());
@@ -107,7 +107,7 @@ namespace Common
         #region Post
         public static string TakeContentForSearchFromRawContent(string RawContent)
         {
-            return "";
+            return string.Empty;
         }
         public static string TakeShortContentFromContentSearch(string ContentSearch)
         {

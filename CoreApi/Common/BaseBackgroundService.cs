@@ -37,25 +37,25 @@ namespace CoreApi.Common
         }
         protected virtual void LogDebug(string Msg)
         {
-            if (Msg != "") {
+            if (Msg != string.Empty) {
                 __Logger.Debug(CreateLogMessage(Msg));
             }
         }
         protected virtual void LogInformation(string Msg)
         {
-            if (Msg != "") {
+            if (Msg != string.Empty) {
                 __Logger.Information(CreateLogMessage(Msg));
             }
         }
         protected virtual void LogWarning(string Msg)
         {
-            if (Msg != "") {
+            if (Msg != string.Empty) {
                 __Logger.Warning(CreateLogMessage(Msg));
             }
         }
         protected virtual void LogError(string Msg)
         {
-            if (Msg != "") {
+            if (Msg != string.Empty) {
                 __Logger.Error(CreateLogMessage(Msg));
             }
         }

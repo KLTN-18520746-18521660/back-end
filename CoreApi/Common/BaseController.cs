@@ -45,35 +45,35 @@ namespace CoreApi.Common
         [NonAction]
         protected virtual void LogDebug(string Msg)
         {
-            if (Msg != "") {
+            if (Msg != string.Empty) {
                 __Logger.Debug(CreateLogMessage(Msg));
             }
         }
         [NonAction]
         protected virtual void LogInformation(string Msg)
         {
-            if (Msg != "") {
+            if (Msg != string.Empty) {
                 __Logger.Information(CreateLogMessage(Msg));
             }
         }
         [NonAction]
         protected virtual void LogWarning(string Msg)
         {
-            if (Msg != "") {
+            if (Msg != string.Empty) {
                 __Logger.Warning(CreateLogMessage(Msg));
             }
         }
         [NonAction]
         protected virtual void LogError(string Msg)
         {
-            if (Msg != "") {
+            if (Msg != string.Empty) {
                 __Logger.Error(CreateLogMessage(Msg));
             }
         }
         [NonAction]
         public bool GetHeader(string HeaderKey, out string HeaderValue)
         {
-            HeaderValue = "";
+            HeaderValue = string.Empty;
             if (!Request.Headers.ContainsKey(HeaderKey)) {
                 return false;
             } else {

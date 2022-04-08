@@ -82,7 +82,7 @@ namespace DatabaseAccess.Context.Models
         #endregion
         public static JObject GetConfig(CONFIG_KEY ConfigKey, string Error = default)
         {
-            Error ??= "";
+            Error ??= string.Empty;
             switch(ConfigKey) {
                 case CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG:
                     return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(AdminUserLoginConfig));
@@ -107,7 +107,7 @@ namespace DatabaseAccess.Context.Models
         }
         public static CONFIG_KEY StringToConfigKey(string ConfigKey, string Error = default)
         {
-            Error ??= "";
+            Error ??= string.Empty;
             switch(ConfigKey) {
                 case "AdminUserLoginConfig":
                     return CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG;
@@ -132,7 +132,7 @@ namespace DatabaseAccess.Context.Models
         }
         public static string ConfigKeyToString(CONFIG_KEY ConfigKey, string Error = default)
         {
-            Error ??= "";
+            Error ??= string.Empty;
             switch(ConfigKey) {
                 case CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG:
                     return "AdminUserLoginConfig";
@@ -157,7 +157,7 @@ namespace DatabaseAccess.Context.Models
         }
         public static SUB_CONFIG_KEY StringToSubConfigKey(string SubConfigKey, string Error = default)
         {
-            Error ??= "";
+            Error ??= string.Empty;
             switch(SubConfigKey) {
                 case "all":
                     return SUB_CONFIG_KEY.ALL;
@@ -186,7 +186,7 @@ namespace DatabaseAccess.Context.Models
         }
         public static string SubConfigKeyToString(SUB_CONFIG_KEY SubConfigKey, string Error = default)
         {
-            Error ??= "";
+            Error ??= string.Empty;
             switch(SubConfigKey) {
                 case SUB_CONFIG_KEY.ALL:
                     return "all";
@@ -244,14 +244,14 @@ namespace DatabaseAccess.Context.Models
         public AdminBaseConfig()
         {
             __ModelName = "BaseConfig";
-            ConfigKey = "";
+            ConfigKey = string.Empty;
             ValueStr = "{}";
             Status = AdminBaseConfigStatus.Enabled;
         }
 
         public override bool Parse(IBaseParserModel Parser, out string Error)
         {
-            Error = "";
+            Error = string.Empty;
             try {
                 var parser = (ParserModels.ParserAdminBaseConfig)Parser;
                 ConfigKey = parser.config_key;

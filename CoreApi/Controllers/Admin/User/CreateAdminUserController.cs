@@ -31,7 +31,7 @@ namespace CoreApi.Controllers.Admin.User
         [NonAction]
         public override void LoadConfig()
         {
-            string Error = "";
+            string Error = string.Empty;
             try {
                 (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
                 (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
@@ -39,7 +39,7 @@ namespace CoreApi.Controllers.Admin.User
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
                 StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != "") {
+                if (Error != e.Message && Error != string.Empty) {
                     msg.Append($" && Error: { Error }");
                 }
                 LogError($"Load config value failed, message: { msg }");
@@ -134,7 +134,7 @@ namespace CoreApi.Controllers.Admin.User
 
                 #region Parse Admin User
                 AdminUser newUser = new AdminUser();
-                string Error = "";
+                string Error = string.Empty;
                 if (!newUser.Parse(parser, out Error)) {
                     LogInformation(Error);
                     return Problem(400, "Bad request body.");

@@ -230,7 +230,7 @@ namespace CoreApi.Services
                     return;
                 }
                 #region Send Email
-                var urlConfirm = "";
+                var urlConfirm = string.Empty;
                 (urlConfirm, requestState) = Utils.GenerateUrlConfirm(user.Id, hostName, prefixUrl);
                 var model = new UserSignUpEmailModel() {
                     UserName = user.UserName,

@@ -25,7 +25,7 @@ namespace CoreApi.Services
 
         public async Task<(List<AdminAuditLog> AuditLogs, int TotalSize)> GetAllAuditLog(int Start, int Size, string SearchTerm = default)
         {
-            if (SearchTerm == default || SearchTerm == "") {
+            if (SearchTerm == default || SearchTerm == string.Empty) {
                 return 
                 (
                     await __DBContext.AdminAuditLogs

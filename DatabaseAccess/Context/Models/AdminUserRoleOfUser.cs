@@ -40,7 +40,7 @@ namespace DatabaseAccess.Context.Models
 
         public override bool Parse(IBaseParserModel Parser, out string Error)
         {
-            Error = "";
+            Error = string.Empty;
             try {
                 var parser = (ParserModels.ParserAdminUserRoleOfUser)Parser;
                 UserId = parser.user_id;

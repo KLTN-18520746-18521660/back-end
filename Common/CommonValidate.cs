@@ -7,7 +7,7 @@ namespace Common
     {
         public static string ValidateFilePath(in string FilePath, in bool CreateFileIfNotExist = true, string Error = null)
         {
-            Error ??= "";
+            Error ??= string.Empty;
             if (!System.IO.File.Exists(FilePath)) {
                 if (CreateFileIfNotExist) {
                     try {
@@ -29,7 +29,7 @@ namespace Common
         }
         public static string ValidateDirectoryPath(in string DirPath, in bool CreatePathIfNotExist = true, string Error = null)
         {
-            Error ??= "";
+            Error ??= string.Empty;
             if (!System.IO.Directory.Exists(DirPath)) {
                 if (CreatePathIfNotExist) {
                     try {
@@ -46,7 +46,7 @@ namespace Common
         }
         public static bool ValidatePort(in string Port, string Error = null)
         {
-            Error ??= "";
+            Error ??= string.Empty;
             if (Regex.IsMatch(Port, "^[0-9]{0,5}$")) {
                 int portInt = int.Parse(Port);
                 // Valid port from 0 to 65535

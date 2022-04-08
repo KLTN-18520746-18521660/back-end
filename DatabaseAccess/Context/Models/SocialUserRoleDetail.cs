@@ -48,7 +48,7 @@ namespace DatabaseAccess.Context.Models
 
         public override bool Parse(IBaseParserModel Parser, out string Error)
         {
-            Error = "";
+            Error = string.Empty;
             try {
                 var parser = (ParserModels.ParserSocialUserRoleDetail)Parser;
                 RoleId = parser.role_id;

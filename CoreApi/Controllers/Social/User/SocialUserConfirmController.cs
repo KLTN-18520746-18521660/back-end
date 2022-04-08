@@ -32,7 +32,7 @@ namespace CoreApi.Controllers.Social.Session
         [NonAction]
         public override void LoadConfig()
         {
-            string Error = "";
+            string Error = string.Empty;
             try {
                 (REQUEST_EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
                 (NUMBER_OF_TIMES_ALLOW_CONFIRM_FAILURE, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG, SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_CONFIRM_FAILURE);
@@ -40,7 +40,7 @@ namespace CoreApi.Controllers.Social.Session
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
                 StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != "") {
+                if (Error != e.Message && Error != string.Empty) {
                     msg.Append($" && Error: { Error }");
                 }
                 LogError($"Load config value failed, message: { msg }");

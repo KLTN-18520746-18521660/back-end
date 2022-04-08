@@ -31,7 +31,7 @@ namespace CoreApi.Controllers.Admin.Session
         [NonAction]
         public override void LoadConfig()
         {
-            string Error = "";
+            string Error = string.Empty;
             try {
                 (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
                 (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
@@ -39,7 +39,7 @@ namespace CoreApi.Controllers.Admin.Session
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
                 StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != "") {
+                if (Error != e.Message && Error != string.Empty) {
                     msg.Append($" && Error: { Error }");
                 }
                 LogError($"Load config value failed, message: { msg }");

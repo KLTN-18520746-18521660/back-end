@@ -31,7 +31,7 @@ namespace CoreApi.Controllers.Admin
         [NonAction]
         public override void LoadConfig()
         {
-            string Error = "";
+            string Error = string.Empty;
             try {
                 (NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG, SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE);
                 (LOCK_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG, SUB_CONFIG_KEY.LOCK_TIME);
@@ -39,7 +39,7 @@ namespace CoreApi.Controllers.Admin
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
                 StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != "") {
+                if (Error != e.Message && Error != string.Empty) {
                     msg.Append($" && Error: { Error }");
                 }
                 LogError($"Load config value failed, message: { msg }");
