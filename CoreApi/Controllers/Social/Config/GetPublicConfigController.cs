@@ -63,7 +63,7 @@ namespace CoreApi.Controllers.Social.Config
             try {
                 bool isSessionInvalid = true;
                 #region Get session token
-                if (session_token == null) {
+                if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     isSessionInvalid = false;
                 }
@@ -74,7 +74,7 @@ namespace CoreApi.Controllers.Social.Config
                 #endregion
 
                 #region Find session for use
-                SessionSocialUser session = null;
+                SessionSocialUser session = default;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
                 if (isSessionInvalid) {
                     (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
@@ -121,7 +121,7 @@ namespace CoreApi.Controllers.Social.Config
             #endregion
             try {
                 #region Validate config_key
-                if (config_key == null || config_key == string.Empty || DefaultBaseConfig.StringToConfigKey(config_key) == CONFIG_KEY.INVALID) {
+                if (config_key == default || config_key == string.Empty || DefaultBaseConfig.StringToConfigKey(config_key) == CONFIG_KEY.INVALID) {
                     LogDebug($"Invalid config key.");
                     return Problem(400, "Invalid config_key.");
                 }
@@ -129,7 +129,7 @@ namespace CoreApi.Controllers.Social.Config
 
                 bool isSessionInvalid = false;
                 #region Get session token
-                if (session_token == null) {
+                if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                 }
 
@@ -139,7 +139,7 @@ namespace CoreApi.Controllers.Social.Config
                 #endregion
 
                 #region Find session for use
-                SessionSocialUser session = null;
+                SessionSocialUser session = default;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
                 if (isSessionInvalid) {
                     (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);

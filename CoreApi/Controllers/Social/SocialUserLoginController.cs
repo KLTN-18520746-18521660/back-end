@@ -100,7 +100,7 @@ namespace CoreApi.Controllers.Social
                 bool isEmail = CommonValidate.IsEmail(model.user_name);
                 LogDebug($"Find user user_name: { model.user_name }, isEmail: { isEmail }");
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                SocialUser user = null;
+                SocialUser user = default;
                 (user, error) = await __SocialUserManagement.FindUser(model.user_name, isEmail);
 
                 if (error != ErrorCodes.NO_ERROR) {
@@ -128,8 +128,8 @@ namespace CoreApi.Controllers.Social
                 #endregion
 
                 #region Create session
-                SessionSocialUser session = null;
-                var data = model.data == null ? new JObject() : model.data;
+                SessionSocialUser session = default;
+                var data = model.data == default ? new JObject() : model.data;
                 (session, error) = await __SessionSocialUserManagement.NewSession(user.Id, model.remember, data);
                 if (error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"CreateNewSocialSession Failed. ErrorCode: { error }");

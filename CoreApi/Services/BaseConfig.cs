@@ -36,6 +36,7 @@ namespace CoreApi.Services
         {
             await Gate.WaitAsync();
             isReloadConfig = true;
+            await __DBContext.Entry(__DBContext.AdminBaseConfigs).ReloadAsync();
             Configs = await __DBContext.AdminBaseConfigs.ToListAsync();
             isReloadConfig = false;
             Gate.Release();
@@ -108,7 +109,7 @@ namespace CoreApi.Services
             foreach (var it in publicConfig) {
                 var found = configs.Where(e => e.ConfigKey == it.Key).FirstOrDefault();
                 if (found == default) {
-                    return (null, $"Not found config. But key exist on public configs, key: { ConfigKey }");
+                    return (default, $"Not found config. But key exist on public configs, key: { ConfigKey }");
                 }
                 if (it.Key == DefaultBaseConfig.ConfigKeyToString(ConfigKey)) {
                     if (DefaultBaseConfig.StringToSubConfigKey(it.Value.ToString()) == SUB_CONFIG_KEY.ALL) {
@@ -122,7 +123,7 @@ namespace CoreApi.Services
                     }, "");
                 }
             }
-            return (null, $"Not found config. key: { ConfigKey }");
+            return (default, $"Not found config. key: { ConfigKey }");
         }
 
         public (JObject Value, string Error) GetConfigValue(CONFIG_KEY ConfigKey)
@@ -132,9 +133,9 @@ namespace CoreApi.Services
             var config = Configs
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
                             .Select(e => e.Value)
-                            .DefaultIfEmpty(null)
+                            .DefaultIfEmpty(default)
                             .FirstOrDefault();
-            if (config != null) {
+            if (config != default) {
                 return (config, "");
             }
 
@@ -161,17 +162,17 @@ namespace CoreApi.Services
             var config = Configs
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
                             .Select(e => e.Value)
-                            .DefaultIfEmpty(null)
+                            .DefaultIfEmpty(default)
                             .FirstOrDefault();
 
-            if (config != null && config[subConfigKeyStr] != null) {
+            if (config != default && config[subConfigKeyStr] != default) {
                 return ((T) System.Convert.ChangeType(config[subConfigKeyStr], typeof(T)), Error);
             } else {
                 var defaultConfig = DefaultBaseConfig.GetConfig(ConfigKey, Error);
-                if (Error != null && Error != "") {
+                if (Error != default && Error != "") {
                     throw new Exception(Error);
                 }
-                if (defaultConfig[subConfigKeyStr] == null) {
+                if (defaultConfig[subConfigKeyStr] == default) {
                     throw new Exception($"Invalid pair, config_key: { configKeyStr }, sub_config_key: { subConfigKeyStr }.");
                 }
                 Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }, sub_config_key: { subConfigKeyStr }.";
@@ -188,9 +189,9 @@ namespace CoreApi.Services
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
                             .Select(e => e.Value)
                             .ToListAsync())
-                            .DefaultIfEmpty(null)
+                            .DefaultIfEmpty(default)
                             .FirstOrDefault();
-            if (config != null) {
+            if (config != default) {
                 return (config, Error);
             }
 
@@ -216,17 +217,17 @@ namespace CoreApi.Services
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
                             .Select(e => e.Value)
                             .ToListAsync())
-                            .DefaultIfEmpty(null)
+                            .DefaultIfEmpty(default)
                             .FirstOrDefault();
 
-            if (config != null && config[subConfigKeyStr] != null) {
+            if (config != default && config[subConfigKeyStr] != default) {
                 return ((T) System.Convert.ChangeType(config[subConfigKeyStr], typeof(T)), Error);
             } else {
                 var defaultConfig = DefaultBaseConfig.GetConfig(ConfigKey, Error);
-                if (Error != null && Error != "") {
+                if (Error != default && Error != "") {
                     throw new Exception(Error);
                 }
-                if (defaultConfig[subConfigKeyStr] == null) {
+                if (defaultConfig[subConfigKeyStr] == default) {
                     throw new Exception($"Invalid pair, config_key: { configKeyStr }, sub_config_key: { subConfigKeyStr }.");
                 }
                 Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }, sub_config_key: { subConfigKeyStr }.";

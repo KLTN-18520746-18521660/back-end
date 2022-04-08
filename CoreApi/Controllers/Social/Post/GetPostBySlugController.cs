@@ -99,13 +99,13 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 #region Get session token
-                if (session_token != null) {
+                if (session_token != default) {
                     IsValidSession = !CommonValidate.IsValidSessionToken(session_token);
                 }
                 #endregion
 
                 #region Find session for use
-                SessionSocialUser session = null;
+                SessionSocialUser session = default;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
                 if (IsValidSession) {
                     (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);

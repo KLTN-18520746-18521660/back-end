@@ -195,7 +195,7 @@ namespace CoreApi.Services
         #region Function handler
         public async Task SendEmailUserSignUp(Guid UserId, string TraceId)
         {
-            SocialUser user = null;
+            SocialUser user = default;
             var sendSuccess = false;
             var requestState = string.Empty;
             var hostName = string.Empty;
@@ -250,7 +250,7 @@ namespace CoreApi.Services
                 { "is_sending", false },
                 { "send_success", sendSuccess },
                 { "send_date", DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT) },
-                { "confirm_date", null },
+                { "confirm_date", default },
                 { "state", requestState },
             });
             if (await __DBContext.SaveChangesAsync() <= 0) {

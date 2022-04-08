@@ -63,7 +63,7 @@ namespace CoreApi.Controllers.Social.Category
             try {
                 bool isSessionInvalid = true;
                 #region Get session token
-                if (session_token == null) {
+                if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     isSessionInvalid = false;
                 }
@@ -74,7 +74,7 @@ namespace CoreApi.Controllers.Social.Category
                 #endregion
 
                 #region Find session for use
-                SessionSocialUser session = null;
+                SessionSocialUser session = default;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
                 if (isSessionInvalid) {
                     (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
@@ -85,7 +85,7 @@ namespace CoreApi.Controllers.Social.Category
                 }
                 #endregion
 
-                List<SocialCategory> categories = null;
+                List<SocialCategory> categories = default;
                 (categories, error) = await __SocialCategoryManagement.GetCategories();
                 var ret = new JArray();
                 foreach (SocialCategory it in categories) {

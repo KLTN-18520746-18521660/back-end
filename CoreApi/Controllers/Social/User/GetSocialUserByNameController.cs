@@ -64,7 +64,7 @@ namespace CoreApi.Controllers.Social.Session
             try {
                 bool isSessionInvalid = true;
                 #region Get session token
-                if (session_token == null) {
+                if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     isSessionInvalid = false;
                 }
@@ -75,13 +75,13 @@ namespace CoreApi.Controllers.Social.Session
                 #endregion
 
                 #region Validate user_name
-                if (user_name == null || user_name == string.Empty || user_name.Length < 4) {
+                if (user_name == default || user_name == string.Empty || user_name.Length < 4) {
                     return Problem(400, "Invalid user_name.");
                 }
                 #endregion
 
                 #region Find session for use
-                SessionSocialUser session = null;
+                SessionSocialUser session = default;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
                 if (isSessionInvalid) {
                     (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
@@ -92,14 +92,14 @@ namespace CoreApi.Controllers.Social.Session
                 }
                 #endregion
 
-                SocialUser user = null;
+                SocialUser user = default;
                 (user, error) = await __SocialUserManagement.FindUser(user_name, false);
                 if (error != ErrorCodes.NO_ERROR) {
                     return Problem(404, "Not found any user.");
                 }
                 LogInformation($"Get info user by user_name success, user_name: { user.UserName }");
 
-                var ret = (session != null && session.User.Id == user.Id) ? user.GetJsonObject() : user.GetPublicJsonObject();
+                var ret = (session != default && session.User.Id == user.Id) ? user.GetJsonObject() : user.GetPublicJsonObject();
 
                 return Ok( new JObject(){
                     { "status", 200 },

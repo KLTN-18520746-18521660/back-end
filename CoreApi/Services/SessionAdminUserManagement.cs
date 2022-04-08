@@ -34,7 +34,7 @@ namespace CoreApi.Services
             if (await __DBContext.SaveChangesAsync() > 0) {
                 return (session, ErrorCodes.NO_ERROR);
             }
-            return (null, ErrorCodes.INTERNAL_SERVER_ERROR);
+            return (default, ErrorCodes.INTERNAL_SERVER_ERROR);
         }
 
         public async Task<(SessionAdminUser, ErrorCodes)> FindSession(string SessionToken)
@@ -42,13 +42,11 @@ namespace CoreApi.Services
             var session = (await __DBContext.SessionAdminUsers
                             .Where(e => e.SessionToken == SessionToken)
                             .Include(e => e.User)
-                            .ToListAsync())
-                            .DefaultIfEmpty(null)
-                            .FirstOrDefault();
-            if (session != null) {
+                            .FirstOrDefaultAsync());
+            if (session != default) {
                 return (session, ErrorCodes.NO_ERROR);
             }
-            return (null, ErrorCodes.NOT_FOUND);
+            return (default, ErrorCodes.NOT_FOUND);
         }
 
         public async Task<(SessionAdminUser, ErrorCodes)> FindSessionForUse(string SessionToken,
@@ -56,19 +54,19 @@ namespace CoreApi.Services
                                     int ExtensionTime)
         {
             ErrorCodes error = ErrorCodes.NO_ERROR;
-            SessionAdminUser session = null;
+            SessionAdminUser session = default;
             (session, error) = await FindSession(SessionToken);
             if (error != ErrorCodes.NO_ERROR) {
                 return (session, error);
             }
 
             if (session.User.Status == AdminUserStatus.Blocked) {
-                return (null, ErrorCodes.USER_HAVE_BEEN_LOCKED);
+                return (default, ErrorCodes.USER_HAVE_BEEN_LOCKED);
             }
             // Clear expired session
             error = await ClearExpiredSession(session.User.GetExpiredSessions(ExpiryTime));
             if (error != ErrorCodes.NO_ERROR) {
-                return (null, ErrorCodes.INTERNAL_SERVER_ERROR);
+                return (default, ErrorCodes.INTERNAL_SERVER_ERROR);
             }
             // Find session again if session if expired
             (session, error) = await FindSession(SessionToken);
@@ -81,15 +79,15 @@ namespace CoreApi.Services
                     }
                 }
             } else if (error == ErrorCodes.NOT_FOUND) {
-                return (null, ErrorCodes.SESSION_HAS_EXPIRED);
+                return (default, ErrorCodes.SESSION_HAS_EXPIRED);
             }
-            return (null, ErrorCodes.INTERNAL_SERVER_ERROR);
+            return (default, ErrorCodes.INTERNAL_SERVER_ERROR);
         }
 
         public async Task<ErrorCodes> RemoveSession(string SessionToken)
         {
             ErrorCodes error = ErrorCodes.NO_ERROR;
-            SessionAdminUser session = null;
+            SessionAdminUser session = default;
             (session, error) = await FindSession(SessionToken);
             if (error != ErrorCodes.NO_ERROR) {
                 return error;
@@ -119,7 +117,7 @@ namespace CoreApi.Services
         {
             var now = DateTime.UtcNow.AddMinutes(ExtensionTime);
             ErrorCodes error = ErrorCodes.NO_ERROR;
-            SessionAdminUser session = null;
+            SessionAdminUser session = default;
             (session, error) = await FindSession(SessionToken);
             if (error != ErrorCodes.NO_ERROR) {
                 return error;
@@ -138,7 +136,7 @@ namespace CoreApi.Services
             if (Sessions.Count > 0) {
                 return (Sessions, ErrorCodes.NO_ERROR);
             }
-            return (null, ErrorCodes.NOT_FOUND);
+            return (default, ErrorCodes.NOT_FOUND);
         }
     }
 }

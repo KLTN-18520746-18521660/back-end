@@ -14,7 +14,7 @@ namespace Common.Logger
         {
             logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
                 "ThreadId", Thread.CurrentThread.ManagedThreadId));
-            if (logEvent.Exception == null)
+            if (logEvent.Exception == default)
                 return;
             LogEventProperty logEventProperty;
 #if DEBUG
@@ -37,7 +37,7 @@ namespace Common.Logger
         {
             logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
                 "ThreadId", Thread.CurrentThread.ManagedThreadId));
-            if (logEvent.MessageTemplate == null)
+            if (logEvent.MessageTemplate == default)
                 return;
 
             var logEventProperty = propertyFactory.CreateProperty("EscapedMessage", Regex.Replace(logEvent.MessageTemplate.ToString(), Environment.NewLine, " "));

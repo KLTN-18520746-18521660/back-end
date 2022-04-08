@@ -77,17 +77,17 @@ namespace CoreApi
             warnings = new List<string>();
             // [INFO] Get log file format
             _LogFilePath = configuration.GetValue<string>("LogFilePath");
-            if (_LogFilePath == null) {
+            if (_LogFilePath == default) {
                 _LogFilePath = ConfigurationDefaultVariable.LOG_FILE_FORMAT;
                 warnings.Add($"Log file path not configured. Use default path: { _LogFilePath }");
             }
             // [INFO] Get port config
             var portConfig = configuration["Port"];
-            if (portConfig != null && CommonValidate.ValidatePort(portConfig)) {
+            if (portConfig != default && CommonValidate.ValidatePort(portConfig)) {
                 _Port = int.Parse(portConfig);
             } else {
                 _Port = ConfigurationDefaultVariable.PORT;
-                if (portConfig == null) {
+                if (portConfig == default) {
                     warnings.Add($"Port not configured. Use default port: { _Port }");
                 } else {
                     warnings.Add($"Configured port is invalid. Use default port: { _Port }");
@@ -95,7 +95,7 @@ namespace CoreApi
             }
             // [INFO] Get custom passeord cert
             _PasswordCert =  configuration.GetSection("Certificate").GetValue<string>("Password");
-            if (_PasswordCert == null || StringDecryptor.Decrypt(_PasswordCert) == default) {
+            if (_PasswordCert == default || StringDecryptor.Decrypt(_PasswordCert) == default) {
                 _PasswordCert = ConfigurationDefaultVariable.PASSWORD_CERTIFICATE;
                 warnings.Add($"Password certificate not configured. Use default password: ***");
             } else {
@@ -103,26 +103,26 @@ namespace CoreApi
             }
             // [INFO] Get custom cert path
             _CertPath = configuration.GetSection("Certificate").GetValue<string>("Path");
-            if (CommonValidate.ValidateFilePath(_CertPath, false) == null && _EnableSSL) {
+            if (CommonValidate.ValidateFilePath(_CertPath, false) == default && _EnableSSL) {
                 _EnableSSL = false;
-                warnings.Add($"Certificate not exists or not set. Cerificate path: { ((_CertPath == null) ? null : System.IO.Path.GetFullPath(_CertPath)) }");
+                warnings.Add($"Certificate not exists or not set. Cerificate path: { ((_CertPath == default) ? default : System.IO.Path.GetFullPath(_CertPath)) }");
             }
             // [INFO] Configure connect string
-            if (configuration.GetSection("DatabaseAccess") != null) {
+            if (configuration.GetSection("DatabaseAccess") != default) {
                 _DBAccessConfig.Host = configuration.GetSection("DatabaseAccess").GetValue<string>("Host");
                 _DBAccessConfig.User = configuration.GetSection("DatabaseAccess").GetValue<string>("Username");
                 _DBAccessConfig.Password = configuration.GetSection("DatabaseAccess").GetValue<string>("Password");
                 _DBAccessConfig.Port = configuration.GetSection("DatabaseAccess").GetValue<string>("Port");
                 _DBAccessConfig.DBName = configuration.GetSection("DatabaseAccess").GetValue<string>("DBName");
-                _DBAccessConfig.Password = StringDecryptor.Decrypt(_DBAccessConfig.Password == null ? "" : _DBAccessConfig.Password);
+                _DBAccessConfig.Password = StringDecryptor.Decrypt(_DBAccessConfig.Password == default ? "" : _DBAccessConfig.Password);
 
-                if (_DBAccessConfig.Port == null || !CommonValidate.ValidatePort(_DBAccessConfig.Port)) {
-                    warnings.Add($"Configured database port is invalid or null. Use default port: { IBaseConfigurationDB.Port }");
+                if (_DBAccessConfig.Port == default || !CommonValidate.ValidatePort(_DBAccessConfig.Port)) {
+                    warnings.Add($"Configured database port is invalid or default. Use default port: { IBaseConfigurationDB.Port }");
                     _DBAccessConfig.Port = IBaseConfigurationDB.Port;
                 }
 
                 if (_DBAccessConfig.Password == default) {
-                    warnings.Add($"Configured database password is invalid or null. Use default password.");
+                    warnings.Add($"Configured database password is invalid or default. Use default password.");
                     _DBAccessConfig.Password = string.Empty;
                 }
 
@@ -132,21 +132,21 @@ namespace CoreApi
                 BaseConfigurationDB.Configure(); // Use default value
             }
             // [INFO] Configure for email client
-            if (configuration.GetSection("Email") != null) {
+            if (configuration.GetSection("Email") != default) {
                 _EmailClientConfig.Host = configuration.GetSection("Email").GetValue<string>("Host");
                 _EmailClientConfig.User = configuration.GetSection("Email").GetValue<string>("Username");
                 _EmailClientConfig.Password = configuration.GetSection("Email").GetValue<string>("Password");
                 _EmailClientConfig.Port = configuration.GetSection("Email").GetValue<string>("Port");
                 _EmailClientConfig.EnableSSL = configuration.GetSection("Email").GetValue<bool>("EnableSSL");
-                _EmailClientConfig.Password = StringDecryptor.Decrypt(_EmailClientConfig.Password == null ? "" : _EmailClientConfig.Password);
+                _EmailClientConfig.Password = StringDecryptor.Decrypt(_EmailClientConfig.Password == default ? "" : _EmailClientConfig.Password);
 
-                if (_EmailClientConfig.Host == null || _EmailClientConfig.Host == string.Empty) {
-                    throw new Exception("Configured email server is invalid or null.");
+                if (_EmailClientConfig.Host == default || _EmailClientConfig.Host == string.Empty) {
+                    throw new Exception("Configured email server is invalid or default.");
                 }
-                if (_EmailClientConfig.Port == null || !CommonValidate.ValidatePort(_EmailClientConfig.Port)) {
-                    throw new Exception("Configured email server port is invalid or null.");
+                if (_EmailClientConfig.Port == default || !CommonValidate.ValidatePort(_EmailClientConfig.Port)) {
+                    throw new Exception("Configured email server port is invalid or default.");
                 }
-                if (_EmailClientConfig.User == null || !CommonValidate.IsEmail(_EmailClientConfig.User)) {
+                if (_EmailClientConfig.User == default || !CommonValidate.IsEmail(_EmailClientConfig.User)) {
                     throw new Exception("User of email client must be an email.");
                 }
                 if (_EmailClientConfig.Password == default) {
@@ -157,7 +157,7 @@ namespace CoreApi
             }
             // [INFO] Get host name from config || default is 'localhost'
             _HostName = configuration.GetValue<string>("HostName");
-            if (_HostName == null || !CommonValidate.IsValidDomainName(_HostName)) {
+            if (_HostName == default || !CommonValidate.IsValidDomainName(_HostName)) {
                 _HostName = "localhost";
                 warnings.Add($"Invalid host name config. Use default host name: { _HostName }.");
             }
@@ -211,7 +211,7 @@ namespace CoreApi
                     webBuilder.UseKestrel(kestrelServerOptions => {
                         // [INFO] Listen on any IP
                         kestrelServerOptions.Listen(System.Net.IPAddress.Any, _Port, listenOptions => {
-                            if (_EnableSSL && CommonValidate.ValidateFilePath(_CertPath, false) != null) {
+                            if (_EnableSSL && CommonValidate.ValidateFilePath(_CertPath, false) != default) {
                                 // Config server using ssl with pfx certificate
                                 listenOptions.UseHttps(CommonValidate.ValidateFilePath(_CertPath, false), _PasswordCert);
                             }
@@ -250,7 +250,7 @@ namespace CoreApi
         }
         private static ILogger SetDefaultSeriLogger(in IConfigurationRoot configuration)
         {
-            if (_LogFilePath == null) {
+            if (_LogFilePath == default) {
                 _LogFilePath = ConfigurationDefaultVariable.LOG_FILE_FORMAT;
             }
             Log.Logger = new LoggerConfiguration()
@@ -273,7 +273,7 @@ namespace CoreApi
         {
             // [IMPORTANT] Need to run by order
             try {
-                if (CommonValidate.ValidateFilePath(ConfigurationDefaultVariable.CONFIG_FILE_PATH, false) == null) {
+                if (CommonValidate.ValidateFilePath(ConfigurationDefaultVariable.CONFIG_FILE_PATH, false) == default) {
                     throw new Exception($"Missing configuration file. Path: { System.IO.Path.GetFullPath(ConfigurationDefaultVariable.CONFIG_FILE_PATH) }");
                 }
                 __Configuration = new ConfigurationBuilder()
@@ -295,7 +295,7 @@ namespace CoreApi
                 __Host.Run();
             } 
             catch (Exception ex) {
-                if (__Logger != null) {
+                if (__Logger != default) {
                     __Logger.Error(ex.ToString());
                 } else {
                     __Logger = SetDefaultSeriLogger(new ConfigurationBuilder().Build());

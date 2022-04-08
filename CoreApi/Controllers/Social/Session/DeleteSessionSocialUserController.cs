@@ -115,7 +115,7 @@ namespace CoreApi.Controllers.Social.Session
             #endregion
             try {
                 #region Get session token
-                if (session_token == null) {
+                if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     return Problem(403, "Missing header authorization.");
                 }
@@ -135,7 +135,7 @@ namespace CoreApi.Controllers.Social.Session
                 #endregion
 
                 #region Find session for use
-                SessionSocialUser session = null;
+                SessionSocialUser session = default;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
                 (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
 
@@ -158,7 +158,7 @@ namespace CoreApi.Controllers.Social.Session
 
                 #region Delete session
                 var user = session.User;
-                SessionSocialUser delSession = null;
+                SessionSocialUser delSession = default;
                 (delSession, error) = await __SessionSocialUserManagement.FindSession(delete_session_token);
                 if (error != ErrorCodes.NO_ERROR || delSession.UserId != session.UserId) {
                     LogInformation($"Delete session not found, session_token: { delete_session_token.Substring(0, 15) }");

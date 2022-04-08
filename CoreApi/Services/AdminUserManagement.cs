@@ -37,61 +37,51 @@ namespace CoreApi.Services
         {
             AdminUser user;
             if (isEmail) {
-                user = (await __DBContext.AdminUsers
+                user = await __DBContext.AdminUsers
                         .Where<AdminUser>(e => e.Email == UserName
                             && e.StatusStr != BaseStatus.StatusToString(AdminUserStatus.Deleted, EntityStatus.AdminUserStatus))
-                        .ToListAsync())
-                        .DefaultIfEmpty(null)
-                        .FirstOrDefault();
+                        .FirstOrDefaultAsync();
             } else {
-                user = (await __DBContext.AdminUsers
+                user = await __DBContext.AdminUsers
                         .Where<AdminUser>(e => e.UserName == UserName
                             && e.StatusStr != BaseStatus.StatusToString(AdminUserStatus.Deleted, EntityStatus.AdminUserStatus))
-                        .ToListAsync())
-                        .DefaultIfEmpty(null)
-                        .FirstOrDefault();
+                        .FirstOrDefaultAsync();
             }
-            if (user != null) {
+            if (user != default) {
                 return (user, ErrorCodes.NO_ERROR);
             }
-            return (null, ErrorCodes.NOT_FOUND);
+            return (default, ErrorCodes.NOT_FOUND);
         }
 
         public async Task<(AdminUser, ErrorCodes)> FindUserIgnoreStatus(string UserName, bool isEmail)
         {
             AdminUser user;
             if (isEmail) {
-                user = (await __DBContext.AdminUsers
+                user = await __DBContext.AdminUsers
                         .Where(e => e.Email == UserName)
-                        .ToListAsync())
-                        .DefaultIfEmpty(null)
-                        .FirstOrDefault();
+                        .FirstOrDefaultAsync();
             } else {
-                user = (await __DBContext.AdminUsers
+                user = await __DBContext.AdminUsers
                         .Where(e => e.UserName == UserName)
-                        .ToListAsync())
-                        .DefaultIfEmpty(null)
-                        .FirstOrDefault();
+                        .FirstOrDefaultAsync();
             }
-            if (user != null) {
+            if (user != default) {
                 return (user, ErrorCodes.NO_ERROR);
             }
-            return (null, ErrorCodes.NOT_FOUND);
+            return (default, ErrorCodes.NOT_FOUND);
         }
 
         public async Task<(AdminUser, ErrorCodes)> FindUserById(Guid Id)
         {
             AdminUser user;
-            user = (await __DBContext.AdminUsers
+            user = await __DBContext.AdminUsers
                     .Where(e => e.Id == Id)
-                    .ToListAsync())
-                    .DefaultIfEmpty(null)
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync();
 
-            if (user != null) {
+            if (user != default) {
                 return (user, ErrorCodes.NO_ERROR);
             }
-            return (null, ErrorCodes.NOT_FOUND);
+            return (default, ErrorCodes.NOT_FOUND);
         }
 
         // username_existed, email_existed, ERROR
@@ -202,7 +192,7 @@ namespace CoreApi.Services
         {
             if (UserRights.ContainsKey(Right)) {
                 var right = UserRights[Right];
-                if (right["read"] != null &&
+                if (right["read"] != default &&
                     ((bool)right["read"]) == true) {
                     return ErrorCodes.NO_ERROR;
                 }
@@ -226,7 +216,7 @@ namespace CoreApi.Services
         {
             if (UserRights.ContainsKey(Right)) {
                 var right = UserRights[Right];
-                if (right["read"] != null && right["write"] != null &&
+                if (right["read"] != default && right["write"] != default &&
                     ((bool)right["read"]) == true && ((bool)right["write"]) == true) {
                     return ErrorCodes.NO_ERROR;
                 }

@@ -71,9 +71,9 @@ namespace CoreApi
                         }
                         string level = msg.TrimStart().Substring(0, 1);
                         string realMsg = string.Join(" ", msg.Split("->").Skip(1).ToArray()).Trim();
-                        if (level.StartsWith("i", true, null)) {
+                        if (level.StartsWith("i", true, default)) {
                             __Logger.Information(realMsg);
-                        } else if (level.StartsWith("w", true, null)) {
+                        } else if (level.StartsWith("w", true, default)) {
                             __Logger.Warning(realMsg);
                         } else {
                             __Logger.Error(realMsg);

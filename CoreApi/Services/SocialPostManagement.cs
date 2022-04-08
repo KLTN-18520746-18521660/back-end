@@ -121,24 +121,22 @@ namespace CoreApi.Services
         public async Task<(SocialPost, ErrorCodes)> FindPostBySlug(string Slug, Guid SocialUserId = default)
         {
             if (Slug == string.Empty) {
-                return (null, ErrorCodes.INVALID_PARAMS);
+                return (default, ErrorCodes.INVALID_PARAMS);
             }
-            var post = (await __DBContext.SocialPosts
+            var post = await __DBContext.SocialPosts
                     .Where(e => e.Slug == Slug
                         && e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
                         && e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Private, EntityStatus.SocialPostStatus))
-                    .ToListAsync())
-                    .DefaultIfEmpty(null)
-                    .FirstOrDefault();
-            if (post == null) {
-                return (null, ErrorCodes.NOT_FOUND);
+                    .FirstOrDefaultAsync();
+            if (post == default) {
+                return (default, ErrorCodes.NOT_FOUND);
             }
             post.Views++;
             _ = __DBContext.SaveChangesAsync();
 
             if (post.Status != SocialPostStatus.Approved) {
                 if (SocialUserId == default || SocialUserId != post.Owner) {
-                    return (null, ErrorCodes.USER_IS_NOT_OWNER);
+                    return (default, ErrorCodes.USER_IS_NOT_OWNER);
                 }
             }
             return (post, ErrorCodes.NO_ERROR);
@@ -146,16 +144,14 @@ namespace CoreApi.Services
 
         public async Task<(SocialPost, ErrorCodes)> FindPostById(long Id)
         {
-            var post = (await __DBContext.SocialPosts
+            var post = await __DBContext.SocialPosts
                     .Where(e => e.Id == Id)
-                    .ToListAsync())
-                    .DefaultIfEmpty(null)
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync();
 
-            if (post != null) {
+            if (post != default) {
                 return (post, ErrorCodes.NO_ERROR);
             }
-            return (null, ErrorCodes.NOT_FOUND);
+            return (default, ErrorCodes.NOT_FOUND);
         }
 
         public async Task<(bool, ErrorCodes)> IsPostExisting(string Slug)

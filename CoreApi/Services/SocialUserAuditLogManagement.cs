@@ -23,9 +23,9 @@ namespace CoreApi.Services
             __ServiceName = "SocialUserAuditLogManagement";
         }
 
-        public async Task<(List<SocialUserAuditLog> AuditLogs, int TotalSize)> GetAllAuditLog(Guid UserId, int Start, int Size, string SearchTerm = null)
+        public async Task<(List<SocialUserAuditLog> AuditLogs, int TotalSize)> GetAllAuditLog(Guid UserId, int Start, int Size, string SearchTerm = default)
         {
-            if (SearchTerm == null || SearchTerm == "") {
+            if (SearchTerm == default || SearchTerm == "") {
                 return
                 (
                     await __DBContext.SocialUserAuditLogs

@@ -89,7 +89,7 @@ namespace CoreApi.Controllers.Social
             #endregion
             try {
                 #region Get session token
-                if (session_token == null) {
+                if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     return Problem(403, "Missing header authorization.");
                 }
@@ -100,7 +100,7 @@ namespace CoreApi.Controllers.Social
                 #endregion
 
                 #region Find session token
-                SessionSocialUser session = null;
+                SessionSocialUser session = default;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
                 (session, error) = await __SessionSocialUserManagement.FindSession(session_token);
 

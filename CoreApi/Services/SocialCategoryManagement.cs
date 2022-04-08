@@ -35,14 +35,12 @@ namespace CoreApi.Services
         }
         public async Task<(SocialCategory, ErrorCodes)> FindCategoryByName(string CategoryName, Guid SocialUserId = default)
         {
-            var category = (await __DBContext.SocialCategories
+            var category = await __DBContext.SocialCategories
                     .Where(e => e.Name == CategoryName
                             && e.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus))
-                    .ToListAsync())
-                    .DefaultIfEmpty(null)
-                    .FirstOrDefault();
-            if (category == null) {
-                return (null, ErrorCodes.NOT_FOUND);
+                    .FirstOrDefaultAsync();
+            if (category == default) {
+                return (default, ErrorCodes.NOT_FOUND);
             }
 
             if (SocialUserId != default) {
@@ -52,13 +50,11 @@ namespace CoreApi.Services
         }
         public async Task<(SocialCategory, ErrorCodes)> FindCategoryByNameIgnoreStatus(string CategoryName, Guid SocialUserId = default)
         {
-            var category = (await __DBContext.SocialCategories
+            var category = await __DBContext.SocialCategories
                     .Where(e => e.Name == CategoryName)
-                    .ToListAsync())
-                    .DefaultIfEmpty(null)
-                    .FirstOrDefault();
-            if (category == null) {
-                return (null, ErrorCodes.NOT_FOUND);
+                    .FirstOrDefaultAsync();
+            if (category == default) {
+                return (default, ErrorCodes.NOT_FOUND);
             }
 
             if (SocialUserId != default) {
@@ -69,16 +65,14 @@ namespace CoreApi.Services
 
         public async Task<(SocialCategory, ErrorCodes)> FindCategoryById(long Id)
         {
-            var category = (await __DBContext.SocialCategories
+            var category = await __DBContext.SocialCategories
                     .Where(e => e.Id == Id)
-                    .ToListAsync())
-                    .DefaultIfEmpty(null)
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync();
 
-            if (category != null) {
+            if (category != default) {
                 return (category, ErrorCodes.NO_ERROR);
             }
-            return (null, ErrorCodes.NOT_FOUND);
+            return (default, ErrorCodes.NOT_FOUND);
         }
         public async Task<(bool, ErrorCodes)> IsSlugExisting(string Slug)
         {

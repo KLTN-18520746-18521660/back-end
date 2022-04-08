@@ -36,61 +36,51 @@ namespace CoreApi.Services
         {
             SocialUser user;
             if (isEmail) {
-                user = (await __DBContext.SocialUsers
+                user = await __DBContext.SocialUsers
                         .Where(e => e.Email == UserName
                             && e.StatusStr != BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus))
-                        .ToListAsync())
-                        .DefaultIfEmpty(null)
-                        .FirstOrDefault();
+                        .FirstOrDefaultAsync();
             } else {
-                user = (await __DBContext.SocialUsers
+                user = await __DBContext.SocialUsers
                         .Where(e => e.UserName == UserName
                             && e.StatusStr != BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus))
-                        .ToListAsync())
-                        .DefaultIfEmpty(null)
-                        .FirstOrDefault();
+                        .FirstOrDefaultAsync();
             }
-            if (user != null) {
+            if (user != default) {
                 return (user, ErrorCodes.NO_ERROR);
             }
-            return (null, ErrorCodes.NOT_FOUND);
+            return (default, ErrorCodes.NOT_FOUND);
         }
 
         public async Task<(SocialUser, ErrorCodes)> FindUserIgnoreStatus(string UserName, bool isEmail)
         {
             SocialUser user;
             if (isEmail) {
-                user = (await __DBContext.SocialUsers
-                        .Where<SocialUser>(e => e.Email == UserName)
-                        .ToListAsync())
-                        .DefaultIfEmpty(null)
-                        .FirstOrDefault();
+                user = await __DBContext.SocialUsers
+                        .Where(e => e.Email == UserName)
+                        .FirstOrDefaultAsync();
             } else {
-                user = (await __DBContext.SocialUsers
-                        .Where<SocialUser>(e => e.UserName == UserName)
-                        .ToListAsync())
-                        .DefaultIfEmpty(null)
-                        .FirstOrDefault();
+                user = await __DBContext.SocialUsers
+                        .Where(e => e.UserName == UserName)
+                        .FirstOrDefaultAsync();
             }
-            if (user != null) {
+            if (user != default) {
                 return (user, ErrorCodes.NO_ERROR);
             }
-            return (null, ErrorCodes.NOT_FOUND);
+            return (default, ErrorCodes.NOT_FOUND);
         }
 
         public async Task<(SocialUser, ErrorCodes)> FindUserById(Guid Id)
         {
             SocialUser user;
-            user = (await __DBContext.SocialUsers
+            user = await __DBContext.SocialUsers
                     .Where(e => e.Id == Id)
-                    .ToListAsync())
-                    .DefaultIfEmpty(null)
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync();
 
-            if (user != null) {
+            if (user != default) {
                 return (user, ErrorCodes.NO_ERROR);
             }
-            return (null, ErrorCodes.NOT_FOUND);
+            return (default, ErrorCodes.NOT_FOUND);
         }
 
         // username_existed, email_existed, ERROR
@@ -195,7 +185,7 @@ namespace CoreApi.Services
             var rights = User.Rights;
             if (rights.ContainsKey(Right)) {
                 var right = rights[Right];
-                if (right["read"] != null &&
+                if (right["read"] != default &&
                     ((bool)right["read"]) == true) {
                     return ErrorCodes.NO_ERROR;
                 }
@@ -215,7 +205,7 @@ namespace CoreApi.Services
             var rights = User.Rights;
             if (rights.ContainsKey(Right)) {
                 var right = rights[Right];
-                if (right["read"] != null && right["write"] != null &&
+                if (right["read"] != default && right["write"] != default &&
                     ((bool)right["read"]) == true && ((bool)right["write"]) == true) {
                     return ErrorCodes.NO_ERROR;
                 }

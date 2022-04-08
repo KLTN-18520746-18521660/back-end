@@ -90,7 +90,7 @@ namespace CoreApi.Controllers.Admin
             #endregion
             try {
                 #region Get session token
-                if (session_token == null) {
+                if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     return Problem(403, "Missing header authorization.");
                 }
@@ -101,7 +101,7 @@ namespace CoreApi.Controllers.Admin
                 #endregion
 
                 #region Find session token
-                SessionAdminUser session = null;
+                SessionAdminUser session = default;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
                 (session, error) = await __SessionAdminUserManagement.FindSession(session_token);
 

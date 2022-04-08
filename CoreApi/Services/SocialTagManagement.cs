@@ -35,14 +35,12 @@ namespace CoreApi.Services
         }
         public async Task<(SocialTag, ErrorCodes)> FindTagByName(string Tag, Guid SocialUserId = default)
         {
-            var tag = (await __DBContext.SocialTags
+            var tag = await __DBContext.SocialTags
                     .Where(e => e.Tag == Tag
                             && e.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus))
-                    .ToListAsync())
-                    .DefaultIfEmpty(null)
-                    .FirstOrDefault();
-            if (tag == null) {
-                return (null, ErrorCodes.NOT_FOUND);
+                    .FirstOrDefaultAsync();
+            if (tag == default) {
+                return (default, ErrorCodes.NOT_FOUND);
             }
 
             if (SocialUserId != default) {
@@ -52,13 +50,11 @@ namespace CoreApi.Services
         }
         public async Task<(SocialTag, ErrorCodes)> FindCategoryByNameIgnoreStatus(string Tag, Guid SocialUserId = default)
         {
-            var tag = (await __DBContext.SocialTags
+            var tag = await __DBContext.SocialTags
                     .Where(e => e.Tag == Tag)
-                    .ToListAsync())
-                    .DefaultIfEmpty(null)
-                    .FirstOrDefault();
-            if (tag == null) {
-                return (null, ErrorCodes.NOT_FOUND);
+                    .FirstOrDefaultAsync();
+            if (tag == default) {
+                return (default, ErrorCodes.NOT_FOUND);
             }
 
             if (SocialUserId != default) {
@@ -69,16 +65,14 @@ namespace CoreApi.Services
 
         public async Task<(SocialTag, ErrorCodes)> FindTagById(long Id)
         {
-            var tag = (await __DBContext.SocialTags
+            var tag = await __DBContext.SocialTags
                     .Where(e => e.Id == Id)
-                    .ToListAsync())
-                    .DefaultIfEmpty(null)
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync();
 
-            if (tag != null) {
+            if (tag != default) {
                 return (tag, ErrorCodes.NO_ERROR);
             }
-            return (null, ErrorCodes.NOT_FOUND);
+            return (default, ErrorCodes.NOT_FOUND);
         }
 
         #region Tag handle

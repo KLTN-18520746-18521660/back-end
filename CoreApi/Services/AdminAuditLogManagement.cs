@@ -23,9 +23,9 @@ namespace CoreApi.Services
             __ServiceName = "AdminAuditLogManagement";
         }
 
-        public async Task<(List<AdminAuditLog> AuditLogs, int TotalSize)> GetAllAuditLog(int Start, int Size, string SearchTerm = null)
+        public async Task<(List<AdminAuditLog> AuditLogs, int TotalSize)> GetAllAuditLog(int Start, int Size, string SearchTerm = default)
         {
-            if (SearchTerm == null || SearchTerm == "") {
+            if (SearchTerm == default || SearchTerm == "") {
                 return 
                 (
                     await __DBContext.AdminAuditLogs

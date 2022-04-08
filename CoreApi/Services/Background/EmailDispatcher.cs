@@ -40,7 +40,7 @@ namespace CoreApi.Services.Background
             {
                 var reqToSendEmail = await __Channel.Reader.ReadAsync();
                 var input = GetValueFromReq(reqToSendEmail.Data, reqToSendEmail.Type);
-                if (input == null) {
+                if (input == default) {
                     throw new Exception($"TraceId: { reqToSendEmail.TraceId }, Invalid input: { reqToSendEmail.Data.ToString() }");
                 }
 
@@ -68,7 +68,7 @@ namespace CoreApi.Services.Background
                 case RequestToSendEmailType.UserSignup:
                     return Data.Value<Guid>("UserId");
                 default:
-                    return null;
+                    return default;
             }
         }
     }

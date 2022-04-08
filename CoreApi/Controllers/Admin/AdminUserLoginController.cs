@@ -100,7 +100,7 @@ namespace CoreApi.Controllers.Admin
                 bool isEmail = CommonValidate.IsEmail(model.user_name);
                 LogDebug($"Find user user_name: { model.user_name }, isEmail: { isEmail }");
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                AdminUser user = null;
+                AdminUser user = default;
                 (user, error) = await __AdminUserManagement.FindUser(model.user_name, isEmail);
 
                 if (error != ErrorCodes.NO_ERROR) {
@@ -128,8 +128,8 @@ namespace CoreApi.Controllers.Admin
                 #endregion
 
                 #region Create session
-                SessionAdminUser session = null;
-                var data = model.data == null ? new JObject() : model.data;
+                SessionAdminUser session = default;
+                var data = model.data == default ? new JObject() : model.data;
                 (session, error) = await __SessionAdminUserManagement.NewSession(user.Id, model.remember, data);
                 if (error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"CreateNewAdminSession Failed. ErrorCode: { error }");

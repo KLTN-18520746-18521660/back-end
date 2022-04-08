@@ -243,9 +243,9 @@ namespace DatabaseAccess.Context.Models
             return true;
         }
 
-        public override JObject GetPublicJsonObject(List<string> publicFields = null)
+        public override JObject GetPublicJsonObject(List<string> publicFields = default)
         {
-            if (publicFields == null) {
+            if (publicFields == default) {
                 publicFields = new List<string>();
                 foreach(var item in Publics.ToArray()) {
                     publicFields.Add(item.ToString());

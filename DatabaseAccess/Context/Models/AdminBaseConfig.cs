@@ -80,7 +80,7 @@ namespace DatabaseAccess.Context.Models
             { ConfigKeyToString(CONFIG_KEY.UI_CONFIG), SubConfigKeyToString(SUB_CONFIG_KEY.ALL) }
         };
         #endregion
-        public static JObject GetConfig(CONFIG_KEY ConfigKey, string Error = null)
+        public static JObject GetConfig(CONFIG_KEY ConfigKey, string Error = default)
         {
             Error ??= "";
             switch(ConfigKey) {
@@ -105,7 +105,7 @@ namespace DatabaseAccess.Context.Models
                     return new JObject();
             }
         }
-        public static CONFIG_KEY StringToConfigKey(string ConfigKey, string Error = null)
+        public static CONFIG_KEY StringToConfigKey(string ConfigKey, string Error = default)
         {
             Error ??= "";
             switch(ConfigKey) {
@@ -130,7 +130,7 @@ namespace DatabaseAccess.Context.Models
                     return CONFIG_KEY.INVALID;
             }
         }
-        public static string ConfigKeyToString(CONFIG_KEY ConfigKey, string Error = null)
+        public static string ConfigKeyToString(CONFIG_KEY ConfigKey, string Error = default)
         {
             Error ??= "";
             switch(ConfigKey) {
@@ -155,7 +155,7 @@ namespace DatabaseAccess.Context.Models
                     return "Invalid config key.";
             }
         }
-        public static SUB_CONFIG_KEY StringToSubConfigKey(string SubConfigKey, string Error = null)
+        public static SUB_CONFIG_KEY StringToSubConfigKey(string SubConfigKey, string Error = default)
         {
             Error ??= "";
             switch(SubConfigKey) {
@@ -184,7 +184,7 @@ namespace DatabaseAccess.Context.Models
                     return SUB_CONFIG_KEY.INVALID;
             }
         }
-        public static string SubConfigKeyToString(SUB_CONFIG_KEY SubConfigKey, string Error = null)
+        public static string SubConfigKeyToString(SUB_CONFIG_KEY SubConfigKey, string Error = default)
         {
             Error ??= "";
             switch(SubConfigKey) {
@@ -277,8 +277,8 @@ namespace DatabaseAccess.Context.Models
             };
             return true;
         }
-        public override JObject GetPublicJsonObject(List<string> publicFields = null) {
-            if (publicFields == null) {
+        public override JObject GetPublicJsonObject(List<string> publicFields = default) {
+            if (publicFields == default) {
                 publicFields = new List<string>(){
                     "config_key",
                     "value",

@@ -39,7 +39,7 @@ namespace DatabaseAccess.Common.Models
         public JObject GetJsonObject() {
             return JsonConvert.DeserializeObject<JObject>(ToJsonString());
         }
-        public virtual JObject GetPublicJsonObject(List<string> publicFields = null) {
+        public virtual JObject GetPublicJsonObject(List<string> publicFields = default) {
             return GetJsonObject();
         }
         public virtual JObject GetJsonObjectForLog() {

@@ -124,8 +124,8 @@ namespace DatabaseAccess.Context.Models
             return true;
         }
 
-        public override JObject GetPublicJsonObject(List<string> publicFields = null) {
-            if (publicFields == null) {
+        public override JObject GetPublicJsonObject(List<string> publicFields = default) {
+            if (publicFields == default) {
                 publicFields = new List<string>(){
                     "id",
                     "parent_id",
@@ -152,60 +152,60 @@ namespace DatabaseAccess.Context.Models
                 new SocialCategory
                 {
                     Id = 1,
-                    ParentId = null,
+                    ParentId = default,
                     Name = "technology",
                     DisplayName = "Technology",
                     Describe = "This not a bug this a feature",
                     Slug = "technology",
-                    Thumbnail = null,
+                    Thumbnail = default,
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly
                 },
                 new SocialCategory
                 {
                     Id = 2,
-                    ParentId = null,
+                    ParentId = default,
                     Name = "developer",
                     DisplayName = "Developer",
                     Describe = "Do not click to this",
                     Slug = "developer",
-                    Thumbnail = null,
+                    Thumbnail = default,
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly
                 },
                 new SocialCategory
                 {
                     Id = 3,
-                    ParentId = null,
+                    ParentId = default,
                     Name = "dicussion",
                     DisplayName = "Dicussion",
                     Describe = "Search google to have better solution",
                     Slug = "dicussion",
-                    Thumbnail = null,
+                    Thumbnail = default,
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly
                 },
                 new SocialCategory
                 {
                     Id = 4,
-                    ParentId = null,
+                    ParentId = default,
                     Name = "blog",
                     DisplayName = "Blog",
                     Describe = "Nothing in here",
                     Slug = "blog",
-                    Thumbnail = null,
+                    Thumbnail = default,
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly
                 },
                 new SocialCategory
                 {
                     Id = 5,
-                    ParentId = null,
+                    ParentId = default,
                     Name = "left",
                     DisplayName = "Left",
                     Describe = "Life die have number",
                     Slug = "left",
-                    Thumbnail = null,
+                    Thumbnail = default,
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly
                 }
