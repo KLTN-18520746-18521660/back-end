@@ -85,7 +85,7 @@ namespace CoreApi.Controllers.Social.Category
                 }
                 #endregion
 
-                IReadOnlyList<SocialCategory> categories = null;
+                List<SocialCategory> categories = null;
                 (categories, error) = await __SocialCategoryManagement.GetCategories();
                 var ret = new JArray();
                 foreach (SocialCategory it in categories) {

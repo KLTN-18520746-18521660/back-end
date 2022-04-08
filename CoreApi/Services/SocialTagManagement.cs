@@ -33,101 +33,82 @@ namespace CoreApi.Services
                 ErrorCodes.NO_ERROR
             );
         }
-         public async Task<(SocialCategory, ErrorCodes)> FindCategoryByName(string CategoryName, Guid SocialUserId = default)
+        public async Task<(SocialTag, ErrorCodes)> FindTagByName(string Tag, Guid SocialUserId = default)
         {
-            var category = (await __DBContext.SocialCategories
-                    .Where(e => e.Name == CategoryName
+            var tag = (await __DBContext.SocialTags
+                    .Where(e => e.Tag == Tag
                             && e.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus))
                     .ToListAsync())
                     .DefaultIfEmpty(null)
                     .FirstOrDefault();
-            if (category == null) {
+            if (tag == null) {
                 return (null, ErrorCodes.NOT_FOUND);
             }
 
             if (SocialUserId != default) {
-                // add action visted to social user_action_with_category
+                // add action visted to social user_action_with_tag
             }
-            return (category, ErrorCodes.NO_ERROR);
+            return (tag, ErrorCodes.NO_ERROR);
         }
-        public async Task<(SocialCategory, ErrorCodes)> FindCategoryByNameIgnoreStatus(string CategoryName, Guid SocialUserId = default)
+        public async Task<(SocialTag, ErrorCodes)> FindCategoryByNameIgnoreStatus(string Tag, Guid SocialUserId = default)
         {
-            var category = (await __DBContext.SocialCategories
-                    .Where(e => e.Name == CategoryName)
+            var tag = (await __DBContext.SocialTags
+                    .Where(e => e.Tag == Tag)
                     .ToListAsync())
                     .DefaultIfEmpty(null)
                     .FirstOrDefault();
-            if (category == null) {
+            if (tag == null) {
                 return (null, ErrorCodes.NOT_FOUND);
             }
 
             if (SocialUserId != default) {
-                // add action visted to social user_action_with_category
+                // add action visted to social user_action_with_tag
             }
-            return (category, ErrorCodes.NO_ERROR);
+            return (tag, ErrorCodes.NO_ERROR);
         }
 
-        public async Task<(SocialCategory, ErrorCodes)> FindCategoryById(long Id)
+        public async Task<(SocialTag, ErrorCodes)> FindTagById(long Id)
         {
-            var category = (await __DBContext.SocialCategories
+            var tag = (await __DBContext.SocialTags
                     .Where(e => e.Id == Id)
                     .ToListAsync())
                     .DefaultIfEmpty(null)
                     .FirstOrDefault();
 
-            if (category != null) {
-                return (category, ErrorCodes.NO_ERROR);
+            if (tag != null) {
+                return (tag, ErrorCodes.NO_ERROR);
             }
             return (null, ErrorCodes.NOT_FOUND);
         }
 
-        public async Task<(bool, ErrorCodes)> IsSlugExisting(string Slug)
-        {
-            var count = (await __DBContext.SocialCategories
-                    .CountAsync(e => e.Slug == Slug
-                            && e.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus)));
-            return (count > 0, ErrorCodes.NO_ERROR);
-        }
-
         #region Tag handle
-        // public async Task<ErrorCodes> AddNewTag(SocialPost Post, Guid SocialUserId)
-        // {
-        //     #region Find user
-        //     using (var scope = __ServiceProvider.CreateScope())
-        //     {
-        //         var __SocialUserManagement = scope.ServiceProvider.GetRequiredService<SocialUserManagement>();
-        //         var (user, error) = await __SocialUserManagement.FindUserById(SocialUserId);
-        //         if (error != ErrorCodes.NO_ERROR || user.Status != SocialUserStatus.Activated) {
-        //             // return error == ErrorCodes.NOT_FOUND ? error : ErrorCodes.INVALID_USER;
-        //         }
-        //     }
-        //     #endregion
-        //     LogInformation(Post.ToJsonString());
-        //     await __DBContext.SocialPosts.AddAsync(Post);
-        //     if (await __DBContext.SaveChangesAsync() > 0) {
-        //         #region [SOCIAL] Write user activity
-        //         var (newPost, error) = await FindPostById(Post.Id);
-        //         if (error == ErrorCodes.NO_ERROR) {
-        //             using (var scope = __ServiceProvider.CreateScope())
-        //             {
-        //                 var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
-        //                 await __SocialUserAuditLogManagement.AddNewUserAuditLog(
-        //                     newPost.GetModelName(),
-        //                     newPost.Id.ToString(),
-        //                     LOG_ACTIONS.CREATE,
-        //                     SocialUserId,
-        //                     new JObject(),
-        //                     newPost.GetJsonObject()
-        //                 );
-        //             }
-        //         } else {
-        //             return ErrorCodes.INTERNAL_SERVER_ERROR;
-        //         }
-        //         #endregion
-        //         return ErrorCodes.NO_ERROR;
-        //     }
-        //     return ErrorCodes.INTERNAL_SERVER_ERROR;
-        // }
+        public async Task<ErrorCodes> AddNewTag(SocialTag Tag)
+        {
+            await __DBContext.SocialTags.AddAsync(Tag);
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [SOCIAL] Write user activity
+                var (newTag, error) = await FindTagById(Tag.Id);
+                if (error == ErrorCodes.NO_ERROR) {
+                    using (var scope = __ServiceProvider.CreateScope())
+                    {
+                        var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
+                        await __SocialUserAuditLogManagement.AddNewUserAuditLog(
+                            newTag.GetModelName(),
+                            newTag.Id.ToString(),
+                            LOG_ACTIONS.CREATE,
+                            default,
+                            new JObject(),
+                            newTag.GetJsonObject()
+                        );
+                    }
+                } else {
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
         #endregion
     }
 }

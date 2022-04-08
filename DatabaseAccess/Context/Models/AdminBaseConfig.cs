@@ -38,7 +38,7 @@ namespace DatabaseAccess.Context.Models
         EMAIL_TEMPLATE_USER_SIGNUP = 6,
         NUMBER_OF_TIMES_ALLOW_CONFIRM_FAILURE = 7,
         PREFIX_URL = 8,
-        HOST_NAME = 10,
+        HOST_NAME = 9,
     }
 
     public static class DefaultBaseConfig
@@ -99,7 +99,7 @@ namespace DatabaseAccess.Context.Models
                 case CONFIG_KEY.UI_CONFIG:
                     return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(UIConfig));
                 case CONFIG_KEY.PUBLIC_CONFIG:
-                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(UIConfig));
+                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(PublicConfig));
                 default:
                     Error ??= "Invalid config key.";
                     return new JObject();
@@ -121,6 +121,10 @@ namespace DatabaseAccess.Context.Models
                     return CONFIG_KEY.EMAIL_CLIENT_CONFIG;
                 case "SocialUserConfirmConfig":
                     return CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG;
+                case "UIConfig":
+                    return CONFIG_KEY.UI_CONFIG;
+                case "PublicConfig":
+                    return CONFIG_KEY.PUBLIC_CONFIG;
                 default:
                     Error ??= "Invalid config key.";
                     return CONFIG_KEY.INVALID;

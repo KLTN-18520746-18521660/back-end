@@ -89,7 +89,7 @@
 		```
 	- *Update database*
 		```
-		dotnet ef database update DBCreation --context DBContext
+		dotnet ef database update DBCreation --context DBContext --no-build
 		```
 	- *Drop database*
 		```

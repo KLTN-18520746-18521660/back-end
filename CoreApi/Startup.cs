@@ -177,7 +177,7 @@ namespace CoreApi
                 __Logger.Information($"Connected to database, host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }");
                 #region Turn off caching on entity
                 app.ApplicationServices.GetService<DBContext>().Set<AdminBaseConfig>().AsNoTracking();
-    #if DEBUG
+#if DEBUG
                 app.ApplicationServices.GetService<DBContext>().Set<AdminAuditLog>().AsNoTracking();
                 app.ApplicationServices.GetService<DBContext>().Set<AdminUser>().AsNoTracking();
                 app.ApplicationServices.GetService<DBContext>().Set<AdminUserRight>().AsNoTracking();
@@ -202,7 +202,7 @@ namespace CoreApi
                 app.ApplicationServices.GetService<DBContext>().Set<SocialUserAuditLog>().AsNoTracking();
                 app.ApplicationServices.GetService<DBContext>().Set<SocialUserRight>().AsNoTracking();
                 app.ApplicationServices.GetService<DBContext>().Set<SocialUserRole>().AsNoTracking();
-    #endif
+#endif
                 #endregion
 
             } else {

@@ -63,9 +63,6 @@ namespace CoreApi.Services
 
             Dictionary<string, JObject> ret = new Dictionary<string, JObject>();
             foreach (var it in publicConfig) {
-                if (it.Value.GetType() != typeof(string)) {
-                    continue;
-                }
                 if (DefaultBaseConfig.StringToConfigKey(it.Key) == CONFIG_KEY.INVALID
                     || DefaultBaseConfig.StringToSubConfigKey(it.Value.ToString()) == SUB_CONFIG_KEY.INVALID
                     || ret.ContainsKey(it.Key)) {
@@ -109,9 +106,6 @@ namespace CoreApi.Services
             var (publicConfig, error) = GetConfigValue(CONFIG_KEY.PUBLIC_CONFIG);
 
             foreach (var it in publicConfig) {
-                if (it.Value.GetType() != typeof(string)) {
-                    continue;
-                }
                 var found = configs.Where(e => e.ConfigKey == it.Key).FirstOrDefault();
                 if (found == default) {
                     return (null, $"Not found config. But key exist on public configs, key: { ConfigKey }");

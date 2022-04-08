@@ -24,7 +24,7 @@ namespace CoreApi.Services
             __ServiceName = "SocialCategoryManagement";
         }
 
-        public async Task<(IReadOnlyList<SocialCategory>, ErrorCodes)> GetCategories()
+        public async Task<(List<SocialCategory>, ErrorCodes)> GetCategories()
         {
             return (
                 await __DBContext.SocialCategories

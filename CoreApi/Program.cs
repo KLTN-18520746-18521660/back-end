@@ -224,6 +224,9 @@ namespace CoreApi
         private static void LogStartInformation()
         {
             __Logger.Information("=================START=================");
+#if DEBUG
+            __Logger.Warning("The application is compiled in debug mode.");
+#endif
             __Logger.Information($"Logs folder: { CommonValidate.ValidateDirectoryPath(System.IO.Path.GetDirectoryName(_LogFilePath)) }");
             __Logger.Information($"Temp folder: { _TmpPath }");
             if (Utils.GetIpAddress(out var Ips)) {
