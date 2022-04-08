@@ -196,6 +196,8 @@ namespace DatabaseAccess.Context.Models
 
                 if (parser.settings != default) {
                     Settings = parser.settings;
+                } else {
+                    SettingsStr = "{}";
                 }
                 if (DisplayName == default) {
                     DisplayName = $"{ FirstName } { LastName }";

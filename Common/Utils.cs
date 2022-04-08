@@ -118,7 +118,7 @@ namespace Common
         public static string GenerateUserName()
         {
             string possibleChar = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            var raw = StringDecryptor.Encrypt(new Guid().ToString());
+            var raw = StringDecryptor.Encrypt(new Guid().ToString()).Take(15);
             var raw2 = RandomString(15);
             var ret = new StringBuilder();
             foreach(var chr in raw) {
