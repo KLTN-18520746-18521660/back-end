@@ -22,7 +22,7 @@ namespace CoreApi.Services
         public AdminUserManagement(DBContext _DBContext,
                                    IServiceProvider _IServiceProvider,
                                    AdminAuditLogManagement _AdminAuditLogManagement)
-            : base(_DBContext, _IServiceProvider)
+            : base(_IServiceProvider)
         {
             __AdminAuditLogManagement = _AdminAuditLogManagement;
             __ServiceName = "AdminUserManagement";

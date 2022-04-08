@@ -14,12 +14,11 @@ namespace CoreApi.Common
         protected IServiceProvider __ServiceProvider;
         public string ServiceName { get => __ServiceName; }
         public string TraceId { get => __TraceId; }
-        public BaseService(DBContext _DBContext,
-                           IServiceProvider _IServiceProvider)
+        public BaseService(IServiceProvider _IServiceProvider)
         {
             __Logger = Log.Logger;
             __TraceId = string.Empty;
-            __DBContext = _DBContext;
+            __DBContext = new DBContext();
             __ServiceProvider = _IServiceProvider;
             __ServiceName = "BaseService";
         }

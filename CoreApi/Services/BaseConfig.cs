@@ -23,7 +23,7 @@ namespace CoreApi.Services
         bool isReloadConfig;
         public BaseConfig(DBContext _DBContext,
                           IServiceProvider _IServiceProvider)
-            : base(_DBContext, _IServiceProvider)
+            : base(_IServiceProvider)
         {
             __ServiceName = "BaseConfig";
             Configs = __DBContext.AdminBaseConfigs.ToList();

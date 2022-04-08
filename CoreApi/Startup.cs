@@ -79,7 +79,7 @@ namespace CoreApi
                             __Logger.Error(realMsg);
                         }
                     }, Microsoft.Extensions.Logging.LogLevel.Information, DbContextLoggerOptions.Category | DbContextLoggerOptions.Level | DbContextLoggerOptions.SingleLine);
-                }, ServiceLifetime.Singleton);
+                }, ServiceLifetime.Transient);
             // Defind services
             services.AddHostedService<EmailDispatcher>();
             services.AddSingleton(Channel.CreateUnbounded<EmailChannel>())

@@ -19,7 +19,7 @@ namespace CoreApi.Services
     {
         public SocialCategoryManagement(DBContext _DBContext,
                                     IServiceProvider _IServiceProvider)
-            : base(_DBContext, _IServiceProvider)
+            : base(_IServiceProvider)
         {
             __ServiceName = "SocialCategoryManagement";
         }

@@ -66,7 +66,8 @@ namespace CoreApi.Services
         private SemaphoreSlim __Gate;
         private int __GateLimit;
         private IFluentEmail __Email;
-        public EmailSender(DBContext _DBContext, IServiceProvider _IServiceProvider, IFluentEmail _Email) : base(_DBContext, _IServiceProvider)
+        public EmailSender(DBContext _DBContext, IServiceProvider _IServiceProvider, IFluentEmail _Email)
+            : base(_IServiceProvider)
         {
             __Email = _Email;
             __ServiceName = "EmailSender";

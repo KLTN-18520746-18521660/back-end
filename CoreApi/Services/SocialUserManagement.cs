@@ -21,7 +21,7 @@ namespace CoreApi.Services
         public SocialUserManagement(DBContext _DBContext,
                                     IServiceProvider _IServiceProvider,
                                     SocialUserAuditLogManagement _SocialUserAuditLogManagement)
-            : base(_DBContext, _IServiceProvider)
+            : base(_IServiceProvider)
         {
             __SocialUserAuditLogManagement = _SocialUserAuditLogManagement;
             __ServiceName = "SocialUserManagement";
