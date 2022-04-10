@@ -58,6 +58,15 @@ namespace DatabaseAccess.Context.Validators
                         ));
             });
 
+            When(entity => entity.time_read != default, () => {
+                RuleFor(entity => entity.time_read)
+                    .Cascade(CascadeMode.Stop)
+                    .NotEmpty()
+                        .WithMessage("{PropertyName} is empty.")
+                    .Must(time_read => time_read >= 2 && time_read <= 100)
+                        .WithMessage("{PropertyName} is must in range [2, 100].");
+            });
+
             RuleFor(entity => entity.content_type)
                 .Cascade(CascadeMode.Stop)
                 .NotNull()

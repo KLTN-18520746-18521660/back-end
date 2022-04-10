@@ -21,6 +21,8 @@ namespace DatabaseAccess.Context.ParserModels
         public string content { get; set; }
         [DefaultValue("Post short content must have lenght geater than 20")]
         public string short_content { get; set; }
+        [DefaultValue(5)]
+        public int time_read { get; set; }
         [DefaultValue("HTML")]
         public string content_type { get; set; }
         [DefaultValue("[\"technology\"]")]

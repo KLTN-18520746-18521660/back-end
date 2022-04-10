@@ -45,18 +45,6 @@ namespace DatabaseAccess.Common.Models
         public virtual JObject GetJsonObjectForLog() {
             return GetJsonObject();
         }
-        public (JObject, JObject) GetDataChanges(BaseModel oldValue) {
-            var oldObj = oldValue.GetJsonObjectForLog();
-            var newObj = GetJsonObjectForLog();
-            var oldKeys = oldObj.Properties().Select(e => e.Name).ToArray();
-            foreach (var key in oldKeys) {
-                if (newObj.ContainsKey(key) && oldObj.GetValue(key).ToString() == newObj.GetValue(key).ToString()) {
-                    oldObj.Remove(key);
-                    newObj.Remove(key);
-                }
-            }
-            return (oldObj, newObj);
-        }
 
         public abstract bool PrepareExportObjectJson();
         public abstract bool Parse(IBaseParserModel Parser, out string Error);

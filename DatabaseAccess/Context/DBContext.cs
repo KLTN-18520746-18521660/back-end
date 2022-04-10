@@ -659,8 +659,7 @@ namespace DatabaseAccess.Context
             modelBuilder.Entity<SocialTag>(entity =>
             {
                 entity.HasIndex(e => e.Tag, "IX_social_tag_tag")
-                    .IsUnique()
-                    .HasFilter($"(status) <> '{ BaseStatus.StatusToString(SocialTagStatus.Disabled, EntityStatus.SocialTagStatus) }'");
+                    .IsUnique();
                 entity.Property(e => e.Id)
                     .UseIdentityAlwaysColumn();
                 entity.Property(e => e.CreatedTimestamp)

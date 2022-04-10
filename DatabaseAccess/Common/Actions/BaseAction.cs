@@ -19,6 +19,8 @@ namespace DatabaseAccess.Common.Actions
     }
     public class UserActionWithTag {
         public static readonly int Follow = 0;
+        public static readonly int Used = 1;
+        public static readonly int Visited = 2;
     }
     public class UserActionWithPost {
         public static readonly int Like = 0;
@@ -56,7 +58,9 @@ namespace DatabaseAccess.Common.Actions
         protected readonly static Dictionary<int, string> MapUserActionWithTag = new()
         {
             { InvalidAction, "Invalid Action" },
-            { UserActionWithTag.Follow, "Follow" }
+            { UserActionWithTag.Follow, "Follow" },
+            { UserActionWithTag.Used, "Used" },
+            { UserActionWithTag.Visited, "Visited" },
         };
         protected readonly static Dictionary<int, string> MapUserActionWithPost = new()
         {

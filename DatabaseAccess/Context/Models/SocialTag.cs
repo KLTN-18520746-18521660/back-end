@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
 using DatabaseAccess.Common.Status;
+using Newtonsoft.Json.Linq;
 
 #nullable disable
 
@@ -22,7 +23,11 @@ namespace DatabaseAccess.Context.Models
         [Required]
         [Column("tag")]
         [StringLength(25)]
-        public string Tag { get; private set; }
+        public string Tag { get; set; }
+        [Required]
+        [Column("name")]
+        [StringLength(25)]
+        public string Name { get; set; }
         [Required]
         [Column("describe")]
         [StringLength(100)]
@@ -46,7 +51,6 @@ namespace DatabaseAccess.Context.Models
         [InverseProperty(nameof(SocialUserActionWithTag.Tag))]
         public virtual ICollection<SocialUserActionWithTag> SocialUserActionWithTags { get; set; }
 
-        
         public SocialTag()
         {
             SocialPostTags = new HashSet<SocialPostTag>();
@@ -54,7 +58,7 @@ namespace DatabaseAccess.Context.Models
 
             __ModelName = "SocialTag";
             CreatedTimestamp = DateTime.UtcNow;
-            Status = SocialTagStatus.Enabled;
+            Status = SocialTagStatus.Disabled;
         }
 
         public override bool Parse(IBaseParserModel Parser, out string Error)
@@ -72,12 +76,31 @@ namespace DatabaseAccess.Context.Models
             }
         }
 
+        public override JObject GetPublicJsonObject(List<string> publicFields = null)
+        {
+            if (publicFields == default) {
+                publicFields = new List<string>(){
+                    "tag",
+                    "name",
+                    "describe",
+                };
+            }
+            var ret = GetJsonObject();
+            foreach (var x in __ObjectJson) {
+                if (!publicFields.Contains(x.Key)) {
+                    ret.Remove(x.Key);
+                }
+            }
+            return ret;
+        }
+
         public override bool PrepareExportObjectJson()
         {
             __ObjectJson = new Dictionary<string, object>()
             {
                 { "id", Id },
                 { "tag", Tag },
+                { "name", Name },
                 { "describe", Describe },
                 { "status", StatusStr },
                 { "created_timestamp", CreatedTimestamp},
@@ -96,7 +119,8 @@ namespace DatabaseAccess.Context.Models
                 new SocialTag
                 {
                     Id = 1,
-                    Tag = "#angular",
+                    Tag = "angular",
+                    Name = "Angular",
                     Describe = "Angular",
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly
@@ -104,7 +128,8 @@ namespace DatabaseAccess.Context.Models
                 new SocialTag
                 {
                     Id = 2,
-                    Tag = "#life-die-have-number",
+                    Tag = "life-die-have-number",
+                    Name = "Life die have numder",
                     Describe = "Something is not thing",
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly
@@ -112,7 +137,8 @@ namespace DatabaseAccess.Context.Models
                 new SocialTag
                 {
                     Id = 3,
-                    Tag = "#develop",
+                    Tag = "develop",
+                    Name = "Develop",
                     Describe = "Dot not choose this tag",
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly
@@ -120,7 +146,8 @@ namespace DatabaseAccess.Context.Models
                 new SocialTag
                 {
                     Id = 4,
-                    Tag = "#nothing",
+                    Tag = "nothing",
+                    Name = "Nothing",
                     Describe = "Nothing in here",
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly
@@ -128,7 +155,8 @@ namespace DatabaseAccess.Context.Models
                 new SocialTag
                 {
                     Id = 5,
-                    Tag = "#hihi",
+                    Tag = "hihi",
+                    Name = "HiHi",
                     Describe = "hi hi",
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly

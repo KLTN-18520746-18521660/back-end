@@ -59,7 +59,30 @@ namespace DatabaseAccess.Context.Models
             SocialUserActionWithPosts
                 .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithPost.Like,
                                                                          EntityAction.UserActionWithPost))
-                ); }
+                );
+            }
+        [NotMapped]
+        public int DisLikes { get =>
+            SocialUserActionWithPosts
+                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithPost.Dislike,
+                                                                         EntityAction.UserActionWithPost))
+                );
+            }
+        [NotMapped]
+        public int Comments { get =>
+            SocialUserActionWithPosts
+                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithPost.Comment,
+                                                                         EntityAction.UserActionWithPost))
+                );
+            }
+        [NotMapped]
+        public string[] Tags { get =>
+                SocialPostTags.Select(e => e.Tag.Tag).ToArray();
+            }
+        [NotMapped]
+        public string[] Categories { get =>
+                SocialPostCategories.Select(e => e.Category.Name).ToArray();
+            }
         [Required]
         [Column("time_read")]
         public int TimeRead { get; set; }
@@ -150,6 +173,13 @@ namespace DatabaseAccess.Context.Models
                 Content = parser.content;
                 ContenTypeStr = parser.content_type;
 
+                if (parser.short_content != default) {
+                    ShortContent = parser.short_content;
+                }
+                if (parser.time_read != default) {
+                    TimeRead = parser.time_read;
+                }
+
                 return true;
             } catch (Exception ex) {
                 Error = ex.ToString();
@@ -157,17 +187,94 @@ namespace DatabaseAccess.Context.Models
             }
         }
 
+        public JObject GetPublicShortJsonObject()
+        {
+            var ret = new Dictionary<string, object>
+            {
+                {
+                    "owner",
+                    new JObject(){
+                        { "username", this.OwnerNavigation.UserName },
+                        { "display_name", this.OwnerNavigation.DisplayName },
+                        { "avatar", this.OwnerNavigation.Avatar },
+                        { "status", this.OwnerNavigation.StatusStr },
+                    }
+                },
+                { "title", Title },
+                { "slug", Slug },
+                { "thumbnail", Thumbnail },
+                { "time_read", TimeRead },
+                { "views", Views },
+                { "likes", Likes },
+                { "dislikes", DisLikes },
+                { "comments", Comments },
+                { "tags", Tags },
+                { "categories", Categories },
+                { "short_content", ShortContent },
+                { "status", StatusStr },
+                { "created_timestamp", CreatedTimestamp },
+                { "last_modified_timestamp", LastModifiedTimestamp },
+            };
+            return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
+        }
+
+        public override JObject GetPublicJsonObject(List<string> publicFields = null)
+        {
+            if (publicFields == default) {
+                publicFields = new List<string>() {
+                    "owner",
+                    "title",
+                    "slug",
+                    "thumbnail",
+                    "time_read",
+                    "views",
+                    "likes",
+                    "dislikes",
+                    "comments",
+                    "tags",
+                    "categories",
+                    "content",
+                    "thumbnail",
+                    "content",
+                    "content_type",
+                    "short_content",
+                    "status",
+                    "created_timestamp",
+                    "last_modified_timestamp",
+                };
+            }
+            var ret = GetJsonObject();
+            foreach (var x in __ObjectJson) {
+                if (!publicFields.Contains(x.Key)) {
+                    ret.Remove(x.Key);
+                }
+            }
+            return ret;
+        }
         public override bool PrepareExportObjectJson()
         {
             __ObjectJson = new Dictionary<string, object>
             {
                 { "id", Id },
-                { "owner", Owner },
+                {
+                    "owner",
+                    new JObject(){
+                        { "username", this.OwnerNavigation.UserName },
+                        { "display_name", this.OwnerNavigation.DisplayName },
+                        { "avatar", this.OwnerNavigation.Avatar },
+                        { "status", this.OwnerNavigation.StatusStr },
+                    }
+                },
                 { "title", Title },
                 { "slug", Slug },
                 { "thumbnail", Thumbnail },
+                { "time_read", TimeRead },
                 { "views", Views },
                 { "likes", Likes },
+                { "dislikes", DisLikes },
+                { "comments", Comments },
+                { "tags", Tags },
+                { "categories", Categories },
                 { "content", Content },
                 { "content_type", ContenTypeStr },
                 { "short_content", ShortContent },
@@ -182,18 +289,11 @@ namespace DatabaseAccess.Context.Models
         }
         public override JObject GetJsonObjectForLog() {
             var ret = base.GetJsonObjectForLog();
-            var removeFields = new List<string>(){"views", "likes"};
+            var removeFields = new List<string>(){"views", "likes", "dislikes", "comments", "owner"};
             removeFields.ForEach(r => ret.Remove(r));
             return ret;
         }
         #region static func/params
-        public static readonly IEnumerable<string> ColumnAllowOrder = new List<string>(){
-            "views",
-            "title",
-            "time_read",
-            "created_timestamp",
-            "last_modified_timestamp",
-        };
         public static CONTENT_TYPE StringToContentType(string ContentType) {
             switch (ContentType) {
                 case "HTML":
