@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace CoreApi.Services
 {
-    public class AdminAuditLogManagement : BaseService
+    public class AdminAuditLogManagement : BaseTransientService
     {
         public AdminAuditLogManagement(DBContext _DBContext,
                                        IServiceProvider _IServiceProvider)

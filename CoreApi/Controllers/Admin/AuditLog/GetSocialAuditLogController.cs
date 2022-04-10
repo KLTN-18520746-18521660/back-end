@@ -49,7 +49,7 @@ namespace CoreApi.Controllers.Admin.AuditLog
         public async Task<IActionResult> GetAuditLogs([FromServices] AdminUserManagement __AdminUserManagement,
                                                       [FromServices] SocialAuditLogManagement __SocialAuditLogManagement,
                                                       [FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
-                                                      [FromHeader] string session_token,
+                                                      [FromHeader(Name = "session_token_admin")] string session_token,
                                                       [FromQuery] int start = 0,
                                                       [FromQuery] int size = 20,
                                                       [FromQuery] string search_term = default)

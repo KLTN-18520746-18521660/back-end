@@ -108,7 +108,7 @@ namespace CoreApi.Controllers.Admin.User
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> GetSocialUserByApiKey([FromServices] AdminUserManagement __AdminUserManagement,
                                                                [FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
-                                                               [FromHeader] string session_token,
+                                                               [FromHeader(Name = "session_token_admin")] string session_token,
                                                                [FromRoute] Guid id)
         {
             if (!LoadConfigSuccess) {

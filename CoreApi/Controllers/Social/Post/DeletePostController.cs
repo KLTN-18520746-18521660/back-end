@@ -171,7 +171,7 @@ namespace CoreApi.Controllers.Social.Post
                 if (post.Status == SocialPostStatus.Deleted) {
                     return Problem(400, "Post already deleted.");
                 }
-                if (__SocialPostManagement.ValidateChangeStatusAction(post.Status, SocialPostStatus.Deleted) != ErrorCodes.INVALID_ACTION) {
+                if (__SocialPostManagement.ValidateChangeStatusAction(post.Status, SocialPostStatus.Deleted) == ErrorCodes.INVALID_ACTION) {
                     return Problem(400, "Invalid action.");
                 }
                 #endregion

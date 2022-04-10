@@ -100,7 +100,7 @@ namespace CoreApi.Controllers.Social.Post
 
                 #region Get session token
                 if (session_token != default) {
-                    IsValidSession = !CommonValidate.IsValidSessionToken(session_token);
+                    IsValidSession = CommonValidate.IsValidSessionToken(session_token);
                 }
                 #endregion
 
@@ -110,18 +110,14 @@ namespace CoreApi.Controllers.Social.Post
                 if (IsValidSession) {
                     (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
 
-                    if (error == ErrorCodes.NO_ERROR) {
-                        IsValidSession = true;
+                    if (error != ErrorCodes.NO_ERROR) {
+                        IsValidSession = false;
                     }
                 }
                 #endregion
 
                 SocialPost post = default;
-                if (IsValidSession) {
-                    (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim(), session.UserId);
-                } else {
-                    (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim());
-                }
+                (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim(), IsValidSession ? session.UserId : default);
 
                 if (error != ErrorCodes.NO_ERROR && error != ErrorCodes.USER_IS_NOT_OWNER) {
                     if (error == ErrorCodes.NOT_FOUND) {

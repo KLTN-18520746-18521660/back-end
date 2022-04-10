@@ -13,20 +13,23 @@ using System.Text;
 using Newtonsoft.Json;
 using System.Threading;
 using Common;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CoreApi.Services
 {
-    public class BaseConfig : BaseService
+    public class BaseConfig : BaseSingletonService
     {
         List<AdminBaseConfig> Configs;
         SemaphoreSlim Gate;
         bool isReloadConfig;
-        public BaseConfig(DBContext _DBContext,
-                          IServiceProvider _IServiceProvider)
+        public BaseConfig(IServiceProvider _IServiceProvider)
             : base(_IServiceProvider)
         {
             __ServiceName = "BaseConfig";
-            Configs = __DBContext.AdminBaseConfigs.ToList();
+            using (var scope = __ServiceProvider.CreateScope())
+            {
+                Configs = scope.ServiceProvider.GetRequiredService<DBContext>().AdminBaseConfigs.ToList();
+            }
             Gate = new SemaphoreSlim(1);
             isReloadConfig = false;
             LogInformation("Init load all config successfully.");
@@ -36,11 +39,22 @@ namespace CoreApi.Services
         {
             await Gate.WaitAsync();
             isReloadConfig = true;
-            await __DBContext.Entry(__DBContext.AdminBaseConfigs).ReloadAsync();
-            Configs = await __DBContext.AdminBaseConfigs.ToListAsync();
+            using (var scope = __ServiceProvider.CreateScope())
+            {
+                Configs = await scope.ServiceProvider.GetRequiredService<DBContext>().AdminBaseConfigs.ToListAsync();
+            }
             isReloadConfig = false;
             Gate.Release();
-            LogInformation("Reload all config successfully.");
+            LogInformation("Reload all base config successfully.");
+
+            #region Read other service
+            var __EmailSender = (EmailSender)__ServiceProvider.GetService(typeof(EmailSender));
+            if (!__EmailSender.ReloadEmailConfig()) {
+                LogInformation("Reload EmailSender config Failed.");
+            } else {
+                LogInformation("Reload EmailSender config successfully.");
+            }
+            #endregion
             return ErrorCodes.NO_ERROR;
         }
 
@@ -185,12 +199,14 @@ namespace CoreApi.Services
         {
             string Error = string.Empty;
             string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
-            var config = (await __DBContext.AdminBaseConfigs
+            JObject config = default;
+            using (var scope = __ServiceProvider.CreateScope())
+            {
+                config = await scope.ServiceProvider.GetRequiredService<DBContext>().AdminBaseConfigs
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
                             .Select(e => e.Value)
-                            .ToListAsync())
-                            .DefaultIfEmpty(default)
-                            .FirstOrDefault();
+                            .FirstOrDefaultAsync();
+            }
             if (config != default) {
                 return (config, Error);
             }
@@ -213,12 +229,14 @@ namespace CoreApi.Services
             }
             string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
             string subConfigKeyStr = DefaultBaseConfig.SubConfigKeyToString(SubConfigKey);
-            var config = (await __DBContext.AdminBaseConfigs
+            JObject config = default;
+            using (var scope = __ServiceProvider.CreateScope())
+            {
+                config = await scope.ServiceProvider.GetRequiredService<DBContext>().AdminBaseConfigs
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
                             .Select(e => e.Value)
-                            .ToListAsync())
-                            .DefaultIfEmpty(default)
-                            .FirstOrDefault();
+                            .FirstOrDefaultAsync();
+            }
 
             if (config != default && config[subConfigKeyStr] != default) {
                 return ((T) System.Convert.ChangeType(config[subConfigKeyStr], typeof(T)), Error);

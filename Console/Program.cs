@@ -76,7 +76,18 @@ namespace MyConsole
         static void Main(string[] args)
         {
             // PrintPassEncrypt();
-            TestGenerateSlug();
+            // TestGenerateSlug();
+            // var un = Utils.GenerateUserName();
+            // Console.WriteLine(un);
+            // Console.WriteLine(un.Count());
+            // Console.WriteLine(Utils.GenerateUserName());
+            // Console.WriteLine(Utils.GenerateUserName());
+
+            var a = new int[]{ 1,2,3,4 };
+            var b = new int[]{ 5,6 };
+
+            var f = a.Any(e => b.Contains(e));
+            Console.WriteLine(f);
         }
     }
 }

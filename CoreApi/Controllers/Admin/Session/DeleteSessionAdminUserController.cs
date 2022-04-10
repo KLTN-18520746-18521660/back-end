@@ -113,7 +113,7 @@ namespace CoreApi.Controllers.Admin.Session
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> DeleteSession([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
-                                                       [FromHeader] string session_token,
+                                                       [FromHeader(Name = "session_token_admin")] string session_token,
                                                        [FromRoute] string delete_session_token)
         {
             if (!LoadConfigSuccess) {

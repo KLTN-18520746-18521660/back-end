@@ -15,7 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CoreApi.Services
 {
-    public class SocialCategoryManagement : BaseService
+    public class SocialCategoryManagement : BaseTransientService
     {
         public SocialCategoryManagement(DBContext _DBContext,
                                     IServiceProvider _IServiceProvider)
@@ -74,10 +74,10 @@ namespace CoreApi.Services
             }
             return (default, ErrorCodes.NOT_FOUND);
         }
-        public async Task<(bool, ErrorCodes)> IsSlugExisting(string Slug)
+        public async Task<(bool, ErrorCodes)> IsCategoryExisting(string name, string slug)
         {
             var count = (await __DBContext.SocialCategories
-                    .CountAsync(e => e.Slug == Slug
+                    .CountAsync(e => (e.Slug == slug || e.Name == name)
                             && e.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus)));
             return (count > 0, ErrorCodes.NO_ERROR);
         }
@@ -121,6 +121,21 @@ namespace CoreApi.Services
                 return ErrorCodes.NO_ERROR;
             }
             return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        #endregion
+        #region Validate
+        public bool IsValidCategory(string category) {
+            return category != string.Empty && category.Count() <= 20;
+        }
+        public async Task<bool> IsExistingCategories(string[] categories)
+        {
+            var count = await __DBContext.SocialCategories
+                .CountAsync(e => categories.Contains(e.Name));
+
+            if (count != categories.Count()) {
+                return false;
+            }
+            return true;
         }
         #endregion
     }

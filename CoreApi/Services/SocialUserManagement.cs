@@ -15,7 +15,7 @@ using Common;
 
 namespace CoreApi.Services
 {
-    public class SocialUserManagement : BaseService
+    public class SocialUserManagement : BaseTransientService
     {
         private SocialUserAuditLogManagement __SocialUserAuditLogManagement;
         public SocialUserManagement(DBContext _DBContext,

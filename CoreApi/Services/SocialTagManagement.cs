@@ -12,10 +12,12 @@ using DatabaseAccess.Common.Models;
 using CoreApi.Common;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using DatabaseAccess.Common.Actions;
+using Common;
 
 namespace CoreApi.Services
 {
-    public class SocialTagManagement : BaseService
+    public class SocialTagManagement : BaseTransientService
     {
         public SocialTagManagement(DBContext _DBContext,
                                     IServiceProvider _IServiceProvider)
@@ -24,14 +26,46 @@ namespace CoreApi.Services
             __ServiceName = "SocialTagManagement";
         }
 
-        public async Task<(IReadOnlyList<SocialTag>, ErrorCodes)> GetTags()
+        public async Task<(List<SocialTag>, int)> GetTags(int start = 0,
+                                                                 int size = 20,
+                                                                 string search_term = default,
+                                                                 Guid socialUserId = default)
         {
-            return (
-                await __DBContext.SocialTags
-                    .Where(e => e.StatusStr != BaseStatus.StatusToString(SocialTagStatus.Disabled, EntityStatus.SocialTagStatus))
-                    .ToListAsync(),
-                ErrorCodes.NO_ERROR
-            );
+            var query =
+                    from ids in (
+                        (from tag in __DBContext.SocialTags
+                            .Where(e => e.StatusStr != BaseStatus.StatusToString(SocialTagStatus.Disabled, EntityStatus.SocialTagStatus)
+                                    && (search_term == default || (search_term != default && e.Tag.Contains(search_term))))
+                        join action in __DBContext.SocialUserActionWithTags on tag.Id equals action.TagId
+                        into tagWithAction
+                        from t in tagWithAction.DefaultIfEmpty()
+                        group t by new { tag.Id, tag.Tag } into gr
+                        select new {
+                            gr.Key,
+                            StartWith = (search_term != default) ? (gr.Key.Tag.StartsWith(search_term) ? 1 : 0) : 0,
+                            Follow = gr.Count(e => (socialUserId != default)
+                                && (e.UserId == socialUserId)
+                                && EF.Functions.JsonExists(e.ActionsStr, BaseAction.ActionToString(UserActionWithTag.Follow, EntityAction.UserActionWithTag))),
+                            Used = gr.Count(e => (socialUserId != default)
+                                && (e.UserId == socialUserId)
+                                && EF.Functions.JsonExists(e.ActionsStr, BaseAction.ActionToString(UserActionWithTag.Used, EntityAction.UserActionWithTag))),
+                            Visited = gr.Count(e => (socialUserId != default)
+                                && (e.UserId == socialUserId)
+                                && EF.Functions.JsonExists(e.ActionsStr, BaseAction.ActionToString(UserActionWithTag.Visited, EntityAction.UserActionWithTag))),
+                        } into ret
+                        orderby ret.Visited descending, ret.Used descending, ret.Follow descending, ret.StartWith descending
+                        select ret.Key.Id).Skip(start).Take(size)
+                    )
+                    join tags in __DBContext.SocialTags on ids equals tags.Id
+                    select tags;
+
+            Console.WriteLine(query.ToQueryString());
+
+            var totalCount = await __DBContext.SocialTags
+                            .CountAsync(e => e.StatusStr != BaseStatus.StatusToString(SocialTagStatus.Disabled, EntityStatus.SocialTagStatus)
+                                    && (search_term == default || (search_term != default && e.Tag.Contains(search_term))));
+
+            return (await query.ToListAsync(), totalCount);
         }
         public async Task<(SocialTag, ErrorCodes)> FindTagByName(string Tag, Guid SocialUserId = default)
         {
@@ -45,20 +79,39 @@ namespace CoreApi.Services
 
             if (SocialUserId != default) {
                 // add action visted to social user_action_with_tag
+                #region Add action used tag
+                var action = await __DBContext.SocialUserActionWithTags
+                    .Where(e => e.TagId == tag.Id && e.UserId == SocialUserId)
+                    .FirstOrDefaultAsync();
+                var actionVisited = BaseAction.ActionToString(UserActionWithTag.Visited, EntityAction.UserActionWithTag);
+                if (action != default) {
+                    if (!action.Actions.Contains(actionVisited)) {
+                        action.Actions.Add(actionVisited);
+                        await __DBContext.SaveChangesAsync();
+                    }
+                } else {
+                    await __DBContext.SocialUserActionWithTags
+                        .AddAsync(new SocialUserActionWithTag(){
+                            UserId = SocialUserId,
+                            TagId = tag.Id,
+                            Actions = new List<string>(){
+                                actionVisited
+                            }
+                        });
+                    await __DBContext.SaveChangesAsync();
+                }
+                #endregion
             }
             return (tag, ErrorCodes.NO_ERROR);
         }
-        public async Task<(SocialTag, ErrorCodes)> FindCategoryByNameIgnoreStatus(string Tag, Guid SocialUserId = default)
+        public async Task<(SocialTag, ErrorCodes)> FindTagByNameIgnoreStatus(string Tag)
         {
             var tag = await __DBContext.SocialTags
-                    .Where(e => e.Tag == Tag)
+                    .Where(e => e.Tag == Tag
+                            && e.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus))
                     .FirstOrDefaultAsync();
             if (tag == default) {
                 return (default, ErrorCodes.NOT_FOUND);
-            }
-
-            if (SocialUserId != default) {
-                // add action visted to social user_action_with_tag
             }
             return (tag, ErrorCodes.NO_ERROR);
         }
@@ -80,28 +133,47 @@ namespace CoreApi.Services
         {
             await __DBContext.SocialTags.AddAsync(Tag);
             if (await __DBContext.SaveChangesAsync() > 0) {
-                #region [SOCIAL] Write user activity
-                var (newTag, error) = await FindTagById(Tag.Id);
-                if (error == ErrorCodes.NO_ERROR) {
-                    using (var scope = __ServiceProvider.CreateScope())
-                    {
-                        var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
-                        await __SocialUserAuditLogManagement.AddNewUserAuditLog(
-                            newTag.GetModelName(),
-                            newTag.Id.ToString(),
-                            LOG_ACTIONS.CREATE,
-                            default,
-                            new JObject(),
-                            newTag.GetJsonObject()
-                        );
-                    }
-                } else {
-                    return ErrorCodes.INTERNAL_SERVER_ERROR;
-                }
-                #endregion
                 return ErrorCodes.NO_ERROR;
             }
             return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        #endregion
+        #region Validation
+        public bool IsValidTag(string tag)
+        {
+            return tag != string.Empty && tag.Count() <= 25;
+        }
+        public async Task<(bool, ErrorCodes)> IsValidTags(string[] tags)
+        {
+            foreach(var tag in tags) {
+                if (!IsValidTag(tag)) {
+                    return (false, ErrorCodes.INVALID_PARAMS);
+                } else {
+                    if (await __DBContext.SocialTags.CountAsync(e => e.Tag == tag) < 1) {
+                        await __DBContext.SocialTags.AddAsync(new SocialTag(){
+                            Tag = tag,
+                            Name = tag,
+                            Describe = tag,
+                            Status = SocialTagStatus.Disabled,
+                        });
+                        if (await __DBContext.SaveChangesAsync() <= 0) {
+                            return (false, ErrorCodes.INTERNAL_SERVER_ERROR);
+                        }
+                    }
+                }
+            }
+
+            return (true, ErrorCodes.NO_ERROR);
+        }
+        public async Task<bool> IsExistsTags(string[] tags)
+        {
+            var count = await __DBContext.SocialTags
+                .CountAsync(e => tags.Contains(e.Tag));
+            if (tags.Length != count) {
+                return false;
+            }
+
+            return true;
         }
         #endregion
     }

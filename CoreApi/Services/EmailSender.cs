@@ -54,7 +54,7 @@ namespace CoreApi.Services
         public string TraceId { get; set; }
         public BaseEmailModel Model { get; set; }
     }
-    public class EmailSender : BaseService
+    public class EmailSender : BaseSingletonService
     {
         private Dictionary<string, string> __EmailTemplates = new Dictionary<string, string>()
         {
@@ -66,7 +66,7 @@ namespace CoreApi.Services
         private SemaphoreSlim __Gate;
         private int __GateLimit;
         private IFluentEmail __Email;
-        public EmailSender(DBContext _DBContext, IServiceProvider _IServiceProvider, IFluentEmail _Email)
+        public EmailSender(IServiceProvider _IServiceProvider, IFluentEmail _Email)
             : base(_IServiceProvider)
         {
             __Email = _Email;
@@ -123,10 +123,9 @@ namespace CoreApi.Services
             return true;
         }
 
-        public async Task<bool> ReloadEmailConfig()
+        public bool ReloadEmailConfig()
         {
             var __BaseConfig = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
-            _ = await __BaseConfig.ReLoadConfig();
             #region limit_sender
             var (Value, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.EMAIL_LIMIT_SENDER);
 
@@ -138,7 +137,7 @@ namespace CoreApi.Services
             if (!ChangeGateLimit(Value)) {
                 LogWarning($"Can not set 'limit_sender': { Value } for email client, use default 'limit_sender': { __GateLimit }.");
             } else {
-                LogInformation($"Set 'limit_sender' for email client success, value: { Value }");
+                LogDebug($"Set 'limit_sender' for email client success, value: { Value }");
             }
             #endregion
 
@@ -150,6 +149,7 @@ namespace CoreApi.Services
             } else {
                 __EmailTemplates.Remove("UserSignup");
                 __EmailTemplates.Add("UserSignup", templateUserSignupRs.Value);
+                LogDebug($"Set 'template_user_signup' for email sender success, value: { templateUserSignupRs.Value }");
             }
             #endregion
 
@@ -212,6 +212,8 @@ namespace CoreApi.Services
             using (var scope = __ServiceProvider.CreateScope())
             {
                 var __SocialUserManagement = scope.ServiceProvider.GetRequiredService<SocialUserManagement>();
+                var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
+
                 ErrorCodes error = ErrorCodes.NO_ERROR;
                 (user, error) = await __SocialUserManagement.FindUserById(UserId);
                 if (error != ErrorCodes.NO_ERROR) {
@@ -244,19 +246,19 @@ namespace CoreApi.Services
                     Model = model,
                 });
                 #endregion
-            }
 
-            user.Settings.Remove("confirm_email");
-            user.Settings.Add("confirm_email", new JObject(){
-                { "is_sending", false },
-                { "send_success", sendSuccess },
-                { "send_date", DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT) },
-                { "confirm_date", default },
-                { "state", requestState },
-            });
-            if (await __DBContext.SaveChangesAsync() <= 0) {
-                LogError($"TraceId: { TraceId }, 'SendEmailUserSignUp', Can't save changes after send email, user_id: { user.Id }");
-                return;
+                user.Settings.Remove("confirm_email");
+                user.Settings.Add("confirm_email", new JObject(){
+                    { "is_sending", false },
+                    { "send_success", sendSuccess },
+                    { "send_date", DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT) },
+                    { "confirm_date", default },
+                    { "state", requestState },
+                });
+                if (await __DBContext.SaveChangesAsync() <= 0) {
+                    LogError($"TraceId: { TraceId }, 'SendEmailUserSignUp', Can't save changes after send email, user_id: { user.Id }");
+                    return;
+                }
             }
         }
         #endregion

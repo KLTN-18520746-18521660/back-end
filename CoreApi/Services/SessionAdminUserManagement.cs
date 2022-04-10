@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace CoreApi.Services
 {
-    public class SessionAdminUserManagement : BaseService
+    public class SessionAdminUserManagement : BaseTransientService
     {
         public SessionAdminUserManagement(DBContext _DBContext,
                                           IServiceProvider _IServiceProvider)

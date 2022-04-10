@@ -16,12 +16,17 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using System;
+using Microsoft.EntityFrameworkCore.Migrations.Internal;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Mail;
 using System.Reflection;
 using System.Threading.Channels;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CoreApi
 {
@@ -90,6 +95,7 @@ namespace CoreApi
                     .AddTransient<SessionAdminUserManagement>()
                     .AddTransient<SocialPostManagement>()
                     .AddTransient<SocialCategoryManagement>()
+                    .AddTransient<SocialTagManagement>()
                     .AddTransient<SocialUserManagement>()
                     .AddTransient<SocialUserAuditLogManagement>()
                     .AddTransient<SocialAuditLogManagement>()
@@ -172,41 +178,15 @@ namespace CoreApi
                     c.RoutePrefix = string.Empty;
                 });
             }
-
-            if (app.ApplicationServices.GetService<DBContext>().GetStatus()) {
-                __Logger.Information($"Connected to database, host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }");
-                #region Turn off caching on entity
-                app.ApplicationServices.GetService<DBContext>().Set<AdminBaseConfig>().AsNoTracking();
-#if DEBUG
-                app.ApplicationServices.GetService<DBContext>().Set<AdminAuditLog>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<AdminUser>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<AdminUserRight>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<AdminUserRole>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SessionAdminUser>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SessionSocialUser>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialAuditLog>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialCategory>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialComment>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialNotification>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialPost>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialPostCategory>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialPostTag>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialReport>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialTag>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialUser>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialUserActionWithCategory>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialUserActionWithComment>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialUserActionWithPost>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialUserActionWithTag>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialUserActionWithUser>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialUserAuditLog>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialUserRight>().AsNoTracking();
-                app.ApplicationServices.GetService<DBContext>().Set<SocialUserRole>().AsNoTracking();
-#endif
-                #endregion
-
-            } else {
-                throw new Exception($"Failed to connect to database, host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }");
+            using (var serviceScope = app.ApplicationServices.CreateScope())
+            {
+                var __DBContext = serviceScope.ServiceProvider.GetService<DBContext>();
+                if (__DBContext.GetStatus()) {
+                    __Logger.Information($"Connected to database, host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }, db_name: { BaseConfigurationDB.DBName }");
+                } else {
+                    __Logger.Warning($"Failed to connect to database, host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }, db_name: { BaseConfigurationDB.DBName }");
+                }
+                __DBContext.Database.Migrate();
             }
             app.ApplicationServices.GetService<BaseConfig>();
             app.ApplicationServices.GetService<EmailSender>();

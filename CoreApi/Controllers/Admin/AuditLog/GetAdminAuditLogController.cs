@@ -49,7 +49,7 @@ namespace CoreApi.Controllers.Admin.AuditLog
         public async Task<IActionResult> GetAuditLogs([FromServices] AdminUserManagement __AdminUserManagement,
                                                       [FromServices] AdminAuditLogManagement __AdminAuditLogManagement,
                                                       [FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
-                                                      [FromHeader] string session_token,
+                                                      [FromHeader(Name = "session_token_admin")] string session_token,
                                                       [FromQuery] int start = 0,
                                                       [FromQuery] int size = 20,
                                                       [FromQuery] string search_term = default)
@@ -63,6 +63,11 @@ namespace CoreApi.Controllers.Admin.AuditLog
             __SessionAdminUserManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Validate params
+                if (start < 0 || size < 1) {
+                    return Problem(400, "Bad request params.");
+                }
+                #endregion
                 #region Get session token
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");

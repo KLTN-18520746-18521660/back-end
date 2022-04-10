@@ -7,9 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Linq.Expressions;
+using DatabaseAccess.Common.Status;
+
 namespace CoreApi.Controllers.Social.Post
 {
     [ApiController]
@@ -50,14 +53,19 @@ namespace CoreApi.Controllers.Social.Post
         /// </summary>
         /// <returns><b>Social user of session_token</b></returns>
         /// <param name="__SessionSocialUserManagement"></param>
+        /// <param name="__SocialCategoryManagement"></param>
+        /// <param name="__SocialUserManagement"></param>
         /// <param name="__SocialPostManagement"></param>
+        /// <param name="__SocialTagManagement"></param>
         /// <param name="user_name"></param>
         /// <param name="session_token"></param>
-        /// <param name="first"></param>
+        /// <param name="start"></param>
         /// <param name="size"></param>
         /// <param name="search_term"></param>
         /// <param name="status"></param>
         /// <param name="orders"></param>
+        /// <param name="tags"></param>
+        /// <param name="categories"></param>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
@@ -91,79 +99,121 @@ namespace CoreApi.Controllers.Social.Post
         // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         // [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> GetPostsByUserName([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                            [FromServices] SocialCategoryManagement __SocialCategoryManagement,
+                                                            [FromServices] SocialUserManagement __SocialUserManagement,
                                                             [FromServices] SocialPostManagement __SocialPostManagement,
+                                                            [FromServices] SocialTagManagement __SocialTagManagement,
                                                             [FromRoute] string user_name,
                                                             [FromHeader] string session_token,
-                                                            [FromQuery] int first = 0,
+                                                            [FromQuery] int start = 0,
                                                             [FromQuery] int size = 20,
                                                             [FromQuery] string search_term = default,
                                                             [FromQuery] string[] status = default,
-                                                            [FromQuery] Models.OrderModel[] orders = default)
+                                                            [FromQuery] Models.OrderModel orders = default,
+                                                            [FromQuery] string[] tags = default,
+                                                            [FromQuery] string[] categories = default)
         {
-            var s = new List<string>(){"Private"}.ToArray();
-            var o = new List<(string, bool)>(){
-                ( "created_timestamp", true ),
-            }.ToArray();
-            await (_ = __SocialPostManagement.GetPostsAttachedToUser(new Guid("babb04a9-ab1f-49b9-a6c0-7df47c02a6c9"),
-            true,
-            0,
-            20,
-            default,
-            s,
-            o));
-            //////////////////////
-            return Problem(500, "Not implement.");
-            //////////////////////
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
+            __SocialCategoryManagement.SetTraceId(TraceId);
+            __SocialUserManagement.SetTraceId(TraceId);
+            __SocialPostManagement.SetTraceId(TraceId);
+            __SocialTagManagement.SetTraceId(TraceId);
             #endregion
+            var o = Request.Query.Where(e => e.Key == "orders").FirstOrDefault();
+                Console.WriteLine(o.Value);
             try {
-                // bool IsValidSession = false;
-                // bool IsOwner = false;
-                // #region Validate params
-                // if (post_slug == default || post_slug.Trim() == string.Empty) {
-                //     return Problem(400, "Invalid request.");
-                // }
-                // #endregion
+                #region Validate params
+                if (user_name == default || user_name.Trim() == string.Empty || user_name.Length > 50) {
+                    return Problem(400, "Invalid user_name.");
+                }
+                if (categories != default && !await __SocialCategoryManagement.IsExistingCategories(categories)) {
+                    return Problem(400, "Invalid categories not exists.");
+                }
+                if (tags != default && !await __SocialTagManagement.IsExistsTags(tags)) {
+                    return Problem(400, "Invalid tags not exists.");
+                }
+                // var combineOrders = orders.Select(e => e.GetOrder()).ToArray();
+                var combineOrders = orders.GetOrders();
+                var paramsAllowInOrder = __SocialPostManagement.GetAllowOrderFields(GetPostAction.GetPostsAttachedToUser);
+                foreach (var it in combineOrders) {
+                    if (!paramsAllowInOrder.Contains(it.Item1)) {
+                        return Problem(400, $"Not allow order field: { it.Item1 }.");
+                    }
+                }
+                if (status != default) {
+                    foreach (var statusStr in status) {
+                        var statusInt = BaseStatus.StatusFromString(statusStr, EntityStatus.SocialPostStatus);
+                        if (statusInt == BaseStatus.InvalidStatus ||
+                            statusInt == SocialPostStatus.Deleted) {
+                            return Problem(400, $"Invalid status: { statusStr }.");
+                        }
+                    }
+                }
+                #endregion
 
-                // #region Get session token
-                // if (session_token != default) {
-                //     IsValidSession = !CommonValidate.IsValidSessionToken(session_token);
-                // }
-                // #endregion
+                bool IsValidSession = false;
+                #region Get session token
+                if (session_token != default) {
+                    IsValidSession = CommonValidate.IsValidSessionToken(session_token);
+                }
+                #endregion
 
-                // #region Find session for use
-                // SessionSocialUser session = default;
-                // ErrorCodes error = ErrorCodes.NO_ERROR;
-                // if (IsValidSession) {
-                //     (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
+                #region Find session for use
+                SessionSocialUser session = default;
+                ErrorCodes error = ErrorCodes.NO_ERROR;
+                if (IsValidSession) {
+                    (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
 
-                //     if (error == ErrorCodes.NO_ERROR) {
-                //         IsValidSession = true;
-                //     }
-                // }
-                // #endregion
+                    if (error != ErrorCodes.NO_ERROR) {
+                        IsValidSession = false;
+                    }
+                }
+                #endregion
 
-                // SocialPost post = default;
-                // if (IsValidSession) {
-                //     (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim(), session.UserId);
-                // } else {
-                //     (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim());
-                // }
-                // if (error != ErrorCodes.NO_ERROR) {
-                //     if (error == ErrorCodes.NOT_FOUND) {
-                //         return Problem(404, "Not found any post.");
-                //     }
-                //     throw new Exception($"FindPostBySlug failed, ErrorCode: { error }");
-                // }
+                #region Get posts
+                SocialUser postUser = default;
+                (postUser, error) = await __SocialUserManagement.FindUserIgnoreStatus(user_name, false);
+                if (error != ErrorCodes.NO_ERROR) {
+                    return Problem(404, "Not found user.");
+                }
+                var isOwner = IsValidSession ? session.UserId == postUser.Id : false;
+                List<SocialPost> posts = default;
+                int totalSize = default;
+                (posts, totalSize, error) = await __SocialPostManagement
+                    .GetPostsAttachedToUser(
+                        postUser.Id,
+                        isOwner,
+                        start,
+                        size,
+                        search_term,
+                        status,
+                        combineOrders,
+                        tags,
+                        categories
+                    );
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"GetPostsAttachedToUser failed, ErrorCode: { error }");
+                }
+                #endregion
 
-                // return Ok( new JObject(){
-                //     { "status", 200 },
-                //     { "post", post.GetJsonObject() },
-                // });
+                #region Validate params: start, size, total_size
+                if (totalSize != 0 && start >= totalSize) {
+                    LogWarning($"Invalid request params for get tags, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
+                    return Problem(400, $"Invalid request params start: { start }. Total size is { totalSize }");
+                }
+                #endregion
+
+                var ret = new List<JObject>();
+                posts.ForEach(e => ret.Add(e.GetPublicShortJsonObject()));
+
+                return Ok(200, "Ok", new JObject(){
+                    { "posts", Utils.ObjectToJsonToken(ret) },
+                    { "total_size", totalSize },
+                });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");

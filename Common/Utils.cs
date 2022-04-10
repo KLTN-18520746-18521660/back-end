@@ -34,6 +34,16 @@ namespace Common
         {
             return JsonConvert.DeserializeObject<JToken>(JsonConvert.SerializeObject(source));
         }
+        public static (JObject, JObject) GetDataChanges(JObject oldObj, JObject newObj) {
+            var oldKeys = oldObj.Properties().Select(e => e.Name).ToArray();
+            foreach (var key in oldKeys) {
+                if (newObj.ContainsKey(key) && oldObj.GetValue(key).ToString() == newObj.GetValue(key).ToString()) {
+                    oldObj.Remove(key);
+                    newObj.Remove(key);
+                }
+            }
+            return (oldObj, newObj);
+        }
         public static string RandomString(int StringLen)
         {
             string possibleChar = "abcdefghijklmnopqrstuvwxyz0123456789";

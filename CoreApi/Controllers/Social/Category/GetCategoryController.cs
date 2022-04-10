@@ -14,16 +14,16 @@ namespace CoreApi.Controllers.Social.Category
 {
     [ApiController]
     [Route("/category")]
-    public class GetCategoriesController : BaseController
+    public class GetCategoryController : BaseController
     {
         #region Config Values
         private int EXTENSION_TIME; // minutes
         private int EXPIRY_TIME; // minute
         #endregion
 
-        public GetCategoriesController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public GetCategoryController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetCategories";
+            __ControllerName = "GetCategory";
             LoadConfig();
         }
 
@@ -95,6 +95,71 @@ namespace CoreApi.Controllers.Social.Category
                 LogDebug("GetCategories success.");
                 return Ok(200, "Ok", new JObject(){
                     { "categories", ret },
+                });
+            } catch (Exception e) {
+                LogError($"Unexpected exception, message: { e.ToString() }");
+                return Problem(500, "Internal Server error.");
+            }
+        }
+
+        [HttpGet("{category}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
+        public async Task<IActionResult> GetCategories([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                       [FromServices] SocialCategoryManagement __SocialCategoryManagement,
+                                                       [FromRoute] string category,
+                                                       [FromHeader] string session_token)
+        {
+            if (!LoadConfigSuccess) {
+                return Problem(500, "Internal Server error.");
+            }
+            #region Set TraceId for services
+            __SessionSocialUserManagement.SetTraceId(TraceId);
+            __SocialCategoryManagement.SetTraceId(TraceId);
+            #endregion
+            try {
+                #region Validate params
+                if (!__SocialCategoryManagement.IsValidCategory(category)) {
+                    return Problem(400, "Invalid category.");
+                }
+                #endregion
+                bool isSessionInvalid = true;
+                #region Get session token
+                if (session_token == default) {
+                    LogDebug($"Missing header authorization.");
+                    isSessionInvalid = false;
+                }
+
+                if (isSessionInvalid && !CommonValidate.IsValidSessionToken(session_token)) {
+                    LogDebug("Invalid header authorization.");
+                }
+                #endregion
+
+                #region Find session for use
+                SessionSocialUser session = default;
+                ErrorCodes error = ErrorCodes.NO_ERROR;
+                if (isSessionInvalid) {
+                    (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
+
+                    if (error != ErrorCodes.NO_ERROR) {
+                        isSessionInvalid = false;
+                    }
+                }
+                #endregion
+
+                SocialCategory ret = default;
+                (ret, error) = await __SocialCategoryManagement.FindCategoryByName(category);
+                if (error != ErrorCodes.NO_ERROR) {
+                    if (error == ErrorCodes.NOT_FOUND) {
+                        return Problem(404, "Not found category.");
+                    }
+                    throw new Exception($"FindCategoryByName failed, ErrorCode: { error }");
+                }
+
+                LogDebug("GetCategories success.");
+                return Ok(200, "Ok", new JObject(){
+                    { "category", ret.GetPublicJsonObject() },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");

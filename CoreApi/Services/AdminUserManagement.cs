@@ -16,7 +16,7 @@ using System.Linq.Expressions;
 
 namespace CoreApi.Services
 {
-    public class AdminUserManagement : BaseService
+    public class AdminUserManagement : BaseTransientService
     {
         private AdminAuditLogManagement __AdminAuditLogManagement;
         public AdminUserManagement(DBContext _DBContext,

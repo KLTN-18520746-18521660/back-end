@@ -52,6 +52,8 @@ namespace CoreApi.Controllers.Social.Post
         /// <param name="__SessionSocialUserManagement"></param>
         /// <param name="__SocialPostManagement"></param>
         /// <param name="__SocialUserManagement"></param>
+        /// <param name="__SocialCategoryManagement"></param>
+        /// <param name="__SocialTagManagement"></param>
         /// <param name="Parser"></param>
         /// <param name="session_token"></param>
         ///
@@ -103,6 +105,8 @@ namespace CoreApi.Controllers.Social.Post
         public async Task<IActionResult> CreatePost([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
                                                     [FromServices] SocialPostManagement __SocialPostManagement,
                                                     [FromServices] SocialUserManagement __SocialUserManagement,
+                                                    [FromServices] SocialCategoryManagement __SocialCategoryManagement,
+                                                    [FromServices] SocialTagManagement __SocialTagManagement,
                                                     [FromBody] ParserSocialPost Parser,
                                                     [FromHeader] string session_token)
         {
@@ -111,6 +115,10 @@ namespace CoreApi.Controllers.Social.Post
             }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
+            __SocialPostManagement.SetTraceId(TraceId);
+            __SocialUserManagement.SetTraceId(TraceId);
+            __SocialCategoryManagement.SetTraceId(TraceId);
+            __SocialTagManagement.SetTraceId(TraceId);
             #endregion
             try {
                 #region Get session token
@@ -156,13 +164,25 @@ namespace CoreApi.Controllers.Social.Post
                 var post = new SocialPost();
                 post.Parse(Parser, out var errMsg);
                 post.Owner = session.UserId;
+                // post.OwnerNavigation = session.User;
                 if (errMsg != string.Empty) {
                     throw new Exception($"Parse social post model failed, error: { errMsg }");
                 }
 
-                // [TODO] check category, tags
+                // Check categories exist and tags valid --> to create
+                if (!await __SocialCategoryManagement.IsExistingCategories(Parser.categories.ToArray())) {
+                    return Problem(400, $"Category not exist.");
+                }
+                var isValidTags = false;
+                (isValidTags, error) = await __SocialTagManagement.IsValidTags(Parser.tags.ToArray());
+                if (!isValidTags) {
+                    if (error == ErrorCodes.INVALID_PARAMS) {
+                        return Problem(400, "Invalid tags.");
+                    }
+                    throw new Exception($"IsValidTags Failed, ErrorCode: { error }");
+                }
 
-                error = await __SocialPostManagement.AddNewPost(post, session.UserId);
+                error = await __SocialPostManagement.AddNewPost(Parser, post, session.UserId);
                 if (error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"AddNewPost failed, ErrorCode: { error }");
                 }

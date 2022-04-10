@@ -18,16 +18,41 @@ using System.Linq.Dynamic.Core;
 using System.Linq.Dynamic;
 using DatabaseAccess.Common.Actions;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
+using DatabaseAccess.Context.ParserModels;
 
 namespace CoreApi.Services
 {
-    public class SocialPostManagement : BaseService
+    public enum GetPostAction {
+        GetPostsAttachedToUser = 0,
+    }
+    public class SocialPostManagement : BaseTransientService
     {
         public SocialPostManagement(DBContext _DBContext,
                                     IServiceProvider _IServiceProvider)
             : base(_IServiceProvider)
         {
             __ServiceName = "SocialPostManagement";
+        }
+
+        public string[] GetAllowOrderFields(GetPostAction action)
+        {
+            switch (action) {
+                case GetPostAction.GetPostsAttachedToUser:
+                    return new string[] {
+                        "views",
+                        "likes",
+                        "dislikes",
+                        "comments",
+                        "follows",
+                        "reports",
+                        "title",
+                        "time_read",
+                        "created_timestamp",
+                        "last_modified_timestamp",
+                    };
+                default:
+                    return default;
+            }
         }
 
         /* Example
@@ -37,14 +62,15 @@ namespace CoreApi.Services
         * WHERE status = 'Private' AND status != 'Deleted'
         * ORDER BY views ASC, created_timestamp DESC
         */
-        // /IReadOnlyList<SocialPost>
-        public async Task<(object, ErrorCodes)> GetPostsAttachedToUser(Guid socialUserId,
-                                                                                                  bool isOwner,
-                                                                                                  int start = 0,
-                                                                                                  int size = 20,
-                                                                                                  string search_term = default,
-                                                                                                  string[] status = default,
-                                                                                                  (string, bool)[] orders = default)
+        public async Task<(List<SocialPost>, int, ErrorCodes)> GetPostsAttachedToUser(Guid socialUserId,
+                                                                       bool isOwner,
+                                                                       int start = 0,
+                                                                       int size = 20,
+                                                                       string search_term = default,
+                                                                       string[] status = default,
+                                                                       (string, bool)[] orders = default,
+                                                                       string[] tags = default,
+                                                                       string[] categories = default)
         {
             #region validate params
             if (status != default) {
@@ -52,72 +78,118 @@ namespace CoreApi.Services
                     var statusInt = BaseStatus.StatusFromString(statusStr, EntityStatus.SocialPostStatus);
                     if (statusInt == BaseStatus.InvalidStatus ||
                         statusInt == SocialPostStatus.Deleted) {
-                        return (default, ErrorCodes.INVALID_PARAMS);
+                        return (default, default, ErrorCodes.INVALID_PARAMS);
                     }
                 }
-            } else {
-                status = new List<string>().ToArray();
             }
+
+            if (tags == default) {
+                tags = new string[]{};
+            }
+
+            if (categories == default) {
+                categories = new string[]{};
+            }
+
+            var ColumnAllowOrder = GetAllowOrderFields(GetPostAction.GetPostsAttachedToUser);
             if (orders != default) {
                 foreach (var order in orders) {
-                    if (!SocialPost.ColumnAllowOrder.Contains(order.Item1)) {
-                        return (default, ErrorCodes.INVALID_PARAMS);
+                    if (!ColumnAllowOrder.Contains(order.Item1)) {
+                        return (default, default, ErrorCodes.INVALID_PARAMS);
                     }
                 }
             } else {
-                orders = new List<(string, bool)>().ToArray();
+                orders = new (string, bool)[]{};
             }
             #endregion
-            string orderStr = orders != default ? Utils.GenerateOrderString(orders) : default;
-            // Console.WriteLine(orderStr);
-            // var query = from posts in (from p in __DBContext.SocialPosts
-            //             where p.Owner == socialUserId && (search_term == default || p.SearchVector.Matches(search_term))
-            //                 && p.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
-            //             select new { p, Likes = p.SocialUserActionWithPosts
-            //                 .Count(ac => EF.Functions
-            //                     .JsonExists(ac.ActionsStr, BaseAction
-            //                         .ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost)
-            //                     )
-            //                 )
-            //             }) orderby posts.Likes select posts.p;
-            // return (await query.ToListAsync(), ErrorCodes.NO_ERROR);
 
-            if (!isOwner) {
-                return (
-                    await __DBContext.SocialPosts
-                        .Where(e => e.Owner == socialUserId
-                            && (search_term == default || e.SearchVector.Matches(search_term))
-                            && e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus))
-                        .OrderBy(e => orderStr)
-                        .Skip(start)
-                        .Take(size)
-                        .ToListAsync(),
-                    ErrorCodes.NO_ERROR
-                );
-            }
-            return (
-                await __DBContext.SocialPosts
-                    .Where(e => e.Owner == socialUserId
-                        && (!isOwner || status.Contains(e.StatusStr))
-                        && (search_term == default || e.SearchVector.Matches(search_term))
-                        && e.StatusStr != BaseStatus.StatusToString(SocialPostStatus.Deleted, EntityStatus.SocialPostStatus))
-                    .Include(e => e.Likes)
-                    .Select(e => e.Likes )
-                    // .OrderBy("CreatedTimestamp desc, Views asc, Likes desc")
-                    .Skip(start)
-                    .Take(size)
-                    .ToListAsync(),
-                ErrorCodes.NO_ERROR
-            );
+            // orderStr can't empty or null
+            string orderStr = orders != default && orders.Length != 0 ? Utils.GenerateOrderString(orders) : "created_timestamp desc";
+            var query =
+                    from ids in (
+                        (from post in __DBContext.SocialPosts
+                                .Where(e => e.Owner == socialUserId
+                                    && (search_term == default || e.SearchVector.Matches(search_term))
+                                    && (isOwner
+                                        ? ((status.Count() == 0
+                                                && e.StatusStr != BaseStatus
+                                                    .StatusToString(SocialPostStatus.Deleted, EntityStatus.SocialPostStatus))
+                                            || status.Contains(e.StatusStr))
+                                        : e.StatusStr == BaseStatus
+                                                    .StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
+                                    )
+                                    && (tags.Count() == 0
+                                        || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
+                                    )
+                                    && (categories.Count() == 0
+                                        || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
+                                    )
+                                )
+                        join action in __DBContext.SocialUserActionWithPosts on post.Id equals action.PostId
+                        into postWithAction
+                        from p in postWithAction.DefaultIfEmpty()
+                        group p by new {
+                            post.Id,
+                            post.Views,
+                            post.Title,
+                            post.TimeRead,
+                            post.CreatedTimestamp,
+                            post.LastModifiedTimestamp
+                        } into gr
+                        select new {
+                            gr.Key,
+                            Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                                BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost))),
+                            DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                                BaseAction.ActionToString(UserActionWithPost.Dislike, EntityAction.UserActionWithPost))),
+                            Comments = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                                BaseAction.ActionToString(UserActionWithPost.Comment, EntityAction.UserActionWithPost))),
+                            Follows = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                                BaseAction.ActionToString(UserActionWithPost.Follow, EntityAction.UserActionWithPost))),
+                            Reports = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                                BaseAction.ActionToString(UserActionWithPost.Report, EntityAction.UserActionWithPost))),
+                        } into ret select new {
+                            ret.Key.Id,
+                            views = ret.Key.Views,
+                            likes = ret.Likes,
+                            dislikes = ret.DisLikes,
+                            comments = ret.Comments,
+                            follows = ret.Follows,
+                            reports = ret.Reports,
+                            title = ret.Key.Title,
+                            time_read = ret.Key.TimeRead,
+                            created_timestamp = ret.Key.CreatedTimestamp,
+                            last_modified_timestamp = ret.Key.LastModifiedTimestamp,
+                        })
+                        .OrderBy(orderStr)
+                        .Skip(start).Take(size)
+                        .Select(e => e.Id)
+                    )
+                    join posts in __DBContext.SocialPosts on ids equals posts.Id
+                    select posts;
+            Console.WriteLine(orderStr);
+            Console.WriteLine(query.ToQueryString());
+            var totalCount = await __DBContext.SocialPosts
+                                .CountAsync(e => e.Owner == socialUserId
+                                    && (search_term == default || e.SearchVector.Matches(search_term))
+                                    && (isOwner
+                                        ? ((status.Count() == 0
+                                                && e.StatusStr != BaseStatus
+                                                    .StatusToString(SocialPostStatus.Deleted, EntityStatus.SocialPostStatus))
+                                            || status.Contains(e.StatusStr))
+                                        : e.StatusStr == BaseStatus
+                                                    .StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
+                                    )
+                                    && (tags.Count() == 0
+                                        || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
+                                    )
+                                    && (categories.Count() == 0
+                                        || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
+                                    )
+                                );
+            return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
         }
 
-        /// <summary>
-        /// Using function will increase views if UserId is valid and get info success.
-        /// Only select post with status is 'Approved'
-        /// </summary>
-        /// <param name="Slug"></param>
-        /// <param name="SocialUserId"></param>
-        /// <returns>(SocialPost, ErrorCodes)</returns>
         public async Task<(SocialPost, ErrorCodes)> FindPostBySlug(string Slug, Guid SocialUserId = default)
         {
             if (Slug == string.Empty) {
@@ -125,18 +197,45 @@ namespace CoreApi.Services
             }
             var post = await __DBContext.SocialPosts
                     .Where(e => e.Slug == Slug
-                        && e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
-                        && e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Private, EntityStatus.SocialPostStatus))
+                        && (e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
+                        || e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Private, EntityStatus.SocialPostStatus)))
                     .FirstOrDefaultAsync();
             if (post == default) {
                 return (default, ErrorCodes.NOT_FOUND);
             }
-            post.Views++;
-            _ = __DBContext.SaveChangesAsync();
 
-            if (post.Status != SocialPostStatus.Approved) {
+            #region increase views + add action 'Visited'
+            post.Views++;
+            await __DBContext.SaveChangesAsync();
+            if (SocialUserId != default && post.Status == SocialPostStatus.Approved) {
+                var action = await __DBContext.SocialUserActionWithPosts
+                    .Where(e => e.PostId == post.Id && e.UserId == SocialUserId)
+                    .FirstOrDefaultAsync();
+                var actionVisited = BaseAction.ActionToString(UserActionWithPost.Visited, EntityAction.UserActionWithPost);
+                if (action != default) {
+                    if (!action.Actions.Contains(actionVisited)) {
+                        action.Actions.Add(actionVisited);
+                        await __DBContext.SaveChangesAsync();
+                    }
+                } else {
+                    await __DBContext.SocialUserActionWithPosts
+                        .AddAsync(new SocialUserActionWithPost(){
+                            UserId = SocialUserId,
+                            PostId = post.Id,
+                            Actions = new List<string>(){
+                                actionVisited
+                            }
+                        });
+                    await __DBContext.SaveChangesAsync();
+                }
+            }
+            #endregion
+
+            if (post.Status != SocialPostStatus.Approved && (SocialUserId == default || SocialUserId != post.Owner)) {
+                return (default, ErrorCodes.NOT_FOUND);
+            } else {
                 if (SocialUserId == default || SocialUserId != post.Owner) {
-                    return (default, ErrorCodes.USER_IS_NOT_OWNER);
+                    return (post, ErrorCodes.USER_IS_NOT_OWNER);
                 }
             }
             return (post, ErrorCodes.NO_ERROR);
@@ -146,6 +245,7 @@ namespace CoreApi.Services
         {
             var post = await __DBContext.SocialPosts
                     .Where(e => e.Id == Id)
+                    .Include(e => e.OwnerNavigation)
                     .FirstOrDefaultAsync();
 
             if (post != default) {
@@ -195,33 +295,112 @@ namespace CoreApi.Services
             return ErrorCodes.INVALID_ACTION;
         }
 
-        public async Task<ErrorCodes> AddNewPost(SocialPost Post, Guid SocialUserId)
+        public async Task<ErrorCodes> AddNewPost(ParserSocialPost Parser, SocialPost Post, Guid SocialUserId)
         {
+            using var transaction = await __DBContext.Database.BeginTransactionAsync();
             Post.Slug = string.Empty;
             await __DBContext.SocialPosts.AddAsync(Post);
-            if (await __DBContext.SaveChangesAsync() > 0) {
-                #region [SOCIAL] Write user activity
-                var (newPost, error) = await FindPostById(Post.Id);
-                if (error == ErrorCodes.NO_ERROR) {
-                    using (var scope = __ServiceProvider.CreateScope())
-                    {
-                        var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
-                        await __SocialUserAuditLogManagement.AddNewUserAuditLog(
-                            newPost.GetModelName(),
-                            newPost.Id.ToString(),
-                            LOG_ACTIONS.CREATE,
-                            SocialUserId,
-                            new JObject(),
-                            newPost.GetJsonObject()
-                        );
+            var ok = await __DBContext.SaveChangesAsync() > 0;
+            var error = string.Empty;
+            if (ok) {
+                #region Add foregin key
+                foreach (var it in Parser.categories) {
+                    // No need check status of category
+                    var category = await __DBContext.SocialCategories
+                        .Where(c => c.Name == it)
+                        .FirstOrDefaultAsync();
+                    if (category == default) {
+                        ok = false;
+                        error = $"Not found category for add post, category: { it }";
+                        break;
                     }
-                } else {
-                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                    var postCategory = new SocialPostCategory(){
+                        PostId = Post.Id,
+                        Post = Post,
+                        CategoryId = category.Id,
+                        Category = category,
+                    };
+                    await __DBContext.SocialPostCategories.AddAsync(postCategory);
+                    Post.SocialPostCategories.Add(postCategory);
+                    if (await __DBContext.SaveChangesAsync() <= 0) {
+                        ok = false;
+                        error = "Save post-category failed";
+                        break;
+                    }
+                }
+                foreach (var it in Parser.tags) {
+                    // No need check status of tag
+                    var tag = await __DBContext.SocialTags
+                        .Where(t => t.Tag == it)
+                        .FirstOrDefaultAsync();
+                    if (tag == default) {
+                        ok = false;
+                        error = $"Not found tag for add new post. tag: { it }";
+                        break;
+                    }
+                    var postTag = new SocialPostTag(){
+                        PostId = Post.Id,
+                        Post = Post,
+                        TagId = tag.Id,
+                        Tag = tag,
+                    };
+                    await __DBContext.SocialPostTags.AddAsync(postTag);
+                    Post.SocialPostTags.Add(postTag);
+                    if (await __DBContext.SaveChangesAsync() <= 0) {
+                        ok = false;
+                        error = "Save post-tag failed.";
+                        break;
+                    }
+
+                    #region Add action used tag
+                    var action = await __DBContext.SocialUserActionWithTags
+                        .Where(e => e.TagId == tag.Id && e.UserId == SocialUserId)
+                        .FirstOrDefaultAsync();
+                    var actionUsed = BaseAction.ActionToString(UserActionWithTag.Used, EntityAction.UserActionWithTag);
+                    if (action != default) {
+                        if (!action.Actions.Contains(actionUsed)) {
+                            action.Actions.Add(actionUsed);
+                            await __DBContext.SaveChangesAsync();
+                        }
+                    } else {
+                        await __DBContext.SocialUserActionWithTags
+                            .AddAsync(new SocialUserActionWithTag(){
+                                UserId = SocialUserId,
+                                TagId = tag.Id,
+                                Actions = new List<string>(){
+                                    actionUsed
+                                }
+                            });
+                        await __DBContext.SaveChangesAsync();
+                    }
+                    #endregion
                 }
                 #endregion
-                return ErrorCodes.NO_ERROR;
             }
-            return ErrorCodes.INTERNAL_SERVER_ERROR;
+
+            if (!ok) {
+                await transaction.RollbackAsync();
+                LogError(error);
+                return ErrorCodes.INTERNAL_SERVER_ERROR;
+            }
+            await transaction.CommitAsync();
+
+            #region [SOCIAL] Write user activity
+            var (newPost, errCode) = await FindPostById(Post.Id);
+            using (var scope = __ServiceProvider.CreateScope())
+            {
+                var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
+                await __SocialUserAuditLogManagement.AddNewUserAuditLog(
+                    newPost.GetModelName(),
+                    newPost.Id.ToString(),
+                    LOG_ACTIONS.CREATE,
+                    SocialUserId,
+                    new JObject(),
+                    newPost.GetJsonObjectForLog()
+                );
+            }
+            #endregion
+            return ErrorCodes.NO_ERROR;
         }
 
         public async Task<ErrorCodes> ApprovePost(long Id, Guid AdminUserId)
@@ -230,7 +409,15 @@ namespace CoreApi.Services
             if (error != ErrorCodes.NO_ERROR) {
                 return error;
             }
+            var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
             post.Status = SocialPostStatus.Approved;
+            post.Slug = Utils.GenerateSlug(post.Title, true);
+            foreach (var it in post.SocialPostTags) {
+                if (it.Tag.Status == SocialTagStatus.Disabled) {
+                    it.Tag.Status = SocialTagStatus.Enabled;
+                }
+            }
+
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [ADMIN] Write social audit log
                 (post, error) = await FindPostById(Id);
@@ -238,15 +425,14 @@ namespace CoreApi.Services
                     using (var scope = __ServiceProvider.CreateScope())
                     {
                         var __SocialAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialAuditLogManagement>();
+                        var (oldVal, newVal) = Utils.GetDataChanges(oldPost, post.GetJsonObjectForLog());
                         await __SocialAuditLogManagement.AddNewAuditLog(
                             post.GetModelName(),
                             post.Id.ToString(),
                             LOG_ACTIONS.CREATE,
                             AdminUserId,
-                            new JObject() {
-                                { "status", 1 }
-                            },
-                            post.GetJsonObjectForLog()
+                            oldVal,
+                            newVal
                         );
                     }
                 } else {
@@ -264,7 +450,7 @@ namespace CoreApi.Services
             if (error != ErrorCodes.NO_ERROR) {
                 return error;
             }
-            var oldPost = Utils.DeepClone(post);
+            var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
             post.Status = SocialPostStatus.Rejected;
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [ADMIN] Write social audit log
@@ -273,7 +459,7 @@ namespace CoreApi.Services
                     using (var scope = __ServiceProvider.CreateScope())
                     {
                         var __SocialAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialAuditLogManagement>();
-                        var (oldVal, newVal) = post.GetDataChanges(oldPost);
+                        var (oldVal, newVal) = Utils.GetDataChanges(oldPost, post.GetJsonObjectForLog());
                         await __SocialAuditLogManagement.AddNewAuditLog(
                             post.GetModelName(),
                             post.Id.ToString(),
@@ -298,8 +484,8 @@ namespace CoreApi.Services
             if (error != ErrorCodes.NO_ERROR) {
                 return error;
             }
-            var oldPost = Utils.DeepClone(post);
-            post.Status = SocialPostStatus.Approved;
+            var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
+            post.Status = SocialPostStatus.Deleted;
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [ADMIN] Write social audit log
                 (post, error) = await FindPostById(Id);
@@ -307,7 +493,7 @@ namespace CoreApi.Services
                     using (var scope = __ServiceProvider.CreateScope())
                     {
                         var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
-                        var (oldVal, newVal) = post.GetDataChanges(oldPost);
+                        var (oldVal, newVal) = Utils.GetDataChanges(oldPost, post.GetJsonObjectForLog());
                         await __SocialUserAuditLogManagement.AddNewUserAuditLog(
                             post.GetModelName(),
                             post.Id.ToString(),
@@ -332,7 +518,7 @@ namespace CoreApi.Services
             if (error != ErrorCodes.NO_ERROR) {
                 return error;
             }
-            var oldPost = Utils.DeepClone(post);
+            var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
             post.Status = SocialPostStatus.Private;
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [ADMIN] Write social audit log
@@ -341,7 +527,7 @@ namespace CoreApi.Services
                     using (var scope = __ServiceProvider.CreateScope())
                     {
                         var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
-                        var (oldVal, newVal) = post.GetDataChanges(oldPost);
+                        var (oldVal, newVal) = Utils.GetDataChanges(oldPost, post.GetJsonObjectForLog());
                         await __SocialUserAuditLogManagement.AddNewUserAuditLog(
                             post.GetModelName(),
                             post.Id.ToString(),

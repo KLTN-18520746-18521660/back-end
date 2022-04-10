@@ -142,6 +142,7 @@ namespace CoreApi.Controllers.Admin
                 #endregion
 
                 LogInformation($"User login success user_name: { model.user_name }, isEmail: { isEmail }");
+                Response.Headers.Add("Set-Cookie", $"session_token_admin={ session.SessionToken }; Path=/ SameSite=Strict; Secure");
                 return Ok(200, "OK", new JObject(){
                     { "session_id", session.SessionToken },
                     { "user_id", user.Id },

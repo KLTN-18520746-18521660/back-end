@@ -26,10 +26,9 @@ namespace CoreApi.Services.Background
     public class EmailDispatcher : BaseBackgroundService
     {
         private readonly Channel<EmailChannel> __Channel;
-        public EmailDispatcher(DBContext _DBContext,
-                               IServiceProvider _IServiceProvider,
+        public EmailDispatcher(IServiceProvider _IServiceProvider,
                                Channel<EmailChannel> _Channel)
-            : base(_DBContext, _IServiceProvider)
+            : base(_IServiceProvider)
         {
             __ServiceName = "EmailDispatcher";
             __Channel = _Channel;

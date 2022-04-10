@@ -63,6 +63,11 @@ namespace CoreApi.Controllers.Social.AuditLog
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Validate params
+                if (start < 0 || size < 1) {
+                    return Problem(400, "Bad request params.");
+                }
+                #endregion
                 #region Get session token
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");

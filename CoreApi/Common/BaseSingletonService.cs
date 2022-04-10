@@ -1,3 +1,4 @@
+using CoreApi.Common.Interface;
 using DatabaseAccess.Context;
 using Serilog;
 using System;
@@ -5,22 +6,20 @@ using System.Text;
 
 namespace CoreApi.Common
 {
-    public class BaseService
+    public class BaseSingletonService : IBaseService
     {
         private ILogger __Logger;
         protected string __ServiceName;
         protected string __TraceId;
-        protected DBContext __DBContext;
         protected IServiceProvider __ServiceProvider;
         public string ServiceName { get => __ServiceName; }
         public string TraceId { get => __TraceId; }
-        public BaseService(IServiceProvider _IServiceProvider)
+        public BaseSingletonService(IServiceProvider _IServiceProvider)
         {
             __Logger = Log.Logger;
             __TraceId = string.Empty;
-            __DBContext = new DBContext();
             __ServiceProvider = _IServiceProvider;
-            __ServiceName = "BaseService";
+            __ServiceName = "BaseSingletonService";
         }
         public virtual void SetTraceId(string TraceId)
         {

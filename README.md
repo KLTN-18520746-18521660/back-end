@@ -58,6 +58,7 @@
 > dotnet run [ssl]
 - release mode + environment production
 > dotnet run [ssl] [swagger] [disable-cors] [show-sql-command] --launch-profile pro -c release
+> dotnet run ssl swagger disable-cors show-sql-command -c release
 > dotnet run ssl swagger disable-cors --launch-profile pro -c release
 - run without ssl + environment develop
 > dotnet run
@@ -89,7 +90,7 @@
 		```
 	- *Update database*
 		```
-		dotnet ef database update DBCreation --context DBContext --no-build
+		dotnet ef database update DBCreation --context DBContext
 		```
 	- *Drop database*
 		```

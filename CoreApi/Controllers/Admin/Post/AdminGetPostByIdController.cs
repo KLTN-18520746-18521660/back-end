@@ -106,7 +106,7 @@ namespace CoreApi.Controllers.Admin.Post
         public async Task<IActionResult> GetPostById([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
                                                      [FromServices] SocialPostManagement __SocialPostManagement,
                                                      [FromRoute] long post_id,
-                                                     [FromHeader] string session_token)
+                                                     [FromHeader(Name = "session_token_admin")] string session_token)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");

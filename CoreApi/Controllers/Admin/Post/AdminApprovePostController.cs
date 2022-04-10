@@ -109,7 +109,7 @@ namespace CoreApi.Controllers.Admin.Post
                                                      [FromServices] SocialPostManagement __SocialPostManagement,
                                                      [FromServices] AdminUserManagement __AdminUserManagement,
                                                      [FromRoute] long post_id,
-                                                     [FromHeader] string session_token)
+                                                     [FromHeader(Name = "session_token_admin")] string session_token)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -177,7 +177,7 @@ namespace CoreApi.Controllers.Admin.Post
                     }
                     throw new Exception($"FindPostById failed. Post_id: { post_id }, ErrorCode: { error} ");
                 }
-                if (__SocialPostManagement.ValidateChangeStatusAction(post.Status, SocialPostStatus.Approved) != ErrorCodes.INVALID_ACTION) {
+                if (__SocialPostManagement.ValidateChangeStatusAction(post.Status, SocialPostStatus.Approved) == ErrorCodes.INVALID_ACTION) {
                     return Problem(400, "Invalid action.");
                 }
                 #endregion

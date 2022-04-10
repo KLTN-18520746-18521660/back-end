@@ -13,7 +13,7 @@ using CoreApi.Common;
 
 namespace CoreApi.Services
 {
-    public class SessionSocialUserManagement : BaseService
+    public class SessionSocialUserManagement : BaseTransientService
     {
         public SessionSocialUserManagement(DBContext _DBContext,
                                            IServiceProvider _IServiceProvider)

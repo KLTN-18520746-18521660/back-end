@@ -1,34 +1,35 @@
 using CoreApi.Common.Interface;
 using DatabaseAccess.Context;
-using Microsoft.Extensions.Hosting;
 using Serilog;
 using System;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CoreApi.Common
 {
-    public class BaseBackgroundService : BackgroundService, IBaseService
+    public class BaseTransientService : IBaseService
     {
         private ILogger __Logger;
         protected string __ServiceName;
+        protected string __TraceId;
+        protected DBContext __DBContext;
         protected IServiceProvider __ServiceProvider;
         public string ServiceName { get => __ServiceName; }
-        public BaseBackgroundService(IServiceProvider _IServiceProvider)
+        public string TraceId { get => __TraceId; }
+        public BaseTransientService(IServiceProvider _IServiceProvider)
         {
             __Logger = Log.Logger;
+            __TraceId = string.Empty;
+            __DBContext = new DBContext();
             __ServiceProvider = _IServiceProvider;
-            __ServiceName = "BaseBackgroundService";
+            __ServiceName = "BaseTransientService";
         }
-
-        public BaseBackgroundService()
+        public virtual void SetTraceId(string TraceId)
         {
+            __TraceId = TraceId;
         }
-
         protected virtual string CreateLogMessage(string Msg)
         {
-            string msgFormat = $"BackgroundService: { __ServiceName }";
+            string msgFormat = TraceId == string.Empty ? $"Service: { __ServiceName }" : $"Service: { __ServiceName }, TraceId: { __TraceId }";
             StringBuilder msg = new StringBuilder(msgFormat);
             msg.Append(", ").Append(Msg);
             return msg.ToString();
@@ -56,11 +57,6 @@ namespace CoreApi.Common
             if (Msg != string.Empty) {
                 __Logger.Error(CreateLogMessage(Msg));
             }
-        }
-
-        protected override Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            throw new NotImplementedException();
         }
     }
 }
