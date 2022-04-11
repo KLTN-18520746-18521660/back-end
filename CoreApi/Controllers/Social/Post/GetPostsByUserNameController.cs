@@ -123,8 +123,6 @@ namespace CoreApi.Controllers.Social.Post
             __SocialPostManagement.SetTraceId(TraceId);
             __SocialTagManagement.SetTraceId(TraceId);
             #endregion
-            var o = Request.Query.Where(e => e.Key == "orders").FirstOrDefault();
-                Console.WriteLine(o.Value);
             try {
                 #region Validate params
                 if (user_name == default || user_name.Trim() == string.Empty || user_name.Length > 50) {
@@ -136,7 +134,6 @@ namespace CoreApi.Controllers.Social.Post
                 if (tags != default && !await __SocialTagManagement.IsExistsTags(tags)) {
                     return Problem(400, "Invalid tags not exists.");
                 }
-                // var combineOrders = orders.Select(e => e.GetOrder()).ToArray();
                 var combineOrders = orders.GetOrders();
                 var paramsAllowInOrder = __SocialPostManagement.GetAllowOrderFields(GetPostAction.GetPostsAttachedToUser);
                 foreach (var it in combineOrders) {
@@ -202,13 +199,19 @@ namespace CoreApi.Controllers.Social.Post
 
                 #region Validate params: start, size, total_size
                 if (totalSize != 0 && start >= totalSize) {
-                    LogWarning($"Invalid request params for get tags, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
+                    LogWarning($"Invalid request params for get posts, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
                     return Problem(400, $"Invalid request params start: { start }. Total size is { totalSize }");
                 }
                 #endregion
 
                 var ret = new List<JObject>();
-                posts.ForEach(e => ret.Add(e.GetPublicShortJsonObject()));
+                posts.ForEach(e => {
+                    var obj = e.GetPublicShortJsonObject();
+                    if (IsValidSession) {
+                        obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionWithUser(session.UserId)));
+                    }
+                    ret.Add(obj);
+                });
 
                 return Ok(200, "Ok", new JObject(){
                     { "posts", Utils.ObjectToJsonToken(ret) },

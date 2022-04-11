@@ -127,6 +127,11 @@ namespace CoreApi.Controllers.Social.Post
                     throw new Exception($"FindPostBySlug failed, ErrorCode: { error }");
                 }
                 var ret = (error == ErrorCodes.USER_IS_NOT_OWNER) ? post.GetPublicJsonObject() : post.GetJsonObject();
+
+                // Add action if user is valid
+                if (IsValidSession) {
+                    ret.Add("actions", Utils.ObjectToJsonToken(post.GetActionWithUser(session.UserId)));
+                }
                 return Ok(200, "OK", new JObject(){
                     { "post", ret },
                 });

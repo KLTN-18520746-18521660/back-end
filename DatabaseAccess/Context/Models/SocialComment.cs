@@ -8,6 +8,8 @@ using Newtonsoft.Json;
 using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
 using DatabaseAccess.Common.Status;
+using Newtonsoft.Json.Linq;
+using System.Linq;
 
 
 #nullable disable
@@ -77,15 +79,39 @@ namespace DatabaseAccess.Context.Models
             Error = string.Empty;
             try {
                 var parser = (ParserModels.ParserSocialComment)Parser;
-                ParentId = parser.parent_id;
-                PostId = parser.post_id;
-                Owner = parser.owner;
-                
+                Content = parser.content;
+
+                if (parser.parent_id != default && parser.parent_id > 0) {
+                    ParentId = parser.parent_id;
+                }
+
                 return true;
             } catch (Exception ex) {
                 Error = ex.ToString();
                 return false;
             }
+        }
+
+        public override JObject GetPublicJsonObject(List<string> publicFields = null)
+        {
+            if (publicFields == default) {
+                publicFields = new List<string>() {
+                    "id",
+                    "parent_id",
+                    "owner",
+                    "content",
+                    "status",
+                    "last_modified_timestamp",
+                    "created_timestamp",
+                };
+            }
+            var ret = GetJsonObject();
+            foreach (var x in __ObjectJson) {
+                if (!publicFields.Contains(x.Key)) {
+                    ret.Remove(x.Key);
+                }
+            }
+            return ret;
         }
 
         public override bool PrepareExportObjectJson()
@@ -95,7 +121,14 @@ namespace DatabaseAccess.Context.Models
                 { "id", Id },
                 { "parent_id", ParentId },
                 { "post_id", PostId },
-                { "owner", Owner },
+                { "owner", 
+                    new JObject(){
+                        { "username", this.OwnerNavigation.UserName },
+                        { "display_name", this.OwnerNavigation.DisplayName },
+                        { "avatar", this.OwnerNavigation.Avatar },
+                        { "status", this.OwnerNavigation.StatusStr },
+                    }
+                },
                 { "content", Content },
                 { "status", StatusStr },
                 { "last_modified_timestamp", LastModifiedTimestamp},
@@ -105,6 +138,13 @@ namespace DatabaseAccess.Context.Models
 #endif
             };
             return true;
+        }
+
+        public string[] GetActionWithUser(Guid socialUserId) {
+            var action = this.SocialUserActionWithComments
+                .Where(e => e.UserId == socialUserId)
+                .FirstOrDefault();
+            return action != default ? action.Actions.ToArray() : new string[]{};
         }
     }
 }

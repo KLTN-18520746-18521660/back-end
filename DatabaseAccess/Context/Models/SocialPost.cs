@@ -293,6 +293,14 @@ namespace DatabaseAccess.Context.Models
             removeFields.ForEach(r => ret.Remove(r));
             return ret;
         }
+
+        public string[] GetActionWithUser(Guid socialUserId) {
+            var action = this.SocialUserActionWithPosts
+                .Where(e => e.UserId == socialUserId)
+                .FirstOrDefault();
+            return action != default ? action.Actions.ToArray() : new string[]{};
+        }
+
         #region static func/params
         public static CONTENT_TYPE StringToContentType(string ContentType) {
             switch (ContentType) {

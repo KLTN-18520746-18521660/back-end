@@ -9,6 +9,7 @@ using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
 using DatabaseAccess.Common.Status;
 using Newtonsoft.Json.Linq;
+using System.Linq;
 
 #nullable disable
 
@@ -111,7 +112,14 @@ namespace DatabaseAccess.Context.Models
             };
             return true;
         }
-        
+
+        public string[] GetActionWithUser(Guid socialUserId) {
+            var action = this.SocialUserActionWithTags
+                .Where(e => e.UserId == socialUserId)
+                .FirstOrDefault();
+            return action != default ? action.Actions.ToArray() : new string[]{};
+        }
+
         public static List<SocialTag> GetDefaultData()
         {
             List<SocialTag> ListData = new()

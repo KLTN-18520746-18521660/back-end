@@ -63,14 +63,14 @@ namespace CoreApi.Services
         * ORDER BY views ASC, created_timestamp DESC
         */
         public async Task<(List<SocialPost>, int, ErrorCodes)> GetPostsAttachedToUser(Guid socialUserId,
-                                                                       bool isOwner,
-                                                                       int start = 0,
-                                                                       int size = 20,
-                                                                       string search_term = default,
-                                                                       string[] status = default,
-                                                                       (string, bool)[] orders = default,
-                                                                       string[] tags = default,
-                                                                       string[] categories = default)
+                                                                                      bool isOwner,
+                                                                                      int start = 0,
+                                                                                      int size = 20,
+                                                                                      string search_term = default,
+                                                                                      string[] status = default,
+                                                                                      (string, bool)[] orders = default,
+                                                                                      string[] tags = default,
+                                                                                      string[] categories = default)
         {
             #region validate params
             if (status != default) {
@@ -167,8 +167,7 @@ namespace CoreApi.Services
                     )
                     join posts in __DBContext.SocialPosts on ids equals posts.Id
                     select posts;
-            Console.WriteLine(orderStr);
-            Console.WriteLine(query.ToQueryString());
+
             var totalCount = await __DBContext.SocialPosts
                                 .CountAsync(e => e.Owner == socialUserId
                                     && (search_term == default || e.SearchVector.Matches(search_term))
@@ -262,6 +261,100 @@ namespace CoreApi.Services
                             && e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Private, EntityStatus.SocialPostStatus)));
             return (count > 0, ErrorCodes.NO_ERROR);
         }
+
+        #region Post action
+        protected async Task<ErrorCodes> AddAction(long postId, Guid socialUserId, string actionStr)
+        {
+            var action = await __DBContext.SocialUserActionWithPosts
+                .Where(e => e.PostId == postId && e.UserId == socialUserId)
+                .FirstOrDefaultAsync();
+            if (action != default) {
+                if (!action.Actions.Contains(actionStr)) {
+                    action.Actions.Add(actionStr);
+                    if (await __DBContext.SaveChangesAsync() > 0) {
+                        return ErrorCodes.NO_ERROR;
+                    }
+                }
+                return ErrorCodes.NO_ERROR;
+            } else {
+                await __DBContext.SocialUserActionWithPosts
+                    .AddAsync(new SocialUserActionWithPost(){
+                        UserId = socialUserId,
+                        PostId = postId,
+                        Actions = new List<string>(){
+                            actionStr
+                        }
+                    });
+                if (await __DBContext.SaveChangesAsync() > 0) {
+                    return ErrorCodes.NO_ERROR;
+                }
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        protected async Task<ErrorCodes> RemoveAction(long postId, Guid socialUserId, string actionStr)
+        {
+            var action = await __DBContext.SocialUserActionWithPosts
+                .Where(e => e.PostId == postId && e.UserId == socialUserId)
+                .FirstOrDefaultAsync();
+            if (action != default) {
+                if (action.Actions.Contains(actionStr)) {
+                    action.Actions.Remove(actionStr);
+                    if (await __DBContext.SaveChangesAsync() > 0) {
+                        return ErrorCodes.NO_ERROR;
+                    }
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.NO_ERROR;
+        }
+        public async Task<ErrorCodes> UnLike(long postId, Guid socialUserId)
+        {
+            return await RemoveAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost));
+        }
+        public async Task<ErrorCodes> Like(long postId, Guid socialUserId)
+        {
+            await RemoveAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Dislike, EntityAction.UserActionWithPost));
+            return await AddAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost));
+        }
+        public async Task<ErrorCodes> UnDisLike(long postId, Guid socialUserId)
+        {
+            return await RemoveAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Dislike, EntityAction.UserActionWithPost));
+        }
+        public async Task<ErrorCodes> DisLike(long postId, Guid socialUserId)
+        {
+            await RemoveAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost));
+            return await AddAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Dislike, EntityAction.UserActionWithPost));
+        }
+        public async Task<ErrorCodes> Follow(long postId, Guid socialUserId)
+        {
+            return await AddAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Follow, EntityAction.UserActionWithPost));
+        }
+        public async Task<ErrorCodes> UnFollow(long postId, Guid socialUserId)
+        {
+            return await RemoveAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Follow, EntityAction.UserActionWithPost));
+        }
+        public async Task<ErrorCodes> Report(long postId, Guid socialUserId)
+        {
+            return await AddAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Report, EntityAction.UserActionWithPost));
+        }
+        public async Task<ErrorCodes> Save(long postId, Guid socialUserId)
+        {
+            return await AddAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Saved, EntityAction.UserActionWithPost));
+        }
+        public async Task<ErrorCodes> UnSave(long postId, Guid socialUserId)
+        {
+            return await RemoveAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Saved, EntityAction.UserActionWithPost));
+        }
+        public async Task<ErrorCodes> Comment(long postId, Guid socialUserId)
+        {
+            return await AddAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Comment, EntityAction.UserActionWithPost));
+        }
+        public async Task<ErrorCodes> UnComment(long postId, Guid socialUserId)
+        {
+            return await RemoveAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Comment, EntityAction.UserActionWithPost));
+        }
+        #endregion
 
         #region Post handle
         public ErrorCodes ValidateChangeStatusAction(int from, int to)

@@ -29,6 +29,7 @@ namespace DatabaseAccess.Common.Actions
         public static readonly int Comment = 3;
         public static readonly int Report = 4;
         public static readonly int Visited = 5;
+        public static readonly int Saved = 6;
     }
     public class UserActionWithUser {
         public static readonly int Follow = 0;
@@ -70,7 +71,8 @@ namespace DatabaseAccess.Common.Actions
             { UserActionWithPost.Follow, "Follow" },
             { UserActionWithPost.Comment, "Comment" },
             { UserActionWithPost.Report, "Report" },
-            { UserActionWithPost.Visited, "Visited" }
+            { UserActionWithPost.Visited, "Visited" },
+            { UserActionWithPost.Saved, "Saved" },
         };
         protected readonly static Dictionary<int, string> MapUserActionWithUser = new()
         {

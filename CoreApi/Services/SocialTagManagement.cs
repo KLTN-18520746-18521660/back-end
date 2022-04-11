@@ -59,8 +59,6 @@ namespace CoreApi.Services
                     join tags in __DBContext.SocialTags on ids equals tags.Id
                     select tags;
 
-            Console.WriteLine(query.ToQueryString());
-
             var totalCount = await __DBContext.SocialTags
                             .CountAsync(e => e.StatusStr != BaseStatus.StatusToString(SocialTagStatus.Disabled, EntityStatus.SocialTagStatus)
                                     && (search_term == default || (search_term != default && e.Tag.Contains(search_term))));
@@ -71,7 +69,7 @@ namespace CoreApi.Services
         {
             var tag = await __DBContext.SocialTags
                     .Where(e => e.Tag == Tag
-                            && e.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus))
+                            && e.StatusStr != BaseStatus.StatusToString(SocialTagStatus.Disabled, EntityStatus.SocialTagStatus))
                     .FirstOrDefaultAsync();
             if (tag == default) {
                 return (default, ErrorCodes.NOT_FOUND);
@@ -107,8 +105,7 @@ namespace CoreApi.Services
         public async Task<(SocialTag, ErrorCodes)> FindTagByNameIgnoreStatus(string Tag)
         {
             var tag = await __DBContext.SocialTags
-                    .Where(e => e.Tag == Tag
-                            && e.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus))
+                    .Where(e => e.Tag == Tag)
                     .FirstOrDefaultAsync();
             if (tag == default) {
                 return (default, ErrorCodes.NOT_FOUND);

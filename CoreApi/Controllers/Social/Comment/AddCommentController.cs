@@ -1,8 +1,8 @@
 using Common;
 using CoreApi.Common;
 using CoreApi.Services;
-using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
+using DatabaseAccess.Context.ParserModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
@@ -10,20 +10,20 @@ using System;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CoreApi.Controllers.Social.Post
+namespace CoreApi.Controllers.Social.Comment
 {
     [ApiController]
-    [Route("/post")]
-    public class DeletePostController : BaseController
+    [Route("/comment")]
+    public class AddCommentController : BaseController
     {
         #region Config Values
         private int EXTENSION_TIME; // minutes
         private int EXPIRY_TIME; // minute
         #endregion
 
-        public DeletePostController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public AddCommentController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "DeletePost";
+            __ControllerName = "AddComment";
             LoadConfig();
         }
 
@@ -45,80 +45,28 @@ namespace CoreApi.Controllers.Social.Post
             }
         }
 
-        /// <summary>
-        /// Delete post by id
-        /// </summary>
-        /// <returns><b>Social user of session_token</b></returns>
-        /// <param name="__SessionSocialUserManagement"></param>
-        /// <param name="__SocialPostManagement"></param>
-        /// <param name="post_id"></param>
-        /// <param name="session_token"></param>
-        ///
-        /// <remarks>
-        /// <b>Using endpoint need:</b>
-        /// 
-        /// - Need header 'session_token'.
-        /// 
-        /// </remarks>
-        ///
-        /// <response code="200">
-        /// <b>Success Case:</b> 200 ok.
-        /// </response>
-        /// 
-        /// <response code="400">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>Session not found.</li>
-        /// <li>Post already deleted.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="401">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>Session has expired.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="403">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>Missing header session_token.</li>
-        /// <li>Header session_token is invalid.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="404">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>Not found post.</li>
-        /// <li>User not is owner.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="500">
-        /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
-        /// </response>
-        [HttpDelete("id/{post_id}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [HttpPost("post/{post_slug}")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
-        [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> DeletePost([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                          [FromServices] SocialPostManagement __SocialPostManagement,
-                                                          [FromRoute] long post_id,
-                                                          [FromHeader] string session_token)
+        public async Task<IActionResult> GetPostBySlug([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                       [FromServices] SocialCommentManagement __SocialCommentManagement,
+                                                       [FromServices] SocialPostManagement __SocialPostManagement,
+                                                       [FromRoute] string post_slug,
+                                                       [FromHeader] string session_token,
+                                                       [FromBody] ParserSocialComment Parser)
         {
+            if (!LoadConfigSuccess) {
+                return Problem(500, "Internal Server error.");
+            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialPostManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Validate params
-                if (post_id <= 0) {
-                    return Problem(400, "Invalid params.");
+                #region Validate slug
+                if (post_slug == default || post_slug.Trim() == string.Empty) {
+                    return Problem(400, "Invalid request.");
                 }
                 #endregion
 
@@ -157,32 +105,42 @@ namespace CoreApi.Controllers.Social.Post
 
                 #region Get post info
                 SocialPost post = default;
-                (post, error) = await __SocialPostManagement.FindPostById(post_id);
-                if (error != ErrorCodes.NO_ERROR) {
+                (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim(), session.UserId);
+
+                if (error != ErrorCodes.NO_ERROR && error != ErrorCodes.USER_IS_NOT_OWNER) {
                     if (error == ErrorCodes.NOT_FOUND) {
                         return Problem(404, "Not found post.");
                     }
-                    throw new Exception($"FindPostById failed. Post_id: { post_id }, ErrorCode: { error} ");
-                }
 
-                if (post.Owner != session.UserId) {
-                    return Problem(404, "Not found post.");
-                }
-                if (post.Status == SocialPostStatus.Deleted) {
-                    return Problem(400, "Post already deleted.");
-                }
-                if (__SocialPostManagement.ValidateChangeStatusAction(post.Status, SocialPostStatus.Deleted) == ErrorCodes.INVALID_ACTION) {
-                    return Problem(400, "Invalid action.");
+                    throw new Exception($"FindPostBySlug failed, ErrorCode: { error }");
                 }
                 #endregion
 
-                error = await __SocialPostManagement.DeletedPost(post.Id, post.Owner);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"DeletedPost Failed, ErrorCode: { error }");
+                var comment = new SocialComment();
+                comment.Parse(Parser, out var errMsg);
+                comment.Owner = session.UserId;
+                comment.OwnerNavigation = session.User;
+
+                if (errMsg != string.Empty) {
+                    throw new Exception($"Parse social comment model failed, error: { errMsg }");
                 }
 
-                LogInformation($"DeletedPost success, post_id: { post_id }");
-                return Ok(200, "Ok");
+                if (comment.ParentId != default) {
+                    SocialComment parentComment = default;
+                    (parentComment, error) = await __SocialCommentManagement.FindCommentById((long) comment.ParentId);
+                    if (error != ErrorCodes.NO_ERROR || parentComment.PostId != post.Id) {
+                        return Problem(400, "Invalid parent_id.");
+                    }
+                }
+
+                error = await __SocialCommentManagement.AddComment(comment);
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"AddComment failed, ErrorCode: { error }");
+                }
+
+                return Ok(201, "OK", new JObject(){
+                    { "comment_id", comment.Id },
+                });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");
