@@ -61,40 +61,46 @@ namespace CoreApi.Controllers.Social.Category
             __SocialCategoryManagement.SetTraceId(TraceId);
             #endregion
             try {
-                bool isSessionInvalid = true;
+                bool IsValidSession = true;
                 #region Get session token
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
-                    isSessionInvalid = false;
+                    IsValidSession = false;
                 }
 
-                if (isSessionInvalid && !CommonValidate.IsValidSessionToken(session_token)) {
+                if (IsValidSession && !CommonValidate.IsValidSessionToken(session_token)) {
                     LogDebug("Invalid header authorization.");
+                    IsValidSession = false;
                 }
                 #endregion
 
                 #region Find session for use
                 SessionSocialUser session = default;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                if (isSessionInvalid) {
+                if (IsValidSession) {
                     (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
 
                     if (error != ErrorCodes.NO_ERROR) {
-                        isSessionInvalid = false;
+                        IsValidSession = false;
                     }
                 }
                 #endregion
 
                 List<SocialCategory> categories = default;
                 (categories, error) = await __SocialCategoryManagement.GetCategories();
-                var ret = new JArray();
-                foreach (SocialCategory it in categories) {
-                    ret.Add(it.GetPublicJsonObject());
-                }
+
+                var ret = new List<JObject>();
+                categories.ForEach(e => {
+                    var obj = e.GetPublicJsonObject();
+                    if (IsValidSession) {
+                        obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionWithUser(session.UserId)));
+                    }
+                    ret.Add(obj);
+                });
 
                 LogDebug("GetCategories success.");
                 return Ok(200, "Ok", new JObject(){
-                    { "categories", ret },
+                    { "categories", Utils.ObjectToJsonToken(ret) },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
@@ -124,32 +130,33 @@ namespace CoreApi.Controllers.Social.Category
                     return Problem(400, "Invalid category.");
                 }
                 #endregion
-                bool isSessionInvalid = true;
+                bool IsValidSession = true;
                 #region Get session token
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
-                    isSessionInvalid = false;
+                    IsValidSession = false;
                 }
 
-                if (isSessionInvalid && !CommonValidate.IsValidSessionToken(session_token)) {
+                if (IsValidSession && !CommonValidate.IsValidSessionToken(session_token)) {
                     LogDebug("Invalid header authorization.");
+                    IsValidSession = false;
                 }
                 #endregion
 
                 #region Find session for use
                 SessionSocialUser session = default;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                if (isSessionInvalid) {
+                if (IsValidSession) {
                     (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
 
                     if (error != ErrorCodes.NO_ERROR) {
-                        isSessionInvalid = false;
+                        IsValidSession = false;
                     }
                 }
                 #endregion
 
-                SocialCategory ret = default;
-                (ret, error) = await __SocialCategoryManagement.FindCategoryByName(category);
+                SocialCategory findCategory = default;
+                (findCategory, error) = await __SocialCategoryManagement.FindCategoryByName(category);
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
                         return Problem(404, "Not found category.");
@@ -157,9 +164,14 @@ namespace CoreApi.Controllers.Social.Category
                     throw new Exception($"FindCategoryByName failed, ErrorCode: { error }");
                 }
 
+                var ret = findCategory.GetPublicJsonObject();
+                if (IsValidSession) {
+                    ret.Add("actions", Utils.ObjectToJsonToken(findCategory.GetActionWithUser(session.UserId)));
+                }
+
                 LogDebug("GetCategories success.");
                 return Ok(200, "Ok", new JObject(){
-                    { "category", ret.GetPublicJsonObject() },
+                    { "category", Utils.ObjectToJsonToken(ret) },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");

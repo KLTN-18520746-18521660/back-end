@@ -69,26 +69,27 @@ namespace CoreApi.Controllers.Social.Tag
                     return Problem(400, "Bad request params.");
                 }
                 #endregion
-                bool isSessionInvalid = true;
+                bool IsValidSession = true;
                 #region Get session token
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
-                    isSessionInvalid = false;
+                    IsValidSession = false;
                 }
 
-                if (isSessionInvalid && !CommonValidate.IsValidSessionToken(session_token)) {
+                if (IsValidSession && !CommonValidate.IsValidSessionToken(session_token)) {
                     LogDebug("Invalid header authorization.");
+                    IsValidSession = false;
                 }
                 #endregion
 
                 #region Find session for use
                 SessionSocialUser session = default;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                if (isSessionInvalid) {
+                if (IsValidSession) {
                     (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
 
                     if (error != ErrorCodes.NO_ERROR) {
-                        isSessionInvalid = false;
+                        IsValidSession = false;
                     }
                 }
                 #endregion
@@ -97,21 +98,26 @@ namespace CoreApi.Controllers.Social.Tag
                 List<SocialTag> tags = default;
                 int totalSize = 0;
                 (tags, totalSize) = await __SocialTagManagement
-                                                    .GetTags(start, size, search_term, isSessionInvalid ? session.UserId : default);
+                                                    .GetTags(start, size, search_term, IsValidSession ? session.UserId : default);
                 #region Validate params: start, size, total_size
                 if (totalSize != 0 && start >= totalSize) {
                     LogWarning($"Invalid request params for get tags, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
                     return Problem(400, $"Invalid request params start: { start }. Total size is { totalSize }");
                 }
                 #endregion
-                var ret = new JArray();
-                foreach (SocialTag it in tags) {
-                    ret.Add(it.GetPublicJsonObject());
-                }
+
+                var ret = new List<JObject>();
+                tags.ForEach(e => {
+                    var obj = e.GetPublicJsonObject();
+                    if (IsValidSession) {
+                        obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionWithUser(session.UserId)));
+                    }
+                    ret.Add(obj);
+                });
 
                 LogDebug("GetTags success.");
                 return Ok(200, "Ok", new JObject(){
-                    { "tags", ret },
+                    { "tags", Utils.ObjectToJsonToken(ret) },
                     { "total_size", totalSize },
                 });
             } catch (Exception e) {
@@ -142,32 +148,33 @@ namespace CoreApi.Controllers.Social.Tag
                     return Problem(400, "Invalid tag.");
                 }
                 #endregion
-                bool isSessionInvalid = true;
+                bool IsValidSession = true;
                 #region Get session token
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
-                    isSessionInvalid = false;
+                    IsValidSession = false;
                 }
 
-                if (isSessionInvalid && !CommonValidate.IsValidSessionToken(session_token)) {
+                if (IsValidSession && !CommonValidate.IsValidSessionToken(session_token)) {
                     LogDebug("Invalid header authorization.");
+                    IsValidSession = false;
                 }
                 #endregion
 
                 #region Find session for use
                 SessionSocialUser session = default;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                if (isSessionInvalid) {
+                if (IsValidSession) {
                     (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
 
                     if (error != ErrorCodes.NO_ERROR) {
-                        isSessionInvalid = false;
+                        IsValidSession = false;
                     }
                 }
                 #endregion
 
                 SocialTag findTag = default;
-                if (isSessionInvalid) {
+                if (IsValidSession) {
                     (findTag, error) = await __SocialTagManagement.FindTagByName(tag, session.UserId);
                 } else {
                     (findTag, error) = await __SocialTagManagement.FindTagByName(tag);
@@ -180,9 +187,14 @@ namespace CoreApi.Controllers.Social.Tag
                     throw new Exception($"FindTagByName failed, ErrorCode: { error }");
                 }
 
+                var ret = findTag.GetPublicJsonObject();
+                if (IsValidSession) {
+                    ret.Add("actions", Utils.ObjectToJsonToken(findTag.GetActionWithUser(session.UserId)));
+                }
+
                 LogDebug("GetTagByName success.");
                 return Ok(200, "Ok", new JObject(){
-                    { "tag", findTag.GetPublicJsonObject() },
+                    { "tag", Utils.ObjectToJsonToken(ret) },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
