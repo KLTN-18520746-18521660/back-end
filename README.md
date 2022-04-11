@@ -54,32 +54,27 @@
 
 ## Build and Run CoreApi
 > cd CoreApi
+- Base command
+> dotnet run [ssl] [disable-cors] [show-sql-command] [--launch-profile (pro|dev)] [-c (release|debug)]
 - debug mode + environment develop
-> dotnet run [ssl]
+> dotnet run ssl disable-cors --launch-profile dev -c debug
 - release mode + environment production
-> dotnet run [ssl] [swagger] [disable-cors] [show-sql-command] --launch-profile pro -c release
-> dotnet run ssl swagger disable-cors show-sql-command -c release
-> dotnet run ssl swagger disable-cors --launch-profile pro -c release
-- run without ssl + environment develop
-> dotnet run
+> dotnet run ssl --launch-profile pro -c release
+- release with disable cros
+> dotnet run ssl disable-cors --launch-profile pro -c release
 
 ## Project Console is for testing
 
 ## Migration
+- **NOTE**: Migreations auto run when run app (just handle manual when needed)
 - **Using Manager Package console**
 	- *Add migrations*
 		```
-		add-migration ConfigDBCreation -Context ConfigDBContext
-		add-migration CachedDBCreation -Context CachedDBContext
-		add-migration InventoryDBCreation -Context InventoryDBContext
-		add-migration SocialDBCreation -Context SocialDBContext
+		add-migration DBCreation --context DBContext
 		```
 	- *Update database*
 		```
-		update-database ConfigDBCreation -Context ConfigDBContext
-		update-database CachedDBCreation -Context CachedDBContext
-		update-database InventoryDBCreation -Context InventoryDBContext
-		update-database SocialDBCreation -Context SocialDBContext
+		update-database DBCreation --context DBContext
 		```
 
 - **Using Cmd**

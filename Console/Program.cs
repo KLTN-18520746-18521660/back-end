@@ -49,9 +49,11 @@ namespace MyConsole
             string passCert = "Ndh90768";
             string passDb = "a";
             string passEmail = "wecxrnzqcwkldrla";
+            string passSwagger = "admin";
             Console.WriteLine(StringDecryptor.Encrypt(passCert));
             Console.WriteLine(StringDecryptor.Encrypt(passDb));
             Console.WriteLine(StringDecryptor.Encrypt(passEmail));
+            Console.WriteLine(StringDecryptor.Encrypt(passSwagger));
         }
         static void TestGenerateSlug()
         {
@@ -75,19 +77,8 @@ namespace MyConsole
         }
         static void Main(string[] args)
         {
-            // PrintPassEncrypt();
-            // TestGenerateSlug();
-            // var un = Utils.GenerateUserName();
-            // Console.WriteLine(un);
-            // Console.WriteLine(un.Count());
-            // Console.WriteLine(Utils.GenerateUserName());
-            // Console.WriteLine(Utils.GenerateUserName());
-
-            var a = new int[]{ 1,2,3,4 };
-            var b = new int[]{ 5,6 };
-
-            var f = a.Any(e => b.Contains(e));
-            Console.WriteLine(f);
+            PrintPassEncrypt();
+            TestGenerateSlug();
         }
     }
 }

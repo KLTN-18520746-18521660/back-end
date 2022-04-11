@@ -166,7 +166,10 @@ namespace CoreApi
                 __Logger.Warning($"Application is running in development mode.");
             }
 
-            if (Program.EnableSwagger || env.IsDevelopment()) {
+            if (Program.SwaggerDocumentConfiguration.Enable || env.IsDevelopment()) {
+                app.UseAuthentication(); //Ensure this like is above the swagger stuff
+
+                app.UseSwaggerAuthorized();
                 app.UseSwagger(c => {
                     c.SerializeAsV2 = true;
                 });
@@ -175,7 +178,8 @@ namespace CoreApi
                     c.SwaggerEndpoint("/swagger/social/swagger.json", "CoreApi - Social");
                     c.SwaggerEndpoint("/swagger/testing/swagger.json", "CoreApi - Testing");
 
-                    c.RoutePrefix = string.Empty;
+                    c.DefaultModelsExpandDepth(-1);
+                    c.RoutePrefix = Program.SwaggerDocumentConfiguration.Path.Remove(0, 1);
                 });
             }
             using (var serviceScope = app.ApplicationServices.CreateScope())

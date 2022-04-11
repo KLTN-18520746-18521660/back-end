@@ -38,6 +38,13 @@ namespace CoreApi
         public bool EnableSSL { get; set; }
     }
 
+    public struct SwaggerDocumentConfiguration {
+        public bool Enable { get; set; }
+        public string Username { get; set; }
+        public string Password { get; set; }
+        public string Path { get; set; }
+    }
+
     public class Program
     {
         #region Variables
@@ -46,7 +53,6 @@ namespace CoreApi
         private static IHost __Host;
         private static int _Port;
         private static bool _EnableSSL = false;
-        private static bool _EnableSwagger = false;
         private static bool _DisableCORS = false;
         private static bool _ShowSQLCommandInLog = false;
         private static string _TmpPath = ConfigurationDefaultVariable.TMP_FOLDER;
@@ -55,6 +61,7 @@ namespace CoreApi
         private static string _PasswordCert;
         private static DatabaseAccessConfiguration _DBAccessConfig;
         private static EmailClientConfiguration _EmailClientConfig;
+        private static SwaggerDocumentConfiguration _SwaggerDocumentConfiguration;
         private static readonly List<string> _ValidParamsFromArgs = new List<string>();
         private static string _HostName;
         private static List<string> _ListeningAddress = new List<string>();
@@ -64,13 +71,13 @@ namespace CoreApi
         #region Property
         public static string HostName { get => _HostName; }
         public static bool EnableSSL { get => _EnableSSL; }
-        public static bool EnableSwagger { get => _EnableSwagger; }
         public static bool DisableCORS { get => _DisableCORS; }
         public static bool ShowSQLCommandInLog { get => _ShowSQLCommandInLog; }
         public static List<string> ListeningAddress { get => _ListeningAddress; }
         public static List<string> AllowMethods { get => _AllowMethods; }
         public static List<string> AllowHeaders { get => _AllowHeaders; }
         public static EmailClientConfiguration EmailClientConfig { get => _EmailClientConfig;  }
+        public static SwaggerDocumentConfiguration SwaggerDocumentConfiguration { get => _SwaggerDocumentConfiguration;  }
         #endregion
         private static void SetParamsFromConfiguration(in IConfigurationRoot configuration, out List<string> warnings)
         {
@@ -106,6 +113,31 @@ namespace CoreApi
             if (CommonValidate.ValidateFilePath(_CertPath, false) == default && _EnableSSL) {
                 _EnableSSL = false;
                 warnings.Add($"Certificate not exists or not set. Cerificate path: { ((_CertPath == default) ? default : System.IO.Path.GetFullPath(_CertPath)) }");
+            }
+            // [INFO] Swagger document
+            if (configuration.GetSection("SwaggerDocument") != default) {
+                _SwaggerDocumentConfiguration.Enable = configuration.GetSection("SwaggerDocument").GetValue<bool>("Enable");
+                _SwaggerDocumentConfiguration.Username = configuration.GetSection("SwaggerDocument").GetValue<string>("Username");
+                _SwaggerDocumentConfiguration.Password = configuration.GetSection("SwaggerDocument").GetValue<string>("Password");
+                _SwaggerDocumentConfiguration.Path = configuration.GetSection("SwaggerDocument").GetValue<string>("Path");
+                _SwaggerDocumentConfiguration.Password = StringDecryptor.Decrypt(_SwaggerDocumentConfiguration.Password == default
+                                                            ? string.Empty
+                                                            : _SwaggerDocumentConfiguration.Password);
+                
+                if (_SwaggerDocumentConfiguration.Password == default || _SwaggerDocumentConfiguration.Password == string.Empty) {
+                    _SwaggerDocumentConfiguration.Password = Utils.RandomString(15);
+                    warnings.Add($"Configured swagger password is invalid. Use random: { _SwaggerDocumentConfiguration.Password }");
+                }
+                if (_SwaggerDocumentConfiguration.Username == default || _SwaggerDocumentConfiguration.Username == string.Empty) {
+                    _SwaggerDocumentConfiguration.Username = Utils.RandomString(15);
+                    warnings.Add($"Configured swagger username is invalid. Use random: { _SwaggerDocumentConfiguration.Username }");
+                }
+                if (_SwaggerDocumentConfiguration.Path == default || _SwaggerDocumentConfiguration.Path == string.Empty
+                    || !_SwaggerDocumentConfiguration.Path.StartsWith('/') || _SwaggerDocumentConfiguration.Path.Length < 2
+                ) {
+                    _SwaggerDocumentConfiguration.Path = Utils.RandomString(5);
+                    warnings.Add($"Configured swagger path is invalid. Use random: { _SwaggerDocumentConfiguration.Path }");
+                }
             }
             // [INFO] Configure connect string
             if (configuration.GetSection("DatabaseAccess") != default) {
@@ -173,10 +205,6 @@ namespace CoreApi
             // [INFO] run with param ssl to enable https
             if (args.Contains("ssl")) {
                 _EnableSSL = true;
-            }
-            // [INFO] run with param swagger to enable swagger document
-            if (args.Contains("swagger")) {
-                _EnableSwagger = true;
             }
             // [INFO] disable cors policy
             if (args.Contains("disable-cors")) {
