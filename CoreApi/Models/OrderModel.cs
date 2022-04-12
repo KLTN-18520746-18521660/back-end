@@ -19,11 +19,13 @@ namespace CoreApi.Models
 
         public (string, bool)[] GetOrders() {
             var ret = new List<(string, bool)>();
-            for (int i = 0; i < orders.Length; i++) {
-                ret.Add(new (
-                    orders[i],
-                    descs.Length > i ? descs[i] : false
-                ));
+            if (orders != default) {
+                for (int i = 0; i < orders.Length; i++) {
+                    ret.Add(new (
+                        orders[i],
+                        descs != default && descs.Length > i ? descs[i] : false
+                    ));
+                }
             }
             return ret.ToArray();
         }
