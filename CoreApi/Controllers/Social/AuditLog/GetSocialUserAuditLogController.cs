@@ -20,6 +20,11 @@ namespace CoreApi.Controllers.Social.AuditLog
         private int EXTENSION_TIME; // minutes
         private int EXPIRY_TIME; // minutes
         #endregion
+        protected string[] AllowActions = new string[]{
+            "comment",
+            "post",
+            "user",
+        };
 
         public GetSocialAuditLogController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
@@ -50,6 +55,7 @@ namespace CoreApi.Controllers.Social.AuditLog
                                                       [FromServices] SocialUserAuditLogManagement __SocialUserAuditLogManagement,
                                                       [FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
                                                       [FromHeader] string session_token,
+                                                      [FromQuery] string action,
                                                       [FromQuery] int start = 0,
                                                       [FromQuery] int size = 20,
                                                       [FromQuery] string search_term = default)
@@ -86,7 +92,7 @@ namespace CoreApi.Controllers.Social.AuditLog
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
                         LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(400, "Session not found.");
+                        return Problem(401, "Session not found.");
                     }
                     if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
                         LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");

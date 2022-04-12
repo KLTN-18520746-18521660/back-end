@@ -101,12 +101,8 @@ namespace CoreApi.Controllers.Social.Session
 
                 var ret = (session != default && session.User.Id == user.Id) ? user.GetJsonObject() : user.GetPublicJsonObject();
 
-                return Ok( new JObject(){
-                    { "status", 200 },
-                    { "message", "OK" },
-                    { "data", new JObject(){
-                        { "user", ret },
-                    }},
+                return Ok(200, "Ok", new JObject(){
+                    { "user", ret },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");

@@ -138,7 +138,7 @@ namespace CoreApi.Controllers.Admin.User
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
                         LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(400, "Session not found.");
+                        return Problem(401, "Session not found.");
                     }
                     if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
                         LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");

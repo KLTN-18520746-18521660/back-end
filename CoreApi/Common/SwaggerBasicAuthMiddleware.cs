@@ -20,9 +20,7 @@ namespace CoreApi.Common
         public async Task InvokeAsync(HttpContext context)
         {
             //Make sure we are hitting the swagger path, and not doing it locally as it just gets annoying :-)
-            if (context.Request.Path.StartsWithSegments(Program.SwaggerDocumentConfiguration.Path)
-                && !this.IsLocalRequest(context)
-            ) {
+            if (context.Request.Path.StartsWithSegments(Program.SwaggerDocumentConfiguration.Path)) {
                 string authHeader = context.Request.Headers["Authorization"];
                 if (authHeader != null && authHeader.StartsWith("Basic ")) {
                     // Get the encoded username and password
@@ -57,21 +55,6 @@ namespace CoreApi.Common
             // Check that username and password are correct
             return username.Equals(Program.SwaggerDocumentConfiguration.Username)
                 && password.Equals(Program.SwaggerDocumentConfiguration.Password);
-        }
-
-        public bool IsLocalRequest(HttpContext context)
-        {
-            //Handle running using the Microsoft.AspNetCore.TestHost and the site being run entirely locally in memory without an actual TCP/IP connection
-            if (context.Connection.RemoteIpAddress == null && context.Connection.LocalIpAddress == null) {
-                return true;
-            }
-            if (context.Connection.RemoteIpAddress.Equals(context.Connection.LocalIpAddress)) {
-                return true;
-            }
-            if (IPAddress.IsLoopback(context.Connection.RemoteIpAddress)) {
-                return true;
-            }
-            return false;
         }
     }
     public static class SwaggerAuthorizeExtensions

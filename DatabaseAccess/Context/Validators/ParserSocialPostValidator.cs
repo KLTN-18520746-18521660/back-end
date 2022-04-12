@@ -24,9 +24,7 @@ namespace DatabaseAccess.Context.Validators
                         "{PropertyName}",
                         MinTitleLength.ToString(),
                         MaxTitleLength.ToString()
-                    ))
-                .Matches("^[a-zA-Z0-9_\\s]+$")
-                    .WithMessage("{PropertyName} only accept [0-9a-zA-Z], '_'.");
+                    ));
 
             When(entity => entity.thumbnail != default, () => {
                 RuleFor(entity => entity.thumbnail)

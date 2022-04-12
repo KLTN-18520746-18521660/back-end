@@ -1,6 +1,7 @@
 using Common;
 using CoreApi.Common;
 using CoreApi.Services;
+using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -8,21 +9,28 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
 
-namespace CoreApi.Controllers.Social.Session
+namespace CoreApi.Controllers.Social.Tag
 {
     [ApiController]
-    [Route("/session")]
-    public class GetUserBySessionSocialController : BaseController
+    [Route("/tag")]
+    public class ActionWithTagController : BaseController
     {
         #region Config Values
         private int EXTENSION_TIME; // minutes
         private int EXPIRY_TIME; // minute
         #endregion
 
-        public GetUserBySessionSocialController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        protected readonly string[] ValidActions = new string[]{
+            "follow",
+            "unfollow",
+        };
+
+        public ActionWithTagController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetUserBySessionSocial";
+            __ControllerName = "ActionWithTag";
             LoadConfig();
         }
 
@@ -44,65 +52,33 @@ namespace CoreApi.Controllers.Social.Session
             }
         }
 
-        /// <summary>
-        /// Get social user by header session_token
-        /// </summary>
-        /// <returns><b>Social user of session_token</b></returns>
-        /// <param name="__SessionSocialUserManagement"></param>
-        /// <param name="session_token"></param>
-        ///
-        /// <remarks>
-        /// <b>Using endpoint need:</b>
-        /// 
-        /// - Need header 'session_token'.
-        /// 
-        /// </remarks>
-        ///
-        /// <response code="200">
-        /// <b>Success Case:</b> Social session of user.
-        /// </response>
-        /// 
-        /// <response code="400">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>Session not found.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="401">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>Session has expired.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="403">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>Missing header session_token.</li>
-        /// <li>Header session_token is invalid.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="500">
-        /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
-        /// </response>
-        [HttpGet("user")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
+        [HttpPost("{tag}/{action}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetUserBySession([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                          [FromHeader] string session_token)
+        public async Task<IActionResult> ActionWithTag([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                       [FromServices] SocialTagManagement __SocialTagManagement,
+                                                       [FromRoute] string tag,
+                                                       [FromRoute] string action,
+                                                       [FromHeader] string session_token)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
+            __SocialTagManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Validate params
+                if (!__SocialTagManagement.IsValidTag(tag)) {
+                    return Problem(400, "Invalid request.");
+                }
+                if (!ValidActions.Contains(action)) {
+                    return Problem(400, "Invalid params.");
+                }
+                #endregion
+
                 #region Get session token
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
@@ -136,11 +112,34 @@ namespace CoreApi.Controllers.Social.Session
                 }
                 #endregion
 
-                var user = session.User;
-                LogInformation($"Get info user by apikey success, user_name: { user.UserName }");
-                return Ok(200, "OK", new JObject(){
-                    { "user", user.GetJsonObject() },
-                });
+                #region find tag info
+                SocialTag findTag = default;
+                (findTag, error) = await __SocialTagManagement.FindTagByName(tag);
+                if (error != ErrorCodes.NO_ERROR) {
+                    if (error == ErrorCodes.NOT_FOUND) {
+                        return Problem(404, "Not found tag");
+                    }
+
+                    throw new Exception($"FindTagByName failed, ErrorCode: { error }");
+                }
+                #endregion
+
+                switch (action) {
+                    case "follow":
+                        error = await __SocialTagManagement.Follow(findTag.Id, session.UserId);
+                        break;
+                    case "unfollow":
+                        error = await __SocialTagManagement.UnFollow(findTag.Id, session.UserId);
+                        break;
+                    default:
+                        return Problem(400, "Invalid action.");
+                }
+
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"{ action } tag Failed, ErrorCode: { error }");
+                }
+
+                return Ok(200, "Ok");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");

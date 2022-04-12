@@ -12,6 +12,7 @@ using DatabaseAccess.Common.Models;
 using CoreApi.Common;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using DatabaseAccess.Common.Actions;
 
 namespace CoreApi.Services
 {
@@ -81,6 +82,68 @@ namespace CoreApi.Services
                             && e.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus)));
             return (count > 0, ErrorCodes.NO_ERROR);
         }
+
+        #region Category action
+        protected async Task<ErrorCodes> AddAction(long categoryId, Guid socialUserId, string actionStr)
+        {
+            var action = await __DBContext.SocialUserActionWithCategories
+                .Where(e => e.CategoryId == categoryId && e.UserId == socialUserId)
+                .FirstOrDefaultAsync();
+            if (action != default) {
+                if (!action.Actions.Contains(actionStr)) {
+                    action.Actions.Add(actionStr);
+                    if (await __DBContext.SaveChangesAsync() > 0) {
+                        return ErrorCodes.NO_ERROR;
+                    }
+                }
+                return ErrorCodes.NO_ERROR;
+            } else {
+                await __DBContext.SocialUserActionWithCategories
+                    .AddAsync(new SocialUserActionWithCategory(){
+                        UserId = socialUserId,
+                        CategoryId = categoryId,
+                        Actions = new List<string>(){
+                            actionStr
+                        }
+                    });
+                if (await __DBContext.SaveChangesAsync() > 0) {
+                    return ErrorCodes.NO_ERROR;
+                }
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        protected async Task<ErrorCodes> RemoveAction(long categoryId, Guid socialUserId, string actionStr)
+        {
+            var action = await __DBContext.SocialUserActionWithCategories
+                .Where(e => e.CategoryId == categoryId && e.UserId == socialUserId)
+                .FirstOrDefaultAsync();
+            if (action != default) {
+                if (action.Actions.Contains(actionStr)) {
+                    action.Actions.Remove(actionStr);
+                    if (await __DBContext.SaveChangesAsync() > 0) {
+                        return ErrorCodes.NO_ERROR;
+                    }
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.NO_ERROR;
+        }
+        public async Task<ErrorCodes> UnFollow(long categoryId, Guid socialUserId)
+        {
+            return await RemoveAction(
+                categoryId, socialUserId,
+                BaseAction.ActionToString(UserActionWithCategory.Follow, EntityAction.UserActionWithCategory)
+            );
+        }
+        public async Task<ErrorCodes> Follow(long categoryId, Guid socialUserId)
+        {
+            return await AddAction(
+                categoryId, socialUserId,
+                BaseAction.ActionToString(UserActionWithCategory.Follow, EntityAction.UserActionWithCategory)
+            );
+        }
+        #endregion
 
         #region Category handle
         public async Task<ErrorCodes> AddNewCategory(SocialCategory Category, Guid AdminUserId)

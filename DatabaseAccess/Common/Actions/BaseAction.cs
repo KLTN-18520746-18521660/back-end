@@ -34,8 +34,8 @@ namespace DatabaseAccess.Common.Actions
     public class UserActionWithUser {
         public static readonly int Follow = 0;
         public static readonly int Report = 1;
-        public static readonly int Friend = 2;
-        public static readonly int Blocked = 3;
+        // public static readonly int Friend = 2;
+        // public static readonly int Blocked = 3;
     }
     #endregion
     public class BaseAction
@@ -79,8 +79,8 @@ namespace DatabaseAccess.Common.Actions
             { InvalidAction, "Invalid Action" },
             { UserActionWithUser.Follow, "Follow" },
             { UserActionWithUser.Report, "Report" },
-            { UserActionWithUser.Friend, "Friend" },
-            { UserActionWithUser.Blocked, "Blocked" }
+            // { UserActionWithUser.Friend, "Friend" },
+            // { UserActionWithUser.Blocked, "Blocked" }
         };
         #endregion
 

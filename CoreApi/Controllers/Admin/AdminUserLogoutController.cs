@@ -107,7 +107,7 @@ namespace CoreApi.Controllers.Admin
 
                 if (error != ErrorCodes.NO_ERROR) {
                     LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
-                    return Problem(400, "Session not found.");
+                    return Problem(401, "Session not found.");
                 }
                 #endregion
 

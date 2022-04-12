@@ -84,6 +84,36 @@ namespace Common
             }
             return retBuilder.ToString().Trim();
         }
+        public string BindModelToString<T>(string template, T model) where T : class
+        {
+            var ret = template;
+            var findProperties = new Regex(@"@Model.([a-zA-Z]+[0-9]*)");
+            var res = findProperties.Matches(template)
+                .Cast<Match>()
+                .OrderByDescending(i => i.Index);
+            foreach (Match item in res) {
+                var allGroup = item.Groups[0];
+
+                var foundPropGrRoup = item.Groups[1];
+                var propName = foundPropGrRoup.Value;
+
+                object value = string.Empty;
+
+                try {
+                    var prop = typeof(T).GetProperty(propName);
+
+                    if (prop != null) {
+                        value = prop.GetValue(model, null);
+                    }
+                } catch (Exception) {
+                    throw new Exception("Missing value for binding model.");
+                }
+
+                ret = ret.Remove(allGroup.Index, allGroup.Length)
+                    .Insert(allGroup.Index, value.ToString());
+            }
+            return ret;
+        }
         #endregion
         #region Session
         public static string GenerateSessionToken()

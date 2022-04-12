@@ -317,7 +317,7 @@ namespace DatabaseAccess.Context.Models
                 case CONTENT_TYPE.HTML:
                     return "HTML";
                 case CONTENT_TYPE.MARKDOWN:
-                    return "markdown";
+                    return "MARKDOWN";
                 default:
                     return "Invalid content type.";
             }

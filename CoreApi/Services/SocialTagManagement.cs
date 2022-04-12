@@ -125,6 +125,74 @@ namespace CoreApi.Services
             return (default, ErrorCodes.NOT_FOUND);
         }
 
+        #region Tag action
+        protected async Task<ErrorCodes> AddAction(long tagId, Guid socialUserId, string actionStr)
+        {
+            var action = await __DBContext.SocialUserActionWithTags
+                .Where(e => e.TagId == tagId && e.UserId == socialUserId)
+                .FirstOrDefaultAsync();
+            if (action != default) {
+                if (!action.Actions.Contains(actionStr)) {
+                    action.Actions.Add(actionStr);
+                    if (await __DBContext.SaveChangesAsync() > 0) {
+                        return ErrorCodes.NO_ERROR;
+                    }
+                }
+                return ErrorCodes.NO_ERROR;
+            } else {
+                await __DBContext.SocialUserActionWithTags
+                    .AddAsync(new SocialUserActionWithTag(){
+                        UserId = socialUserId,
+                        TagId = tagId,
+                        Actions = new List<string>(){
+                            actionStr
+                        }
+                    });
+                if (await __DBContext.SaveChangesAsync() > 0) {
+                    return ErrorCodes.NO_ERROR;
+                }
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        protected async Task<ErrorCodes> RemoveAction(long tagId, Guid socialUserId, string actionStr)
+        {
+            var action = await __DBContext.SocialUserActionWithTags
+                .Where(e => e.TagId == tagId && e.UserId == socialUserId)
+                .FirstOrDefaultAsync();
+            if (action != default) {
+                if (action.Actions.Contains(actionStr)) {
+                    action.Actions.Remove(actionStr);
+                    if (await __DBContext.SaveChangesAsync() > 0) {
+                        return ErrorCodes.NO_ERROR;
+                    }
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.NO_ERROR;
+        }
+        public async Task<ErrorCodes> UnFollow(long tagId, Guid socialUserId)
+        {
+            return await RemoveAction(tagId, socialUserId, BaseAction.ActionToString(UserActionWithTag.Follow, EntityAction.UserActionWithTag));
+        }
+        public async Task<ErrorCodes> Follow(long tagId, Guid socialUserId)
+        {
+            return await AddAction(tagId, socialUserId, BaseAction.ActionToString(UserActionWithTag.Follow, EntityAction.UserActionWithTag));
+        }
+        public async Task<ErrorCodes> Used(long tagId, Guid socialUserId)
+        {
+            return await AddAction(tagId, socialUserId, BaseAction.ActionToString(UserActionWithTag.Used, EntityAction.UserActionWithTag));
+        }
+        public async Task<ErrorCodes> RemoveUsed(long tagId, Guid socialUserId)
+        {
+            return await RemoveAction(tagId, socialUserId, BaseAction.ActionToString(UserActionWithTag.Used, EntityAction.UserActionWithTag));
+        }
+        public async Task<ErrorCodes> Visited(long tagId, Guid socialUserId)
+        {
+            return await AddAction(tagId, socialUserId, BaseAction.ActionToString(UserActionWithTag.Visited, EntityAction.UserActionWithTag));
+        }
+        #endregion
+
         #region Tag handle
         public async Task<ErrorCodes> AddNewTag(SocialTag Tag)
         {
