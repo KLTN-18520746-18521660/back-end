@@ -547,7 +547,7 @@ CREATE TABLE social_post (
     created_timestamp timestamp with time zone NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
     last_modified_timestamp timestamp with time zone NULL,
     CONSTRAINT "PK_social_post" PRIMARY KEY (id),
-    CONSTRAINT "CK_social_post_content_type_valid_value" CHECK (content_type = 'HTML' OR content_type = 'markdown'),
+    CONSTRAINT "CK_social_post_content_type_valid_value" CHECK (content_type = 'HTML' OR content_type = 'MARKDOWN'),
     CONSTRAINT "CK_social_post_status_valid_value" CHECK (status = 'Pending' OR status = 'Approved' OR status = 'Private' OR status = 'Deleted'),
     CONSTRAINT "CK_social_post_time_read_valid_value" CHECK (time_read >= 2),
     CONSTRAINT "CK_social_post_last_modified_timestamp_valid_value" CHECK ((last_modified_timestamp IS NULL) OR (last_modified_timestamp > created_timestamp)), 

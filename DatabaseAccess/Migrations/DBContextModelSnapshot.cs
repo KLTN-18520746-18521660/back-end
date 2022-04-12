@@ -1077,7 +1077,7 @@ namespace DatabaseAccess.Migrations
 
                     b.ToTable("social_post");
 
-                    b.HasCheckConstraint("CK_social_post_content_type_valid_value", "content_type = 'HTML' OR content_type = 'markdown'");
+                    b.HasCheckConstraint("CK_social_post_content_type_valid_value", "content_type = 'HTML' OR content_type = 'MARKDOWN'");
 
                     b.HasCheckConstraint("CK_social_post_status_valid_value", "status = 'Pending' OR status = 'Approved' OR status = 'Private' OR status = 'Deleted'");
 

@@ -20,8 +20,15 @@ namespace CoreApi.Services
 {
     #region Notification sender
     public enum NotificationSenderAction {
-        NewPost = 0,
-        NewComment = 1,
+        NEW_POST = 0,
+        COMENT_POST = 1,
+        OTHER_ACTION_WITH_POST = 3,
+        NEW_COMMENT = 4,
+        LIKE_COMMENT = 5,
+        REPLY_COMMENT = 6,
+        ORTHER_ACTION_WITH_COMMENT = 7,
+        FOLLOW_USER = 8,
+        ORTHER_ACTION_WITH_USER = 9,
     }
 
     public class BaseNotificationSenderModel {
@@ -43,23 +50,41 @@ namespace CoreApi.Services
         }
     }
 
-    public class NewPostNotificationModel : BaseNotificationSenderModel {
+    public class PostNotificationModel : BaseNotificationSenderModel {
         public long PostId { get; set; }
-        public string UserName { get; set; }
-        public string PostTitle { get; set; }
+        public string Action { get; set; }
         public DateTime DateTimeSend { get; }
-        public NewPostNotificationModel()
+        public PostNotificationModel(NotificationSenderAction action)
         {
-            __ModelName = "NewPostNotificationModel";
+            __ModelName = "PostNotificationModel";
+            DateTimeSend = DateTime.UtcNow;
+            switch (action) {
+                case NotificationSenderAction.NEW_POST:
+                    Action = "new-post";
+                    break;
+                case NotificationSenderAction.COMENT_POST:
+                    Action = "comment-post";
+                    break;
+                default:
+                    throw new Exception($"Invalid action with post: { action }");
+            }
+        }
+    }
+    public class CommentNotificationModel : BaseNotificationSenderModel {
+        public long CommentId { get; set; }
+        public DateTime DateTimeSend { get; }
+        public CommentNotificationModel()
+        {
+            __ModelName = "CommentNotificationModel";
             DateTimeSend = DateTime.UtcNow;
         }
     }
-    public class NewCommentNotificationModel : BaseNotificationSenderModel {
+    public class UserNotificationModel : BaseNotificationSenderModel {
         public long CommentId { get; set; }
         public DateTime DateTimeSend { get; }
-        public NewCommentNotificationModel()
+        public UserNotificationModel()
         {
-            __ModelName = "NewCommentNotificationModel";
+            __ModelName = "UserNotificationModel";
             DateTimeSend = DateTime.UtcNow;
         }
     }

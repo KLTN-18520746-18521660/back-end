@@ -405,7 +405,7 @@ namespace DatabaseAccess.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_social_post", x => x.id);
-                    table.CheckConstraint("CK_social_post_content_type_valid_value", "content_type = 'HTML' OR content_type = 'markdown'");
+                    table.CheckConstraint("CK_social_post_content_type_valid_value", "content_type = 'HTML' OR content_type = 'MARKDOWN'");
                     table.CheckConstraint("CK_social_post_status_valid_value", "status = 'Pending' OR status = 'Approved' OR status = 'Private' OR status = 'Deleted'");
                     table.CheckConstraint("CK_social_post_time_read_valid_value", "time_read >= 2");
                     table.CheckConstraint("CK_social_post_last_modified_timestamp_valid_value", "(last_modified_timestamp IS NULL) OR (last_modified_timestamp > created_timestamp)");
