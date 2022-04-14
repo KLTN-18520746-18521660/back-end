@@ -28,6 +28,6 @@ namespace DatabaseAccess.Context.ParserModels
         [DefaultValue("[\"technology\"]")]
         public List<string> categories { get; set; }
         [DefaultValue("[]")]
-        public List<string> tags { get; set; }
+        public List<ParserSocialTag> tags { get; set; }
     }
 }

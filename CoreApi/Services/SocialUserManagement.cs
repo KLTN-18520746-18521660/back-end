@@ -12,6 +12,7 @@ using System;
 using System.Threading.Tasks;
 using CoreApi.Common;
 using Common;
+using DatabaseAccess.Common.Actions;
 
 namespace CoreApi.Services
 {
@@ -311,6 +312,69 @@ namespace CoreApi.Services
                 return ErrorCodes.NO_ERROR;
             }
             return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        #endregion
+
+        
+        #region Category action
+        protected async Task<ErrorCodes> AddAction(Guid userId, Guid socialUserId, string actionStr)
+        {
+            var action = await __DBContext.SocialUserActionWithUsers
+                .Where(e => e.UserIdDes == userId && e.UserId == socialUserId)
+                .FirstOrDefaultAsync();
+            if (action != default) {
+                if (!action.Actions.Contains(actionStr)) {
+                    action.Actions.Add(actionStr);
+                    if (await __DBContext.SaveChangesAsync() > 0) {
+                        return ErrorCodes.NO_ERROR;
+                    }
+                }
+                return ErrorCodes.NO_ERROR;
+            } else {
+                await __DBContext.SocialUserActionWithUsers
+                    .AddAsync(new SocialUserActionWithUser(){
+                        UserId = socialUserId,
+                        UserIdDes = userId,
+                        Actions = new List<string>(){
+                            actionStr
+                        }
+                    });
+                if (await __DBContext.SaveChangesAsync() > 0) {
+                    return ErrorCodes.NO_ERROR;
+                }
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        protected async Task<ErrorCodes> RemoveAction(Guid userId, Guid socialUserId, string actionStr)
+        {
+            var action = await __DBContext.SocialUserActionWithUsers
+                .Where(e => e.UserIdDes == userId && e.UserId == socialUserId)
+                .FirstOrDefaultAsync();
+            if (action != default) {
+                if (action.Actions.Contains(actionStr)) {
+                    action.Actions.Remove(actionStr);
+                    if (await __DBContext.SaveChangesAsync() > 0) {
+                        return ErrorCodes.NO_ERROR;
+                    }
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.NO_ERROR;
+        }
+        public async Task<ErrorCodes> UnFollow(Guid userId, Guid socialUserId)
+        {
+            return await RemoveAction(
+                userId, socialUserId,
+                BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)
+            );
+        }
+        public async Task<ErrorCodes> Follow(Guid userId, Guid socialUserId)
+        {
+            return await AddAction(
+                userId, socialUserId,
+                BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)
+            );
         }
         #endregion
     }

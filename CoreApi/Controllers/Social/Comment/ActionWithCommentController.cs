@@ -64,6 +64,7 @@ namespace CoreApi.Controllers.Social.Comment
         public async Task<IActionResult> ActionComment([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
                                                        [FromServices] SocialCommentManagement __SocialCommentManagement,
                                                        [FromServices] SocialPostManagement __SocialPostManagement,
+                                                       [FromServices] NotificationsManagement __NotificationsManagement,
                                                        [FromRoute] long comment_id,
                                                        [FromRoute] string action,
                                                        [FromHeader] string session_token)
@@ -129,9 +130,11 @@ namespace CoreApi.Controllers.Social.Comment
                 }
                 #endregion
 
+                NotificationSenderAction notificationAction = NotificationSenderAction.INVALID_ACTION;
                 switch (action) {
                     case "like":
                         error = await __SocialCommentManagement.Like(comment_id, session.UserId);
+                        notificationAction = NotificationSenderAction.LIKE_COMMENT;
                         break;
                     case "unlike":
                         error = await __SocialCommentManagement.UnLike(comment_id, session.UserId);
@@ -149,6 +152,13 @@ namespace CoreApi.Controllers.Social.Comment
                 if (error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"{ action } comment Failed, ErrorCode: { error }");
                 }
+
+                await __NotificationsManagement.SendNotification(
+                    NotificationType.ACTION_WITH_POST,
+                    new PostNotificationModel(notificationAction){
+                        PostId = comment.PostId
+                    }
+                );
 
                 return Ok(200, "Ok");
             } catch (Exception e) {

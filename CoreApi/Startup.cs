@@ -90,6 +90,7 @@ namespace CoreApi
             services.AddSingleton(Channel.CreateUnbounded<EmailChannel>())
                     .AddSingleton<BaseConfig>()
                     .AddSingleton<EmailSender>()
+                    .AddSingleton<NotificationsManagement>()
                     .AddTransient<AdminUserManagement>()
                     .AddTransient<AdminAuditLogManagement>()
                     .AddTransient<SessionAdminUserManagement>()

@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using DatabaseAccess.Common.Actions;
 using Common;
+using DatabaseAccess.Context.ParserModels;
 
 namespace CoreApi.Services
 {
@@ -27,9 +28,9 @@ namespace CoreApi.Services
         }
 
         public async Task<(List<SocialTag>, int)> GetTags(int start = 0,
-                                                                 int size = 20,
-                                                                 string search_term = default,
-                                                                 Guid socialUserId = default)
+                                                          int size = 20,
+                                                          string search_term = default,
+                                                          Guid socialUserId = default)
         {
             var query =
                     from ids in (
@@ -208,17 +209,17 @@ namespace CoreApi.Services
         {
             return tag != string.Empty && tag.Count() <= 25;
         }
-        public async Task<(bool, ErrorCodes)> IsValidTags(string[] tags)
+        public async Task<(bool, ErrorCodes)> IsValidTags(ParserSocialTag[] tags)
         {
             foreach(var tag in tags) {
-                if (!IsValidTag(tag)) {
+                if (!IsValidTag(tag.tag)) {
                     return (false, ErrorCodes.INVALID_PARAMS);
                 } else {
-                    if (await __DBContext.SocialTags.CountAsync(e => e.Tag == tag) < 1) {
+                    if (await __DBContext.SocialTags.CountAsync(e => e.Tag == tag.tag) < 1) {
                         await __DBContext.SocialTags.AddAsync(new SocialTag(){
-                            Tag = tag,
-                            Name = tag,
-                            Describe = tag,
+                            Tag = tag.tag,
+                            Name = tag.name != default ? tag.name : tag.tag,
+                            Describe = tag.describe != default ? tag.describe : tag.tag,
                             Status = SocialTagStatus.Disabled,
                         });
                         if (await __DBContext.SaveChangesAsync() <= 0) {

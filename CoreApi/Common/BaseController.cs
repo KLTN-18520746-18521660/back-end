@@ -28,7 +28,6 @@ namespace CoreApi.Common
             __TraceId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
             __BaseConfig = _BaseConfig;
             __ControllerName = "BaseController";
-            __BaseConfig.SetTraceId(__TraceId);
         }
         [NonAction]
         public virtual void LoadConfig()

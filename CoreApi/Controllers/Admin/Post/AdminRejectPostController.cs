@@ -52,6 +52,7 @@ namespace CoreApi.Controllers.Admin.Post
         /// <param name="__SessionAdminUserManagement"></param>
         /// <param name="__SocialPostManagement"></param>
         /// <param name="__AdminUserManagement"></param>
+        /// <param name="__NotificationsManagement"></param>
         /// <param name="post_id"></param>
         /// <param name="session_token"></param>
         ///
@@ -108,6 +109,7 @@ namespace CoreApi.Controllers.Admin.Post
         public async Task<IActionResult> RejectPost([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
                                                     [FromServices] SocialPostManagement __SocialPostManagement,
                                                     [FromServices] AdminUserManagement __AdminUserManagement,
+                                                    [FromServices] NotificationsManagement __NotificationsManagement,
                                                     [FromRoute] long post_id,
                                                     [FromHeader(Name = "session_token_admin")] string session_token)
         {
@@ -182,6 +184,12 @@ namespace CoreApi.Controllers.Admin.Post
                 }
 
                 LogInformation($"RejectPost success, post_id: { post_id }");
+                await __NotificationsManagement.SendNotification(
+                    NotificationType.ACTION_WITH_POST,
+                    new PostNotificationModel(NotificationSenderAction.REJECT_POST){
+                        PostId = post.Id,
+                    }
+                );
                 return Ok(200, "Ok");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");

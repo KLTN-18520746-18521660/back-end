@@ -34,6 +34,10 @@ namespace DatabaseAccess.Context.Models
         [NotMapped]
         public JObject Content { get; set; }
         [Required]
+        [Column("type")]
+        [StringLength(25)]
+        public string Type { get; set; }
+        [Required]
         [Column("content", TypeName = "jsonb")]
         public string ContentStr {
             get { return Content.ToString(); }
@@ -60,6 +64,26 @@ namespace DatabaseAccess.Context.Models
         {
             Error = "Not Implemented Error";
             return false;
+        }
+
+        public override JObject GetPublicJsonObject(List<string> publicFields = null)
+        {
+            if (publicFields == default) {
+                publicFields = new List<string>(){
+                    "id",
+                    "content",
+                    "status",
+                    "created_timestamp",
+                    "last_modified_timestamp"
+                };
+            }
+            var ret = GetJsonObject();
+            foreach (var x in __ObjectJson) {
+                if (!publicFields.Contains(x.Key)) {
+                    ret.Remove(x.Key);
+                }
+            }
+            return ret;
         }
 
         public override bool PrepareExportObjectJson()

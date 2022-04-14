@@ -10,24 +10,17 @@ namespace CoreApi.Common
     {
         private ILogger __Logger;
         protected string __ServiceName;
-        protected string __TraceId;
         protected IServiceProvider __ServiceProvider;
         public string ServiceName { get => __ServiceName; }
-        public string TraceId { get => __TraceId; }
         public BaseSingletonService(IServiceProvider _IServiceProvider)
         {
             __Logger = Log.Logger;
-            __TraceId = string.Empty;
             __ServiceProvider = _IServiceProvider;
             __ServiceName = "BaseSingletonService";
         }
-        public virtual void SetTraceId(string TraceId)
-        {
-            __TraceId = TraceId;
-        }
         protected virtual string CreateLogMessage(string Msg)
         {
-            string msgFormat = TraceId == string.Empty ? $"Service: { __ServiceName }" : $"Service: { __ServiceName }, TraceId: { __TraceId }";
+            string msgFormat = $"Service: { __ServiceName }";
             StringBuilder msg = new StringBuilder(msgFormat);
             msg.Append(", ").Append(Msg);
             return msg.ToString();

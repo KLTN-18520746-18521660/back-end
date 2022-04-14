@@ -424,7 +424,7 @@ namespace CoreApi.Services
                 foreach (var it in Parser.tags) {
                     // No need check status of tag
                     var tag = await __DBContext.SocialTags
-                        .Where(t => t.Tag == it)
+                        .Where(t => t.Tag == it.tag)
                         .FirstOrDefaultAsync();
                     if (tag == default) {
                         ok = false;

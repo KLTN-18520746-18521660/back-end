@@ -94,7 +94,6 @@ namespace CoreApi.Controllers.Social.Tag
                 }
                 #endregion
 
-                // List<SocialTag> tags = default;
                 List<SocialTag> tags = default;
                 int totalSize = 0;
                 (tags, totalSize) = await __SocialTagManagement

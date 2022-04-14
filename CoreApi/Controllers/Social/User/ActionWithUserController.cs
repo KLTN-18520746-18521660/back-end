@@ -12,11 +12,11 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CoreApi.Controllers.Social.Post
+namespace CoreApi.Controllers.Social.User
 {
     [ApiController]
-    [Route("/post")]
-    public class ActionWithPostController : BaseController
+    [Route("/user")]
+    public class ActionWithUserController : BaseController
     {
         #region Config Values
         private int EXTENSION_TIME; // minutes
@@ -24,19 +24,13 @@ namespace CoreApi.Controllers.Social.Post
         #endregion
 
         protected readonly string[] ValidActions = new string[]{
-            "like",
-            "unlike",
-            "dislike",
-            "undislike",
-            "save",
-            "unsave",
             "follow",
             "unfollow",
         };
 
-        public ActionWithPostController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public ActionWithUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "ActionWithPost";
+            __ControllerName = "ActionWithUser";
             LoadConfig();
         }
 
@@ -58,27 +52,27 @@ namespace CoreApi.Controllers.Social.Post
             }
         }
 
-        [HttpPost("{post_slug}/{action}")]
+        [HttpPost("{user_name}/{action}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> ActionPost([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                    [FromServices] SocialPostManagement __SocialPostManagement,
-                                                    [FromServices] NotificationsManagement __NotificationsManagement,
-                                                    [FromRoute] string post_slug,
-                                                    [FromRoute] string action,
-                                                    [FromHeader] string session_token)
+        public async Task<IActionResult> ActionWithUser([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                        [FromServices] SocialUserManagement __SocialUserManagement,
+                                                        [FromServices] NotificationsManagement __NotificationsManagement,
+                                                        [FromRoute] string user_name,
+                                                        [FromRoute] string action,
+                                                        [FromHeader] string session_token)
         {
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialPostManagement.SetTraceId(TraceId);
+            __SocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
                 #region Validate params
-                if (post_slug == default || post_slug.Trim() == string.Empty) {
+                if (user_name == default || user_name.Trim() == string.Empty) {
                     return Problem(400, "Invalid request.");
                 }
                 if (!ValidActions.Contains(action)) {
@@ -119,44 +113,25 @@ namespace CoreApi.Controllers.Social.Post
                 }
                 #endregion
 
-                #region Get post info
-                SocialPost post = default;
-                (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim(), session.UserId);
+                #region Get user-des info
+                SocialUser user_des = default;
+                (user_des, error) = await __SocialUserManagement.FindUser(user_name, false);
 
                 if (error != ErrorCodes.NO_ERROR && error != ErrorCodes.USER_IS_NOT_OWNER) {
                     if (error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found post.");
+                        return Problem(404, "Not found user destination.");
                     }
 
-                    throw new Exception($"FindPostBySlug failed, ErrorCode: { error }");
+                    throw new Exception($"FindUser failed, ErrorCode: { error }, user_name: { user_name }");
                 }
                 #endregion
                 NotificationSenderAction notificationAction = NotificationSenderAction.INVALID_ACTION;
                 switch (action) {
-                    case "like":
-                        error = await __SocialPostManagement.Like(post.Id, session.UserId);
-                        notificationAction = NotificationSenderAction.LIKE_POST;
-                        break;
-                    case "unlike":
-                        error = await __SocialPostManagement.UnLike(post.Id, session.UserId);
-                        break;
-                    case "dislike":
-                        error = await __SocialPostManagement.DisLike(post.Id, session.UserId);
-                        break;
-                    case "undislike":
-                        error = await __SocialPostManagement.UnDisLike(post.Id, session.UserId);
-                        break;
-                    case "save":
-                        error = await __SocialPostManagement.Save(post.Id, session.UserId);
-                        break;
-                    case "unsave":
-                        error = await __SocialPostManagement.UnSave(post.Id, session.UserId);
-                        break;
                     case "follow":
-                        error = await __SocialPostManagement.Follow(post.Id, session.UserId);
+                        error = await __SocialUserManagement.Follow(user_des.Id, session.UserId);
                         break;
                     case "unfollow":
-                        error = await __SocialPostManagement.UnFollow(post.Id, session.UserId);
+                        error = await __SocialUserManagement.UnFollow(user_des.Id, session.UserId);
                         break;
                     default:
                         return Problem(400, "Invalid action.");
@@ -168,9 +143,9 @@ namespace CoreApi.Controllers.Social.Post
 
                 LogDebug($"Action with post ok, action: { action }, user_id: { session.UserId }");
                 await __NotificationsManagement.SendNotification(
-                    NotificationType.ACTION_WITH_POST,
-                    new PostNotificationModel(notificationAction){
-                        PostId = post.Id,
+                    NotificationType.ACTION_WITH_USER,
+                    new UserNotificationModel(notificationAction){
+                        UserId = user_des.Id
                     }
                 );
 

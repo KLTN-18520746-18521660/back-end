@@ -1,6 +1,8 @@
-﻿using DatabaseAccess.Common.Status;
+﻿using Common;
+using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
@@ -59,7 +61,8 @@ namespace DatabaseAccess.Context
                     npgsqlOptionsAction: o => {
                         o.SetPostgresVersion(14, 1);
                     }
-                );
+                )
+                .ReplaceService<IMigrationsIdGenerator, FixedMigrationsIdGenerator>();
             }
         }
 

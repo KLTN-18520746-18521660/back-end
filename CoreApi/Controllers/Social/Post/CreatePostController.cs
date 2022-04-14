@@ -54,6 +54,7 @@ namespace CoreApi.Controllers.Social.Post
         /// <param name="__SocialUserManagement"></param>
         /// <param name="__SocialCategoryManagement"></param>
         /// <param name="__SocialTagManagement"></param>
+        /// <param name="__NotificationsManagement"></param>
         /// <param name="Parser"></param>
         /// <param name="session_token"></param>
         ///
@@ -107,6 +108,7 @@ namespace CoreApi.Controllers.Social.Post
                                                     [FromServices] SocialUserManagement __SocialUserManagement,
                                                     [FromServices] SocialCategoryManagement __SocialCategoryManagement,
                                                     [FromServices] SocialTagManagement __SocialTagManagement,
+                                                    [FromServices] NotificationsManagement __NotificationsManagement,
                                                     [FromBody] ParserSocialPost Parser,
                                                     [FromHeader] string session_token)
         {
@@ -188,6 +190,12 @@ namespace CoreApi.Controllers.Social.Post
                 }
 
                 LogInformation($"Add new post successfully, user_name: { session.User.UserName }, post_id: { post.Id }");
+                await __NotificationsManagement.SendNotification(
+                    NotificationType.ACTION_WITH_POST,
+                    new PostNotificationModel(NotificationSenderAction.NEW_POST){
+                        PostId = post.Id,
+                    }
+                );
                 return Ok(201, "OK", new JObject(){
                     { "post_id", post.Id },
                 });

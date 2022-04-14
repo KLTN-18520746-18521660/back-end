@@ -77,8 +77,8 @@ namespace MyConsole
         }
         static void Main(string[] args)
         {
-            PrintPassEncrypt();
-            TestGenerateSlug();
+            // PrintPassEncrypt();
+            // TestGenerateSlug();
         }
     }
 }

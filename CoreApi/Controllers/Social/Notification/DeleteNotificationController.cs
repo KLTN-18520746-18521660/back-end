@@ -1,29 +1,32 @@
 using Common;
 using CoreApi.Common;
 using CoreApi.Services;
-using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Linq.Expressions;
+using DatabaseAccess.Common.Status;
 
-namespace CoreApi.Controllers.Social.Post
+namespace CoreApi.Controllers.Social.Notification
 {
     [ApiController]
-    [Route("/post")]
-    public class DeletePostController : BaseController
+    [Route("/notification")]
+    public class DeleteNotificationController : BaseController
     {
         #region Config Values
         private int EXTENSION_TIME; // minutes
         private int EXPIRY_TIME; // minute
         #endregion
 
-        public DeletePostController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public DeleteNotificationController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "DeletePost";
+            __ControllerName = "MarkNotificationAsRead";
             LoadConfig();
         }
 
@@ -46,81 +49,63 @@ namespace CoreApi.Controllers.Social.Post
         }
 
         /// <summary>
-        /// Delete post by id
+        /// Get all post attach to user
         /// </summary>
         /// <returns><b>Social user of session_token</b></returns>
         /// <param name="__SessionSocialUserManagement"></param>
-        /// <param name="__SocialPostManagement"></param>
+        /// <param name="__SocialUserManagement"></param>
         /// <param name="__NotificationsManagement"></param>
-        /// <param name="post_id"></param>
+        /// <param name="notification_id"></param>
         /// <param name="session_token"></param>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
         /// 
-        /// - Need header 'session_token'.
-        /// 
+        /// - Header 'session_token' is optional.
+        /// - If have session_token --> compare user is owner ?
+        ///     - Is owner --> return full info of post (include post is pendding, reject, private)
+        ///     - Else --> return info of public post (just post approve)
+        /// - <i>Not allow search post of user have delete status.</i>
+        /// - Must have query params for paging 'first', 'size'
+        /// - Support query params 'status' (approve | pendding | reject | private) for filter
         /// </remarks>
         ///
         /// <response code="200">
-        /// <b>Success Case:</b> 200 ok.
+        /// <b>Success Case:</b> Social session of user.
         /// </response>
         /// 
         /// <response code="400">
         /// <b>Error case, reasons:</b>
         /// <ul>
-        /// <li>Session not found.</li>
-        /// <li>Post already deleted.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="401">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>Session has expired.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="403">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>Missing header session_token.</li>
-        /// <li>Header session_token is invalid.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="404">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>Not found post.</li>
-        /// <li>User not is owner.</li>
+        /// <li>Invalid slug.</li>
         /// </ul>
         /// </response>
         /// 
         /// <response code="500">
         /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
         /// </response>
-        [HttpDelete("id/{post_id}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
-        [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
-        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> DeletePost([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                          [FromServices] SocialPostManagement __SocialPostManagement,
-                                                          [FromServices] NotificationsManagement __NotificationsManagement,
-                                                          [FromRoute] long post_id,
-                                                          [FromHeader] string session_token)
+        [HttpDelete("id/{notification_id}")]
+        // [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
+        // [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
+        // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
+        // [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
+        public async Task<IActionResult> DeleteNotification([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                            [FromServices] SocialUserManagement __SocialUserManagement,
+                                                            [FromServices] NotificationsManagement __NotificationsManagement,
+                                                            [FromServices] long notification_id,
+                                                            [FromHeader] string session_token)
         {
+            if (!LoadConfigSuccess) {
+                return Problem(500, "Internal Server error.");
+            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialPostManagement.SetTraceId(TraceId);
+            __SocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
                 #region Validate params
-                if (post_id <= 0) {
-                    return Problem(400, "Invalid params.");
+                if (notification_id == default || notification_id <= 0) {
+                    return Problem(400, $"Invalid params.");
                 }
                 #endregion
 
@@ -157,39 +142,15 @@ namespace CoreApi.Controllers.Social.Post
                 }
                 #endregion
 
-                #region Get post info
-                SocialPost post = default;
-                (post, error) = await __SocialPostManagement.FindPostById(post_id);
+                
+                error = await __NotificationsManagement.DeleteNotification(session.UserId, notification_id);
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found post.");
+                        return Problem(404, "Notification not found.");
                     }
-                    throw new Exception($"FindPostById failed. Post_id: { post_id }, ErrorCode: { error} ");
+                    throw new Exception($"DeleteNotification Failed. ErrorCode: { error }");
                 }
 
-                if (post.Owner != session.UserId) {
-                    return Problem(404, "Not found post.");
-                }
-                if (post.Status == SocialPostStatus.Deleted) {
-                    return Problem(400, "Post already deleted.");
-                }
-                if (__SocialPostManagement.ValidateChangeStatusAction(post.Status, SocialPostStatus.Deleted) == ErrorCodes.INVALID_ACTION) {
-                    return Problem(400, "Invalid action.");
-                }
-                #endregion
-
-                error = await __SocialPostManagement.DeletedPost(post.Id, post.Owner);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"DeletedPost Failed, ErrorCode: { error }");
-                }
-                await __NotificationsManagement.SendNotification(
-                    NotificationType.ACTION_WITH_POST,
-                    new PostNotificationModel(NotificationSenderAction.DELETE_POST){
-                        PostId = post.Id,
-                    }
-                );
-
-                LogInformation($"DeletedPost success, post_id: { post_id }");
                 return Ok(200, "Ok");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");

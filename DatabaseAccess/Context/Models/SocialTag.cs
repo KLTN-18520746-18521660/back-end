@@ -27,7 +27,7 @@ namespace DatabaseAccess.Context.Models
         public string Tag { get; set; }
         [Required]
         [Column("name")]
-        [StringLength(25)]
+        [StringLength(50)]
         public string Name { get; set; }
         [Required]
         [Column("describe")]

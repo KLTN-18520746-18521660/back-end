@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -53,6 +54,7 @@ namespace CoreApi.Controllers.Social.Comment
         public async Task<IActionResult> GetPostBySlug([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
                                                        [FromServices] SocialCommentManagement __SocialCommentManagement,
                                                        [FromServices] SocialPostManagement __SocialPostManagement,
+                                                       [FromServices] NotificationsManagement __NotificationsManagement,
                                                        [FromRoute] string post_slug,
                                                        [FromHeader] string session_token,
                                                        [FromBody] ParserSocialComment Parser)
@@ -137,6 +139,28 @@ namespace CoreApi.Controllers.Social.Comment
                 if (error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"AddComment failed, ErrorCode: { error }");
                 }
+
+                #region Handle notification
+                var notifications = new List<(NotificationType, BaseNotificationSenderModel)>{
+                    (
+                        NotificationType.ACTION_WITH_COMMENT,
+                        new CommentNotificationModel(NotificationSenderAction.NEW_COMMENT){
+                            CommentId = comment.Id
+                        }
+                    )
+                };
+                if (comment.ParentId != default) {
+                    notifications.Add(
+                        (
+                            NotificationType.ACTION_WITH_COMMENT,
+                            new CommentNotificationModel(NotificationSenderAction.REPLY_COMMENT){
+                                CommentId = comment.Id
+                            }
+                        )
+                    );
+                }
+                await __NotificationsManagement.SendNotifications(notifications.ToArray());
+                #endregion
 
                 return Ok(201, "OK", new JObject(){
                     { "comment_id", comment.Id },
