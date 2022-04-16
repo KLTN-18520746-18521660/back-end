@@ -123,7 +123,7 @@ namespace CoreApi.Controllers.Social.Post
                 SocialPost post = default;
                 (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim(), session.UserId);
 
-                if (error != ErrorCodes.NO_ERROR && error != ErrorCodes.USER_IS_NOT_OWNER) {
+                if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
                         return Problem(404, "Not found post.");
                     }

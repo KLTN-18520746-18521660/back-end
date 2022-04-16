@@ -1,34 +1,30 @@
 using Common;
 using CoreApi.Common;
+using CoreApi.Models.ModifyModels;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
+using DatabaseAccess.Context.ParserModels;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CoreApi.Controllers.Social.AuditLog
+namespace CoreApi.Controllers.Social.Report
 {
     [ApiController]
-    [Route("/auditlog")]
-    public class GetSocialAuditLogController : BaseController
+    [Route("/report")]
+    public class ReportUserController : BaseController
     {
         #region Config Values
         private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minutes
+        private int EXPIRY_TIME; // minute
         #endregion
-        protected string[] AllowActions = new string[]{
-            "comment",
-            "post",
-            "user",
-        };
 
-        public GetSocialAuditLogController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public ReportUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetSocialAuditLog";
+            __ControllerName = "ReportUser";
             LoadConfig();
         }
 
@@ -50,30 +46,30 @@ namespace CoreApi.Controllers.Social.AuditLog
             }
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAuditLogs([FromServices] SocialUserManagement __SocialUserManagement,
-                                                      [FromServices] SocialUserAuditLogManagement __SocialUserAuditLogManagement,
-                                                      [FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                      [FromHeader] string session_token,
-                                                      [FromQuery] string action,
-                                                      [FromQuery] int start = 0,
-                                                      [FromQuery] int size = 20,
-                                                      [FromQuery] string search_term = default)
+        [HttpPut("{comment_id}")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
+        public async Task<IActionResult> ReportUser([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                    [FromServices] SocialUserManagement __SocialUserManagement,
+                                                    [FromServices] SocialReportManagement __SocialReportManagement,
+                                                    [FromHeader] string session_token,
+                                                    [FromBody] ParserSocialReport Parser)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
             #region Set TraceId for services
-            __SocialUserManagement.SetTraceId(TraceId);
-            __SocialUserAuditLogManagement.SetTraceId(TraceId);
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Validate params
-                if (start < 0 || size < 1) {
-                    return Problem(400, "Bad request params.");
+                #region Validate Parser
+                if (Parser.user_name == default || Parser.post_slug != default || Parser.comment_id != default) {
+                    return Problem(400, "Bad body request.");
                 }
                 #endregion
+
                 #region Get session token
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
@@ -89,6 +85,7 @@ namespace CoreApi.Controllers.Social.AuditLog
                 SessionSocialUser session = default;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
                 (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
+
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
                         LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
@@ -106,27 +103,27 @@ namespace CoreApi.Controllers.Social.AuditLog
                 }
                 #endregion
 
-                #region Get all audit logs
-                var user = session.User;
-                var (logs, totalSize)= await __SocialUserAuditLogManagement.GetAuditLogs(user.Id, action, start, size, search_term);
-
-                List<JObject> rawReturn = new();
-                logs.ForEach(e => rawReturn.Add(e.GetJsonObject()));
-                var ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(rawReturn));
-                #endregion
-
-                #region Validate params: start, size, total_size
-                if (totalSize != 0 && start >= totalSize) {
-                    LogInformation($"Invalid request params for get audit log, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
-                    return Problem(400, $"Invalid request params start: { start }. Total size is { totalSize }");
+                #region Get report user
+                SocialUser reportUser = default;
+                (reportUser, error) = await __SocialUserManagement.FindUser(Parser.user_name, false);
+                if (error != ErrorCodes.NO_ERROR) {
+                    return Problem(404, "Not found report user.");
                 }
                 #endregion
 
-                LogDebug($"Get all auditlog success, user_name: { user.UserName }, start: { start }, size: { size }, search_term: { search_term }");
-                return Ok(200, "OK", new JObject(){
-                    { "logs", ret },
-                    { "total_size", totalSize },
-                });
+                var report = new SocialReport();
+                report.Parse(Parser, out var errMsg);
+                if (errMsg != string.Empty) {
+                    throw new Exception($"Parse social report model failed, error: { errMsg }");
+                }
+                report.UserId = reportUser.Id;
+
+                error = await __SocialReportManagement.AddNewReport(report);
+                if (error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"AddNewReport failed, ErrorCode: { error }");
+                }
+
+                return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");

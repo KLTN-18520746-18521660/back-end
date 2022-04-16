@@ -7,14 +7,13 @@ using System.Threading.Tasks;
 using FluentValidation;
 using System.ComponentModel.DataAnnotations.Schema;
 using DatabaseAccess.Common.Interface;
+using System.ComponentModel;
 
-namespace DatabaseAccess.Context.ParserModels
+namespace CoreApi.Models.ModifyModels
 {
-    public class ParserSocialReport : IBaseParserModel
+    public class SocialCommentModifyModel
     {
-        public string user_name { get; set; }
-        public string post_slug { get; set; }
-        public long comment_id { get; set; }
+        [DefaultValue("Modify comment")]
         public string content { get; set; }
     }
 }

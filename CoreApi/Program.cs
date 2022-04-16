@@ -321,8 +321,7 @@ namespace CoreApi
                 string[] _args = GetValidParamsFromArgs(new List<string>(args));
                 __Host = CreateHostBuilder(_args).Build();
                 __Host.Run();
-            } 
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 if (__Logger != default) {
                     __Logger.Error(ex.ToString());
                 } else {

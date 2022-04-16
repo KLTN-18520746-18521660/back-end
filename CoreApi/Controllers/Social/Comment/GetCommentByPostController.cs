@@ -57,6 +57,7 @@ namespace CoreApi.Controllers.Social.Comment
                                                           [FromServices] SocialPostManagement __SocialPostManagement,
                                                           [FromRoute] string post_slug,
                                                           [FromHeader] string session_token,
+                                                          [FromQuery] long parrent_comment_id = default,
                                                           [FromQuery] int start = 0,
                                                           [FromQuery] int size = 20,
                                                           [FromQuery] string search_term = default,
@@ -91,6 +92,9 @@ namespace CoreApi.Controllers.Social.Comment
                             return Problem(400, $"Invalid status: { statusStr }.");
                         }
                     }
+                }
+                if (parrent_comment_id != default && parrent_comment_id <= 0) {
+                    return Problem(400, "Invalid parrent_comment_id.");
                 }
                 #endregion
 
@@ -135,6 +139,7 @@ namespace CoreApi.Controllers.Social.Comment
                 (comments, totalSize, error) = await __SocialCommentManagement
                     .GetCommentsAttachedToPost(
                         post.Id,
+                        parrent_comment_id,
                         start,
                         size,
                         search_term,
@@ -153,13 +158,39 @@ namespace CoreApi.Controllers.Social.Comment
                 #endregion
 
                 var ret = new List<JObject>();
-                comments.ForEach(e => {
-                    var obj = e.GetPublicJsonObject();
+                foreach (var comment in comments) {
+                    var obj = comment.GetPublicJsonObject();
                     if (IsValidSession) {
-                        obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionWithUser(session.UserId)));
+                        obj.Add("actions", Utils.ObjectToJsonToken(comment.GetActionWithUser(session.UserId)));
                     }
+                    #region Handle reply comments
+                    List<SocialComment> replyComments = default;
+                    int replyCommentTotalSize = default;
+                    var replyRet = new List<JObject>();
+                    (replyComments, replyCommentTotalSize, error) = await __SocialCommentManagement
+                        .GetCommentsAttachedToPost(
+                            post.Id,
+                            comment.Id,
+                            0,
+                            2,
+                            search_term,
+                            status,
+                            combineOrders
+                        );
+                    replyComments.ForEach(e => {
+                        var childObj = e.GetPublicJsonObject();
+                        if (IsValidSession) {
+                            childObj.Add("actions", Utils.ObjectToJsonToken(e.GetActionWithUser(session.UserId)));
+                        }
+                        replyRet.Add(childObj);
+                    });
+                    obj.Add("reply_comments", new JObject(){
+                        { "comments", Utils.ObjectToJsonToken(replyRet) },
+                        { "total_size", replyCommentTotalSize },
+                    });
+                    #endregion
                     ret.Add(obj);
-                });
+                }
 
                 return Ok(200, "OK", new JObject(){
                     { "comments", Utils.ObjectToJsonToken(ret) },

@@ -96,6 +96,7 @@ namespace CoreApi
                     .AddTransient<SessionAdminUserManagement>()
                     .AddTransient<SocialPostManagement>()
                     .AddTransient<SocialCategoryManagement>()
+                    .AddTransient<SocialReportManagement>()
                     .AddTransient<SocialTagManagement>()
                     .AddTransient<SocialUserManagement>()
                     .AddTransient<SocialUserAuditLogManagement>()
@@ -186,12 +187,12 @@ namespace CoreApi
             using (var serviceScope = app.ApplicationServices.CreateScope())
             {
                 var __DBContext = serviceScope.ServiceProvider.GetService<DBContext>();
+                __DBContext.Database.Migrate();
                 if (__DBContext.GetStatus()) {
                     __Logger.Information($"Connected to database, host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }, db_name: { BaseConfigurationDB.DBName }");
                 } else {
-                    __Logger.Warning($"Failed to connect to database, host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }, db_name: { BaseConfigurationDB.DBName }");
+                    throw new Exception($"Failed to connect to database, host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }, db_name: { BaseConfigurationDB.DBName }");
                 }
-                __DBContext.Database.Migrate();
             }
             app.ApplicationServices.GetService<BaseConfig>();
             app.ApplicationServices.GetService<EmailSender>();

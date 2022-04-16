@@ -36,9 +36,9 @@ namespace CoreApi.Services
     }
 
     public enum NotificationType {
-        ACTION_WITH_POST = 0,
-        ACTION_WITH_COMMENT = 1,
-        ACTION_WITH_USER = 2,
+        ACTION_WITH_POST            = 0,
+        ACTION_WITH_COMMENT         = 1,
+        ACTION_WITH_USER            = 2,
     }
 
     public class BaseNotificationSenderModel {
@@ -286,13 +286,15 @@ namespace CoreApi.Services
                         foreach (var userId in userIds) {
                             notifications.Add(new SocialNotification(){
                                 Content = dataToDB,
-                                UserId = userId
+                                UserId = userId,
+                                Type = modelData.ActionStr,
                             });
                         }
                         if (!userIds.Contains(post.Owner)) {
                             notifications.Add(new SocialNotification(){
                                 Content = dataToDB,
-                                UserId = post.Owner
+                                UserId = post.Owner,
+                                Type = modelData.ActionStr,
                             });
                         }
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
@@ -314,7 +316,8 @@ namespace CoreApi.Services
                         List<SocialNotification> notifications = new List<SocialNotification>();
                         notifications.Add(new SocialNotification(){
                             Content = dataToDB,
-                            UserId = post.Owner
+                            UserId = post.Owner,
+                            Type = modelData.ActionStr,
                         });
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
                         break;
@@ -346,7 +349,8 @@ namespace CoreApi.Services
                         List<SocialNotification> notifications = new List<SocialNotification>();
                         notifications.Add(new SocialNotification(){
                             Content = dataToDB,
-                            UserId = comment.Owner
+                            UserId = comment.Owner,
+                            Type = modelData.ActionStr,
                         });
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
                         break;
@@ -374,13 +378,15 @@ namespace CoreApi.Services
                         foreach (var userId in userIds) {
                             notifications.Add(new SocialNotification(){
                                 Content = dataToDB,
-                                UserId = userId
+                                UserId = userId,
+                                Type = modelData.ActionStr,
                             });
                         }
                         if (!userIds.Contains(comment.Post.Owner)) {
                             notifications.Add(new SocialNotification(){
                                 Content = dataToDB,
-                                UserId = comment.Post.Owner
+                                UserId = comment.Post.Owner,
+                                Type = modelData.ActionStr,
                             });
                         }
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
@@ -400,7 +406,8 @@ namespace CoreApi.Services
                         List<SocialNotification> notifications = new List<SocialNotification>();
                         notifications.Add(new SocialNotification(){
                             Content = dataToDB,
-                            UserId = comment.Parent.Owner
+                            UserId = comment.Parent.Owner,
+                            Type = modelData.ActionStr,
                         });
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
                         await SendNotificationTypeActionWithComment(
@@ -439,7 +446,8 @@ namespace CoreApi.Services
                         List<SocialNotification> notifications = new List<SocialNotification>();
                         notifications.Add(new SocialNotification(){
                             Content = dataToDB,
-                            UserId = user.Id
+                            UserId = user.Id,
+                            Type = modelData.ActionStr,
                         });
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
                         break;

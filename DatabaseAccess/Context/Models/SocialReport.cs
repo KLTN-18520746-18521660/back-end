@@ -66,8 +66,6 @@ namespace DatabaseAccess.Context.Models
             Error = string.Empty;
             try {
                 var parser = (ParserModels.ParserSocialReport)Parser;
-                UserId = parser.user_id;
-                PostId = parser.post_id;
                 CommentId = parser.comment_id;
                 Content = parser.content;
                 

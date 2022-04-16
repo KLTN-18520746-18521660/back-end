@@ -23,30 +23,42 @@ namespace CoreApi.Services
             __ServiceName = "SocialUserAuditLogManagement";
         }
 
-        public async Task<(List<SocialUserAuditLog> AuditLogs, int TotalSize)> GetAllAuditLog(Guid UserId, int Start, int Size, string SearchTerm = default)
+        public async Task<(List<SocialUserAuditLog> AuditLogs, int TotalSize)> GetAuditLogs(Guid UserId,
+                                                                                            string Action,
+                                                                                            int Start,
+                                                                                            int Size,
+                                                                                            string SearchTerm = default)
         {
-            if (SearchTerm == default || SearchTerm == string.Empty) {
-                return
-                (
-                    await __DBContext.SocialUserAuditLogs
-                        .Where(e => e.UserId == UserId)
-                        .OrderBy(e => e.Id)
-                        .Skip(Start)
-                        .Take(Size)
-                        .ToListAsync(),
-                    await __DBContext.SocialUserAuditLogs.CountAsync(e => e.UserId == UserId)
-                );
+            string ActionStr = string.Empty;
+            switch (Action) {
+                case "comment":
+                    ActionStr = "SocialComment";
+                    break;
+                case "post":
+                    ActionStr = "SocialPost";
+                    break;
+                case "user":
+                    ActionStr = "SocialUser";
+                    break;
             }
+
             return
             (
                 await __DBContext.SocialUserAuditLogs
-                    .Where(e => e.SearchVector.Matches(SearchTerm) && e.UserId == UserId)
+                    .Where(
+                        e => e.UserId == UserId
+                        && e.Table == ActionStr
+                        && (SearchTerm == default) || e.SearchVector.Matches(SearchTerm)
+                    )
                     .OrderBy(e => e.Id)
                     .Skip(Start)
                     .Take(Size)
                     .ToListAsync(),
                 await __DBContext.SocialUserAuditLogs
-                    .CountAsync(e => e.SearchVector.Matches(SearchTerm) && e.UserId == UserId)
+                    .CountAsync(
+                        e => e.UserId == UserId
+                        && (SearchTerm == default) || e.SearchVector.Matches(SearchTerm)
+                    )
             );
         }
 

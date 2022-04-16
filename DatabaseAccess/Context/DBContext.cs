@@ -94,6 +94,7 @@ namespace DatabaseAccess.Context
             ConfigureEnitySocialUserActionWithPost(modelBuilder);
             ConfigureEnitySocialUserActionWithTag(modelBuilder);
             ConfigureEnitySocialUserActionWithUser(modelBuilder);
+            ConfigureEnitySocialUserAuditLog(modelBuilder);
             ConfigureEnitySocialUserRight(modelBuilder);
             ConfigureEnitySocialUserRole(modelBuilder);
             ConfigureEnitySocialUserRoleDetail(modelBuilder);
@@ -124,6 +125,8 @@ namespace DatabaseAccess.Context
                     )
                     .HasIndex(e => e.SearchVector)
                     .HasMethod("GIN");
+                entity
+                    .HasIndex(e => e.Table);
             });
         }
         #endregion
@@ -362,6 +365,8 @@ namespace DatabaseAccess.Context
                     )
                     .HasIndex(e => e.SearchVector)
                     .HasMethod("GIN");
+                entity
+                    .HasIndex(e => e.Table);
             });
         }
         #endregion
@@ -862,6 +867,8 @@ namespace DatabaseAccess.Context
                     )
                     .HasIndex(e => e.SearchVector)
                     .HasMethod("GIN");
+                entity
+                    .HasIndex(e => e.Table);
             });
         }
         #endregion

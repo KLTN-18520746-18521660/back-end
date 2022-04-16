@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using DatabaseAccess.Common.Actions;
 using Common;
+using CoreApi.Models.ModifyModels;
 
 namespace CoreApi.Services
 {
@@ -48,6 +49,7 @@ namespace CoreApi.Services
         }
 
         public async Task<(List<SocialComment>, int, ErrorCodes)> GetCommentsAttachedToPost(long postId,
+                                                                                            long parrent_comment_id = default,
                                                                                             int start = 0,
                                                                                             int size = 20,
                                                                                             string search_term = default,
@@ -84,6 +86,7 @@ namespace CoreApi.Services
                         (from comment in __DBContext.SocialComments
                                 .Where(e => e.PostId == postId
                                     && (search_term == default || e.SearchVector.Matches(search_term))
+                                    && (e.ParentId == parrent_comment_id)
                                     && ((status.Count() == 0
                                             && e.StatusStr != BaseStatus
                                                 .StatusToString(SocialPostStatus.Deleted, EntityStatus.SocialPostStatus))
@@ -252,6 +255,15 @@ namespace CoreApi.Services
                             .UnComment(Comment.PostId, Comment.Owner);
                 }
                 #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        public async Task<ErrorCodes> ModifyComment(SocialComment Comment, SocialCommentModifyModel NewData)
+        {
+            Comment.Status = SocialCommentStatus.Edited;
+            Comment.Content = NewData.content;
+            if (await __DBContext.SaveChangesAsync() > 0) {
                 return ErrorCodes.NO_ERROR;
             }
             return ErrorCodes.INTERNAL_SERVER_ERROR;
