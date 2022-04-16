@@ -176,7 +176,7 @@ namespace CoreApi.Controllers.Social.Post
                     return Problem(400, $"Category not exist.");
                 }
                 var isValidTags = false;
-                (isValidTags, error) = await __SocialTagManagement.IsValidTags(Parser.tags.ToArray());
+                (isValidTags, error) = await __SocialTagManagement.IsValidTags(Parser.tags);
                 if (!isValidTags) {
                     if (error == ErrorCodes.INVALID_PARAMS) {
                         return Problem(400, "Invalid tags.");

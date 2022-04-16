@@ -209,17 +209,17 @@ namespace CoreApi.Services
         {
             return tag != string.Empty && tag.Count() <= 25;
         }
-        public async Task<(bool, ErrorCodes)> IsValidTags(ParserSocialTag[] tags)
+        public async Task<(bool, ErrorCodes)> IsValidTags(string[] tags)
         {
             foreach(var tag in tags) {
-                if (!IsValidTag(tag.tag)) {
+                if (!IsValidTag(tag)) {
                     return (false, ErrorCodes.INVALID_PARAMS);
                 } else {
-                    if (await __DBContext.SocialTags.CountAsync(e => e.Tag == tag.tag) < 1) {
+                    if (await __DBContext.SocialTags.CountAsync(e => e.Tag == tag) < 1) {
                         await __DBContext.SocialTags.AddAsync(new SocialTag(){
-                            Tag = tag.tag,
-                            Name = tag.name != default ? tag.name : tag.tag,
-                            Describe = tag.describe != default ? tag.describe : tag.tag,
+                            Tag = tag,
+                            Name = tag,
+                            Describe = tag,
                             Status = SocialTagStatus.Disabled,
                         });
                         if (await __DBContext.SaveChangesAsync() <= 0) {
