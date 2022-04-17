@@ -164,6 +164,8 @@ namespace CoreApi
             hostApplicationLifetime.ApplicationStopping.Register(OnStopping);
             hostApplicationLifetime.ApplicationStarted.Register(OnStarted);
 
+            app.UsePathBase(new PathString("/api"));
+
             if (env.IsDevelopment()) {
                 app.UseDeveloperExceptionPage();
                 __Logger.Warning($"Application is running in development mode.");
