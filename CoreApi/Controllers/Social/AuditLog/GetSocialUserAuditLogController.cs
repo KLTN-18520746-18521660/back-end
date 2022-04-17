@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Social.AuditLog
 {
     [ApiController]
-    [Route("/auditlog")]
+    [Route("/api/auditlog")]
     public class GetSocialAuditLogController : BaseController
     {
         #region Config Values

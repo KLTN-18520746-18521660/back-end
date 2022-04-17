@@ -15,7 +15,7 @@ using System.Linq;
 namespace CoreApi.Controllers.Social.Tag
 {
     [ApiController]
-    [Route("/tag")]
+    [Route("/api/tag")]
     public class ActionWithTagController : BaseController
     {
         #region Config Values

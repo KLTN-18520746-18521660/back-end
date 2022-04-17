@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Social.Tag
 {
     [ApiController]
-    [Route("/tag")]
+    [Route("/api/tag")]
     public class GetTagController : BaseController
     {
         #region Config Values

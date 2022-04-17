@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Admin.Post
 {
     [ApiController]
-    [Route("/admin/post")]
+    [Route("/api/admin/post")]
     public class AdminGetPostByIdController : BaseController
     {
         #region Config Values

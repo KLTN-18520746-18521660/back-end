@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Admin.Config
 {
     [ApiController]
-    [Route("/admin/config")]
+    [Route("/api/admin/config")]
     public class GetConfigController : BaseController
     {
         #region Config Values

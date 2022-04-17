@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Admin.Session
 {
     [ApiController]
-    [Route("/admin/session")]
+    [Route("/api/admin/session")]
     public class GetUserBySessionAdminController : BaseController
     {
         #region Config Values

@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Social.Report
 {
     [ApiController]
-    [Route("/report")]
+    [Route("/api/report")]
     public class ReportUserController : BaseController
     {
         #region Config Values

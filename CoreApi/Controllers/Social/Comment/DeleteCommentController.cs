@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Social.Comment
 {
     [ApiController]
-    [Route("/comment")]
+    [Route("/api/comment")]
     public class DeleteCommentController : BaseController
     {
         #region Config Values

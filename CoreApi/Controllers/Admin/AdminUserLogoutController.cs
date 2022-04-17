@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Admin
 {
     [ApiController]
-    [Route("/admin/logout")]
+    [Route("/api/admin/logout")]
     public class AdminUserLogoutController : BaseController
     {
         #region Config Values

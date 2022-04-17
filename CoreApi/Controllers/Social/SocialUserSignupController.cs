@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Social
 {
     [ApiController]
-    [Route("/signup")]
+    [Route("/api/signup")]
     public class SocialUserSignupController : BaseController
     {
         public SocialUserSignupController(BaseConfig _BaseConfig) : base(_BaseConfig)

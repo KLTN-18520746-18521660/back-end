@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Social.Session
 {
     [ApiController]
-    [Route("/user/confirm")]
+    [Route("/api/user/confirm")]
     public class SocialUserConfirmController : BaseController
     {
         #region Config Values

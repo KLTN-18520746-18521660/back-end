@@ -133,7 +133,11 @@ namespace DatabaseAccess.Context.Models
             List<SocialTag> ListData = new();
             var (listDataSeed, errMsg) = Utils.LoadListJsonFromFile<SocialTagSeed>(@"..\DatabaseAccess\Context\DataSeed\SocialTag.json");
             if (listDataSeed == default) {
+#if DEBUG
                 throw new Exception($"GetDefaultData for SocialTag failed, error: { errMsg }");
+#else
+				listDataSeed = new();
+#endif
             }
             listDataSeed.ForEach(e => {
                 ListData.Add(new SocialTag

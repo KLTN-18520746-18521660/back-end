@@ -15,7 +15,7 @@ using System.Linq;
 namespace CoreApi.Controllers.Social.Comment
 {
     [ApiController]
-    [Route("/comment")]
+    [Route("/api/comment")]
     public class ActionWithCommentController : BaseController
     {
         #region Config Values

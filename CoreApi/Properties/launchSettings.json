@@ -3,7 +3,7 @@
   "profiles": {
     "dev": {
       "commandName": "Project",
-      "commandLineArgs": "ssl disable-cors",
+      "commandLineArgs": "disable-cors",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
@@ -11,7 +11,7 @@
     },
     "pro": {
       "commandName": "Project",
-      "commandLineArgs": "ssl",
+      "commandLineArgs": "",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Production"
       },

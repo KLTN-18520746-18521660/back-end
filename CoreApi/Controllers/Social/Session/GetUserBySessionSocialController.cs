@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Social.Session
 {
     [ApiController]
-    [Route("/session")]
+    [Route("/api/session")]
     public class GetUserBySessionSocialController : BaseController
     {
         #region Config Values

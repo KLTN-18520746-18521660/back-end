@@ -16,7 +16,7 @@ using DatabaseAccess.Common.Status;
 namespace CoreApi.Controllers.Social.Notification
 {
     [ApiController]
-    [Route("/notification")]
+    [Route("/api/notification")]
     public class DeleteNotificationController : BaseController
     {
         #region Config Values

@@ -15,7 +15,7 @@ using System.Linq;
 namespace CoreApi.Controllers.Social.User
 {
     [ApiController]
-    [Route("/user")]
+    [Route("/api/user")]
     public class ActionWithUserController : BaseController
     {
         #region Config Values

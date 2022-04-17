@@ -49,7 +49,7 @@ namespace Common
             string errMsg = default;
             List<T> items = default;
             var fullPath = CommonValidate.ValidateFilePath(filePath, false, errMsg);
-            if (errMsg != default) {
+            if (errMsg != default || fullPath == default) {
                 return (items, errMsg);
             }
             using (StreamReader r = new StreamReader(fullPath))

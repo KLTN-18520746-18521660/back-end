@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Social.Category
 {
     [ApiController]
-    [Route("/category")]
+    [Route("/api/category")]
     public class GetCategoryController : BaseController
     {
         #region Config Values

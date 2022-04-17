@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Admin
 {
     [ApiController]
-    [Route("/admin/login")]
+    [Route("/api/admin/login")]
     public class AdminUserLoginController : BaseController
     {
         #region Config Values

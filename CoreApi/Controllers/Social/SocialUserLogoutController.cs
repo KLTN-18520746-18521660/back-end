@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Social
 {
     [ApiController]
-    [Route("/logout")]
+    [Route("/api/logout")]
     public class SocialUserLogoutController : BaseController
     {
         #region Config Values

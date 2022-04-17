@@ -63,6 +63,8 @@
 - release with disable cros
 > dotnet run ssl disable-cors --launch-profile pro -c release
 
+dotnet run disable-cors --launch-profile pro -c release
+
 ## Project Console is for testing
 
 ## Migration

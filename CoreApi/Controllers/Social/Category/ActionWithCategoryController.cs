@@ -15,7 +15,7 @@ using System.Linq;
 namespace CoreApi.Controllers.Social.Post
 {
     [ApiController]
-    [Route("/category")]
+    [Route("/api/category")]
     public class ActionWithCategoryController : BaseController
     {
         #region Config Values

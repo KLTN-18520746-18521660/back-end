@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Social.Post
 {
     [ApiController]
-    [Route("/post")]
+    [Route("/api/post")]
     public class CreatePostController : BaseController
     {
         #region Config Values

@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Social.Config
 {
     [ApiController]
-    [Route("/config")]
+    [Route("/api/config")]
     public class GetPublicConfigController : BaseController
     {
         #region Config Values

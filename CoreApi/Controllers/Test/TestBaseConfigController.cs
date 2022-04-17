@@ -13,7 +13,7 @@
 // namespace CoreApi.Controllers.Test
 // {
 //     [ApiController]
-//     [Route("[controller]/test/baseconfig")]
+//     [Route("/api[controller]/test/baseconfig")]
 //     public class TestBaseConfigController : BaseController
 //     {
 //         private DBContext __ConfigDB;

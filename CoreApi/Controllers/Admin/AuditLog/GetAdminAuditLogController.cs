@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Admin.AuditLog
 {
     [ApiController]
-    [Route("/admin/adminlog")]
+    [Route("/api/admin/adminlog")]
     public class GetAdminAuditLogController : BaseController
     {
         #region Config Values

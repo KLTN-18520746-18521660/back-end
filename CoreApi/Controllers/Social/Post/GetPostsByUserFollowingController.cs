@@ -16,7 +16,7 @@ using DatabaseAccess.Common.Status;
 namespace CoreApi.Controllers.Social.Post
 {
     [ApiController]
-    [Route("/post")]
+    [Route("/api/post")]
     public class GetPostsByUserFollowingController : BaseController
     {
         #region Config Values

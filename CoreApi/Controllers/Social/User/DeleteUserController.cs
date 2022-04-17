@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Social.User
 {
     [ApiController]
-    [Route("/user")]
+    [Route("/api/user")]
     public class DeleteUserController : BaseController
     {
         #region Config Values

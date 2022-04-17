@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace CoreApi.Controllers.Social
 {
     [ApiController]
-    [Route("/login")]
+    [Route("/api/login")]
     public class SocialUserLoginController : BaseController
     {
         #region Config Values
