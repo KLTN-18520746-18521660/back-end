@@ -123,7 +123,7 @@ namespace DatabaseAccess.Context.Models
                 { "post_id", PostId },
                 { "owner", 
                     new JObject(){
-                        { "username", this.OwnerNavigation.UserName },
+                        { "user_name", this.OwnerNavigation.UserName },
                         { "display_name", this.OwnerNavigation.DisplayName },
                         { "avatar", this.OwnerNavigation.Avatar },
                         { "status", this.OwnerNavigation.StatusStr },

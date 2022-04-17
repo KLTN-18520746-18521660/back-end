@@ -81,6 +81,9 @@ namespace CoreApi.Services
                 case NotificationSenderAction.DELETE_POST:
                     ActionStr = "delete-post";
                     break;
+                case NotificationSenderAction.LIKE_POST:
+                    ActionStr = "like-post";
+                    break;
                 default:
                     throw new Exception($"Invalid action with post: { action }");
             }
@@ -304,6 +307,7 @@ namespace CoreApi.Services
                 case NotificationSenderAction.REJECT_POST:
                 case NotificationSenderAction.PRIVATE_POST:
                 case NotificationSenderAction.DELETE_POST:
+                case NotificationSenderAction.LIKE_POST:
                     using (var scope = __ServiceProvider.CreateScope())
                     {
                         var __SocialPostManagement = scope.ServiceProvider.GetRequiredService<SocialPostManagement>();
@@ -396,7 +400,6 @@ namespace CoreApi.Services
                     using (var scope = __ServiceProvider.CreateScope())
                     {
                         var __SocialCommentManagement = scope.ServiceProvider.GetRequiredService<SocialCommentManagement>();
-                        var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
                         __SocialCommentManagement.SetTraceId(modelData.TraceId);
                         var (comment, error) = await __SocialCommentManagement.FindCommentById(modelData.CommentId);
                         if (error != ErrorCodes.NO_ERROR) {
@@ -436,7 +439,6 @@ namespace CoreApi.Services
                     using (var scope = __ServiceProvider.CreateScope())
                     {
                         var __SocialUserManagement = scope.ServiceProvider.GetRequiredService<SocialUserManagement>();
-                        var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
                         __SocialUserManagement.SetTraceId(modelData.TraceId);
                         var (user, error) = await __SocialUserManagement.FindUserById(modelData.UserId);
                         if (error != ErrorCodes.NO_ERROR) {

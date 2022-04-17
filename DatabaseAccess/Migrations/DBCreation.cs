@@ -120,8 +120,8 @@ namespace DatabaseAccess.Migrations
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn),
                     tag = table.Column<string>(type: "character varying(25)", maxLength: 25, nullable: false),
-                    name = table.Column<string>(type: "character varying(25)", maxLength: 25, nullable: false),
-                    describe = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    describe = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
                     status = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: false, defaultValueSql: "'Enabled'"),
                     created_timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW() AT TIME ZONE 'UTC'"),
                     last_modified_timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
@@ -362,6 +362,7 @@ namespace DatabaseAccess.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn),
                     user_id = table.Column<Guid>(type: "uuid", nullable: false),
                     status = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: false, defaultValueSql: "'Sent'"),
+                    type = table.Column<string>(type: "character varying(25)", maxLength: 25, nullable: false),
                     content = table.Column<string>(type: "jsonb", nullable: false, defaultValueSql: "'{}'"),
                     created_timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW() AT TIME ZONE 'UTC'"),
                     last_modified_timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
@@ -497,25 +498,27 @@ namespace DatabaseAccess.Migrations
                 columns: table => new
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn),
                     table = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     table_key = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     action = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     old_value = table.Column<string>(type: "TEXT", nullable: false),
                     new_value = table.Column<string>(type: "TEXT", nullable: false),
                     user_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW() AT TIME ZONE 'UTC'"),
                     search_vector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: true)
+                        .Annotation("Npgsql:TsVectorConfig", "english")
+                        .Annotation("Npgsql:TsVectorProperties", new[] { "table", "table_key", "old_value", "new_value" })
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_social_user_audit_log", x => x.id);
                     table.ForeignKey(
-                        name: "FK_social_user_audit_log_social_user_user_id",
+                        name: "FK_social_user_audit_log_user_id",
                         column: x => x.user_id,
                         principalTable: "social_user",
                         principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -688,11 +691,13 @@ namespace DatabaseAccess.Migrations
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn),
-                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: true),
                     post_id = table.Column<long>(type: "bigint", nullable: true),
                     comment_id = table.Column<long>(type: "bigint", nullable: true),
-                    content = table.Column<string>(type: "text", nullable: false),
+                    report_type = table.Column<string>(type: "text", nullable: true),
+                    content = table.Column<string>(type: "text", nullable: true),
                     status = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: false, defaultValueSql: "'Pending'"),
+                    reporter_id = table.Column<Guid>(type: "uuid", nullable: false),
                     search_vector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: true)
                         .Annotation("Npgsql:TsVectorConfig", "english")
                         .Annotation("Npgsql:TsVectorProperties", new[] { "content" }),
@@ -766,19 +771,19 @@ namespace DatabaseAccess.Migrations
             migrationBuilder.InsertData(
                 table: "admin_user",
                 columns: new[] { "id", "created_timestamp", "display_name", "email", "last_access_timestamp", "salt", "settings", "status", "password", "user_name" },
-                values: new object[] { new Guid("03cdcd8a-2fc7-47f3-9546-f25e1c2a1050"), new DateTime(2022, 4, 9, 16, 18, 0, 378, DateTimeKind.Utc).AddTicks(1649), "Administrator", "admin@admin", null, "933cd28a", "{}", "Readonly", "0AAE0AE94E9893E79C2132B03E53247A", "admin" });
+                values: new object[] { new Guid("6a9507fc-68a3-47c8-9b06-7432c82880aa"), new DateTime(2022, 4, 17, 8, 49, 18, 972, DateTimeKind.Utc).AddTicks(4559), "Administrator", "admin@admin", null, "db2bc2df", "{}", "Readonly", "E335512BCF9F4B61EFA4C6208DD24AFB", "admin" });
 
             migrationBuilder.InsertData(
                 table: "admin_user_right",
                 columns: new[] { "id", "describe", "display_name", "right_name", "status" },
                 values: new object[,]
                 {
-                    { 11, "Modify, get config of server.", "Config", "config", "Readonly" },
                     { 10, "See and tracking log file.", "Log", "log", "Readonly" },
+                    { 9, "Add, block, unblock, delete AdminUser.", "Admin User", "admin_user", "Readonly" },
                     { 8, "Block, unblock SocialUser", "Social User", "social_user", "Readonly" },
                     { 7, "Configure security of Server.", "Security", "security", "Readonly" },
                     { 6, "Delete comment. See report about comment.", "Comment", "comment", "Readonly" },
-                    { 9, "Add, block, unblock, delete AdminUser.", "Admin User", "admin_user", "Readonly" },
+                    { 11, "Modify, get config of server.", "Config", "config", "Readonly" },
                     { 4, "Add, create, disable tag.", "Tag", "tag", "Readonly" },
                     { 3, "Add, create, disable topics", "Topic", "topic", "Readonly" },
                     { 2, "Add, create, disable category.", "Category", "category", "Readonly" },
@@ -796,11 +801,11 @@ namespace DatabaseAccess.Migrations
                 columns: new[] { "id", "created_timestamp", "describe", "display_name", "last_modified_timestamp", "name", "parent_id", "slug", "status", "thumbnail" },
                 values: new object[,]
                 {
-                    { 5L, new DateTime(2022, 4, 9, 16, 18, 0, 425, DateTimeKind.Utc).AddTicks(5894), "Life die have number", "Left", null, "left", null, "left", "Readonly", null },
-                    { 3L, new DateTime(2022, 4, 9, 16, 18, 0, 425, DateTimeKind.Utc).AddTicks(5786), "Search google to have better solution", "Dicussion", null, "dicussion", null, "dicussion", "Readonly", null },
-                    { 4L, new DateTime(2022, 4, 9, 16, 18, 0, 425, DateTimeKind.Utc).AddTicks(5842), "Nothing in here", "Blog", null, "blog", null, "blog", "Readonly", null },
-                    { 1L, new DateTime(2022, 4, 9, 16, 18, 0, 425, DateTimeKind.Utc).AddTicks(4709), "This not a bug this a feature", "Technology", null, "technology", null, "technology", "Readonly", null },
-                    { 2L, new DateTime(2022, 4, 9, 16, 18, 0, 425, DateTimeKind.Utc).AddTicks(5693), "Do not click to this", "Developer", null, "developer", null, "developer", "Readonly", null }
+                    { 1L, new DateTime(2022, 4, 17, 8, 49, 19, 12, DateTimeKind.Utc).AddTicks(530), "This not a bug this a feature", "Technology", null, "technology", null, "technology", "Readonly", null },
+                    { 2L, new DateTime(2022, 4, 17, 8, 49, 19, 12, DateTimeKind.Utc).AddTicks(1163), "Do not click to this", "Developer", null, "developer", null, "developer", "Readonly", null },
+                    { 3L, new DateTime(2022, 4, 17, 8, 49, 19, 12, DateTimeKind.Utc).AddTicks(1221), "Search google to have better solution", "Dicussion", null, "dicussion", null, "dicussion", "Readonly", null },
+                    { 4L, new DateTime(2022, 4, 17, 8, 49, 19, 12, DateTimeKind.Utc).AddTicks(1254), "Nothing in here", "Blog", null, "blog", null, "blog", "Readonly", null },
+                    { 5L, new DateTime(2022, 4, 17, 8, 49, 19, 12, DateTimeKind.Utc).AddTicks(1286), "Life die have number", "Left", null, "left", null, "left", "Readonly", null }
                 });
 
             migrationBuilder.InsertData(
@@ -808,11 +813,33 @@ namespace DatabaseAccess.Migrations
                 columns: new[] { "id", "created_timestamp", "describe", "last_modified_timestamp", "name", "status", "tag" },
                 values: new object[,]
                 {
-                    { 1L, new DateTime(2022, 4, 9, 16, 18, 0, 444, DateTimeKind.Utc).AddTicks(4212), "Angular", null, "Angular", "Readonly", "angular" },
-                    { 2L, new DateTime(2022, 4, 9, 16, 18, 0, 444, DateTimeKind.Utc).AddTicks(4268), "Something is not thing", null, "Life die have numder", "Readonly", "life-die-have-number" },
-                    { 3L, new DateTime(2022, 4, 9, 16, 18, 0, 444, DateTimeKind.Utc).AddTicks(4272), "Dot not choose this tag", null, "Develop", "Readonly", "develop" },
-                    { 4L, new DateTime(2022, 4, 9, 16, 18, 0, 444, DateTimeKind.Utc).AddTicks(4277), "Nothing in here", null, "Nothing", "Readonly", "nothing" },
-                    { 5L, new DateTime(2022, 4, 9, 16, 18, 0, 444, DateTimeKind.Utc).AddTicks(4281), "hi hi", null, "HiHi", "Readonly", "hihi" }
+                    { 17L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2300), "Vuex is a state management pattern and library for Vue.js applications. It is maintained by a community of individual developers and companies.", null, "Vuex", "Readonly", "vuex" },
+                    { 18L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2305), "Vue I18n is a localization library for Vue.js. It is maintained by a community of individual developers and companies.", null, "Vue I18n", "Readonly", "vue-i18n" },
+                    { 19L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2309), "Vue Resource is a REST client for Vue.js. It is maintained by a community of individual developers and companies.", null, "Vue Resource", "Readonly", "vue-resource" },
+                    { 20L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2312), "Vue Router I18n is a localization library for Vue Router. It is maintained by a community of individual developers and companies.", null, "Vue Router I18n", "Readonly", "vue-router-i18n" },
+                    { 21L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2315), ".NET is a programming language and runtime environment developed by Microsoft. It is maintained by a community of individual developers and companies.", null, ".NET", "Readonly", "dotnet" },
+                    { 27L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2335), "React Router DOM is a routing library for React. It is maintained by a community of individual developers and companies.", null, "React Router DOM", "Readonly", "react-router-dom" },
+                    { 23L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2322), "ASP.NET is a web application framework developed by Microsoft. It is maintained by a community of individual developers and companies.", null, "ASP.NET", "Readonly", "aspnet" },
+                    { 24L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2325), "ASP.NET Core is a web application framework developed by Microsoft. It is maintained by a community of individual developers and companies.", null, "ASP.NET Core", "Readonly", "aspnet-core" },
+                    { 25L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2329), "Next.js is a JavaScript framework for building web applications. It is maintained by a community of individual developers and companies.", null, "Next.js", "Readonly", "nextjs" },
+                    { 26L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2332), "React Router is a routing library for React. It is maintained by a community of individual developers and companies.", null, "React Router", "Readonly", "react-router" },
+                    { 16L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2296), "Vue Router is a routing library for Vue.js. It is maintained by a community of individual developers and companies.", null, "Vue Router", "Readonly", "vue-router" },
+                    { 22L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2319), "C# is a programming language and runtime environment developed by Microsoft. It is maintained by a community of individual developers and companies.", null, "CSharp", "Readonly", "csharp" },
+                    { 15L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2292), "Bootstrap Vue is a Vue.js wrapper for Bootstrap. It is maintained by a community of individual developers and companies.", null, "Bootstrap Vue", "Readonly", "bootstrap-vue" },
+                    { 3L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2234), "Vue.js is an open-source JavaScript framework for building user interfaces. It is maintained by a community of individual developers and companies. Vue can be used as a base in the development of single-page or mobile applications.", null, "Vue", "Readonly", "vue" },
+                    { 13L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2285), "Material Design is a design language developed by Google. It is used to create a consistent and beautiful user experience across all products on Android, iOS, and the web.", null, "Material Design", "Readonly", "material-design" },
+                    { 1L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2183), "Angular is a TypeScript-based open-source web application platform led by the Angular Team at Google and by a community of individuals and corporations. Angular is a complete rewrite from the same team that built AngularJS.", null, "Angular", "Readonly", "angular" },
+                    { 2L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2230), "React is a JavaScript library for building user interfaces. It is maintained by Facebook and a community of individual developers and companies. React can be used as a base in the development of single-page or mobile applications.", null, "React", "Readonly", "react" },
+                    { 4L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2238), "Angular CLI is a command-line interface for the Angular development platform. It is used to create and manage projects for the Angular framework.", null, "Angular CLI", "Readonly", "angular-cli" },
+                    { 14L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2289), "Material Icons is a set of open source icons for use in web and mobile applications. It is maintained by a community of individual developers and companies.", null, "Material Icons", "Readonly", "material-icons" },
+                    { 6L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2258), "Vue CLI is a command-line interface for the Vue.js development platform. It is used to create and manage projects for the Vue framework.", null, "Vue CLI", "Readonly", "vue-cli" },
+                    { 5L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2241), "React Native is a framework for building native apps using React. It is maintained by Facebook and a community of individual developers and companies.", null, "React Native", "Readonly", "react-native" },
+                    { 8L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2266), "Gulp is a streaming build system. It is maintained by a community of individual developers and companies.", null, "Gulp", "Readonly", "gulp" },
+                    { 9L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2270), "Sass is a stylesheet language that is interpreted into Cascading Style Sheets (CSS). It is maintained by a community of individual developers and companies.", null, "Sass", "Readonly", "sass" },
+                    { 10L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2275), "Less is a stylesheet language that is interpreted into Cascading Style Sheets (CSS). It is maintained by a community of individual developers and companies.", null, "Less", "Readonly", "less" },
+                    { 11L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2279), "Bootstrap is a free and open-source front-end web framework for designing websites and web applications. It is maintained by a community of individual developers and companies.", null, "Bootstrap", "Readonly", "bootstrap" },
+                    { 12L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2282), "Material-UI is a React component library that enables you to create beautiful, high-fidelity, mobile-first experiences. It is maintained by a community of individual developers and companies.", null, "Material-UI", "Readonly", "material-ui" },
+                    { 7L, new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2262), "Webpack is a module bundler that packs multiple modules with dependencies into a single module. It is maintained by a community of individual developers and companies.", null, "Webpack", "Readonly", "webpack" }
                 });
 
             migrationBuilder.InsertData(
@@ -851,7 +878,7 @@ namespace DatabaseAccess.Migrations
             migrationBuilder.InsertData(
                 table: "admin_user_role_of_user",
                 columns: new[] { "role_id", "user_id" },
-                values: new object[] { 1, new Guid("03cdcd8a-2fc7-47f3-9546-f25e1c2a1050") });
+                values: new object[] { 1, new Guid("6a9507fc-68a3-47c8-9b06-7432c82880aa") });
 
             migrationBuilder.InsertData(
                 table: "social_user_role_detail",
@@ -868,6 +895,11 @@ namespace DatabaseAccess.Migrations
                 table: "admin_audit_log",
                 column: "search_vector")
                 .Annotation("Npgsql:IndexMethod", "GIN");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_admin_audit_log_table",
+                table: "admin_audit_log",
+                column: "table");
 
             migrationBuilder.CreateIndex(
                 name: "IX_admin_audit_log_user_id",
@@ -939,6 +971,11 @@ namespace DatabaseAccess.Migrations
                 table: "social_audit_log",
                 column: "search_vector")
                 .Annotation("Npgsql:IndexMethod", "GIN");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_social_audit_log_table",
+                table: "social_audit_log",
+                column: "table");
 
             migrationBuilder.CreateIndex(
                 name: "IX_social_audit_log_user_id",
@@ -1081,6 +1118,17 @@ namespace DatabaseAccess.Migrations
                 name: "IX_social_user_action_with_user_user_id_des",
                 table: "social_user_action_with_user",
                 column: "user_id_des");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_social_user_audit_log_search_vector",
+                table: "social_user_audit_log",
+                column: "search_vector")
+                .Annotation("Npgsql:IndexMethod", "GIN");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_social_user_audit_log_table",
+                table: "social_user_audit_log",
+                column: "table");
 
             migrationBuilder.CreateIndex(
                 name: "IX_social_user_audit_log_user_id",

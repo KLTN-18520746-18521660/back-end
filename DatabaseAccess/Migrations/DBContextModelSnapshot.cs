@@ -262,14 +262,14 @@ namespace DatabaseAccess.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("4a1d3676-0def-4d4e-9da5-2262b8ecb168"),
-                            CreatedTimestamp = new DateTime(2022, 4, 16, 20, 5, 49, 790, DateTimeKind.Utc).AddTicks(5143),
+                            Id = new Guid("6a9507fc-68a3-47c8-9b06-7432c82880aa"),
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 18, 972, DateTimeKind.Utc).AddTicks(4559),
                             DisplayName = "Administrator",
                             Email = "admin@admin",
-                            Salt = "f450c9ba",
+                            Salt = "db2bc2df",
                             SettingsStr = "{}",
                             StatusStr = "Readonly",
-                            StorePassword = "19D6B7A9E29D5CCDB648BC6A3AFCE57A",
+                            StorePassword = "E335512BCF9F4B61EFA4C6208DD24AFB",
                             UserName = "admin"
                         });
                 });
@@ -575,7 +575,7 @@ namespace DatabaseAccess.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = new Guid("4a1d3676-0def-4d4e-9da5-2262b8ecb168"),
+                            UserId = new Guid("6a9507fc-68a3-47c8-9b06-7432c82880aa"),
                             RoleId = 1
                         });
                 });
@@ -818,7 +818,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedTimestamp = new DateTime(2022, 4, 16, 20, 5, 49, 831, DateTimeKind.Utc).AddTicks(4808),
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 12, DateTimeKind.Utc).AddTicks(530),
                             Describe = "This not a bug this a feature",
                             DisplayName = "Technology",
                             Name = "technology",
@@ -828,7 +828,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 2L,
-                            CreatedTimestamp = new DateTime(2022, 4, 16, 20, 5, 49, 831, DateTimeKind.Utc).AddTicks(5358),
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 12, DateTimeKind.Utc).AddTicks(1163),
                             Describe = "Do not click to this",
                             DisplayName = "Developer",
                             Name = "developer",
@@ -838,7 +838,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 3L,
-                            CreatedTimestamp = new DateTime(2022, 4, 16, 20, 5, 49, 831, DateTimeKind.Utc).AddTicks(5710),
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 12, DateTimeKind.Utc).AddTicks(1221),
                             Describe = "Search google to have better solution",
                             DisplayName = "Dicussion",
                             Name = "dicussion",
@@ -848,7 +848,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 4L,
-                            CreatedTimestamp = new DateTime(2022, 4, 16, 20, 5, 49, 831, DateTimeKind.Utc).AddTicks(5745),
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 12, DateTimeKind.Utc).AddTicks(1254),
                             Describe = "Nothing in here",
                             DisplayName = "Blog",
                             Name = "blog",
@@ -858,7 +858,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 5L,
-                            CreatedTimestamp = new DateTime(2022, 4, 16, 20, 5, 49, 831, DateTimeKind.Utc).AddTicks(5780),
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 12, DateTimeKind.Utc).AddTicks(1286),
                             Describe = "Life die have number",
                             DisplayName = "Left",
                             Name = "left",
@@ -1143,7 +1143,6 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("comment_id");
 
                     b.Property<string>("Content")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("content");
 
@@ -1161,6 +1160,14 @@ namespace DatabaseAccess.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("post_id");
 
+                    b.Property<string>("ReportType")
+                        .HasColumnType("text")
+                        .HasColumnName("report_type");
+
+                    b.Property<Guid>("ReporterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reporter_id");
+
                     b.Property<NpgsqlTsVector>("SearchVector")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("tsvector")
@@ -1176,7 +1183,7 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("status")
                         .HasDefaultValueSql("'Pending'");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<Guid?>("UserId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
 
@@ -1212,8 +1219,8 @@ namespace DatabaseAccess.Migrations
 
                     b.Property<string>("Describe")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
                         .HasColumnName("describe");
 
                     b.Property<DateTime?>("LastModifiedTimestamp")
@@ -1253,8 +1260,8 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedTimestamp = new DateTime(2022, 4, 16, 20, 5, 49, 852, DateTimeKind.Utc).AddTicks(7784),
-                            Describe = "Angular",
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2183),
+                            Describe = "Angular is a TypeScript-based open-source web application platform led by the Angular Team at Google and by a community of individuals and corporations. Angular is a complete rewrite from the same team that built AngularJS.",
                             Name = "Angular",
                             StatusStr = "Readonly",
                             Tag = "angular"
@@ -1262,38 +1269,236 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 2L,
-                            CreatedTimestamp = new DateTime(2022, 4, 16, 20, 5, 49, 852, DateTimeKind.Utc).AddTicks(7825),
-                            Describe = "Something is not thing",
-                            Name = "Life die have numder",
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2230),
+                            Describe = "React is a JavaScript library for building user interfaces. It is maintained by Facebook and a community of individual developers and companies. React can be used as a base in the development of single-page or mobile applications.",
+                            Name = "React",
                             StatusStr = "Readonly",
-                            Tag = "life-die-have-number"
+                            Tag = "react"
                         },
                         new
                         {
                             Id = 3L,
-                            CreatedTimestamp = new DateTime(2022, 4, 16, 20, 5, 49, 852, DateTimeKind.Utc).AddTicks(7833),
-                            Describe = "Dot not choose this tag",
-                            Name = "Develop",
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2234),
+                            Describe = "Vue.js is an open-source JavaScript framework for building user interfaces. It is maintained by a community of individual developers and companies. Vue can be used as a base in the development of single-page or mobile applications.",
+                            Name = "Vue",
                             StatusStr = "Readonly",
-                            Tag = "develop"
+                            Tag = "vue"
                         },
                         new
                         {
                             Id = 4L,
-                            CreatedTimestamp = new DateTime(2022, 4, 16, 20, 5, 49, 852, DateTimeKind.Utc).AddTicks(7837),
-                            Describe = "Nothing in here",
-                            Name = "Nothing",
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2238),
+                            Describe = "Angular CLI is a command-line interface for the Angular development platform. It is used to create and manage projects for the Angular framework.",
+                            Name = "Angular CLI",
                             StatusStr = "Readonly",
-                            Tag = "nothing"
+                            Tag = "angular-cli"
                         },
                         new
                         {
                             Id = 5L,
-                            CreatedTimestamp = new DateTime(2022, 4, 16, 20, 5, 49, 852, DateTimeKind.Utc).AddTicks(7856),
-                            Describe = "hi hi",
-                            Name = "HiHi",
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2241),
+                            Describe = "React Native is a framework for building native apps using React. It is maintained by Facebook and a community of individual developers and companies.",
+                            Name = "React Native",
                             StatusStr = "Readonly",
-                            Tag = "hihi"
+                            Tag = "react-native"
+                        },
+                        new
+                        {
+                            Id = 6L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2258),
+                            Describe = "Vue CLI is a command-line interface for the Vue.js development platform. It is used to create and manage projects for the Vue framework.",
+                            Name = "Vue CLI",
+                            StatusStr = "Readonly",
+                            Tag = "vue-cli"
+                        },
+                        new
+                        {
+                            Id = 7L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2262),
+                            Describe = "Webpack is a module bundler that packs multiple modules with dependencies into a single module. It is maintained by a community of individual developers and companies.",
+                            Name = "Webpack",
+                            StatusStr = "Readonly",
+                            Tag = "webpack"
+                        },
+                        new
+                        {
+                            Id = 8L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2266),
+                            Describe = "Gulp is a streaming build system. It is maintained by a community of individual developers and companies.",
+                            Name = "Gulp",
+                            StatusStr = "Readonly",
+                            Tag = "gulp"
+                        },
+                        new
+                        {
+                            Id = 9L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2270),
+                            Describe = "Sass is a stylesheet language that is interpreted into Cascading Style Sheets (CSS). It is maintained by a community of individual developers and companies.",
+                            Name = "Sass",
+                            StatusStr = "Readonly",
+                            Tag = "sass"
+                        },
+                        new
+                        {
+                            Id = 10L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2275),
+                            Describe = "Less is a stylesheet language that is interpreted into Cascading Style Sheets (CSS). It is maintained by a community of individual developers and companies.",
+                            Name = "Less",
+                            StatusStr = "Readonly",
+                            Tag = "less"
+                        },
+                        new
+                        {
+                            Id = 11L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2279),
+                            Describe = "Bootstrap is a free and open-source front-end web framework for designing websites and web applications. It is maintained by a community of individual developers and companies.",
+                            Name = "Bootstrap",
+                            StatusStr = "Readonly",
+                            Tag = "bootstrap"
+                        },
+                        new
+                        {
+                            Id = 12L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2282),
+                            Describe = "Material-UI is a React component library that enables you to create beautiful, high-fidelity, mobile-first experiences. It is maintained by a community of individual developers and companies.",
+                            Name = "Material-UI",
+                            StatusStr = "Readonly",
+                            Tag = "material-ui"
+                        },
+                        new
+                        {
+                            Id = 13L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2285),
+                            Describe = "Material Design is a design language developed by Google. It is used to create a consistent and beautiful user experience across all products on Android, iOS, and the web.",
+                            Name = "Material Design",
+                            StatusStr = "Readonly",
+                            Tag = "material-design"
+                        },
+                        new
+                        {
+                            Id = 14L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2289),
+                            Describe = "Material Icons is a set of open source icons for use in web and mobile applications. It is maintained by a community of individual developers and companies.",
+                            Name = "Material Icons",
+                            StatusStr = "Readonly",
+                            Tag = "material-icons"
+                        },
+                        new
+                        {
+                            Id = 15L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2292),
+                            Describe = "Bootstrap Vue is a Vue.js wrapper for Bootstrap. It is maintained by a community of individual developers and companies.",
+                            Name = "Bootstrap Vue",
+                            StatusStr = "Readonly",
+                            Tag = "bootstrap-vue"
+                        },
+                        new
+                        {
+                            Id = 16L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2296),
+                            Describe = "Vue Router is a routing library for Vue.js. It is maintained by a community of individual developers and companies.",
+                            Name = "Vue Router",
+                            StatusStr = "Readonly",
+                            Tag = "vue-router"
+                        },
+                        new
+                        {
+                            Id = 17L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2300),
+                            Describe = "Vuex is a state management pattern and library for Vue.js applications. It is maintained by a community of individual developers and companies.",
+                            Name = "Vuex",
+                            StatusStr = "Readonly",
+                            Tag = "vuex"
+                        },
+                        new
+                        {
+                            Id = 18L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2305),
+                            Describe = "Vue I18n is a localization library for Vue.js. It is maintained by a community of individual developers and companies.",
+                            Name = "Vue I18n",
+                            StatusStr = "Readonly",
+                            Tag = "vue-i18n"
+                        },
+                        new
+                        {
+                            Id = 19L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2309),
+                            Describe = "Vue Resource is a REST client for Vue.js. It is maintained by a community of individual developers and companies.",
+                            Name = "Vue Resource",
+                            StatusStr = "Readonly",
+                            Tag = "vue-resource"
+                        },
+                        new
+                        {
+                            Id = 20L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2312),
+                            Describe = "Vue Router I18n is a localization library for Vue Router. It is maintained by a community of individual developers and companies.",
+                            Name = "Vue Router I18n",
+                            StatusStr = "Readonly",
+                            Tag = "vue-router-i18n"
+                        },
+                        new
+                        {
+                            Id = 21L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2315),
+                            Describe = ".NET is a programming language and runtime environment developed by Microsoft. It is maintained by a community of individual developers and companies.",
+                            Name = ".NET",
+                            StatusStr = "Readonly",
+                            Tag = "dotnet"
+                        },
+                        new
+                        {
+                            Id = 22L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2319),
+                            Describe = "C# is a programming language and runtime environment developed by Microsoft. It is maintained by a community of individual developers and companies.",
+                            Name = "CSharp",
+                            StatusStr = "Readonly",
+                            Tag = "csharp"
+                        },
+                        new
+                        {
+                            Id = 23L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2322),
+                            Describe = "ASP.NET is a web application framework developed by Microsoft. It is maintained by a community of individual developers and companies.",
+                            Name = "ASP.NET",
+                            StatusStr = "Readonly",
+                            Tag = "aspnet"
+                        },
+                        new
+                        {
+                            Id = 24L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2325),
+                            Describe = "ASP.NET Core is a web application framework developed by Microsoft. It is maintained by a community of individual developers and companies.",
+                            Name = "ASP.NET Core",
+                            StatusStr = "Readonly",
+                            Tag = "aspnet-core"
+                        },
+                        new
+                        {
+                            Id = 25L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2329),
+                            Describe = "Next.js is a JavaScript framework for building web applications. It is maintained by a community of individual developers and companies.",
+                            Name = "Next.js",
+                            StatusStr = "Readonly",
+                            Tag = "nextjs"
+                        },
+                        new
+                        {
+                            Id = 26L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2332),
+                            Describe = "React Router is a routing library for React. It is maintained by a community of individual developers and companies.",
+                            Name = "React Router",
+                            StatusStr = "Readonly",
+                            Tag = "react-router"
+                        },
+                        new
+                        {
+                            Id = 27L,
+                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2335),
+                            Describe = "React Router DOM is a routing library for React. It is maintained by a community of individual developers and companies.",
+                            Name = "React Router DOM",
+                            StatusStr = "Readonly",
+                            Tag = "react-router-dom"
                         });
                 });
 
@@ -2014,8 +2219,7 @@ namespace DatabaseAccess.Migrations
                     b.HasOne("DatabaseAccess.Context.Models.SocialUser", "User")
                         .WithMany("SocialReports")
                         .HasForeignKey("UserId")
-                        .HasConstraintName("FK_social_report_user_id")
-                        .IsRequired();
+                        .HasConstraintName("FK_social_report_user_id");
 
                     b.Navigation("Comment");
 

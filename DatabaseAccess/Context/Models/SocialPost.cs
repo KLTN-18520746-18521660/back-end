@@ -58,31 +58,51 @@ namespace DatabaseAccess.Context.Models
         public int Likes { get =>
             SocialUserActionWithPosts
                 .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithPost.Like,
-                                                                         EntityAction.UserActionWithPost))
+                                                                            EntityAction.UserActionWithPost))
                 );
-            }
+        }
         [NotMapped]
         public int DisLikes { get =>
             SocialUserActionWithPosts
                 .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithPost.Dislike,
-                                                                         EntityAction.UserActionWithPost))
+                                                                            EntityAction.UserActionWithPost))
                 );
-            }
+        }
         [NotMapped]
         public int Comments { get =>
             SocialUserActionWithPosts
                 .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithPost.Comment,
-                                                                         EntityAction.UserActionWithPost))
+                                                                            EntityAction.UserActionWithPost))
                 );
-            }
+        }
         [NotMapped]
-        public string[] Tags { get =>
-                SocialPostTags.Select(e => e.Tag.Tag).ToArray();
-            }
+        public object[] Tags { get =>
+            SocialPostTags
+                .Where(e => e.Tag.StatusStr != BaseStatus.StatusToString(SocialTagStatus.Disabled, EntityStatus.SocialTagStatus))
+                .Select(e => new {
+                    tag = e.Tag.Tag,
+                    name = e.Tag.Name
+                }).ToArray();
+        }
         [NotMapped]
-        public string[] Categories { get =>
-                SocialPostCategories.Select(e => e.Category.Name).ToArray();
-            }
+        public object[] Categories { get =>
+            SocialPostCategories
+                .Where(e => 
+                    e.Category.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus)
+                )
+                .Select(e => new {
+                    name = e.Category.Name,
+                    display_name = e.Category.DisplayName,
+                    slug = e.Category.Slug
+                }).ToArray();
+        }
+        [NotMapped]
+        public int VisitedCount { get =>
+            SocialUserActionWithPosts
+                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithPost.Visited,
+                                                                            EntityAction.UserActionWithPost))
+                );
+        }
         [Required]
         [Column("time_read")]
         public int TimeRead { get; set; }
@@ -95,9 +115,9 @@ namespace DatabaseAccess.Context.Models
             get => BaseStatus.StatusToString(Status, EntityStatus.SocialPostStatus);
             set {
                 Status = BaseStatus.StatusFromString(value, EntityStatus.SocialPostStatus);
-                if (Status == SocialPostStatus.Approved || Status == SocialPostStatus.Private) {
-                    Slug = Utils.GenerateSlug(value, true);
-                } else {
+                if ((Status == SocialPostStatus.Approved || Status == SocialPostStatus.Private) && Slug == string.Empty) {
+                    Slug = Utils.GenerateSlug(this.Title, true);
+                } else if ((Status != SocialPostStatus.Approved && Status != SocialPostStatus.Private) && Slug != string.Empty) {
                     Slug = string.Empty;
                 }
             }
@@ -160,6 +180,7 @@ namespace DatabaseAccess.Context.Models
             SocialPostTags = new HashSet<SocialPostTag>();
             SocialUserActionWithPosts = new HashSet<SocialUserActionWithPost>();
 
+            __ModelName = "SocialPost";
             CreatedTimestamp = DateTime.UtcNow;
             Status = SocialPostStatus.Pending;
         }
@@ -187,14 +208,14 @@ namespace DatabaseAccess.Context.Models
             }
         }
 
-        public JObject GetPublicShortJsonObject()
+        public JObject GetPublicShortJsonObject(Guid SocialUserId = default)
         {
             var ret = new Dictionary<string, object>
             {
                 {
                     "owner",
                     new JObject(){
-                        { "username", this.OwnerNavigation.UserName },
+                        { "user_name", this.OwnerNavigation.UserName },
                         { "display_name", this.OwnerNavigation.DisplayName },
                         { "avatar", this.OwnerNavigation.Avatar },
                         { "status", this.OwnerNavigation.StatusStr },
@@ -210,11 +231,15 @@ namespace DatabaseAccess.Context.Models
                 { "comments", Comments },
                 { "tags", Tags },
                 { "categories", Categories },
+                { "visited_count", VisitedCount },
                 { "short_content", ShortContent },
                 { "status", StatusStr },
                 { "created_timestamp", CreatedTimestamp },
                 { "last_modified_timestamp", LastModifiedTimestamp },
             };
+            if (this.Owner == SocialUserId) {
+                ret.Add("id", this.Id);
+            }
             return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
         }
 
@@ -233,6 +258,7 @@ namespace DatabaseAccess.Context.Models
                     "comments",
                     "tags",
                     "categories",
+                    "visited_count",
                     "content",
                     "thumbnail",
                     "content",
@@ -259,7 +285,7 @@ namespace DatabaseAccess.Context.Models
                 {
                     "owner",
                     new JObject(){
-                        { "username", this.OwnerNavigation.UserName },
+                        { "user_name", this.OwnerNavigation.UserName },
                         { "display_name", this.OwnerNavigation.DisplayName },
                         { "avatar", this.OwnerNavigation.Avatar },
                         { "status", this.OwnerNavigation.StatusStr },
@@ -275,6 +301,7 @@ namespace DatabaseAccess.Context.Models
                 { "comments", Comments },
                 { "tags", Tags },
                 { "categories", Categories },
+                { "visited_count", VisitedCount },
                 { "content", Content },
                 { "content_type", ContenTypeStr },
                 { "short_content", ShortContent },

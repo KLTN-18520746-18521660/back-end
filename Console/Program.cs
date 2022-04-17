@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
@@ -79,6 +80,14 @@ namespace MyConsole
         {
             // PrintPassEncrypt();
             // TestGenerateSlug();
+            Console.WriteLine(new Guid().ToString());
+            Console.WriteLine(new Guid().ToString());
+            Console.WriteLine(new Guid().ToString());
+            Console.WriteLine(Utils.GenerateUserName());
+            // Thread.Sleep(1);
+            Console.WriteLine(Utils.GenerateUserName());
+            // Thread.Sleep(1);
+            Console.WriteLine(Utils.GenerateUserName());
         }
     }
 }

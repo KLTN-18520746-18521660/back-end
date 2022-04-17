@@ -44,6 +44,21 @@ namespace Common
             }
             return (oldObj, newObj);
         }
+        public static (List<T> items, string errMsg) LoadListJsonFromFile<T>(string filePath) where T : class
+        {
+            string errMsg = default;
+            List<T> items = default;
+            var fullPath = CommonValidate.ValidateFilePath(filePath, false, errMsg);
+            if (errMsg != default) {
+                return (items, errMsg);
+            }
+            using (StreamReader r = new StreamReader(fullPath))
+            {
+                string json = r.ReadToEnd();
+                items = JsonConvert.DeserializeObject<List<T>>(json);
+            }
+            return (items, errMsg);
+        }
         public static string RandomString(int StringLen)
         {
             string possibleChar = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -158,8 +173,8 @@ namespace Common
         public static string GenerateUserName()
         {
             string possibleChar = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            var raw = StringDecryptor.Encrypt(new Guid().ToString()).Take(15);
-            var raw2 = RandomString(15);
+            var raw = StringDecryptor.Encrypt(Guid.NewGuid().ToString()).Take(5);
+            var raw2 = RandomString(5);
             var ret = new StringBuilder();
             foreach(var chr in raw) {
                 if (possibleChar.Contains(chr)){

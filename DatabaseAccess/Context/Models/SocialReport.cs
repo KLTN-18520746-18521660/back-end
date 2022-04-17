@@ -20,12 +20,13 @@ namespace DatabaseAccess.Context.Models
         [Column("id")]
         public long Id { get; private set; }
         [Column("user_id")]
-        public Guid UserId { get; set; }
+        public Guid? UserId { get; set; }
         [Column("post_id")]
         public long? PostId { get; set; }
         [Column("comment_id")]
         public long? CommentId { get; set; }
-        [Required]
+        [Column("report_type")]
+        public string ReportType { get; set; }
         [Column("content")]
         public string Content { get; set; }
         [NotMapped]
@@ -37,6 +38,8 @@ namespace DatabaseAccess.Context.Models
             get => BaseStatus.StatusToString(Status, EntityStatus.SocialReportStatus);
             set => Status = BaseStatus.StatusFromString(value, EntityStatus.SocialReportStatus);
         }
+        [Column("reporter_id")]
+        public Guid ReporterId { get; set; }
         [Column("search_vector")]
         public NpgsqlTsVector SearchVector { get; private set; }
         [Column("created_timestamp", TypeName = "timestamp with time zone")]
@@ -68,7 +71,8 @@ namespace DatabaseAccess.Context.Models
                 var parser = (ParserModels.ParserSocialReport)Parser;
                 CommentId = parser.comment_id;
                 Content = parser.content;
-                
+                ReportType = parser.report_type;
+
                 return true;
             } catch (Exception ex) {
                 Error = ex.ToString();

@@ -46,7 +46,7 @@ namespace CoreApi.Controllers.Social.Report
             }
         }
 
-        [HttpPut("{comment_id}")]
+        [HttpPut("user")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]

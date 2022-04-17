@@ -112,10 +112,10 @@ namespace CoreApi.Controllers.Social.Category
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetCategories([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                       [FromServices] SocialCategoryManagement __SocialCategoryManagement,
-                                                       [FromRoute] string category,
-                                                       [FromHeader] string session_token)
+        public async Task<IActionResult> GetCategoriesBySlug([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                             [FromServices] SocialCategoryManagement __SocialCategoryManagement,
+                                                             [FromRoute] string category,
+                                                             [FromHeader] string session_token)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -156,12 +156,12 @@ namespace CoreApi.Controllers.Social.Category
                 #endregion
 
                 SocialCategory findCategory = default;
-                (findCategory, error) = await __SocialCategoryManagement.FindCategoryByName(category);
+                (findCategory, error) = await __SocialCategoryManagement.FindCategoryBySlug(category);
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
                         return Problem(404, "Not found category.");
                     }
-                    throw new Exception($"FindCategoryByName failed, ErrorCode: { error }");
+                    throw new Exception($"FindCategoryBySlug failed, ErrorCode: { error }");
                 }
 
                 var ret = findCategory.GetPublicJsonObject();

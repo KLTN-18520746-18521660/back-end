@@ -12,7 +12,7 @@ namespace DatabaseAccess.Context.Validators
         public readonly int MinTagNameLength = 3;
         public readonly int MaxTagNameLength = 50;
         public readonly int MinTagDescribeLength = 3;
-        public readonly int MaxTagDescribeLength = 100;
+        public readonly int MaxTagDescribeLength = 300;
         public ParserSocialTagValidator()
         {
             RuleFor(entity => entity.tag)

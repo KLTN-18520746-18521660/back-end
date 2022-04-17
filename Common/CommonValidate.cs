@@ -5,7 +5,7 @@ namespace Common
 {
     public class CommonValidate
     {
-        public static string ValidateFilePath(in string FilePath, in bool CreateFileIfNotExist = true, string Error = null)
+        public static string ValidateFilePath(in string FilePath, bool CreateFileIfNotExist = true, string Error = default)
         {
             Error ??= string.Empty;
             if (!System.IO.File.Exists(FilePath)) {
@@ -16,11 +16,11 @@ namespace Common
                         fileCreated.Close();
                     } catch (Exception) { 
                         Error ??= $"Cannot create file. File path: { FilePath }";
-                        return null;
+                        return default;
                     }
                 }
                 Error = $"File not exists. File path: { FilePath }";
-                return null;
+                return default;
             }
             var file = System.IO.File.Open(FilePath, System.IO.FileMode.Append);
             file.Flush();

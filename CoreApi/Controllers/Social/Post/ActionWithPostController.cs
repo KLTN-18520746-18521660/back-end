@@ -58,7 +58,7 @@ namespace CoreApi.Controllers.Social.Post
             }
         }
 
-        [HttpPost("{post_slug}/{action}")]
+        [HttpPost("{post_slug}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
@@ -69,7 +69,7 @@ namespace CoreApi.Controllers.Social.Post
                                                     [FromServices] SocialPostManagement __SocialPostManagement,
                                                     [FromServices] NotificationsManagement __NotificationsManagement,
                                                     [FromRoute] string post_slug,
-                                                    [FromRoute] string action,
+                                                    [FromQuery] string action,
                                                     [FromHeader] string session_token)
         {
             #region Set TraceId for services

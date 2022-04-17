@@ -137,6 +137,16 @@ namespace CoreApi.Controllers.Social.Session
                 #endregion
 
                 LogDebug($"Session extension success, session_token: { session_token.Substring(0, 15) }");
+
+                #region cookie header
+                CookieOptions option = new CookieOptions();
+                option.Expires = session.Saved ? DateTime.UtcNow.AddDays(365) : DateTime.UtcNow.AddMinutes(EXPIRY_TIME);
+                option.Path = "/";
+                option.SameSite = SameSiteMode.Strict;
+
+                Response.Cookies.Append("session_token", session.SessionToken, option);
+                #endregion
+
                 return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");

@@ -34,6 +34,21 @@ namespace CoreApi.Services
                 ErrorCodes.NO_ERROR
             );
         }
+        public async Task<(SocialCategory, ErrorCodes)> FindCategoryBySlug(string CategorySlug, Guid SocialUserId = default)
+        {
+            var category = await __DBContext.SocialCategories
+                    .Where(e => e.Slug == CategorySlug
+                            && e.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus))
+                    .FirstOrDefaultAsync();
+            if (category == default) {
+                return (default, ErrorCodes.NOT_FOUND);
+            }
+
+            if (SocialUserId != default) {
+                // add action visted to social user_action_with_category
+            }
+            return (category, ErrorCodes.NO_ERROR);
+        }
         public async Task<(SocialCategory, ErrorCodes)> FindCategoryByName(string CategoryName, Guid SocialUserId = default)
         {
             var category = await __DBContext.SocialCategories

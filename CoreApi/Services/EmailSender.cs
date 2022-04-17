@@ -12,6 +12,7 @@ using Newtonsoft.Json.Linq;
 using Common;
 using Newtonsoft.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 
 namespace CoreApi.Services
 {
@@ -211,12 +212,12 @@ namespace CoreApi.Services
 
             using (var scope = __ServiceProvider.CreateScope())
             {
-                var __SocialUserManagement = scope.ServiceProvider.GetRequiredService<SocialUserManagement>();
                 var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
 
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                (user, error) = await __SocialUserManagement.FindUserById(UserId);
-                if (error != ErrorCodes.NO_ERROR) {
+                user = await __DBContext.SocialUsers
+                        .Where(e => e.Id == UserId)
+                        .FirstOrDefaultAsync();
+                if (user == default) {
                     LogWarning($"TraceId: { TraceId }, 'SendEmailUserSignUp', Not found user, user_id: { UserId }");
                     return;
                 }

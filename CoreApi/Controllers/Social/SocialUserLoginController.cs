@@ -20,6 +20,7 @@ namespace CoreApi.Controllers.Social
         #region Config Values
         private int NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE;
         private int LOCK_TIME; // minute
+        private int EXPIRY_TIME; // minute
         #endregion
 
         public SocialUserLoginController(BaseConfig _BaseConfig) : base(_BaseConfig)
@@ -35,6 +36,7 @@ namespace CoreApi.Controllers.Social
             try {
                 (NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG, SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE);
                 (LOCK_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG, SUB_CONFIG_KEY.LOCK_TIME);
+                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
@@ -142,7 +144,16 @@ namespace CoreApi.Controllers.Social
                 #endregion
 
                 LogInformation($"User login success user_name: { model.user_name }, isEmail: { isEmail }");
-                Response.Headers.Add("Set-Cookie", $"session_token={ session.SessionToken }; Path=/ SameSite=Strict; Secure");
+
+                #region cookie header
+                CookieOptions option = new CookieOptions();
+                option.Expires = model.remember ? DateTime.UtcNow.AddDays(365) : DateTime.UtcNow.AddMinutes(EXPIRY_TIME);
+                option.Path = "/";
+                option.SameSite = SameSiteMode.Strict;
+
+                Response.Cookies.Append("session_token", session.SessionToken, option);
+                #endregion
+
                 return Ok(200, "OK", new JObject(){
                     { "session_id", session.SessionToken },
                     { "user_id", user.Id },

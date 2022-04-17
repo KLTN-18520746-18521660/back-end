@@ -12,6 +12,7 @@ using DatabaseAccess.Common.Interface;
 using DatabaseAccess.Common.Status;
 using DatabaseAccess.Common;
 using Common;
+using DatabaseAccess.Common.Actions;
 
 
 #nullable disable
@@ -234,6 +235,10 @@ namespace DatabaseAccess.Context.Models
                 { "settings", Settings },
                 { "publics", Publics },
                 { "ranks", Ranks },
+                { "followers", CountFollowers() },
+                { "posts", CountPosts() },
+                { "views", CountViews() },
+                { "likes", CountLikes() },
                 { "last_access_timestamp", LastAccessTimestamp },
                 { "created_timestamp", CreatedTimestamp },
 #if DEBUG
@@ -275,10 +280,49 @@ namespace DatabaseAccess.Context.Models
                 "status",
                 "ranks",
                 "publics",
+                "followers",
+                "posts",
+                "views",
+                "likes",
             };
         }
 
         #region Handle default data
+        public long CountPosts()
+        {
+            return SocialPosts.Count();
+        }
+
+        public long CountLikes()
+        {
+            return SocialPosts
+                .Sum(
+                    e => e.SocialUserActionWithPosts
+                        .LongCount(ac => EF.Functions.JsonExists(ac.ActionsStr,
+                                BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost))
+                        )
+                );
+        }
+
+        public long CountViews()
+        {
+            return SocialPosts.Sum(e => e.Views);
+        }
+
+        public long CountFollowing()
+        {
+            return SocialUserActionWithUserUsers
+                .LongCount(e => EF.Functions.JsonExists(e.ActionsStr,
+                                BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)));
+        }
+
+        public long CountFollowers()
+        {
+            return SocialUserActionWithUserUserIdDesNavigations
+                .LongCount(e => EF.Functions.JsonExists(e.ActionsStr,
+                                BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)));
+        }
+
         public List<string> GetRoles()
         {
             return SocialUserRoleOfUsers.Select(e => e.Role.RoleName).ToList();

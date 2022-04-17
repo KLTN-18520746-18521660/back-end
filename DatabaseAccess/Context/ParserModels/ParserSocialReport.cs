@@ -15,6 +15,7 @@ namespace DatabaseAccess.Context.ParserModels
         public string user_name { get; set; }
         public string post_slug { get; set; }
         public long comment_id { get; set; }
+        public string report_type { get; set; }
         public string content { get; set; }
     }
 }

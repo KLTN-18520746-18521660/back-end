@@ -10,6 +10,7 @@ using DatabaseAccess.Common.Interface;
 using DatabaseAccess.Common.Status;
 using Newtonsoft.Json.Linq;
 using System.Linq;
+using Common;
 
 #nullable disable
 
@@ -31,7 +32,7 @@ namespace DatabaseAccess.Context.Models
         public string Name { get; set; }
         [Required]
         [Column("describe")]
-        [StringLength(100)]
+        [StringLength(300)]
         public string Describe { get; set; }
         [NotMapped]
         public int Status { get; set; }
@@ -120,56 +121,31 @@ namespace DatabaseAccess.Context.Models
             return action != default ? action.Actions.ToArray() : new string[]{};
         }
 
+        public class SocialTagSeed
+        {
+            public long id { get; set; }
+            public string tag { get; set; }
+            public string name { get; set; }
+            public string describe { get; set; }
+        }
         public static List<SocialTag> GetDefaultData()
         {
-            List<SocialTag> ListData = new()
-            {
-                new SocialTag
+            List<SocialTag> ListData = new();
+            var (listDataSeed, errMsg) = Utils.LoadListJsonFromFile<SocialTagSeed>(@"..\DatabaseAccess\Context\DataSeed\SocialTag.json");
+            if (listDataSeed == default) {
+                throw new Exception($"GetDefaultData for SocialTag failed, error: { errMsg }");
+            }
+            listDataSeed.ForEach(e => {
+                ListData.Add(new SocialTag
                 {
-                    Id = 1,
-                    Tag = "angular",
-                    Name = "Angular",
-                    Describe = "Angular",
+                    Id = e.id,
+                    Tag = e.tag,
+                    Name = e.name,
+                    Describe = e.describe,
                     CreatedTimestamp = DateTime.UtcNow,
                     Status = SocialCategoryStatus.Readonly
-                },
-                new SocialTag
-                {
-                    Id = 2,
-                    Tag = "life-die-have-number",
-                    Name = "Life die have numder",
-                    Describe = "Something is not thing",
-                    CreatedTimestamp = DateTime.UtcNow,
-                    Status = SocialCategoryStatus.Readonly
-                },
-                new SocialTag
-                {
-                    Id = 3,
-                    Tag = "develop",
-                    Name = "Develop",
-                    Describe = "Dot not choose this tag",
-                    CreatedTimestamp = DateTime.UtcNow,
-                    Status = SocialCategoryStatus.Readonly
-                },
-                new SocialTag
-                {
-                    Id = 4,
-                    Tag = "nothing",
-                    Name = "Nothing",
-                    Describe = "Nothing in here",
-                    CreatedTimestamp = DateTime.UtcNow,
-                    Status = SocialCategoryStatus.Readonly
-                },
-                new SocialTag
-                {
-                    Id = 5,
-                    Tag = "hihi",
-                    Name = "HiHi",
-                    Describe = "hi hi",
-                    CreatedTimestamp = DateTime.UtcNow,
-                    Status = SocialCategoryStatus.Readonly
-                }
-            };
+                });
+            });
             return ListData;
         }
     }

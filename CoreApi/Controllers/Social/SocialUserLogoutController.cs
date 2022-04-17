@@ -123,6 +123,16 @@ namespace CoreApi.Controllers.Social
                 #endregion
 
                 LogInformation($"Logout success, user_name: { user.UserName }, session_token: { session_token.Substring(0, 15) }");
+
+                #region cookie header
+                CookieOptions option = new CookieOptions();
+                option.Expires = new DateTime(1970, 1, 1, 0, 0, 0);
+                option.Path = "/";
+                option.SameSite = SameSiteMode.Strict;
+
+                Response.Cookies.Append("session_token", session.SessionToken, option);
+                #endregion
+
                 return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
