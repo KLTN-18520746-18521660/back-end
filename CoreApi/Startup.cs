@@ -27,6 +27,7 @@ using System.Reflection;
 using System.Threading.Channels;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.AspNetCore.Http;
 
 namespace CoreApi
 {
@@ -216,6 +217,17 @@ namespace CoreApi
                     builder.WithHeaders(Program.AllowHeaders.ToArray());
                 }
             });
+
+            app.Use(async (context, next) => {
+                await next();
+                if (context.Response.StatusCode == 404 && !Path.HasExtension(context.Request.Path.Value)) {
+                    context.Request.Path = "/index.html";
+                    await next();
+                }
+            });
+
+            app.UseDefaultFiles();
+            app.UseStaticFiles();
             app.UseEndpoints(endpoints => {
                 endpoints.MapControllers();
             });
