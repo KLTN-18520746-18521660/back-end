@@ -109,6 +109,9 @@ namespace CoreApi.Services
 
         private bool ChangeGateLimit(int value)
         {
+            if (value == __GateLimit) {
+                return true;
+            }
             int diff = Math.Abs(value - __GateLimit);
             if (diff == 0 || value < 1) {
                 return false;

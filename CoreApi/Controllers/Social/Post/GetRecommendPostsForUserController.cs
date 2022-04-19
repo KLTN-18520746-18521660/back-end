@@ -171,7 +171,7 @@ namespace CoreApi.Controllers.Social.Post
                     ret.Add(obj);
                 });
 
-                return Ok(200, "Ok", new JObject(){
+                return Ok(200, "OK", new JObject(){
                     { "posts", Utils.ObjectToJsonToken(ret) },
                     { "total_size", totalSize },
                 });

@@ -99,7 +99,7 @@ namespace CoreApi.Controllers.Social.Category
                 });
 
                 LogDebug("GetCategories success.");
-                return Ok(200, "Ok", new JObject(){
+                return Ok(200, "OK", new JObject(){
                     { "categories", Utils.ObjectToJsonToken(ret) },
                 });
             } catch (Exception e) {
@@ -170,7 +170,7 @@ namespace CoreApi.Controllers.Social.Category
                 }
 
                 LogDebug("GetCategories success.");
-                return Ok(200, "Ok", new JObject(){
+                return Ok(200, "OK", new JObject(){
                     { "category", Utils.ObjectToJsonToken(ret) },
                 });
             } catch (Exception e) {

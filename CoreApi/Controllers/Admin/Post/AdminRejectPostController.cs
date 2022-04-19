@@ -190,7 +190,7 @@ namespace CoreApi.Controllers.Admin.Post
                         PostId = post.Id,
                     }
                 );
-                return Ok(200, "Ok");
+                return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");

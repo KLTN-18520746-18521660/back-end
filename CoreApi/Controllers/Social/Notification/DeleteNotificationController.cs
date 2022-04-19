@@ -151,7 +151,7 @@ namespace CoreApi.Controllers.Social.Notification
                     throw new Exception($"DeleteNotification Failed. ErrorCode: { error }");
                 }
 
-                return Ok(200, "Ok");
+                return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");

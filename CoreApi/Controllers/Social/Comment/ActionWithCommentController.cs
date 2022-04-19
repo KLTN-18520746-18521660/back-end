@@ -130,6 +130,9 @@ namespace CoreApi.Controllers.Social.Comment
                 }
                 #endregion
 
+                if (await __SocialCommentManagement.IsContainsAction(comment_id, session.UserId, action)) {
+                    return Problem(400, $"User already { action } this comment.");
+                }
                 NotificationSenderAction notificationAction = NotificationSenderAction.INVALID_ACTION;
                 switch (action) {
                     case "like":
@@ -153,14 +156,16 @@ namespace CoreApi.Controllers.Social.Comment
                     throw new Exception($"{ action } comment Failed, ErrorCode: { error }");
                 }
 
-                await __NotificationsManagement.SendNotification(
-                    NotificationType.ACTION_WITH_POST,
-                    new PostNotificationModel(notificationAction){
-                        PostId = comment.PostId
-                    }
-                );
+                if (notificationAction != NotificationSenderAction.INVALID_ACTION) {
+                    await __NotificationsManagement.SendNotification(
+                        NotificationType.ACTION_WITH_POST,
+                        new PostNotificationModel(notificationAction){
+                            PostId = comment.PostId
+                        }
+                    );
+                }
 
-                return Ok(200, "Ok");
+                return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");

@@ -167,7 +167,7 @@ namespace CoreApi.Controllers.Admin.Post
                 #endregion
 
                 LogInformation($"FindPostById success, post_id: { post_id }");
-                return Ok(200, "Ok", new JObject(){
+                return Ok(200, "OK", new JObject(){
                     { "post", post.GetJsonObject() }
                 });
             } catch (Exception e) {

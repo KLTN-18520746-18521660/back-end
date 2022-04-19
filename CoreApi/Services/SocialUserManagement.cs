@@ -316,7 +316,14 @@ namespace CoreApi.Services
         #endregion
 
         
-        #region Category action
+        #region User action
+        public async Task<bool> IsContainsAction(Guid userId, Guid socialUserId, string actionStr)
+        {
+            var action = await __DBContext.SocialUserActionWithUsers
+                .Where(e => e.UserIdDes == userId && e.UserId == socialUserId)
+                .FirstOrDefaultAsync();
+            return action != default ? action.Actions.Contains(actionStr) : false;
+        }
         protected async Task<ErrorCodes> AddAction(Guid userId, Guid socialUserId, string actionStr)
         {
             var action = await __DBContext.SocialUserActionWithUsers

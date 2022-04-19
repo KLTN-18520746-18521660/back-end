@@ -115,7 +115,7 @@ namespace CoreApi.Controllers.Social.Tag
                 });
 
                 LogDebug("GetTags success.");
-                return Ok(200, "Ok", new JObject(){
+                return Ok(200, "OK", new JObject(){
                     { "tags", Utils.ObjectToJsonToken(ret) },
                     { "total_size", totalSize },
                 });
@@ -192,7 +192,7 @@ namespace CoreApi.Controllers.Social.Tag
                 }
 
                 LogDebug("GetTagByName success.");
-                return Ok(200, "Ok", new JObject(){
+                return Ok(200, "OK", new JObject(){
                     { "tag", Utils.ObjectToJsonToken(ret) },
                 });
             } catch (Exception e) {

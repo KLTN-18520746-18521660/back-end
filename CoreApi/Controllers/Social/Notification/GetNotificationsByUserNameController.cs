@@ -180,7 +180,7 @@ namespace CoreApi.Controllers.Social.Notification
                     ret.Add(obj);
                 });
 
-                return Ok(200, "Ok", new JObject(){
+                return Ok(200, "OK", new JObject(){
                     { "notifications", Utils.ObjectToJsonToken(ret) },
                     { "total_size", totalSize },
                 });

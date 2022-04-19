@@ -131,6 +131,10 @@ namespace CoreApi.Controllers.Social.Post
                     throw new Exception($"FindPostBySlug failed, ErrorCode: { error }");
                 }
                 #endregion
+
+                if (await __SocialPostManagement.IsContainsAction(post.Id, session.UserId, action)) {
+                    return Problem(400, $"User already { action } this post.");
+                }
                 NotificationSenderAction notificationAction = NotificationSenderAction.INVALID_ACTION;
                 switch (action) {
                     case "like":
@@ -167,14 +171,16 @@ namespace CoreApi.Controllers.Social.Post
                 }
 
                 LogDebug($"Action with post ok, action: { action }, user_id: { session.UserId }");
-                await __NotificationsManagement.SendNotification(
-                    NotificationType.ACTION_WITH_POST,
-                    new PostNotificationModel(notificationAction){
-                        PostId = post.Id,
-                    }
-                );
+                if (notificationAction != NotificationSenderAction.INVALID_ACTION) {
+                    await __NotificationsManagement.SendNotification(
+                        NotificationType.ACTION_WITH_POST,
+                        new PostNotificationModel(notificationAction){
+                            PostId = post.Id,
+                        }
+                    );
+                }
 
-                return Ok(200, "Ok");
+                return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");

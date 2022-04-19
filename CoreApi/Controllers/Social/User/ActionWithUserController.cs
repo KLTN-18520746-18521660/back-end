@@ -125,10 +125,14 @@ namespace CoreApi.Controllers.Social.User
                     throw new Exception($"FindUser failed, ErrorCode: { error }, user_name: { user_name }");
                 }
                 #endregion
+                if (await __SocialUserManagement.IsContainsAction(user_des.Id, session.UserId, action)) {
+                    return Problem(400, $"User already { action } this user.");
+                }
                 NotificationSenderAction notificationAction = NotificationSenderAction.INVALID_ACTION;
                 switch (action) {
                     case "follow":
                         error = await __SocialUserManagement.Follow(user_des.Id, session.UserId);
+                        notificationAction = NotificationSenderAction.FOLLOW_USER;
                         break;
                     case "unfollow":
                         error = await __SocialUserManagement.UnFollow(user_des.Id, session.UserId);
@@ -142,14 +146,16 @@ namespace CoreApi.Controllers.Social.User
                 }
 
                 LogDebug($"Action with post ok, action: { action }, user_id: { session.UserId }");
-                await __NotificationsManagement.SendNotification(
-                    NotificationType.ACTION_WITH_USER,
-                    new UserNotificationModel(notificationAction){
-                        UserId = user_des.Id
-                    }
-                );
+                if (notificationAction != NotificationSenderAction.INVALID_ACTION) {
+                    await __NotificationsManagement.SendNotification(
+                        NotificationType.ACTION_WITH_USER,
+                        new UserNotificationModel(notificationAction){
+                            UserId = user_des.Id
+                        }
+                    );
+                }
 
-                return Ok(200, "Ok");
+                return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");

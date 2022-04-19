@@ -190,7 +190,7 @@ namespace CoreApi.Controllers.Social.Post
                 );
 
                 LogInformation($"DeletedPost success, post_id: { post_id }");
-                return Ok(200, "Ok");
+                return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");

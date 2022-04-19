@@ -124,6 +124,9 @@ namespace CoreApi.Controllers.Social.Tag
                 }
                 #endregion
 
+                if (await __SocialTagManagement.IsContainsAction(findTag.Id, session.UserId, action)) {
+                    return Problem(400, $"User already { action } this tag.");
+                }
                 switch (action) {
                     case "follow":
                         error = await __SocialTagManagement.Follow(findTag.Id, session.UserId);
@@ -139,7 +142,7 @@ namespace CoreApi.Controllers.Social.Tag
                     throw new Exception($"{ action } tag Failed, ErrorCode: { error }");
                 }
 
-                return Ok(200, "Ok");
+                return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");

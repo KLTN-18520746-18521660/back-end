@@ -220,7 +220,10 @@ namespace CoreApi
 
             app.Use(async (context, next) => {
                 await next();
-                if (context.Response.StatusCode == 404 && !Path.HasExtension(context.Request.Path.Value)) {
+                if ((context.Response.StatusCode == 404
+                    || context.Response.StatusCode == 405)
+                    && !Path.HasExtension(context.Request.Path.Value)
+                ) {
                     context.Request.Path = "/index.html";
                     await next();
                 }

@@ -123,6 +123,9 @@ namespace CoreApi.Controllers.Social.Post
                     throw new Exception($"FindCategoryByName failed, ErrorCode: { error }");
                 }
 
+                if (await __SocialCategoryManagement.IsContainsAction(findCategory.Id, session.UserId, action)) {
+                    return Problem(400, $"User already { action } this category.");
+                }
                 switch (action) {
                     case "follow":
                         error = await __SocialCategoryManagement.Follow(findCategory.Id, session.UserId);
@@ -138,7 +141,7 @@ namespace CoreApi.Controllers.Social.Post
                     throw new Exception($"{ action } category Failed, ErrorCode: { error }");
                 }
 
-                return Ok(200, "Ok");
+                return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");

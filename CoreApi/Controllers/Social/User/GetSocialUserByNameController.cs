@@ -101,7 +101,7 @@ namespace CoreApi.Controllers.Social.User
 
                 var ret = (session != default && session.User.Id == user.Id) ? user.GetJsonObject() : user.GetPublicJsonObject();
 
-                return Ok(200, "Ok", new JObject(){
+                return Ok(200, "OK", new JObject(){
                     { "user", ret },
                 });
             } catch (Exception e) {

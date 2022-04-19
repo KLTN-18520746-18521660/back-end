@@ -127,6 +127,13 @@ namespace CoreApi.Services
         }
 
         #region Tag action
+        public async Task<bool> IsContainsAction(long tagId, Guid socialUserId, string actionStr)
+        {
+            var action = await __DBContext.SocialUserActionWithTags
+                .Where(e => e.TagId == tagId && e.UserId == socialUserId)
+                .FirstOrDefaultAsync();
+            return action != default ? action.Actions.Contains(actionStr) : false;
+        }
         protected async Task<ErrorCodes> AddAction(long tagId, Guid socialUserId, string actionStr)
         {
             var action = await __DBContext.SocialUserActionWithTags
