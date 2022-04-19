@@ -140,6 +140,7 @@ namespace CoreApi.Controllers.Social.Session
                 LogInformation($"Get info user by apikey success, user_name: { user.UserName }");
                 return Ok(200, "OK", new JObject(){
                     { "user", user.GetJsonObject() },
+                    { "session", session.GetJsonObject() },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");

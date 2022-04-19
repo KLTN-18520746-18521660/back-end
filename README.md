@@ -124,3 +124,5 @@ CREATE DATABASE "cachec_db";
 - Linux (Ubuntu)
 	- get publish file by wsl:
 	> wsl -- cd /mnt/d/doc/unv/Thesis/back-end/CoreApi `&`& dotnet publish --configuration Release -o ./tmp/publish
+	- reload service
+	> cp appsettings.json publish && sudo systemctl restart kltn.service
