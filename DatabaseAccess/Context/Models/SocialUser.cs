@@ -288,38 +288,38 @@ namespace DatabaseAccess.Context.Models
         }
 
         #region Handle default data
-        public long CountPosts()
+        public int CountPosts()
         {
             return SocialPosts.Count();
         }
 
-        public long CountLikes()
+        public int CountLikes()
         {
             return SocialPosts
                 .Sum(
                     e => e.SocialUserActionWithPosts
-                        .LongCount(ac => ac.ActionsStr.Contains(
+                        .Count(ac => EF.Functions.JsonExists(ac.ActionsStr,
                                 BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost))
                         )
                 );
         }
 
-        public long CountViews()
+        public int CountViews()
         {
             return SocialPosts.Sum(e => e.Views);
         }
 
-        public long CountFollowing()
+        public int CountFollowing()
         {
             return SocialUserActionWithUserUsers
-                .LongCount(e => EF.Functions.JsonExists(e.ActionsStr,
+                .Count(e => EF.Functions.JsonExists(e.ActionsStr,
                                 BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)));
         }
 
-        public long CountFollowers()
+        public int CountFollowers()
         {
             return SocialUserActionWithUserUserIdDesNavigations
-                .LongCount(e => EF.Functions.JsonExists(e.ActionsStr,
+                .Count(e => EF.Functions.JsonExists(e.ActionsStr,
                                 BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)));
         }
 
