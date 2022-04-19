@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CoreApi.Controllers.Social.Session
+namespace CoreApi.Controllers.Social.User
 {
     [ApiController]
     [Route("/api/user")]
