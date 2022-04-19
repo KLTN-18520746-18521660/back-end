@@ -24,6 +24,7 @@ namespace DatabaseAccess.Context.Models
         SOCIAL_USER_CONFIRM_CONFIG = 6,
         UI_CONFIG = 7,
         PUBLIC_CONFIG = 8,
+        UPLOAD_FILE_CONFIG = 9,
     }
 
     public enum SUB_CONFIG_KEY
@@ -39,6 +40,8 @@ namespace DatabaseAccess.Context.Models
         NUMBER_OF_TIMES_ALLOW_CONFIRM_FAILURE = 7,
         PREFIX_URL = 8,
         HOST_NAME = 9,
+        MAX_LENGTH_OF_SINGLE_FILE = 10,
+        MAX_LENGTH_OF_MULTIPLE_FILE = 11,
     }
 
     public static class DefaultBaseConfig
@@ -73,11 +76,18 @@ namespace DatabaseAccess.Context.Models
             { "prefix_url", "/auth/confirm-account"},
             { "host_name", "http://localhost:4200" },
         };
+        public static readonly Dictionary<string, object> UploadFileConfig = new() {
+            { "max_len_of_multi_file", 5242880 }, // byte ~ 5MB
+            { "max_len_of_single_file", 52428800 }, // byte ~ 50MB
+        };
         public static readonly Dictionary<string, object> UIConfig = new() {};
         public static readonly Dictionary<string, object> PublicConfig = new() {
             // { "UIConfig", "all" } --> mean all config in 'UIConfig' is public
             // { "EmailClientConfig", "limit_sender" } --> mean 'limit_sender' in 'EmailClientConfig' is public config
-            { ConfigKeyToString(CONFIG_KEY.UI_CONFIG), SubConfigKeyToString(SUB_CONFIG_KEY.ALL) }
+            { ConfigKeyToString(CONFIG_KEY.UI_CONFIG), SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
+            { ConfigKeyToString(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG), SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
+            { ConfigKeyToString(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG), SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
+            { ConfigKeyToString(CONFIG_KEY.UPLOAD_FILE_CONFIG), SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
         };
         #endregion
         public static JObject GetConfig(CONFIG_KEY ConfigKey, string Error = default)
@@ -100,6 +110,8 @@ namespace DatabaseAccess.Context.Models
                     return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(UIConfig));
                 case CONFIG_KEY.PUBLIC_CONFIG:
                     return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(PublicConfig));
+                case CONFIG_KEY.UPLOAD_FILE_CONFIG:
+                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(UploadFileConfig));
                 default:
                     Error ??= "Invalid config key.";
                     return new JObject();
@@ -125,6 +137,8 @@ namespace DatabaseAccess.Context.Models
                     return CONFIG_KEY.UI_CONFIG;
                 case "PublicConfig":
                     return CONFIG_KEY.PUBLIC_CONFIG;
+                case "UploadFileConfig":
+                    return CONFIG_KEY.UPLOAD_FILE_CONFIG;
                 default:
                     Error ??= "Invalid config key.";
                     return CONFIG_KEY.INVALID;
@@ -150,6 +164,8 @@ namespace DatabaseAccess.Context.Models
                     return "UIConfig";
                 case CONFIG_KEY.PUBLIC_CONFIG:
                     return "PublicConfig";
+                case CONFIG_KEY.UPLOAD_FILE_CONFIG:
+                    return "UploadFileConfig";
                 default:
                     Error ??= "Invalid config key.";
                     return "Invalid config key.";
@@ -179,6 +195,10 @@ namespace DatabaseAccess.Context.Models
                     return SUB_CONFIG_KEY.PREFIX_URL;
                 case "host_name":
                     return SUB_CONFIG_KEY.HOST_NAME;
+                case "max_len_of_multi_file":
+                    return SUB_CONFIG_KEY.MAX_LENGTH_OF_MULTIPLE_FILE;
+                case "max_len_of_single_file":
+                    return SUB_CONFIG_KEY.MAX_LENGTH_OF_SINGLE_FILE;
                 default:
                     Error ??= "Invalid sub config key.";
                     return SUB_CONFIG_KEY.INVALID;
@@ -208,6 +228,10 @@ namespace DatabaseAccess.Context.Models
                     return "prefix_url";
                 case SUB_CONFIG_KEY.HOST_NAME:
                     return "host_name";
+                case SUB_CONFIG_KEY.MAX_LENGTH_OF_MULTIPLE_FILE:
+                    return "max_len_of_multi_file";
+                case SUB_CONFIG_KEY.MAX_LENGTH_OF_SINGLE_FILE:
+                    return "max_len_of_single_file";
                 default:
                     Error ??= "Invalid sub config key.";
                     return "Invalid sub config key.";

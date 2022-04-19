@@ -28,6 +28,7 @@ using System.Threading.Channels;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.FileProviders;
 
 namespace CoreApi
 {
@@ -72,7 +73,7 @@ namespace CoreApi
             services
                 .AddDbContext<DBContext>(o => {
                     o.LogTo((string msg) => {
-                        if (!Program.ShowSQLCommandInLog && msg.Contains("Microsoft.EntityFrameworkCore.Database.Command")) {
+                        if (!Program.ServerConfiguration.ShowSQLCommandInLog && msg.Contains("Microsoft.EntityFrameworkCore.Database.Command")) {
                             return;
                         }
                         string level = msg.TrimStart().Substring(0, 1);
@@ -97,6 +98,7 @@ namespace CoreApi
                     .AddTransient<SessionAdminUserManagement>()
                     .AddTransient<SocialPostManagement>()
                     .AddTransient<SocialCategoryManagement>()
+                    .AddTransient<SocialCommentManagement>()
                     .AddTransient<SocialReportManagement>()
                     .AddTransient<SocialTagManagement>()
                     .AddTransient<SocialUserManagement>()
@@ -136,16 +138,28 @@ namespace CoreApi
                         Url = new Uri("https://github.com/KLTN-18520746-18521660/back-end"),
                     },
                 });
-                c.SwaggerDoc("testing", new OpenApiInfo {
+                c.SwaggerDoc("upload", new OpenApiInfo {
                     Title = "CoreApi",
                     Version = "v1",
-                    Description = "Api testing blog. (KLTN-UIT-18520746-18521660)",
+                    Description = "CoreApi for upload file. (KLTN-UIT-18520746-18521660)",
                     Contact = new OpenApiContact {
                         Name = "KLTN-UIT-18520746-18521660",
                         Email = "18520746@gm.uit.edu.vn",
                         Url = new Uri("https://github.com/KLTN-18520746-18521660/back-end"),
                     },
                 });
+#if DEBUG
+                c.SwaggerDoc("test", new OpenApiInfo {
+                    Title = "CoreApi",
+                    Version = "v1",
+                    Description = "Api test blog. (KLTN-UIT-18520746-18521660)",
+                    Contact = new OpenApiContact {
+                        Name = "KLTN-UIT-18520746-18521660",
+                        Email = "18520746@gm.uit.edu.vn",
+                        Url = new Uri("https://github.com/KLTN-18520746-18521660/back-end"),
+                    },
+                });
+#endif
                 // Set the comments path for the Swagger JSON and UI.
                 var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
@@ -179,7 +193,10 @@ namespace CoreApi
                 app.UseSwaggerUI(c => {
                     c.SwaggerEndpoint("/swagger/admin/swagger.json", "CoreApi - Admin");
                     c.SwaggerEndpoint("/swagger/social/swagger.json", "CoreApi - Social");
-                    c.SwaggerEndpoint("/swagger/testing/swagger.json", "CoreApi - Testing");
+                    c.SwaggerEndpoint("/swagger/upload/swagger.json", "CoreApi - Upload");
+#if DEBUG
+                    c.SwaggerEndpoint("/swagger/test/swagger.json", "CoreApi - Testing");
+#endif
 
                     c.DefaultModelsExpandDepth(-1);
                     c.RoutePrefix = Program.SwaggerDocumentConfiguration.Path.Remove(0, 1);
@@ -201,7 +218,7 @@ namespace CoreApi
             app.UseRouting();
             app.UseCors(builder =>
             {
-                if (Program.DisableCORS) {
+                if (Program.ServerConfiguration.DisableCORS) {
                     builder.AllowAnyHeader();
                     builder.AllowAnyMethod();
                     builder.AllowAnyOrigin();
@@ -211,7 +228,7 @@ namespace CoreApi
                     {
                         return
                             Program.ListeningAddress.Contains(origin) ||
-                            Program.HostName == origin;
+                            Program.ServerConfiguration.HostName == origin;
                     });
                     builder.WithMethods(Program.AllowMethods.ToArray());
                     builder.WithHeaders(Program.AllowHeaders.ToArray());
@@ -223,6 +240,9 @@ namespace CoreApi
                 if ((context.Response.StatusCode == 404
                     || context.Response.StatusCode == 405)
                     && !Path.HasExtension(context.Request.Path.Value)
+#if DEBUG
+                    && !context.Request.Path.Value.StartsWith(Program.ServerConfiguration.PrefixPathGetUploadFile)
+#endif
                 ) {
                     context.Request.Path = "/index.html";
                     await next();
@@ -234,6 +254,20 @@ namespace CoreApi
             app.UseEndpoints(endpoints => {
                 endpoints.MapControllers();
             });
+
+            var fileProvider = new PhysicalFileProvider(Program.ServerConfiguration.UploadFilePath);
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = fileProvider,
+                RequestPath = Program.ServerConfiguration.PrefixPathGetUploadFile
+            });
+#if DEBUG
+            app.UseDirectoryBrowser(new DirectoryBrowserOptions
+            {
+                FileProvider = fileProvider,
+                RequestPath = Program.ServerConfiguration.PrefixPathGetUploadFile
+            });
+#endif
         }
         private void OnStarted()
         {

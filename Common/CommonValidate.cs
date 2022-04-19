@@ -18,33 +18,35 @@ namespace Common
                         Error ??= $"Cannot create file. File path: { FilePath }";
                         return default;
                     }
+                } else {
+                    Error = $"File not exists. File path: { FilePath }";
+                    return default;
                 }
-                Error = $"File not exists. File path: { FilePath }";
-                return default;
             }
             var file = System.IO.File.Open(FilePath, System.IO.FileMode.Append);
             file.Flush();
             file.Close();
             return System.IO.Path.GetFullPath(FilePath);
         }
-        public static string ValidateDirectoryPath(in string DirPath, in bool CreatePathIfNotExist = true, string Error = null)
+        public static string ValidateDirectoryPath(in string DirPath, in bool CreatePathIfNotExist = true, string Error = default)
         {
             Error ??= string.Empty;
             if (!System.IO.Directory.Exists(DirPath)) {
                 if (CreatePathIfNotExist) {
                     try {
-                        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(DirPath));
+                        System.IO.Directory.CreateDirectory(System.IO.Path.GetFullPath(DirPath));
                     } catch (Exception) {
                         Error ??= $"Cannot create directory. Directory: { DirPath }";
-                        return null;
+                        return default;
                     }
+                } else {
+                    Error ??= $"Directory path not exists. Directory: { DirPath }";
+                    return default;
                 }
-                Error ??= $"Directory path not exists. Directory: { DirPath }";
-                return null;
             }
             return System.IO.Path.GetFullPath(DirPath);
         }
-        public static bool ValidatePort(in string Port, string Error = null)
+        public static bool ValidatePort(in string Port, string Error = default)
         {
             Error ??= string.Empty;
             if (Regex.IsMatch(Port, "^[0-9]{0,5}$")) {

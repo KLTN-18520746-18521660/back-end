@@ -11,23 +11,22 @@ using System.Collections.Generic;
 
 namespace CoreApi
 {
-    static class ConfigurationDefaultVariable
-    {
-        public static readonly string CONFIG_FILE_PATH = "./appsettings.json";
-        public static readonly int PORT = 7005;
-        // [INFO] Password default of certificate
-        public static readonly string PASSWORD_CERTIFICATE = "Ndh90768";
-        public static readonly string LOG_FILE_FORMAT = "./tmp/logs/CoreApi.log";
-        public static readonly string LOG_TEMPLATE = "{Timestamp:yyyy-MM-dd HH:mm:ss zzz} [{Level:u3}] ({ThreadId}) {EscapedMessage}{NewLine}{EscapedException}";
-        public static readonly string TMP_FOLDER = "./tmp";
-    }
-
     struct DatabaseAccessConfiguration {
         public string Host { get; set; }
         public string Port { get; set; }
         public string User { get; set; }
         public string Password { get; set; }
         public string DBName { get; set; }
+        public static DatabaseAccessConfiguration DefaultDatabaseAccessConfiguration { get {
+                var ret = new DatabaseAccessConfiguration();
+                ret.Host = "localhost";
+                ret.Port = "5432";
+                ret.User = "postgres";
+                ret.Password = "a";
+                ret.DBName = "db_vip_pro";
+                return ret;
+            }
+        }
     }
 
     public struct EmailClientConfiguration {
@@ -36,6 +35,17 @@ namespace CoreApi
         public string User { get; set; }
         public string Password { get; set; }
         public bool EnableSSL { get; set; }
+
+        public static EmailClientConfiguration DefaultEmailClientConfiguration { get {
+                var ret = new EmailClientConfiguration();
+                ret.Host = "";
+                ret.Port = "";
+                ret.User = "";
+                ret.Password = "";
+                ret.EnableSSL = false;
+                return ret;
+            }
+        }
     }
 
     public struct SwaggerDocumentConfiguration {
@@ -43,182 +53,242 @@ namespace CoreApi
         public string Username { get; set; }
         public string Password { get; set; }
         public string Path { get; set; }
+
+        public static SwaggerDocumentConfiguration DefaultSwaggerDocumentConfiguration { get {
+                var ret = new SwaggerDocumentConfiguration();
+#if DEBUG
+                ret.Enable = true;
+#else
+                ret.Enable = false;
+#endif
+                ret.Username = "admin";
+                ret.Password = "admin";
+                ret.Path = "/api/swagger";
+                return ret;
+            }
+        }
+    }
+
+    public struct ServerConfiguration {
+        public int Port { get; set; }
+        public string HostName  { get; set; }
+        public bool EnableSSL { get; set; }
+        public bool DisableCORS { get; set; }
+        public bool ShowSQLCommandInLog { get; set; }
+        public string TempPath { get; set; }
+        public string CertPath { get; set; }
+        public string LogFilePath { get; set; }
+        public string LogTemplate { get; set; }
+        public string PasswordCert { get; set; }
+        public string UploadFilePath { get; set; }
+        public string PrefixPathGetUploadFile { get; set; }
+
+        public static ServerConfiguration DefaultServerConfiguration { get {
+                var ret = new ServerConfiguration();
+                ret.Port = 7005;
+                ret.HostName = "localhost";
+                ret.EnableSSL = false;
+                ret.DisableCORS = false;
+                ret.ShowSQLCommandInLog = false;
+                ret.TempPath = "./tmp";
+                ret.LogFilePath = "./tmp/logs/CoreApi-.log";
+                ret.LogTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss zzz} [{Level:u3}] ({ThreadId}) {EscapedMessage}{NewLine}{EscapedException}";
+                ret.PasswordCert = "Ndh90768";
+                ret.UploadFilePath = "./tmp/upload";
+                ret.PrefixPathGetUploadFile = "/upload/file";
+                return ret;
+            }
+        }
     }
 
     public class Program
     {
+        public static readonly string CONFIG_FILE_PATH = "./appsettings.json";
+        private static readonly List<string> __ValidParamsFromArgs = new List<string>();
         #region Variables
+        private static IHost __Host;
         private static ILogger __Logger;
         private static IConfigurationRoot __Configuration;
-        private static IHost __Host;
-        private static int _Port;
-        private static bool _EnableSSL = false;
-        private static bool _DisableCORS = false;
-        private static bool _ShowSQLCommandInLog = false;
-        private static string _TmpPath = ConfigurationDefaultVariable.TMP_FOLDER;
-        private static string _CertPath;
-        private static string _LogFilePath;
-        private static string _PasswordCert;
-        private static DatabaseAccessConfiguration _DBAccessConfig;
-        private static EmailClientConfiguration _EmailClientConfig;
-        private static SwaggerDocumentConfiguration _SwaggerDocumentConfiguration;
-        private static readonly List<string> _ValidParamsFromArgs = new List<string>();
-        private static string _HostName;
-        private static List<string> _ListeningAddress = new List<string>();
-        private static List<string> _AllowMethods = new List<string>() { "GET", "POST", "DELETE", "PUT" };
-        private static List<string> _AllowHeaders = new List<string>() { "session_token" };
+        private static ServerConfiguration __ServerConfiguration = ServerConfiguration.DefaultServerConfiguration;
+        private static EmailClientConfiguration __EmailClientConfig = EmailClientConfiguration.DefaultEmailClientConfiguration;
+        private static DatabaseAccessConfiguration __DBAccessConfig = DatabaseAccessConfiguration.DefaultDatabaseAccessConfiguration;
+        private static SwaggerDocumentConfiguration __SwaggerDocumentConfiguration = SwaggerDocumentConfiguration.DefaultSwaggerDocumentConfiguration;
+        private static List<string> __ListeningAddress = new List<string>();
+        private static List<string> __AllowMethods = new List<string>() { "GET", "POST", "DELETE", "PUT" };
+        private static List<string> __AllowHeaders = new List<string>() { "session_token" };
         #endregion
-        #region Property
-        public static string HostName { get => _HostName; }
-        public static bool EnableSSL { get => _EnableSSL; }
-        public static bool DisableCORS { get => _DisableCORS; }
-        public static bool ShowSQLCommandInLog { get => _ShowSQLCommandInLog; }
-        public static List<string> ListeningAddress { get => _ListeningAddress; }
-        public static List<string> AllowMethods { get => _AllowMethods; }
-        public static List<string> AllowHeaders { get => _AllowHeaders; }
-        public static EmailClientConfiguration EmailClientConfig { get => _EmailClientConfig;  }
-        public static SwaggerDocumentConfiguration SwaggerDocumentConfiguration { get => _SwaggerDocumentConfiguration;  }
+
+        #region Public Get Property
+        public static List<string> AllowMethods { get => __AllowMethods; }
+        public static List<string> AllowHeaders { get => __AllowHeaders; }
+        public static List<string> ListeningAddress { get => __ListeningAddress; }
+        public static ServerConfiguration ServerConfiguration { get => __ServerConfiguration; }
+        public static EmailClientConfiguration EmailClientConfig { get => __EmailClientConfig; }
+        public static SwaggerDocumentConfiguration SwaggerDocumentConfiguration { get => __SwaggerDocumentConfiguration; }
         #endregion
         private static void SetParamsFromConfiguration(in IConfigurationRoot configuration, out List<string> warnings)
         {
             warnings = new List<string>();
-            // [INFO] Get log file format
-            _LogFilePath = configuration.GetValue<string>("LogFilePath");
-            if (_LogFilePath == default) {
-                _LogFilePath = ConfigurationDefaultVariable.LOG_FILE_FORMAT;
-                warnings.Add($"Log file path not configured. Use default path: { _LogFilePath }");
-            }
-            // [INFO] Get port config
-            var portConfig = configuration["Port"];
-            if (portConfig != default && CommonValidate.ValidatePort(portConfig)) {
-                _Port = int.Parse(portConfig);
-            } else {
-                _Port = ConfigurationDefaultVariable.PORT;
-                if (portConfig == default) {
-                    warnings.Add($"Port not configured. Use default port: { _Port }");
+            #region Server configuration
+            if (configuration.GetSection("Server") != default) {
+                // [INFO] Get log file format
+                var tmp_LogFilePath = configuration.GetSection("Server").GetValue<string>("LogFilePath");
+                if (tmp_LogFilePath == default) {
+                    warnings.Add($"Log file path not configured. Use default path: { __ServerConfiguration.LogFilePath }");
                 } else {
-                    warnings.Add($"Configured port is invalid. Use default port: { _Port }");
+                    __ServerConfiguration.LogFilePath = tmp_LogFilePath;
+                }
+                // [INFO] Get port config
+                var tmp_PortConfig = configuration.GetSection("Server").GetValue<string>("Port");
+                if (tmp_PortConfig != default && CommonValidate.ValidatePort(tmp_PortConfig)) {
+                    __ServerConfiguration.Port = int.Parse(tmp_PortConfig);
+                } else {
+                    if (tmp_PortConfig == default) {
+                        warnings.Add($"Port not configured. Use default port: { __ServerConfiguration.Port }");
+                    } else {
+                        warnings.Add($"Configured port is invalid. Use default port: { __ServerConfiguration.Port }");
+                    }
+                }
+                // [INFO] Get custom upload file path
+                var tmp_UploadFilePath = configuration.GetSection("Server").GetValue<string>("UploadFilePath");
+                if (tmp_UploadFilePath == default || CommonValidate.ValidateDirectoryPath(tmp_UploadFilePath, true) == default) {
+                    warnings.Add($"Upload path is not set or invalid. Use default path: { System.IO.Path.GetFullPath(__ServerConfiguration.UploadFilePath) }");
+                } else {
+                    __ServerConfiguration.UploadFilePath = tmp_UploadFilePath;
+                }
+                // [INFO] Get host name from config || default is 'localhost'
+                var tmp_HostName = configuration.GetSection("Server").GetValue<string>("HostName");
+                if (tmp_HostName == default || !CommonValidate.IsValidDomainName(tmp_HostName)) {
+                    warnings.Add($"Invalid host name config. Use default host name: { __ServerConfiguration.HostName }.");
+                } else {
+                    __ServerConfiguration.HostName = tmp_HostName;
+                }
+                __ServerConfiguration.HostName = string.Format(
+                    "{0}://{1}:{2}",
+                    __ServerConfiguration.EnableSSL ? "https" : "http",
+                    __ServerConfiguration.HostName,
+                    __ServerConfiguration.Port.ToString()
+                );
+            }
+            if (configuration.GetSection("Certificate") != default) {
+                // [INFO] Get custom password cert
+                var tmp_PasswordCert =  configuration.GetSection("Certificate").GetValue<string>("Password");
+                if (tmp_PasswordCert == default || StringDecryptor.Decrypt(tmp_PasswordCert) == default) {
+                    warnings.Add($"Password certificate not configured. Use default password: ***");
+                } else {
+                    __ServerConfiguration.PasswordCert = StringDecryptor.Decrypt(tmp_PasswordCert);
+                }
+                // [INFO] Get custom cert path
+                var tmp_CertPath = configuration.GetSection("Certificate").GetValue<string>("Path");
+                if (CommonValidate.ValidateFilePath(tmp_CertPath, false) == default && __ServerConfiguration.EnableSSL) {
+                    __ServerConfiguration.EnableSSL = false;
+                    warnings.Add($"Certificate not exists or not set. Cerificate path: { ((tmp_CertPath == default) ? default : System.IO.Path.GetFullPath(tmp_CertPath)) }");
                 }
             }
-            // [INFO] Get custom passeord cert
-            _PasswordCert =  configuration.GetSection("Certificate").GetValue<string>("Password");
-            if (_PasswordCert == default || StringDecryptor.Decrypt(_PasswordCert) == default) {
-                _PasswordCert = ConfigurationDefaultVariable.PASSWORD_CERTIFICATE;
-                warnings.Add($"Password certificate not configured. Use default password: ***");
-            } else {
-                _PasswordCert = StringDecryptor.Decrypt(_PasswordCert);
-            }
-            // [INFO] Get custom cert path
-            _CertPath = configuration.GetSection("Certificate").GetValue<string>("Path");
-            if (CommonValidate.ValidateFilePath(_CertPath, false) == default && _EnableSSL) {
-                _EnableSSL = false;
-                warnings.Add($"Certificate not exists or not set. Cerificate path: { ((_CertPath == default) ? default : System.IO.Path.GetFullPath(_CertPath)) }");
-            }
+            #endregion
+            #region Swagger document configuration
             // [INFO] Swagger document
             if (configuration.GetSection("SwaggerDocument") != default) {
-                _SwaggerDocumentConfiguration.Enable = configuration.GetSection("SwaggerDocument").GetValue<bool>("Enable");
-                _SwaggerDocumentConfiguration.Username = configuration.GetSection("SwaggerDocument").GetValue<string>("Username");
-                _SwaggerDocumentConfiguration.Password = configuration.GetSection("SwaggerDocument").GetValue<string>("Password");
-                _SwaggerDocumentConfiguration.Path = configuration.GetSection("SwaggerDocument").GetValue<string>("Path");
-                _SwaggerDocumentConfiguration.Password = StringDecryptor.Decrypt(_SwaggerDocumentConfiguration.Password == default
+                __SwaggerDocumentConfiguration.Enable = configuration.GetSection("SwaggerDocument").GetValue<bool>("Enable");
+                __SwaggerDocumentConfiguration.Username = configuration.GetSection("SwaggerDocument").GetValue<string>("Username");
+                __SwaggerDocumentConfiguration.Password = configuration.GetSection("SwaggerDocument").GetValue<string>("Password");
+                __SwaggerDocumentConfiguration.Path = configuration.GetSection("SwaggerDocument").GetValue<string>("Path");
+                __SwaggerDocumentConfiguration.Password = StringDecryptor.Decrypt(__SwaggerDocumentConfiguration.Password == default
                                                             ? string.Empty
-                                                            : _SwaggerDocumentConfiguration.Password);
+                                                            : __SwaggerDocumentConfiguration.Password);
                 
-                if (_SwaggerDocumentConfiguration.Password == default || _SwaggerDocumentConfiguration.Password == string.Empty) {
-                    _SwaggerDocumentConfiguration.Password = Utils.RandomString(15);
-                    warnings.Add($"Configured swagger password is invalid. Use random: { _SwaggerDocumentConfiguration.Password }");
+                if (__SwaggerDocumentConfiguration.Password == default || __SwaggerDocumentConfiguration.Password == string.Empty) {
+                    __SwaggerDocumentConfiguration.Password = Utils.RandomString(15);
+                    warnings.Add($"Configured swagger password is invalid. Use random: { __SwaggerDocumentConfiguration.Password }");
                 }
-                if (_SwaggerDocumentConfiguration.Username == default || _SwaggerDocumentConfiguration.Username == string.Empty) {
-                    _SwaggerDocumentConfiguration.Username = Utils.RandomString(15);
-                    warnings.Add($"Configured swagger username is invalid. Use random: { _SwaggerDocumentConfiguration.Username }");
+                if (__SwaggerDocumentConfiguration.Username == default || __SwaggerDocumentConfiguration.Username == string.Empty) {
+                    __SwaggerDocumentConfiguration.Username = Utils.RandomString(15);
+                    warnings.Add($"Configured swagger username is invalid. Use random: { __SwaggerDocumentConfiguration.Username }");
                 }
-                if (_SwaggerDocumentConfiguration.Path == default || _SwaggerDocumentConfiguration.Path == string.Empty
-                    || !_SwaggerDocumentConfiguration.Path.StartsWith('/') || _SwaggerDocumentConfiguration.Path.Length < 2
+                if (__SwaggerDocumentConfiguration.Path == default || __SwaggerDocumentConfiguration.Path == string.Empty
+                    || !__SwaggerDocumentConfiguration.Path.StartsWith('/') || __SwaggerDocumentConfiguration.Path.Length < 2
                 ) {
-                    _SwaggerDocumentConfiguration.Path = Utils.RandomString(5);
-                    warnings.Add($"Configured swagger path is invalid. Use random: { _SwaggerDocumentConfiguration.Path }");
+                    __SwaggerDocumentConfiguration.Path = Utils.RandomString(5);
+                    warnings.Add($"Configured swagger path is invalid. Use random: { __SwaggerDocumentConfiguration.Path }");
                 }
             }
+            #endregion
+            #region Database configuration
             // [INFO] Configure connect string
             if (configuration.GetSection("DatabaseAccess") != default) {
-                _DBAccessConfig.Host = configuration.GetSection("DatabaseAccess").GetValue<string>("Host");
-                _DBAccessConfig.User = configuration.GetSection("DatabaseAccess").GetValue<string>("Username");
-                _DBAccessConfig.Password = configuration.GetSection("DatabaseAccess").GetValue<string>("Password");
-                _DBAccessConfig.Port = configuration.GetSection("DatabaseAccess").GetValue<string>("Port");
-                _DBAccessConfig.DBName = configuration.GetSection("DatabaseAccess").GetValue<string>("DBName");
-                _DBAccessConfig.Password = StringDecryptor.Decrypt(_DBAccessConfig.Password == default ? string.Empty : _DBAccessConfig.Password);
+                __DBAccessConfig.Host = configuration.GetSection("DatabaseAccess").GetValue<string>("Host");
+                __DBAccessConfig.User = configuration.GetSection("DatabaseAccess").GetValue<string>("Username");
+                __DBAccessConfig.Password = configuration.GetSection("DatabaseAccess").GetValue<string>("Password");
+                __DBAccessConfig.Port = configuration.GetSection("DatabaseAccess").GetValue<string>("Port");
+                __DBAccessConfig.DBName = configuration.GetSection("DatabaseAccess").GetValue<string>("DBName");
+                __DBAccessConfig.Password = StringDecryptor.Decrypt(__DBAccessConfig.Password == default ? string.Empty : __DBAccessConfig.Password);
 
-                if (_DBAccessConfig.Port == default || !CommonValidate.ValidatePort(_DBAccessConfig.Port)) {
+                if (__DBAccessConfig.Port == default || !CommonValidate.ValidatePort(__DBAccessConfig.Port)) {
                     warnings.Add($"Configured database port is invalid or default. Use default port: { IBaseConfigurationDB.Port }");
-                    _DBAccessConfig.Port = IBaseConfigurationDB.Port;
+                    __DBAccessConfig.Port = IBaseConfigurationDB.Port;
                 }
 
-                if (_DBAccessConfig.Password == default) {
+                if (__DBAccessConfig.Password == default) {
                     warnings.Add($"Configured database password is invalid or default. Use default password.");
-                    _DBAccessConfig.Password = string.Empty;
+                    __DBAccessConfig.Password = string.Empty;
                 }
-
-                BaseConfigurationDB.Configure(_DBAccessConfig.Host, _DBAccessConfig.User, _DBAccessConfig.Password, _DBAccessConfig.Port, _DBAccessConfig.DBName);
             } else {
                 warnings.Add($"DatabaseAccess configuration not configured. Use default config.");
-                BaseConfigurationDB.Configure(); // Use default value
             }
+            BaseConfigurationDB.Configure(
+                __DBAccessConfig.Host,
+                __DBAccessConfig.User,
+                __DBAccessConfig.Password,
+                __DBAccessConfig.Port,
+                __DBAccessConfig.DBName
+            );
+            #endregion
+            #region Email client configuration
             // [INFO] Configure for email client
             if (configuration.GetSection("Email") != default) {
-                _EmailClientConfig.Host = configuration.GetSection("Email").GetValue<string>("Host");
-                _EmailClientConfig.User = configuration.GetSection("Email").GetValue<string>("Username");
-                _EmailClientConfig.Password = configuration.GetSection("Email").GetValue<string>("Password");
-                _EmailClientConfig.Port = configuration.GetSection("Email").GetValue<string>("Port");
-                _EmailClientConfig.EnableSSL = configuration.GetSection("Email").GetValue<bool>("EnableSSL");
-                _EmailClientConfig.Password = StringDecryptor.Decrypt(_EmailClientConfig.Password == default ? string.Empty : _EmailClientConfig.Password);
+                __EmailClientConfig.Host = configuration.GetSection("Email").GetValue<string>("Host");
+                __EmailClientConfig.User = configuration.GetSection("Email").GetValue<string>("Username");
+                __EmailClientConfig.Password = configuration.GetSection("Email").GetValue<string>("Password");
+                __EmailClientConfig.Port = configuration.GetSection("Email").GetValue<string>("Port");
+                __EmailClientConfig.EnableSSL = configuration.GetSection("Email").GetValue<bool>("EnableSSL");
+                __EmailClientConfig.Password = StringDecryptor.Decrypt(__EmailClientConfig.Password == default ? string.Empty : __EmailClientConfig.Password);
 
-                if (_EmailClientConfig.Host == default || _EmailClientConfig.Host == string.Empty) {
+                if (__EmailClientConfig.Host == default || __EmailClientConfig.Host == string.Empty) {
                     throw new Exception("Configured email server is invalid or default.");
                 }
-                if (_EmailClientConfig.Port == default || !CommonValidate.ValidatePort(_EmailClientConfig.Port)) {
+                if (__EmailClientConfig.Port == default || !CommonValidate.ValidatePort(__EmailClientConfig.Port)) {
                     throw new Exception("Configured email server port is invalid or default.");
                 }
-                if (_EmailClientConfig.User == default || !CommonValidate.IsEmail(_EmailClientConfig.User)) {
+                if (__EmailClientConfig.User == default || !CommonValidate.IsEmail(__EmailClientConfig.User)) {
                     throw new Exception("User of email client must be an email.");
                 }
-                if (_EmailClientConfig.Password == default) {
+                if (__EmailClientConfig.Password == default) {
                     throw new Exception("Invalid password for credential of email client.");
                 }
             } else {
                 throw new Exception("Missing email client configuration.");
             }
-            // [INFO] Get host name from config || default is 'localhost'
-            _HostName = configuration.GetValue<string>("HostName");
-            if (_HostName == default || !CommonValidate.IsValidDomainName(_HostName)) {
-                _HostName = "localhost";
-                warnings.Add($"Invalid host name config. Use default host name: { _HostName }.");
-            }
-            _HostName = string.Format(
-                "{0}://{1}:{2}",
-                _EnableSSL ? "https" : "http",
-                _HostName,
-                _Port.ToString()
-            );
+            #endregion
         }
         private static void SetParamsFromArgs(in List<string> args)
         {
             // [INFO] run with param ssl to enable https
             if (args.Contains("ssl")) {
-                _EnableSSL = true;
+                __ServerConfiguration.EnableSSL = true;
             }
             // [INFO] disable cors policy
             if (args.Contains("disable-cors")) {
-                _DisableCORS = true;
+                __ServerConfiguration.DisableCORS = true;
             }
             // [INFO] show command query in log
             if (args.Contains("show-sql-command")) {
-                _ShowSQLCommandInLog = true;
+                __ServerConfiguration.ShowSQLCommandInLog = true;
             }
         }
         private static string[] GetValidParamsFromArgs(in List<string> args)
         {
             var _args = new List<string>();
-            foreach (var it in _ValidParamsFromArgs) {
+            foreach (var it in __ValidParamsFromArgs) {
                 if (args.Contains(it)) {
                     _args.Add(it);
                 }
@@ -238,10 +308,13 @@ namespace CoreApi
                 .ConfigureWebHostDefaults(webBuilder => {
                     webBuilder.UseKestrel(kestrelServerOptions => {
                         // [INFO] Listen on any IP
-                        kestrelServerOptions.Listen(System.Net.IPAddress.Any, _Port, listenOptions => {
-                            if (_EnableSSL && CommonValidate.ValidateFilePath(_CertPath, false) != default) {
+                        kestrelServerOptions.Listen(System.Net.IPAddress.Any, __ServerConfiguration.Port, listenOptions => {
+                            if (__ServerConfiguration.EnableSSL && CommonValidate.ValidateFilePath(__ServerConfiguration.CertPath, false) != default) {
                                 // Config server using ssl with pfx certificate
-                                listenOptions.UseHttps(CommonValidate.ValidateFilePath(_CertPath, false), _PasswordCert);
+                                listenOptions.UseHttps(
+                                    CommonValidate.ValidateFilePath(__ServerConfiguration.CertPath, false),
+                                    __ServerConfiguration.PasswordCert
+                                );
                             }
                         });
                         kestrelServerOptions.AddServerHeader = false;
@@ -255,21 +328,21 @@ namespace CoreApi
 #if DEBUG
             __Logger.Warning("The application is compiled in debug mode.");
 #endif
-            __Logger.Information($"Logs folder: { CommonValidate.ValidateDirectoryPath(System.IO.Path.GetDirectoryName(_LogFilePath)) }");
-            __Logger.Information($"Temp folder: { _TmpPath }");
+            __Logger.Information($"Logs folder: { CommonValidate.ValidateDirectoryPath(System.IO.Path.GetDirectoryName(__ServerConfiguration.LogFilePath)) }");
+            __Logger.Information($"Temp folder: { __ServerConfiguration.TempPath }");
             if (Utils.GetIpAddress(out var Ips)) {
                 foreach (var ipStr in Ips) {
                     var listeningAddress = string.Format(
                         "{0}://{1}:{2}",
-                        _EnableSSL ? "https" : "http",
+                        __ServerConfiguration.EnableSSL ? "https" : "http",
                         ipStr,
-                        _Port.ToString()
+                        __ServerConfiguration.Port.ToString()
                     );
                     __Logger.Information($"Listening on: { listeningAddress }");
-                    _ListeningAddress.Add(listeningAddress);
+                    __ListeningAddress.Add(listeningAddress);
                 }
             }
-            __Logger.Information($"Host URL: { _HostName }");
+            __Logger.Information($"Host URL: { __ServerConfiguration.HostName }");
         }
         private static void LogEndInformation()
         {
@@ -278,20 +351,17 @@ namespace CoreApi
         }
         private static ILogger SetDefaultSeriLogger(in IConfigurationRoot configuration)
         {
-            if (_LogFilePath == default) {
-                _LogFilePath = ConfigurationDefaultVariable.LOG_FILE_FORMAT;
-            }
             Log.Logger = new LoggerConfiguration()
                             .ReadFrom.Configuration(configuration)
                             .Enrich.With(new ExceptionEnricher())
                             .Enrich.With(new MessageEnricher())
                             .Enrich.FromLogContext()
                             .WriteTo.Console(
-                                outputTemplate: ConfigurationDefaultVariable.LOG_TEMPLATE
+                                outputTemplate: __ServerConfiguration.LogTemplate
                             )
                             .WriteTo.File(
-                                _LogFilePath,
-                                outputTemplate: ConfigurationDefaultVariable.LOG_TEMPLATE,
+                                __ServerConfiguration.LogFilePath,
+                                outputTemplate: __ServerConfiguration.LogTemplate,
                                 rollingInterval: RollingInterval.Day
                             )
                             .CreateLogger();
@@ -301,17 +371,18 @@ namespace CoreApi
         {
             // [IMPORTANT] Need to run by order
             try {
-                if (CommonValidate.ValidateFilePath(ConfigurationDefaultVariable.CONFIG_FILE_PATH, false) == default) {
-                    throw new Exception($"Missing configuration file. Path: { System.IO.Path.GetFullPath(ConfigurationDefaultVariable.CONFIG_FILE_PATH) }");
+                if (CommonValidate.ValidateFilePath(CONFIG_FILE_PATH, false) == default) {
+                    throw new Exception($"Missing configuration file. Path: { System.IO.Path.GetFullPath(CONFIG_FILE_PATH) }");
                 }
                 __Configuration = new ConfigurationBuilder()
-                                    .AddJsonFile(ConfigurationDefaultVariable.CONFIG_FILE_PATH)
+                                    .AddJsonFile(CONFIG_FILE_PATH)
                                     .AddEnvironmentVariables()
                                     .Build();
                 List<string> warningsWhenSetParamsFromConfiguration;
                 SetParamsFromArgs(new List<string>(args));
                 SetParamsFromConfiguration(__Configuration, out warningsWhenSetParamsFromConfiguration);
-                _TmpPath = CommonValidate.ValidateDirectoryPath(_TmpPath);
+                __ServerConfiguration.TempPath = CommonValidate.ValidateDirectoryPath(__ServerConfiguration.TempPath, true);
+                __ServerConfiguration.UploadFilePath = CommonValidate.ValidateDirectoryPath(__ServerConfiguration.UploadFilePath, true);
                 __Logger = SetDefaultSeriLogger(__Configuration);
                 LogStartInformation();
                 warningsWhenSetParamsFromConfiguration.ForEach(message => {

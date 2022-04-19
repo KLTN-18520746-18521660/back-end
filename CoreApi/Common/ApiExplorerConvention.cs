@@ -19,6 +19,8 @@ namespace CoreApi.Common
                 apiVersion = "admin";
             } else if (listNamespace.Contains("Social")) {
                 apiVersion = "social";
+            } else if (listNamespace.Contains("Upload")) {
+                apiVersion = "upload";
             }
             controller.ApiExplorer.GroupName = apiVersion;
 
