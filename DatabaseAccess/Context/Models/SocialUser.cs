@@ -298,7 +298,7 @@ namespace DatabaseAccess.Context.Models
             return SocialPosts
                 .Sum(
                     e => e.SocialUserActionWithPosts
-                        .LongCount(ac => EF.Functions.JsonExists(ac.ActionsStr,
+                        .LongCount(ac => ac.ActionsStr.Contains(
                                 BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost))
                         )
                 );

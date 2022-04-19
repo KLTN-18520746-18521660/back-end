@@ -120,12 +120,7 @@ CREATE DATABASE "social_db";
 CREATE DATABASE "cachec_db";
 ```
 
-## NOTIFICATION
-- Need to notify: comment, like, follow
-- "comment/ like": --> "%1 has been commented on your post" --> need post_id, last_user_id
-- "follow"
-- status: "unread" --> modify_time
-- content: object
-	- type: post --> post_id / user --> user_id / system / category
-	- action: post -> "comment, like"; user -> "follow"; "no action"
-
+#DEPLOY
+- Linux (Ubuntu)
+	- get publish file by wsl:
+	> wsl -- cd /mnt/d/doc/unv/Thesis/back-end/CoreApi `&`& dotnet publish --configuration Release -o ./tmp/publish
