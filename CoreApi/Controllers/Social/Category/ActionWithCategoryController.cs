@@ -52,7 +52,7 @@ namespace CoreApi.Controllers.Social.Post
             }
         }
 
-        [HttpPost("{category}/{action}")]
+        [HttpPost("{category}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
@@ -62,7 +62,7 @@ namespace CoreApi.Controllers.Social.Post
         public async Task<IActionResult> ActionWithCategory([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
                                                             [FromServices] SocialCategoryManagement __SocialCategoryManagement,
                                                             [FromRoute] string category,
-                                                            [FromRoute] string action,
+                                                            [FromQuery] string action,
                                                             [FromHeader] string session_token)
         {
             #region Set TraceId for services

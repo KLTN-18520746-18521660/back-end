@@ -52,7 +52,7 @@ namespace CoreApi.Common
 
                     // Return unauthorized
                     context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                    await context.ChallengeAsync();
+                    // await context.ChallengeAsync();
                 } else {
                     await next.Invoke(context);
                 }

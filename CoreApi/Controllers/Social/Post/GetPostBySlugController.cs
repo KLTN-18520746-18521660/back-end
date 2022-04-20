@@ -141,7 +141,7 @@ namespace CoreApi.Controllers.Social.Post
             }
         }
 
-        [HttpGet("{post_slug}/short_content")]
+        [HttpGet("{post_slug}/statistic")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
@@ -184,16 +184,16 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 SocialPost post = default;
-                (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim(), IsValidSession ? session.UserId : default);
+                (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim());
 
-                if (error != ErrorCodes.NO_ERROR && error != ErrorCodes.USER_IS_NOT_OWNER) {
+                if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
                         return Problem(404, "Not found post.");
                     }
 
                     throw new Exception($"FindPostBySlug failed, ErrorCode: { error }");
                 }
-                var ret = post.GetPublicShortJsonObject();
+                var ret = post.GetPublicStatisticJsonObject();
 
                 return Ok(200, "OK", new JObject(){
                     { "post", ret },

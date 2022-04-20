@@ -207,6 +207,20 @@ namespace DatabaseAccess.Context.Models
                 return false;
             }
         }
+        public JObject GetPublicStatisticJsonObject(Guid SocialUserId = default)
+        {
+            var ret = new Dictionary<string, object>
+            {
+                { "views", Views },
+                { "likes", Likes },
+                { "dislikes", DisLikes },
+                { "comments", Comments },
+            };
+            if (this.Owner == SocialUserId) {
+                ret.Add("id", this.Id);
+            }
+            return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
+        }
 
         public JObject GetPublicShortJsonObject(Guid SocialUserId = default)
         {

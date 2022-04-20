@@ -373,9 +373,10 @@ namespace CoreApi.Services
                         var userIds = comment.Post.SocialUserActionWithPosts
                             .Where(
                                 e => e.PostId == comment.PostId
-                                && e.UserId != comment.Parent.OwnerNavigation.Id
-                                && EF.Functions.JsonExists(e.ActionsStr,
-                                    BaseAction.ActionToString(UserActionWithPost.Follow, EntityAction.UserActionWithPost))
+                                && (comment.ParentId == default || e.UserId != comment.Parent.OwnerNavigation.Id)
+                                && e.ActionsStr.Contains(
+                                    BaseAction.ActionToString(UserActionWithPost.Follow, EntityAction.UserActionWithPost)
+                                )
                             )
                             .Select(e => e.UserId)
                             .ToArray();

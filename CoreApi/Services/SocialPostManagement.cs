@@ -189,7 +189,24 @@ namespace CoreApi.Services
             return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
         }
 
-        public async Task<(SocialPost, ErrorCodes)> FindPostBySlug(string Slug, Guid SocialUserId = default)
+        public async Task<(SocialPost, ErrorCodes)> FindPostBySlug(string Slug)
+        {
+            if (Slug == string.Empty) {
+                return (default, ErrorCodes.INVALID_PARAMS);
+            }
+            var post = await __DBContext.SocialPosts
+                    .Where(e => e.Slug == Slug
+                        && (e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
+                        || e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Private, EntityStatus.SocialPostStatus)))
+                    .FirstOrDefaultAsync();
+            if (post == default) {
+                return (default, ErrorCodes.NOT_FOUND);
+            }
+
+            return (post, ErrorCodes.NO_ERROR);
+        }
+
+        public async Task<(SocialPost, ErrorCodes)> FindPostBySlug(string Slug, Guid SocialUserId)
         {
             if (Slug == string.Empty) {
                 return (default, ErrorCodes.INVALID_PARAMS);

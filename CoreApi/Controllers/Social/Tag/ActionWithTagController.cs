@@ -52,7 +52,7 @@ namespace CoreApi.Controllers.Social.Tag
             }
         }
 
-        [HttpPost("{tag}/{action}")]
+        [HttpPost("{tag}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
@@ -62,7 +62,7 @@ namespace CoreApi.Controllers.Social.Tag
         public async Task<IActionResult> ActionWithTag([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
                                                        [FromServices] SocialTagManagement __SocialTagManagement,
                                                        [FromRoute] string tag,
-                                                       [FromRoute] string action,
+                                                       [FromQuery] string action,
                                                        [FromHeader] string session_token)
         {
             #region Set TraceId for services

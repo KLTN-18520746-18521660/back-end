@@ -121,7 +121,9 @@ namespace CoreApi.Controllers.Social.Comment
                 var comment = new SocialComment();
                 comment.Parse(Parser, out var errMsg);
                 comment.Owner = session.UserId;
-                comment.OwnerNavigation = session.User;
+                // comment.OwnerNavigation = session.User;
+                // comment.Post = post;
+                comment.PostId = post.Id;
 
                 if (errMsg != string.Empty) {
                     throw new Exception($"Parse social comment model failed, error: { errMsg }");

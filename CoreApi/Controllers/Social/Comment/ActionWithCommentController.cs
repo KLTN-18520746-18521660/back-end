@@ -54,7 +54,7 @@ namespace CoreApi.Controllers.Social.Comment
             }
         }
 
-        [HttpPost("{comment_id}/{action}")]
+        [HttpPost("{comment_id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
@@ -66,7 +66,7 @@ namespace CoreApi.Controllers.Social.Comment
                                                        [FromServices] SocialPostManagement __SocialPostManagement,
                                                        [FromServices] NotificationsManagement __NotificationsManagement,
                                                        [FromRoute] long comment_id,
-                                                       [FromRoute] string action,
+                                                       [FromQuery] string action,
                                                        [FromHeader] string session_token)
         {
             #region Set TraceId for services
