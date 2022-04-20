@@ -84,12 +84,14 @@ namespace CoreApi.Controllers.Upload
                 List<string> filesPath = new List<string>();
                 foreach (var formFile in files) {
                     if (formFile.Length > 0) {
+                        var ext = Path.GetExtension(formFile.FileName);
+                        var fileName = $"{ Utils.RandomString(15) }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ext }";
                         var filePath = Path.Combine(Program.ServerConfiguration.UploadFilePath, formFile.FileName);
                         using (var stream = System.IO.File.Create(filePath))
                         {
                             await formFile.CopyToAsync(stream);
                         }
-                        filesPath.Add($"{ Program.ServerConfiguration.HostName }{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ formFile.FileName }");
+                        filesPath.Add($"{ Program.ServerConfiguration.HostName }{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ fileName }");
                     }
                 }
 
@@ -115,18 +117,20 @@ namespace CoreApi.Controllers.Upload
                     return Problem(400, "Exceed max size of file.");
                 }
 
-                if (!AllowExtensions.Contains(Path.GetExtension(formFile.FileName))) {
-                    return Problem(400, $"Not allow file type: { Path.GetExtension(formFile.FileName) }");
+                var ext = Path.GetExtension(formFile.FileName);
+                if (!AllowExtensions.Contains(ext)) {
+                    return Problem(400, $"Not allow file type: { ext }");
                 }
 
-                var filePath = Path.Combine(Program.ServerConfiguration.UploadFilePath, formFile.FileName);
+                var fileName = $"{ Utils.RandomString(15) }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ext }";
+                var filePath = Path.Combine(Program.ServerConfiguration.UploadFilePath, fileName);
                 using (var stream = System.IO.File.Create(filePath))
                 {
                     await formFile.CopyToAsync(stream);
                 }
 
                 return Ok(200, "OK", new JObject(){
-                    { "url", $"{ Program.ServerConfiguration.HostName }{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ formFile.FileName }" }
+                    { "url", $"{ Program.ServerConfiguration.HostName }{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ fileName }" }
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
