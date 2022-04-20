@@ -117,6 +117,7 @@ namespace CoreApi.Controllers.Social.Post
                 int totalSize = default;
                 (posts, totalSize, error) = await __SocialPostManagement
                     .GetNewPosts(
+                        IsValidSession ? session.UserId : default,
                         start,
                         size,
                         search_term,

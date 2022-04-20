@@ -23,9 +23,10 @@ using DatabaseAccess.Context.ParserModels;
 namespace CoreApi.Services
 {
     public enum GetPostAction {
-        GetPostsAttachedToUser  = 0,
-        GetNewPosts             = 1,
-        GetTrendingPosts        = 2,
+        GetPostsAttachedToUser          = 0,
+        GetNewPosts                     = 1,
+        GetTrendingPosts                = 2,
+        GetPostsByUserFollowing         = 3,
     }
     public class SocialPostManagement : BaseTransientService
     {
@@ -61,6 +62,13 @@ namespace CoreApi.Services
                     };
                 case GetPostAction.GetTrendingPosts:
                     return new string[] {
+                    };
+                case GetPostAction.GetPostsByUserFollowing:
+                    return new string[] {
+                        "views",
+                        "likes",
+                        "dislikes",
+                        "comments",
                     };
                 default:
                     return default;
@@ -201,7 +209,8 @@ namespace CoreApi.Services
             return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
         }
 
-        public async Task<(List<SocialPost>, int, ErrorCodes)> GetNewPosts(int start = 0,
+        public async Task<(List<SocialPost>, int, ErrorCodes)> GetNewPosts(Guid socialUserId = default,
+                                                                           int start = 0,
                                                                            int size = 20,
                                                                            string search_term = default,
                                                                            (string, bool)[] orders = default,
@@ -231,7 +240,7 @@ namespace CoreApi.Services
 
             // orderStr can't empty or null
             string orderStr = orders != default && orders.Length != 0 ? Utils.GenerateOrderString(orders) : string.Empty;
-            orderStr = $"{ orderStr } created_timestamp desc";
+            orderStr = $"visited asc, { orderStr }, created_timestamp desc";
 
             var query =
                     from ids in (
@@ -253,10 +262,17 @@ namespace CoreApi.Services
                         group p by new {
                             post.Id,
                             post.Views,
-                            post.CreatedTimestamp
+                            post.CreatedTimestamp,
+                            actionStr = post.SocialUserActionWithPosts
+                                .Where(e => e.UserId == socialUserId)
+                                .Select(e => e.ActionsStr)
+                                .FirstOrDefault()
                         } into gr
                         select new {
                             gr.Key,
+                            Visited = (socialUserId == default) ? false
+                                : EF.Functions.JsonExists(gr.Key.actionStr,
+                                BaseAction.ActionToString(UserActionWithPost.Visited, EntityAction.UserActionWithPost)),
                             Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
                                 BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost))),
                             DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
@@ -265,6 +281,7 @@ namespace CoreApi.Services
                                 BaseAction.ActionToString(UserActionWithPost.Comment, EntityAction.UserActionWithPost))),
                         } into ret select new {
                             ret.Key.Id,
+                            visited = ret.Visited,
                             views = ret.Key.Views,
                             likes = ret.Likes,
                             dislikes = ret.DisLikes,
@@ -293,8 +310,8 @@ namespace CoreApi.Services
             return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
         }
 
-
-        public async Task<(List<SocialPost>, int, ErrorCodes)> GetTrendingPosts(int time = 7, // days
+        public async Task<(List<SocialPost>, int, ErrorCodes)> GetTrendingPosts(Guid socialUserId = default,
+                                                                                int time = 7, // days
                                                                                 int start = 0,
                                                                                 int size = 20,
                                                                                 string search_term = default,
@@ -312,7 +329,8 @@ namespace CoreApi.Services
             #endregion
 
             // orderStr can't empty or null
-            var orderStr = $"views desc likes desc comments desc created_timestamp desc";
+            var orderStr = $"visited asc, likes desc, comments desc, created_timestamp desc";
+            var compareDate = DateTime.UtcNow.AddDays(-time);
 
             var query =
                     from ids in (
@@ -327,7 +345,7 @@ namespace CoreApi.Services
                                     && (categories.Count() == 0
                                         || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
                                     )
-                                    && (DateTime.UtcNow - e.CreatedTimestamp.ToUniversalTime()).TotalDays <= time
+                                    && e.CreatedTimestamp >= compareDate
                                 )
                         join action in __DBContext.SocialUserActionWithPosts on post.Id equals action.PostId
                         into postWithAction
@@ -335,10 +353,17 @@ namespace CoreApi.Services
                         group p by new {
                             post.Id,
                             post.Views,
-                            post.CreatedTimestamp
+                            post.CreatedTimestamp,
+                            actionStr = post.SocialUserActionWithPosts
+                                .Where(e => e.UserId == socialUserId)
+                                .Select(e => e.ActionsStr)
+                                .FirstOrDefault()
                         } into gr
                         select new {
                             gr.Key,
+                            Visited = (socialUserId == default) ? false
+                                : EF.Functions.JsonExists(gr.Key.actionStr,
+                                BaseAction.ActionToString(UserActionWithPost.Visited, EntityAction.UserActionWithPost)),
                             Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
                                 BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost))),
                             DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
@@ -347,6 +372,7 @@ namespace CoreApi.Services
                                 BaseAction.ActionToString(UserActionWithPost.Comment, EntityAction.UserActionWithPost))),
                         } into ret select new {
                             ret.Key.Id,
+                            visited = ret.Visited,
                             views = ret.Key.Views,
                             likes = ret.Likes,
                             dislikes = ret.DisLikes,
@@ -371,8 +397,169 @@ namespace CoreApi.Services
                                     && (categories.Count() == 0
                                         || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
                                     )
-                                    && (DateTime.UtcNow - e.CreatedTimestamp.ToUniversalTime()).TotalDays <= time
+                                    && e.CreatedTimestamp >= compareDate
                                 );
+            return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
+        }
+
+        public async Task<(List<SocialPost>, int, ErrorCodes)> GetPostsByUserFollowing(Guid socialUserId,
+                                                                                       int start = 0,
+                                                                                       int size = 20,
+                                                                                       (string, bool)[] orders = default,
+                                                                                       string[] tags = default,
+                                                                                       string[] categories = default)
+        {
+            #region validate params
+            if (tags == default) {
+                tags = new string[]{};
+            }
+
+            if (categories == default) {
+                categories = new string[]{};
+            }
+            var ColumnAllowOrder = GetAllowOrderFields(GetPostAction.GetNewPosts);
+            if (orders != default) {
+                foreach (var order in orders) {
+                    if (!ColumnAllowOrder.Contains(order.Item1)) {
+                        return (default, default, ErrorCodes.INVALID_PARAMS);
+                    }
+                }
+            } else {
+                orders = new (string, bool)[]{};
+            }
+            #endregion
+
+            // orderStr can't empty or null
+            string orderStr = orders != default && orders.Length != 0 ? Utils.GenerateOrderString(orders) : string.Empty;
+            orderStr = $"visited asc, { orderStr }, created_timestamp desc";
+
+            var query_post_of_following_users =
+                    // Fllow: post, user, tag, category
+                    from user_following_ids in __DBContext.SocialUserActionWithUsers
+                        .Where(e => e.UserId == socialUserId
+                            && EF.Functions.JsonExists(e.ActionsStr,
+                                BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser))
+                        )
+                        .Join(
+                            __DBContext.SocialPosts,
+                            ac => ac.UserIdDes,
+                            p => p.Owner,
+                            (ac, p) => p.Id
+                        )
+                    select user_following_ids;
+
+            var query_post_of_following_tags =
+                    from tag_following_ids in __DBContext.SocialUserActionWithTags
+                        .Where(e => e.UserId == socialUserId
+                            && EF.Functions.JsonExists(e.ActionsStr,
+                                BaseAction.ActionToString(UserActionWithTag.Follow, EntityAction.UserActionWithTag))
+                        )
+                        .Join(
+                            __DBContext.SocialPostTags,
+                            ac => ac.TagId,
+                            pt => pt.TagId,
+                            (ac, pt) => pt.PostId
+                        )
+                    select tag_following_ids;
+
+            var query_post_of_following_categories =
+                    from category_following_ids in __DBContext.SocialUserActionWithCategories
+                        .Where(e => e.UserId == socialUserId
+                            && EF.Functions.JsonExists(e.ActionsStr,
+                                BaseAction.ActionToString(UserActionWithCategory.Follow, EntityAction.UserActionWithCategory))
+                        )
+                        .Join(
+                            __DBContext.SocialPostCategories,
+                            ac => ac.CategoryId,
+                            pc => pc.CategoryId,
+                            (ac, pc) => pc.PostId
+                        )
+                    select category_following_ids;
+
+            var query_post_of_following_posts =
+                    from post_following_ids in __DBContext.SocialUserActionWithPosts
+                        .Where(e => e.UserId == socialUserId
+                            && EF.Functions.JsonExists(e.ActionsStr,
+                                BaseAction.ActionToString(UserActionWithPost.Follow, EntityAction.UserActionWithPost))
+                        )
+                        .Select(e => e.PostId)
+                    select post_following_ids;
+
+            var post_ids = query_post_of_following_users
+                                .Union(query_post_of_following_tags)
+                                .Union(query_post_of_following_categories)
+                                .Union(query_post_of_following_posts);
+
+            var query = 
+                    from ids in (
+                        (from follow_post in
+                            (from post in __DBContext.SocialPosts
+                                    .Where(e =>
+                                        (e.StatusStr == BaseStatus
+                                                        .StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
+                                        )
+                                        && (tags.Count() == 0
+                                            || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
+                                        )
+                                        && (categories.Count() == 0
+                                            || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
+                                        )
+                                    )
+                            join follow_ids in post_ids on post.Id equals follow_ids
+                            select post)
+                        join action in __DBContext.SocialUserActionWithPosts on follow_post.Id equals action.PostId
+                        into postWithAction
+                        from p in postWithAction.DefaultIfEmpty()
+                        group p by new {
+                            follow_post.Id,
+                            follow_post.Views,
+                            follow_post.CreatedTimestamp,
+                            actionStr = follow_post.SocialUserActionWithPosts
+                                .Where(e => e.UserId == socialUserId)
+                                .Select(e => e.ActionsStr)
+                                .FirstOrDefault()
+                        } into gr
+                        select new {
+                            gr.Key,
+                            Visited = (socialUserId == default) ? false
+                                : EF.Functions.JsonExists(gr.Key.actionStr,
+                                BaseAction.ActionToString(UserActionWithPost.Visited, EntityAction.UserActionWithPost)),
+                            Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                                BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost))),
+                            DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                                BaseAction.ActionToString(UserActionWithPost.Dislike, EntityAction.UserActionWithPost))),
+                            Comments = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                                BaseAction.ActionToString(UserActionWithPost.Comment, EntityAction.UserActionWithPost))),
+                        } into ret select new {
+                            ret.Key.Id,
+                            visited = ret.Visited,
+                            views = ret.Key.Views,
+                            likes = ret.Likes,
+                            dislikes = ret.DisLikes,
+                            comments = ret.Comments,
+                            created_timestamp = ret.Key.CreatedTimestamp,
+                        })
+                        .OrderBy(orderStr)
+                        .Skip(start).Take(size)
+                        .Select(e => e.Id)
+                    )
+                    join posts in __DBContext.SocialPosts on ids equals posts.Id
+                    select posts;
+
+            var totalCount = await (from post in __DBContext.SocialPosts
+                                    .Where(e =>
+                                        (e.StatusStr == BaseStatus
+                                                        .StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
+                                        )
+                                        && (tags.Count() == 0
+                                            || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
+                                        )
+                                        && (categories.Count() == 0
+                                            || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
+                                        )
+                                    )
+                            join follow_ids in post_ids on post.Id equals follow_ids
+                            select post).CountAsync();
             return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
         }
 

@@ -384,5 +384,50 @@ namespace CoreApi.Services
             );
         }
         #endregion
+
+        public async Task<(List<SocialUser>, int, ErrorCodes)> GetFollowerByName(string UserName, int start = 0, int size = 20)
+        {
+            var (user, error) = await FindUserIgnoreStatus(UserName, false);
+            if (error != ErrorCodes.NO_ERROR) {
+                return (default, default, error);
+            }
+
+            var ret = user.SocialUserActionWithUserUserIdDesNavigations
+                .Where(e => e.ActionsStr.Contains(
+                        BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)
+                    )
+                )
+                .Select(e => e.User)
+                .Skip(start).Take(size)
+                .ToList();
+            var total_size = user.SocialUserActionWithUserUserIdDesNavigations
+                .Count(e => e.ActionsStr.Contains(
+                        BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)
+                    )
+                );
+            return (ret, total_size, ErrorCodes.NO_ERROR);
+        }
+
+        public async Task<(List<SocialUser>, int, ErrorCodes)> GetFollowingByName(string UserName, int start = 0, int size = 20)
+        {
+            var (user, error) = await FindUserIgnoreStatus(UserName, false);
+            if (error != ErrorCodes.NO_ERROR) {
+                return (default, default, error);
+            }
+
+            var ret = user.SocialUserActionWithUserUsers
+                .Where(e => e.ActionsStr.Contains(
+                    BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser))
+                )
+                .Select(e => e.UserIdDesNavigation)
+                .Skip(start).Take(size)
+                .ToList();
+            var total_size = user.SocialUserActionWithUserUsers
+                .Count(e => e.ActionsStr.Contains(
+                        BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)
+                    )
+                );
+            return (ret, total_size, ErrorCodes.NO_ERROR);
+        }
     }
 }

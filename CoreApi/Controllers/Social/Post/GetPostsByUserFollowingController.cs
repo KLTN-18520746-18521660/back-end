@@ -48,7 +48,7 @@ namespace CoreApi.Controllers.Social.Post
             }
         }
 
-        [HttpGet("user/{user_name}/2")]
+        [HttpGet("following")]
         // [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
         // [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
@@ -58,19 +58,14 @@ namespace CoreApi.Controllers.Social.Post
                                                                  [FromServices] SocialUserManagement __SocialUserManagement,
                                                                  [FromServices] SocialPostManagement __SocialPostManagement,
                                                                  [FromServices] SocialTagManagement __SocialTagManagement,
-                                                                 [FromRoute] string user_name,
                                                                  [FromHeader] string session_token,
                                                                  [FromQuery] int start = 0,
                                                                  [FromQuery] int size = 20,
                                                                  [FromQuery] string search_term = default,
-                                                                 [FromQuery] string[] status = default,
                                                                  [FromQuery] Models.OrderModel orders = default,
                                                                  [FromQuery] string[] tags = default,
                                                                  [FromQuery] string[] categories = default)
         {
-            //////////////////////
-            return Problem(500, "Not implement.");
-            //////////////////////
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
@@ -83,9 +78,6 @@ namespace CoreApi.Controllers.Social.Post
             #endregion
             try {
                 #region Validate params
-                if (user_name == default || user_name.Trim() == string.Empty || user_name.Length > 50) {
-                    return Problem(400, "Invalid user_name.");
-                }
                 if (categories != default && !await __SocialCategoryManagement.IsExistingCategories(categories)) {
                     return Problem(400, "Invalid categories not exists.");
                 }
@@ -99,59 +91,55 @@ namespace CoreApi.Controllers.Social.Post
                         return Problem(400, $"Not allow order field: { it.Item1 }.");
                     }
                 }
-                if (status != default) {
-                    foreach (var statusStr in status) {
-                        var statusInt = BaseStatus.StatusFromString(statusStr, EntityStatus.SocialPostStatus);
-                        if (statusInt == BaseStatus.InvalidStatus ||
-                            statusInt == SocialPostStatus.Deleted) {
-                            return Problem(400, $"Invalid status: { statusStr }.");
-                        }
-                    }
-                }
                 #endregion
 
-                bool IsValidSession = false;
                 #region Get session token
-                if (session_token != default) {
-                    IsValidSession = CommonValidate.IsValidSessionToken(session_token);
+                if (session_token == default) {
+                    LogDebug($"Missing header authorization.");
+                    return Problem(403, "Missing header authorization.");
+                }
+
+                if (!CommonValidate.IsValidSessionToken(session_token)) {
+                    return Problem(403, "Invalid header authorization.");
                 }
                 #endregion
 
                 #region Find session for use
                 SessionSocialUser session = default;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                if (IsValidSession) {
-                    (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
+                (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
 
-                    if (error != ErrorCodes.NO_ERROR) {
-                        IsValidSession = false;
+                if (error != ErrorCodes.NO_ERROR) {
+                    if (error == ErrorCodes.NOT_FOUND) {
+                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
+                        return Problem(401, "Session not found.");
                     }
+                    if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
+                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
+                        return Problem(401, "Session has expired.");
+                    }
+                    if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
+                        LogWarning($"User has been locked, session_token: { session_token.Substring(0, 15) }");
+                        return Problem(423, "You have been locked.");
+                    }
+                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
                 }
                 #endregion
 
                 #region Get posts
-                SocialUser postUser = default;
-                (postUser, error) = await __SocialUserManagement.FindUserIgnoreStatus(user_name, false);
-                if (error != ErrorCodes.NO_ERROR) {
-                    return Problem(404, "Not found user.");
-                }
-                var isOwner = IsValidSession ? session.UserId == postUser.Id : false;
                 List<SocialPost> posts = default;
                 int totalSize = default;
                 (posts, totalSize, error) = await __SocialPostManagement
-                    .GetPostsAttachedToUser(
-                        postUser.Id,
-                        isOwner,
+                    .GetPostsByUserFollowing(
+                        session.UserId,
                         start,
                         size,
-                        search_term,
-                        status,
                         combineOrders,
                         tags,
                         categories
                     );
                 if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"GetPostsAttachedToUser failed, ErrorCode: { error }");
+                    throw new Exception($"GetPostsByUserFollowing failed, ErrorCode: { error }");
                 }
                 #endregion
 
@@ -165,9 +153,7 @@ namespace CoreApi.Controllers.Social.Post
                 var ret = new List<JObject>();
                 posts.ForEach(e => {
                     var obj = e.GetPublicShortJsonObject();
-                    if (IsValidSession) {
-                        obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionWithUser(session.UserId)));
-                    }
+                    obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionWithUser(session.UserId)));
                     ret.Add(obj);
                 });
 

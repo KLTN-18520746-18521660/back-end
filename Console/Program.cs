@@ -78,16 +78,12 @@ namespace MyConsole
         }
         static void Main(string[] args)
         {
-            // PrintPassEncrypt();
-            // TestGenerateSlug();
-            Console.WriteLine(new Guid().ToString());
-            Console.WriteLine(new Guid().ToString());
-            Console.WriteLine(new Guid().ToString());
-            Console.WriteLine(Utils.GenerateUserName());
-            // Thread.Sleep(1);
-            Console.WriteLine(Utils.GenerateUserName());
-            // Thread.Sleep(1);
-            Console.WriteLine(Utils.GenerateUserName());
+            var orders = new (string, bool)[]{
+                ("views", true),
+                ("likes", false)
+            };
+            var o =Utils.GenerateOrderString(orders);
+            Console.WriteLine(o);
         }
     }
 }

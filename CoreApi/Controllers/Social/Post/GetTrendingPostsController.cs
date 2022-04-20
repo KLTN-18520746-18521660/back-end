@@ -120,6 +120,7 @@ namespace CoreApi.Controllers.Social.Post
                 int totalSize = default;
                 (posts, totalSize, error) = await __SocialPostManagement
                     .GetTrendingPosts(
+                        IsValidSession ? session.UserId : default,
                         time,
                         start,
                         size,

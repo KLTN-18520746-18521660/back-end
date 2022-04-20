@@ -240,6 +240,7 @@ namespace CoreApi
                 if ((context.Response.StatusCode == 404
                     || context.Response.StatusCode == 405)
                     && !Path.HasExtension(context.Request.Path.Value)
+                    && !context.Request.Path.Value.StartsWith("/api")
 #if DEBUG
                     && !context.Request.Path.Value.StartsWith(Program.ServerConfiguration.PrefixPathGetUploadFile)
 #endif

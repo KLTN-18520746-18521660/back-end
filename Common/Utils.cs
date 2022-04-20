@@ -86,18 +86,13 @@ namespace Common
             /* Example
             * orders = [{"views", false}, {"created_timestamp", true}]
             * ==>
-            * views ASC created_timestamp DESC
+            * views asc, created_timestamp desc
             */
-            var retBuilder = new StringBuilder();
+            var orderStrs = new List<string>();
             foreach (var order in orders) {
-                retBuilder.Append($"{ order.Item1 } ");
-                if (order.Item2 == true) {
-                    retBuilder.Append("desc ");
-                } else {
-                    retBuilder.Append("asc ");
-                }
+                orderStrs.Add($"{ order.Item1 } {( order.Item2 ? "desc" : "asc" )}");
             }
-            return retBuilder.ToString().Trim();
+            return string.Join(", ", orderStrs).Trim();
         }
         public string BindModelToString<T>(string template, T model) where T : class
         {
