@@ -13,7 +13,7 @@ namespace DatabaseAccess.Context.ParserModels
 {
     public class ParserSocialComment : IBaseParserModel
     {
-        public long parent_id { get; set; }
+        public long? parent_id { get; set; }
         [DefaultValue("New comment")]
         public string content { get; set; }
     }
