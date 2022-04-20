@@ -85,7 +85,9 @@ namespace CoreApi.Controllers.Upload
                 foreach (var formFile in files) {
                     if (formFile.Length > 0) {
                         var ext = Path.GetExtension(formFile.FileName);
-                        var fileName = $"{ Utils.RandomString(15) }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ext }";
+                        var fileName = Utils.GenerateSlug(formFile.FileName.Replace(ext, string.Empty));
+                        fileName = fileName.Length > 30 ? fileName.Substring(0, 30) : fileName;
+                        fileName = $"{ fileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ext }";
                         var filePath = Path.Combine(Program.ServerConfiguration.UploadFilePath, formFile.FileName);
                         using (var stream = System.IO.File.Create(filePath))
                         {
@@ -122,7 +124,9 @@ namespace CoreApi.Controllers.Upload
                     return Problem(400, $"Not allow file type: { ext }");
                 }
 
-                var fileName = $"{ Utils.RandomString(15) }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ext }";
+                var fileName = Utils.GenerateSlug(formFile.FileName.Replace(ext, string.Empty));
+                fileName = fileName.Length > 30 ? fileName.Substring(0, 30) : fileName;
+                fileName = $"{ fileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ext }";
                 var filePath = Path.Combine(Program.ServerConfiguration.UploadFilePath, fileName);
                 using (var stream = System.IO.File.Create(filePath))
                 {

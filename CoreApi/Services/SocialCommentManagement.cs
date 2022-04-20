@@ -49,7 +49,7 @@ namespace CoreApi.Services
         }
 
         public async Task<(List<SocialComment>, int, ErrorCodes)> GetCommentsAttachedToPost(long postId,
-                                                                                            long parrent_comment_id = default,
+                                                                                            long? parrent_comment_id = default,
                                                                                             int start = 0,
                                                                                             int size = 20,
                                                                                             string search_term = default,
@@ -129,6 +129,7 @@ namespace CoreApi.Services
             var totalCount = await __DBContext.SocialComments
                                 .CountAsync(e => e.PostId == postId
                                     && (search_term == default || e.SearchVector.Matches(search_term))
+                                    && (e.ParentId == parrent_comment_id)
                                     && ((status.Count() == 0
                                             && e.StatusStr != BaseStatus
                                                 .StatusToString(SocialPostStatus.Deleted, EntityStatus.SocialPostStatus))

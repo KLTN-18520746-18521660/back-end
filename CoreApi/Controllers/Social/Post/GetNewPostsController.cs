@@ -48,7 +48,7 @@ namespace CoreApi.Controllers.Social.Post
             }
         }
 
-        [HttpGet("user/{user_name}/1")]
+        [HttpGet("new")]
         // [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
         // [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
@@ -58,19 +58,14 @@ namespace CoreApi.Controllers.Social.Post
                                                      [FromServices] SocialUserManagement __SocialUserManagement,
                                                      [FromServices] SocialPostManagement __SocialPostManagement,
                                                      [FromServices] SocialTagManagement __SocialTagManagement,
-                                                     [FromRoute] string user_name,
                                                      [FromHeader] string session_token,
                                                      [FromQuery] int start = 0,
                                                      [FromQuery] int size = 20,
                                                      [FromQuery] string search_term = default,
-                                                     [FromQuery] string[] status = default,
                                                      [FromQuery] Models.OrderModel orders = default,
                                                      [FromQuery] string[] tags = default,
                                                      [FromQuery] string[] categories = default)
         {
-            //////////////////////
-            return Problem(500, "Not implement.");
-            //////////////////////
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
@@ -83,9 +78,6 @@ namespace CoreApi.Controllers.Social.Post
             #endregion
             try {
                 #region Validate params
-                if (user_name == default || user_name.Trim() == string.Empty || user_name.Length > 50) {
-                    return Problem(400, "Invalid user_name.");
-                }
                 if (categories != default && !await __SocialCategoryManagement.IsExistingCategories(categories)) {
                     return Problem(400, "Invalid categories not exists.");
                 }
@@ -93,19 +85,10 @@ namespace CoreApi.Controllers.Social.Post
                     return Problem(400, "Invalid tags not exists.");
                 }
                 var combineOrders = orders.GetOrders();
-                var paramsAllowInOrder = __SocialPostManagement.GetAllowOrderFields(GetPostAction.GetPostsAttachedToUser);
+                var paramsAllowInOrder = __SocialPostManagement.GetAllowOrderFields(GetPostAction.GetNewPosts);
                 foreach (var it in combineOrders) {
                     if (!paramsAllowInOrder.Contains(it.Item1)) {
                         return Problem(400, $"Not allow order field: { it.Item1 }.");
-                    }
-                }
-                if (status != default) {
-                    foreach (var statusStr in status) {
-                        var statusInt = BaseStatus.StatusFromString(statusStr, EntityStatus.SocialPostStatus);
-                        if (statusInt == BaseStatus.InvalidStatus ||
-                            statusInt == SocialPostStatus.Deleted) {
-                            return Problem(400, $"Invalid status: { statusStr }.");
-                        }
                     }
                 }
                 #endregion
@@ -130,28 +113,19 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 #region Get posts
-                SocialUser postUser = default;
-                (postUser, error) = await __SocialUserManagement.FindUserIgnoreStatus(user_name, false);
-                if (error != ErrorCodes.NO_ERROR) {
-                    return Problem(404, "Not found user.");
-                }
-                var isOwner = IsValidSession ? session.UserId == postUser.Id : false;
                 List<SocialPost> posts = default;
                 int totalSize = default;
                 (posts, totalSize, error) = await __SocialPostManagement
-                    .GetPostsAttachedToUser(
-                        postUser.Id,
-                        isOwner,
+                    .GetNewPosts(
                         start,
                         size,
                         search_term,
-                        status,
                         combineOrders,
                         tags,
                         categories
                     );
                 if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"GetPostsAttachedToUser failed, ErrorCode: { error }");
+                    throw new Exception($"GetNewPosts failed, ErrorCode: { error }");
                 }
                 #endregion
 

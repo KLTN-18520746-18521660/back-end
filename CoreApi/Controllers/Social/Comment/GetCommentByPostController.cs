@@ -57,7 +57,7 @@ namespace CoreApi.Controllers.Social.Comment
                                                           [FromServices] SocialPostManagement __SocialPostManagement,
                                                           [FromRoute] string post_slug,
                                                           [FromHeader] string session_token,
-                                                          [FromQuery] long parrent_comment_id = default,
+                                                          [FromQuery] long? parrent_comment_id = default,
                                                           [FromQuery] int start = 0,
                                                           [FromQuery] int size = 20,
                                                           [FromQuery] string search_term = default,

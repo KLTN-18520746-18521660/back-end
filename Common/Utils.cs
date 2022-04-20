@@ -86,7 +86,7 @@ namespace Common
             /* Example
             * orders = [{"views", false}, {"created_timestamp", true}]
             * ==>
-            * ORDER BY views ASC, created_timestamp DESC
+            * views ASC created_timestamp DESC
             */
             var retBuilder = new StringBuilder();
             foreach (var order in orders) {
