@@ -121,8 +121,6 @@ namespace CoreApi.Controllers.Social.Comment
                 var comment = new SocialComment();
                 comment.Parse(Parser, out var errMsg);
                 comment.Owner = session.UserId;
-                // comment.OwnerNavigation = session.User;
-                // comment.Post = post;
                 comment.PostId = post.Id;
 
                 if (errMsg != string.Empty) {
@@ -164,8 +162,19 @@ namespace CoreApi.Controllers.Social.Comment
                 await __NotificationsManagement.SendNotifications(notifications.ToArray());
                 #endregion
 
+                // SocialComment r_comment = default;
+                // (r_comment, error) =  await (__SocialCommentManagement.FindCommentById(comment.Id));
+                // if (error != ErrorCodes.NO_ERROR) {
+                //     throw new Exception($"FindCommentById failed, ErrorCode: { error }");
+                // }
+                comment.OwnerNavigation = session.User;
+                comment.Post = post;
+
+                var ret = comment.GetPublicJsonObject();
+                ret.Add("actions", Utils.ObjectToJsonToken(comment.GetActionWithUser(session.UserId)));
+
                 return Ok(201, "OK", new JObject(){
-                    { "comment_id", comment.Id },
+                    { "comment", ret },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");

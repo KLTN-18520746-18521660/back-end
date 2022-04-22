@@ -58,7 +58,7 @@ namespace DatabaseAccess.Context.Models
         public int Likes { get =>
             SocialUserActionWithPosts
                 .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithPost.Like,
-                                                                            EntityAction.UserActionWithPost))
+                                                                         EntityAction.UserActionWithPost))
                 );
         }
         [NotMapped]
@@ -70,10 +70,7 @@ namespace DatabaseAccess.Context.Models
         }
         [NotMapped]
         public int Comments { get =>
-            SocialUserActionWithPosts
-                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithPost.Comment,
-                                                                            EntityAction.UserActionWithPost))
-                );
+            SocialComments.Count();
         }
         [NotMapped]
         public object[] Tags { get =>

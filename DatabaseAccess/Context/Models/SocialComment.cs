@@ -10,6 +10,7 @@ using DatabaseAccess.Common.Interface;
 using DatabaseAccess.Common.Status;
 using Newtonsoft.Json.Linq;
 using System.Linq;
+using DatabaseAccess.Common.Actions;
 
 
 #nullable disable
@@ -114,6 +115,38 @@ namespace DatabaseAccess.Context.Models
             return ret;
         }
 
+        public int Likes()
+        {
+            return SocialUserActionWithComments
+                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithComment.Like,
+                                                                         EntityAction.UserActionWithComment))
+                );
+        }
+
+        public int DisLikes()
+        {
+            return SocialUserActionWithComments
+                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithComment.Dislike,
+                                                                         EntityAction.UserActionWithComment))
+                );
+        }
+
+        public int Reports()
+        {
+            return SocialUserActionWithComments
+                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithComment.Report,
+                                                                         EntityAction.UserActionWithComment))
+                );
+        }
+
+        public int Replies()
+        {
+            return SocialUserActionWithComments
+                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithComment.Reply,
+                                                                         EntityAction.UserActionWithComment))
+                );
+        }
+
         public override bool PrepareExportObjectJson()
         {
             __ObjectJson = new Dictionary<string, object>()
@@ -131,6 +164,9 @@ namespace DatabaseAccess.Context.Models
                 },
                 { "content", Content },
                 { "status", StatusStr },
+                { "likes", Likes() },
+                { "dislikes", DisLikes() },
+                { "replies", Replies() },
                 { "last_modified_timestamp", LastModifiedTimestamp},
                 { "created_timestamp", CreatedTimestamp},
 #if DEBUG

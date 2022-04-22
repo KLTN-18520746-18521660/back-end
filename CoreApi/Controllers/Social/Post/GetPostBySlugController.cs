@@ -194,6 +194,9 @@ namespace CoreApi.Controllers.Social.Post
                     throw new Exception($"FindPostBySlug failed, ErrorCode: { error }");
                 }
                 var ret = post.GetPublicStatisticJsonObject();
+                if (IsValidSession) {
+                    ret.Add("actions", Utils.ObjectToJsonToken(post.GetActionWithUser(session.UserId)));
+                }
 
                 return Ok(200, "OK", new JObject(){
                     { "post", ret },
