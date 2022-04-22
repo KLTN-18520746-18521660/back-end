@@ -10,10 +10,8 @@ namespace CoreApi.Models
 {
     public class OrderModel
     {
-        [DefaultValue("views")]
         [FromQuery(Name = "order")]
         public string[] orders { get; set; }
-        [DefaultValue("true")]
         [FromQuery(Name = "desc")]
         public bool[] descs { get; set; }
 

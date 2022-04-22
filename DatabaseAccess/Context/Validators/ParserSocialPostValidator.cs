@@ -78,7 +78,7 @@ namespace DatabaseAccess.Context.Validators
                 .Cascade(CascadeMode.Stop)
                 .NotNull()
                     .WithMessage("{PropertyName} is null.")
-                .Must(categories => categories.Count > 0)
+                .Must(categories => categories.Length > 0)
                     .WithMessage("{PropertyName} must belong to at least one category.");
         }
     }

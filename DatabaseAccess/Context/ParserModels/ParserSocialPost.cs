@@ -26,7 +26,7 @@ namespace DatabaseAccess.Context.ParserModels
         [DefaultValue("HTML")]
         public string content_type { get; set; }
         [DefaultValue("[\"technology\"]")]
-        public List<string> categories { get; set; }
+        public string[] categories { get; set; }
         [DefaultValue("[]")]
         public string[] tags { get; set; }
     }

@@ -171,8 +171,8 @@ namespace CoreApi.Controllers.Social.Post
                     throw new Exception($"Parse social post model failed, error: { errMsg }");
                 }
 
-                // Check categories exist and tags valid --> to create
-                if (!await __SocialCategoryManagement.IsExistingCategories(Parser.categories.ToArray())) {
+                #region validate post
+                if (!await __SocialCategoryManagement.IsExistingCategories(Parser.categories)) {
                     return Problem(400, $"Category not exist.");
                 }
                 var isValidTags = false;
@@ -183,6 +183,7 @@ namespace CoreApi.Controllers.Social.Post
                     }
                     throw new Exception($"IsValidTags Failed, ErrorCode: { error }");
                 }
+                #endregion
 
                 error = await __SocialPostManagement.AddNewPost(Parser, post, session.UserId);
                 if (error != ErrorCodes.NO_ERROR) {

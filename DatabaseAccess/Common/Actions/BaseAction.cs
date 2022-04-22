@@ -51,8 +51,8 @@ namespace DatabaseAccess.Common.Actions
         protected readonly static Dictionary<int, string> MapUserActionWithComment = new()
         {
             { InvalidAction, "Invalid Action" },
-            { UserActionWithComment.Like, "Enabled" },
-            { UserActionWithComment.Dislike, "Disabled" },
+            { UserActionWithComment.Like, "Like" },
+            { UserActionWithComment.Dislike, "Dislike" },
             { UserActionWithComment.Report, "Report" },
             { UserActionWithComment.Reply, "Reply" }
         };
