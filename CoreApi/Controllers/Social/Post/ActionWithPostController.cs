@@ -121,7 +121,7 @@ namespace CoreApi.Controllers.Social.Post
 
                 #region Get post info
                 SocialPost post = default;
-                (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim(), session.UserId);
+                (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim());
 
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
