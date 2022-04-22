@@ -107,7 +107,7 @@ namespace CoreApi.Controllers.Social.Comment
 
                 #region Get post info
                 SocialPost post = default;
-                (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim(), session.UserId);
+                (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim());
 
                 if (error != ErrorCodes.NO_ERROR && error != ErrorCodes.USER_IS_NOT_OWNER) {
                     if (error == ErrorCodes.NOT_FOUND) {

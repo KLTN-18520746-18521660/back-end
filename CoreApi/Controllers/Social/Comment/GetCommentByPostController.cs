@@ -124,7 +124,7 @@ namespace CoreApi.Controllers.Social.Comment
                 #endregion
 
                 SocialPost post = default;
-                (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim(), IsValidSession ? session.UserId : default);
+                (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim());
 
                 if (error != ErrorCodes.NO_ERROR && error != ErrorCodes.USER_IS_NOT_OWNER) {
                     if (error == ErrorCodes.NOT_FOUND) {
