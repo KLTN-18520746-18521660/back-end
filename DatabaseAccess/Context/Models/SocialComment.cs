@@ -102,6 +102,9 @@ namespace DatabaseAccess.Context.Models
                     "owner",
                     "content",
                     "status",
+                    "likes",
+                    "dislikes",
+                    "replies",
                     "last_modified_timestamp",
                     "created_timestamp",
                 };
