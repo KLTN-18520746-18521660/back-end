@@ -216,7 +216,7 @@ namespace CoreApi.Services
         {
             return tag != string.Empty && tag.Count() <= 25;
         }
-        public async Task<(bool, ErrorCodes)> IsValidTags(string[] tags)
+        public async Task<(bool, ErrorCodes)> IsValidTags(string[] tags, bool isEnableTag = false)
         {
             foreach(var tag in tags) {
                 if (!IsValidTag(tag)) {
@@ -227,7 +227,7 @@ namespace CoreApi.Services
                             Tag = tag,
                             Name = tag,
                             Describe = tag,
-                            Status = SocialTagStatus.Disabled,
+                            Status = isEnableTag ? SocialTagStatus.Enabled : SocialTagStatus.Disabled,
                         });
                         if (await __DBContext.SaveChangesAsync() <= 0) {
                             return (false, ErrorCodes.INTERNAL_SERVER_ERROR);

@@ -269,8 +269,12 @@ namespace CoreApi.Services
         }
         public async Task<ErrorCodes> ModifyComment(SocialComment Comment, SocialCommentModifyModel NewData)
         {
+            if (Comment.Content == NewData.content) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
             Comment.Status = SocialCommentStatus.Edited;
             Comment.Content = NewData.content;
+            Comment.LastModifiedTimestamp = DateTime.UtcNow;
             if (await __DBContext.SaveChangesAsync() > 0) {
                 return ErrorCodes.NO_ERROR;
             }

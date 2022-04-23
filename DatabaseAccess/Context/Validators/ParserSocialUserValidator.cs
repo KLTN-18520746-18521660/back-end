@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+﻿using Common;
+using FluentValidation;
 using System;
 
 namespace DatabaseAccess.Context.Validators
@@ -74,10 +75,6 @@ namespace DatabaseAccess.Context.Validators
             When(entity => entity.sex != default, () => {
                 RuleFor(entity => entity.sex)
                     .Cascade(CascadeMode.Stop)
-                    .NotNull()
-                        .WithMessage("{PropertyName} is null.")
-                    .NotEmpty()
-                        .WithMessage("{PropertyName} is empty.")
                     .MaximumLength(10)
                         .WithMessage("Length of {PropertyName} must be equals or less than 10.");
             });
@@ -135,6 +132,16 @@ namespace DatabaseAccess.Context.Validators
                         .WithMessage("{PropertyName} is null.")
                     .Must(rights => rights.Type == Newtonsoft.Json.Linq.JTokenType.Object)
                         .WithMessage("{PropertyName} must be a Json object.");
+            });
+
+            When(entity => entity.avatar != default, () => {
+                RuleFor(entity => entity.avatar)
+                    .Cascade(CascadeMode.Stop)
+                    .NotEmpty()
+                        .WithMessage("{PropertyName} is empty.")
+                    .Must(thumbnail => CommonValidate.IsValidUrl(thumbnail))
+                        .WithMessage("{PropertyName} is is invalid.");
+
             });
         }
     }

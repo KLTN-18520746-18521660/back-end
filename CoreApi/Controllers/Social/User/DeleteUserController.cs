@@ -53,14 +53,10 @@ namespace CoreApi.Controllers.Social.User
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> DeleteUser([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
                                                     [FromServices] SocialCommentManagement __SocialCommentManagement,
-                                                    [FromServices] SocialPostManagement __SocialPostManagement,
-                                                    [FromRoute] long comment_id,
+                                                    [FromServices] SocialUserManagement __SocialUserManagement,
                                                     [FromHeader] string session_token,
                                                     [FromBody] SocialCommentModifyModel modelData)
         {
-            //////////////////////
-            return Problem(500, "Not implement.");
-            //////////////////////
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
@@ -68,12 +64,6 @@ namespace CoreApi.Controllers.Social.User
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Validate slug
-                if (comment_id == default || comment_id <= 0) {
-                    return Problem(400, "Invalid request.");
-                }
-                #endregion
-
                 #region Get session token
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
@@ -107,31 +97,13 @@ namespace CoreApi.Controllers.Social.User
                 }
                 #endregion
 
-                #region Get comment info
-                SocialComment comment = default;
-                (comment, error) = await __SocialCommentManagement.FindCommentById(comment_id);
 
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found comment.");
-                    }
-
-                    throw new Exception($"FindCommentById failed, ErrorCode: { error }");
-                }
-                #endregion
-
-                if (comment.Owner != session.UserId) {
-                    return Problem(403, "Not allow.");
-                }
-
-                error = await __SocialCommentManagement.ModifyComment(comment, modelData);
+                error = await __SocialUserManagement.DeleteUser(session.User);
                 if (error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"ModifyComment failed, ErrorCode: { error }");
                 }
 
-                return Ok(200, "OK", new JObject(){
-                    { "comment_id", comment.Id },
-                });
+                return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
                 return Problem(500, "Internal Server error.");

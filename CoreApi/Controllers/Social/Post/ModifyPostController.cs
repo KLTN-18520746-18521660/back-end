@@ -1,5 +1,6 @@
 using Common;
 using CoreApi.Common;
+using CoreApi.Models.ModifyModels;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
@@ -22,7 +23,7 @@ namespace CoreApi.Controllers.Social.Post
 
         public ModifyPostController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetUserBySessionSocial";
+            __ControllerName = "ModifyPost";
             LoadConfig();
         }
 
@@ -49,7 +50,12 @@ namespace CoreApi.Controllers.Social.Post
         /// </summary>
         /// <returns><b>Social user of session_token</b></returns>
         /// <param name="__SessionSocialUserManagement"></param>
+        /// <param name="__SocialPostManagement"></param>
+        /// <param name="__SocialCategoryManagement"></param>
+        /// <param name="__SocialTagManagement"></param>
+        /// <param name="ModelModify"></param>
         /// <param name="session_token"></param>
+        /// <param name="post_id"></param>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
@@ -93,12 +99,14 @@ namespace CoreApi.Controllers.Social.Post
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetUserBySession([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                          [FromHeader] string session_token)
+        public async Task<IActionResult> ModifyPost([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                    [FromServices] SocialPostManagement __SocialPostManagement,
+                                                    [FromServices] SocialCategoryManagement __SocialCategoryManagement,
+                                                    [FromServices] SocialTagManagement __SocialTagManagement,
+                                                    [FromBody] SocialPostModifyModel ModelModify,
+                                                    [FromHeader] string session_token,
+                                                    [FromRoute] long post_id)
         {
-            //////////////////////
-            return Problem(500, "Not implement.");
-            //////////////////////
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
@@ -106,6 +114,12 @@ namespace CoreApi.Controllers.Social.Post
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region validate post id
+                if (post_id <= 0) {
+                    return Problem(400, "Invalid request.");
+                }
+                #endregion
+
                 #region Get session token
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
@@ -139,10 +153,44 @@ namespace CoreApi.Controllers.Social.Post
                 }
                 #endregion
 
-                var user = session.User;
-                LogInformation($"Get info user by apikey success, user_name: { user.UserName }");
+                #region get post by id
+                SocialPost post = default;
+                (post, error) = await __SocialPostManagement.FindPostById(post_id);
+                if (error != ErrorCodes.NO_ERROR || post.Owner != session.UserId) {
+                    return Problem(404, "Not found post.");
+                }
+                #endregion
+
+                #region validate post
+                if (ModelModify.categories != default && !await __SocialCategoryManagement.IsExistingCategories(ModelModify.categories)) {
+                    return Problem(400, $"Category not exist.");
+                }
+
+                if (ModelModify.tags != default) {
+                    var isValidTags = false;
+                    (isValidTags, error) = await __SocialTagManagement.IsValidTags(ModelModify.tags, true);
+                    if (!isValidTags) {
+                        if (error == ErrorCodes.INVALID_PARAMS) {
+                            return Problem(400, "Invalid tags.");
+                        }
+                        throw new Exception($"IsValidTags Failed, ErrorCode: { error }");
+                    }
+                }
+                #endregion
+
+                error = await __SocialPostManagement.ModifyPost(post, ModelModify);
+                if (error != ErrorCodes.NO_ERROR) {
+                    if (error == ErrorCodes.NO_CHANGE_DETECTED) {
+                        return Problem(400, "No change detected.");
+                    }
+                    throw new Exception($"ModifyPost Failed, ErrorCode: { error }"); 
+                }
+
+                var ret = post.GetJsonObject();
+                ret.Add("actions", Utils.ObjectToJsonToken(post.GetActionWithUser(session.UserId)));
+
                 return Ok(200, "OK", new JObject(){
-                    { "user", user.GetJsonObject() },
+                    { "post", ret },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");

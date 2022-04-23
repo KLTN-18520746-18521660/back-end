@@ -8,6 +8,10 @@ using FluentValidation;
 using System.ComponentModel.DataAnnotations.Schema;
 using DatabaseAccess.Common.Interface;
 using System.ComponentModel;
+using CoreApi.Common.Interface;
+using DatabaseAccess.Common.Models;
+using CoreApi.Common;
+using DatabaseAccess.Context.Models;
 
 namespace CoreApi.Models.ModifyModels
 {

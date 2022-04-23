@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using CoreApi.Common;
 using Common;
 using DatabaseAccess.Common.Actions;
+using CoreApi.Models.ModifyModels;
 
 namespace CoreApi.Services
 {
@@ -242,6 +243,104 @@ namespace CoreApi.Services
                 } else {
                     return ErrorCodes.INTERNAL_SERVER_ERROR;
                 }
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+
+        public async Task<ErrorCodes> ModifyUser(Guid userId, SocialUserModifyModel modelModify)
+        {
+            var (user, error) = await FindUserById(userId);
+            if (error != ErrorCodes.NO_ERROR) {
+                return error;
+            }
+            #region Get data change and save
+            var haveChange = false;
+            if (modelModify.user_name != default) {
+                user.UserName = modelModify.user_name;
+                haveChange = true;
+            }
+            if (modelModify.first_name != default) {
+                user.FirstName = modelModify.first_name;
+                haveChange = true;
+            }
+            if (modelModify.last_name != default) {
+                user.LastName = modelModify.last_name;
+                haveChange = true;
+            }
+            if (modelModify.display_name != default) {
+                user.DisplayName = modelModify.display_name;
+                haveChange = true;
+            }
+            if (modelModify.description != default) {
+                user.Description = modelModify.description;
+                haveChange = true;
+            }
+            if (modelModify.email != default) {
+                user.Email = modelModify.email;
+                haveChange = true;
+            }
+            if (modelModify.avatar != default) {
+                user.Avatar = modelModify.avatar;
+                haveChange = true;
+            }
+            if (modelModify.sex != default) {
+                user.Sex = modelModify.sex;
+                haveChange = true;
+            }
+            if (modelModify.phone != default) {
+                user.Phone = modelModify.phone;
+                haveChange = true;
+            }
+            if (modelModify.city != default) {
+                user.City = modelModify.city;
+                haveChange = true;
+            }
+            if (modelModify.province != default) {
+                user.Province = modelModify.province;
+                haveChange = true;
+            }
+            if (modelModify.country != default) {
+                user.Country = modelModify.country;
+                haveChange = true;
+            }
+            if (modelModify.ui_settings != default) {
+                haveChange = true;
+                if (user.Settings.ContainsKey("ui_settings")) {
+                    user.Settings.SelectToken("ui_settings").Replace(Utils.ObjectToJsonToken(modelModify.ui_settings));
+                }
+                user.Settings.Add("ui_settings", Utils.ObjectToJsonToken(modelModify.ui_settings));
+            }
+            if (modelModify.publics != default) {
+                user.Publics = JArray.FromObject(modelModify.publics);
+            }
+            #endregion
+
+            if (!haveChange) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+
+        public async Task<ErrorCodes> DeleteUser(SocialUser User)
+        {
+            __DBContext.SocialUsers.Remove(User);
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [SOCIAL] Write user activity
+                await __SocialUserAuditLogManagement.AddNewUserAuditLog(
+                    User.GetModelName(),
+                    User.Id.ToString(),
+                    LOG_ACTIONS.DELETE,
+                    User.Id,
+                    new JObject(),
+                    new JObject()
+                );
                 #endregion
                 return ErrorCodes.NO_ERROR;
             }

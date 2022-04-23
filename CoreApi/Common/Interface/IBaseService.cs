@@ -4,7 +4,6 @@ namespace CoreApi.Common.Interface
 {
     public interface IBaseService
     {
-        
         protected virtual string CreateLogMessage(string Msg)
         {
             throw new System.NotImplementedException("CreateLogMessage");

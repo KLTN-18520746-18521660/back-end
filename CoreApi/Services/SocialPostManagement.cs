@@ -19,6 +19,8 @@ using System.Linq.Dynamic;
 using DatabaseAccess.Common.Actions;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 using DatabaseAccess.Context.ParserModels;
+using CoreApi.Models.ModifyModels;
+using System.Reflection;
 
 namespace CoreApi.Services
 {
@@ -887,6 +889,156 @@ namespace CoreApi.Services
                 );
             }
             #endregion
+            return ErrorCodes.NO_ERROR;
+        }
+
+        public async Task<ErrorCodes> ModifyPost(SocialPost post, SocialPostModifyModel model)
+        {
+            using var transaction = await __DBContext.Database.BeginTransactionAsync();
+            
+            #region Get data change and save
+            var haveChange = false;
+            var ok = true;
+            var error = string.Empty;
+            if (model.title != default && post.Title != model.title) {
+                post.Title = model.title;
+                haveChange = true;
+            }
+            if (model.thumbnail != default && post.Thumbnail != model.thumbnail) {
+                post.Thumbnail = model.thumbnail;
+                haveChange = true;
+            }
+            if (model.short_content != default && post.ShortContent != model.short_content) {
+                post.ShortContent = model.short_content;
+                haveChange = true;
+            }
+            if (model.content != default && post.Content != model.content) {
+                post.Content = model.content;
+                haveChange = true;
+            }
+            if (model.time_read != default && post.TimeRead != model.time_read) {
+                post.TimeRead = (int)model.time_read;
+                haveChange = true;
+            }
+            if (model.content_type != default && post.ContenTypeStr != model.content_type) {
+                post.ContenTypeStr = model.content_type;
+                haveChange = true;
+            }
+            if (ok && model.categories != default) {
+                var old_categories = post.SocialPostCategories.Select(c => c.Category.Name);
+                if (model.categories != old_categories) {
+                    haveChange = true;
+                    __DBContext.SocialPostCategories.RemoveRange(
+                        post.SocialPostCategories
+                    );
+                    ok = await __DBContext.SaveChangesAsync() >= 0;
+                    if (ok) {
+                        foreach (var it in model.categories) {
+                            // No need check status of category
+                            var category = await __DBContext.SocialCategories
+                                .Where(c => c.Name == it)
+                                .FirstOrDefaultAsync();
+                            if (category == default) {
+                                ok = false;
+                                error = $"Not found category for add post, category: { it }";
+                                break;
+                            }
+                            var postCategory = new SocialPostCategory(){
+                                PostId = post.Id,
+                                Post = post,
+                                CategoryId = category.Id,
+                                Category = category,
+                            };
+                            await __DBContext.SocialPostCategories.AddAsync(postCategory);
+                            post.SocialPostCategories.Add(postCategory);
+                            if (await __DBContext.SaveChangesAsync() <= 0) {
+                                ok = false;
+                                error = "Save post-category failed";
+                                break;
+                            }
+                        }
+                    } else {
+                        error = "Save post-category failed";
+                    }
+                }
+            }
+
+            if (ok && model.tags != default) {
+                var old_tags = post.SocialPostTags.Select(c => c.Tag.Tag);
+                if (model.tags != old_tags) {
+                    haveChange = true;
+                    __DBContext.SocialPostTags.RemoveRange(
+                        post.SocialPostTags
+                    );
+                    ok = await __DBContext.SaveChangesAsync() >= 0;
+                    if (ok) {
+                        foreach (var it in model.tags) {
+                            // No need check status of tag
+                            var tag = await __DBContext.SocialTags
+                                .Where(t => t.Tag == it)
+                                .FirstOrDefaultAsync();
+                            if (tag == default) {
+                                ok = false;
+                                error = $"Not found tag for add new post. tag: { it }";
+                                break;
+                            }
+                            var postTag = new SocialPostTag(){
+                                PostId = post.Id,
+                                Post = post,
+                                TagId = tag.Id,
+                                Tag = tag,
+                            };
+                            await __DBContext.SocialPostTags.AddAsync(postTag);
+                            post.SocialPostTags.Add(postTag);
+                            if (await __DBContext.SaveChangesAsync() <= 0) {
+                                ok = false;
+                                error = "Save post-tag failed.";
+                                break;
+                            }
+
+                            #region Add action used tag
+                            var action = await __DBContext.SocialUserActionWithTags
+                                .Where(e => e.TagId == tag.Id && e.UserId == post.Owner)
+                                .FirstOrDefaultAsync();
+                            var actionUsed = BaseAction.ActionToString(UserActionWithTag.Used, EntityAction.UserActionWithTag);
+                            if (action != default) {
+                                if (!action.Actions.Contains(actionUsed)) {
+                                    action.Actions.Add(actionUsed);
+                                    await __DBContext.SaveChangesAsync();
+                                }
+                            } else {
+                                await __DBContext.SocialUserActionWithTags
+                                    .AddAsync(new SocialUserActionWithTag(){
+                                        UserId = post.Owner,
+                                        TagId = tag.Id,
+                                        Actions = new List<string>(){
+                                            actionUsed
+                                        }
+                                    });
+                                await __DBContext.SaveChangesAsync();
+                            }
+                            #endregion
+                        }
+                    } else {
+                        error = "Save post-tag failed";
+                    }
+                }
+            }
+            #endregion
+            if (!haveChange) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+
+            if (!ok) {
+                LogError($"ModifyPost failed. error: { error }");
+                return ErrorCodes.INTERNAL_SERVER_ERROR;
+            }
+            post.LastModifiedTimestamp = DateTime.UtcNow;
+            ok = await __DBContext.SaveChangesAsync() > 0;
+            if (!ok) {
+                LogError($"ModifyPost failed. error: can't update last modified timestamp.");
+            }
+            await transaction.CommitAsync();
             return ErrorCodes.NO_ERROR;
         }
 

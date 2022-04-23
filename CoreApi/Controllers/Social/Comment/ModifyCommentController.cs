@@ -123,6 +123,9 @@ namespace CoreApi.Controllers.Social.Comment
 
                 error = await __SocialCommentManagement.ModifyComment(comment, modelData);
                 if (error != ErrorCodes.NO_ERROR) {
+                    if (error == ErrorCodes.NO_CHANGE_DETECTED) {
+                        return Problem(400, "No change detected.");
+                    }
                     throw new Exception($"ModifyComment failed, ErrorCode: { error }");
                 }
 
