@@ -20,7 +20,8 @@ namespace CoreApi.Controllers.Upload
     {
         #region Config Values
         private int MAX_LENGTH_OF_SINGLE_FILE;
-        private int MAX_LENGTH_OF_MULTIPLE_FILE;
+        private int EXTENSION_TIME; // minutes
+        private int EXPIRY_TIME; // minute
         #endregion
 
         // https://developer.mozilla.org/en-US/docs/Web/Media/Formats/Image_types
@@ -37,6 +38,16 @@ namespace CoreApi.Controllers.Upload
             ".svg",
             ".webp",
         };
+
+        private string[] SocialPath = new string[]{
+            "post",
+            "user",
+        };
+
+        private string[] AdminPath = new string[]{
+            "common",
+        };
+
         public UploadFileController(BaseConfig _BaseConfig)
             : base(_BaseConfig)
         {
@@ -50,7 +61,8 @@ namespace CoreApi.Controllers.Upload
             string Error = string.Empty;
             try {
                 (MAX_LENGTH_OF_SINGLE_FILE, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.UPLOAD_FILE_CONFIG, SUB_CONFIG_KEY.MAX_LENGTH_OF_SINGLE_FILE);
-                (MAX_LENGTH_OF_MULTIPLE_FILE, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.UPLOAD_FILE_CONFIG, SUB_CONFIG_KEY.MAX_LENGTH_OF_MULTIPLE_FILE);
+                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
+                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
                 __LoadConfigSuccess = false;
@@ -62,8 +74,12 @@ namespace CoreApi.Controllers.Upload
             }
         }
 
-        [HttpPost("files")]
-        public async Task<IActionResult> UploadFiles(List<IFormFile> files)
+        [HttpPost("file/{path}")]
+        public async Task<IActionResult> SpcialUploadFile([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                          [FromServices] SocialUserManagement __SocialUserManagement,
+                                                          [FromBody] IFormFile formFile,
+                                                          [FromRoute] string path,
+                                                          [FromHeader] string session_token)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -71,50 +87,54 @@ namespace CoreApi.Controllers.Upload
             #region Set TraceId for services
             #endregion
             try {
-                long size = files.Sum(f => f.Length);
-                if (size > MAX_LENGTH_OF_MULTIPLE_FILE) {
-                    return Problem(400, "Exceed max size of files.");
+                #region Validate path
+                if (!SocialPath.Contains(path)) {
+                    return Problem(400, "Invalid Request.");
                 }
-                foreach (var f in files) {
-                    if (!AllowExtensions.Contains(Path.GetExtension(f.FileName))) {
-                        return Problem(400, $"Not allow file type: { Path.GetExtension(f.FileName) }");
-                    }
-                };
+                #endregion
 
-                List<string> filesPath = new List<string>();
-                foreach (var formFile in files) {
-                    if (formFile.Length > 0) {
-                        var ext = Path.GetExtension(formFile.FileName);
-                        var fileName = Utils.GenerateSlug(formFile.FileName.Replace(ext, string.Empty));
-                        fileName = fileName.Length > 30 ? fileName.Substring(0, 30) : fileName;
-                        fileName = $"{ fileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ext }";
-                        var filePath = Path.Combine(Program.ServerConfiguration.UploadFilePath, formFile.FileName);
-                        using (var stream = System.IO.File.Create(filePath))
-                        {
-                            await formFile.CopyToAsync(stream);
-                        }
-                        filesPath.Add($"{ Program.ServerConfiguration.HostName }{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ fileName }");
-                    }
+                #region Get session token
+                if (session_token == default) {
+                    LogDebug($"Missing header authorization.");
+                    return Problem(401, "Missing header authorization.");
                 }
 
-                return Ok(200, "OK", new JObject(){
-                    { "url", Utils.ObjectToJsonToken(filesPath) }
-                });
-            } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
-            }
-        }
+                if (!CommonValidate.IsValidSessionToken(session_token)) {
+                    return Problem(401, "Invalid header authorization.");
+                }
+                #endregion
 
-        [HttpPost("file")]
-        public async Task<IActionResult> UploadFile(IFormFile formFile)
-        {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
-            #region Set TraceId for services
-            #endregion
-            try {
+                #region Find session for use
+                SessionSocialUser session = default;
+                ErrorCodes error = ErrorCodes.NO_ERROR;
+                (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
+
+                if (error != ErrorCodes.NO_ERROR) {
+                    if (error == ErrorCodes.NOT_FOUND) {
+                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
+                        return Problem(401, "Session not found.");
+                    }
+                    if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
+                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
+                        return Problem(401, "Session has expired.");
+                    }
+                    if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
+                        LogWarning($"User has been locked, session_token: { session_token.Substring(0, 15) }");
+                        return Problem(423, "You have been locked.");
+                    }
+                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
+                }
+                #endregion
+
+                #region Check Upload Permission
+                var user = session.User;
+                error = __SocialUserManagement.HaveFullPermission(user.Rights, ADMIN_RIGHTS.LOG);
+                if (error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
+                    LogInformation($"User doesn't have permission to upload audit log, user_name: { user.UserName }");
+                    return Problem(403, "User doesn't have permission to see admin audit log.");
+                }
+                #endregion
+
                 if (formFile.Length > MAX_LENGTH_OF_SINGLE_FILE) {
                     return Problem(400, "Exceed max size of file.");
                 }
@@ -127,7 +147,7 @@ namespace CoreApi.Controllers.Upload
                 var fileName = Utils.GenerateSlug(formFile.FileName.Replace(ext, string.Empty));
                 fileName = fileName.Length > 30 ? fileName.Substring(0, 30) : fileName;
                 fileName = $"{ fileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ext }";
-                var filePath = Path.Combine(Program.ServerConfiguration.UploadFilePath, fileName);
+                var filePath = Path.Combine($"{ Program.ServerConfiguration.UploadFilePath }/{ path }", fileName);
                 using (var stream = System.IO.File.Create(filePath))
                 {
                     await formFile.CopyToAsync(stream);

@@ -78,12 +78,21 @@ namespace MyConsole
         }
         static void Main(string[] args)
         {
-            var orders = new (string, bool)[]{
-                ("views", true),
-                ("likes", false)
+            JObject obj = new JObject(){
+                {"test", 10}
             };
-            var o =Utils.GenerateOrderString(orders);
-            Console.WriteLine(o);
+            var tst = obj.SelectToken("test");
+            if (tst != default) {
+                tst.Replace(new JObject(){
+                    { "hello","test"}
+                });
+            } else {
+                obj.Add("test", new JObject(){
+                    { "default", 100 }
+                });
+            }
+
+            Console.WriteLine(obj);
         }
     }
 }

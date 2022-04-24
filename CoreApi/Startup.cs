@@ -171,7 +171,7 @@ namespace CoreApi
         }
 
         // [INFO] This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app,
+        public async void Configure(IApplicationBuilder app,
             IWebHostEnvironment env,
             IHostApplicationLifetime hostApplicationLifetime)
         {
@@ -211,6 +211,9 @@ namespace CoreApi
                 } else {
                     throw new Exception($"Failed to connect to database, host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }, db_name: { BaseConfigurationDB.DBName }");
                 }
+
+                await serviceScope.ServiceProvider.GetService<SocialUserManagement>().UpdateDefaultSocialRole();
+                await serviceScope.ServiceProvider.GetService<AdminUserManagement>().UpdateDefaultAdminRole();
             }
             app.ApplicationServices.GetService<BaseConfig>();
             app.ApplicationServices.GetService<EmailSender>();

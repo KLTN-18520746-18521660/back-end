@@ -99,7 +99,11 @@ namespace CoreApi.Controllers.Social.User
                 }
                 LogInformation($"Get info user by user_name success, user_name: { user.UserName }");
 
-                var ret = (session != default && session.User.Id == user.Id) ? user.GetJsonObject() : user.GetPublicJsonObject();
+                var ret = (isSessionInvalid && session.User.Id == user.Id) ? user.GetJsonObject() : user.GetPublicJsonObject();
+
+                if (isSessionInvalid) {
+                    ret.Add("actions", Utils.ObjectToJsonToken(user.GetActionWithUser(session.UserId)));
+                }
 
                 return Ok(200, "OK", new JObject(){
                     { "user", ret },

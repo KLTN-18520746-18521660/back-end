@@ -32,6 +32,30 @@ namespace CoreApi.Services
             base.SetTraceId(TraceId);
             __AdminAuditLogManagement.SetTraceId(TraceId);
         }
+
+        public async Task UpdateDefaultAdminRole()
+        {
+            var rds = AdminUserRoleDetail.GetDefaultData();
+            foreach (var r in rds) {
+                if (await __DBContext.AdminUserRoleDetails.CountAsync(e => 
+                        e.RightId == r.RightId && e.RoleId == e.RoleId
+                    ) == 0
+                ) {
+                    await __DBContext.AdminUserRoleDetails.AddAsync(
+                        new AdminUserRoleDetail(){
+                            RoleId = r.RoleId,
+                            RightId = r.RightId,
+                            Actions = r.Actions
+                        }
+                    );
+
+                    if (await __DBContext.SaveChangesAsync() <= 0) {
+                        throw new Exception("UpdateDefaultAdminRole failed.");
+                    }
+                }
+            }
+        }
+
         #region Find user, handle user login
         public async Task<(AdminUser, ErrorCodes)> FindUser(string UserName, bool isEmail)
         {

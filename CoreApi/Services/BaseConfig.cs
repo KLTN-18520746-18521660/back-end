@@ -14,6 +14,7 @@ using Newtonsoft.Json;
 using System.Threading;
 using Common;
 using Microsoft.Extensions.DependencyInjection;
+using DatabaseAccess.Common.Status;
 
 namespace CoreApi.Services
 {
@@ -26,23 +27,63 @@ namespace CoreApi.Services
             : base(_IServiceProvider)
         {
             __ServiceName = "BaseConfig";
-            using (var scope = __ServiceProvider.CreateScope())
-            {
-                Configs = scope.ServiceProvider.GetRequiredService<DBContext>().AdminBaseConfigs.ToList();
-            }
+            InitConfig();
             Gate = new SemaphoreSlim(1);
             isReloadConfig = false;
             LogInformation("Init load all config successfully.");
+        }
+
+        protected void InitConfig()
+        {
+            using (var scope = __ServiceProvider.CreateScope())
+            {
+                var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
+                foreach (var key in DefaultBaseConfig.DEFAULT_CONFIG_KEYS) {
+                    if (__DBContext.AdminBaseConfigs.Count(e => e.ConfigKey == key) == 0) {
+                        __DBContext.AdminBaseConfigs.Add(
+                            new AdminBaseConfig() {
+                                ConfigKey = key,
+                                Value = DefaultBaseConfig.GetConfig(DefaultBaseConfig.StringToConfigKey(key)),
+                                Status = AdminBaseConfigStatus.Enabled
+                            }
+                        );
+                        if (__DBContext.SaveChanges() <= 0) {
+                            throw new Exception("InitConfig failed.");
+                        }
+                    }
+                }
+                Configs = __DBContext.AdminBaseConfigs.ToList();
+            }
+        }
+
+        protected async Task InitConfigAsync()
+        {
+            using (var scope = __ServiceProvider.CreateScope())
+            {
+                var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
+                foreach (var key in DefaultBaseConfig.DEFAULT_CONFIG_KEYS) {
+                    if (await __DBContext.AdminBaseConfigs.CountAsync(e => e.ConfigKey == key) == 0) {
+                        await __DBContext.AdminBaseConfigs.AddAsync(
+                            new AdminBaseConfig() {
+                                ConfigKey = key,
+                                Value = DefaultBaseConfig.GetConfig(DefaultBaseConfig.StringToConfigKey(key)),
+                                Status = AdminBaseConfigStatus.Enabled
+                            }
+                        );
+                        if (await __DBContext.SaveChangesAsync() <= 0) {
+                            throw new Exception("InitConfigAsync failed.");
+                        }
+                    }
+                }
+                Configs = await __DBContext.AdminBaseConfigs.ToListAsync();
+            }
         }
 
         public async Task<ErrorCodes> ReLoadConfig()
         {
             await Gate.WaitAsync();
             isReloadConfig = true;
-            using (var scope = __ServiceProvider.CreateScope())
-            {
-                Configs = await scope.ServiceProvider.GetRequiredService<DBContext>().AdminBaseConfigs.ToListAsync();
-            }
+            await InitConfigAsync();
             isReloadConfig = false;
             Gate.Release();
             LogInformation("Reload all base config successfully.");

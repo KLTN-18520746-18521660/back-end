@@ -106,11 +106,11 @@ namespace CoreApi.Controllers.Social.Session
                 #region Get session token
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
-                    return Problem(403, "Missing header authorization.");
+                    return Problem(401, "Missing header authorization.");
                 }
 
                 if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    return Problem(403, "Invalid header authorization.");
+                    return Problem(401, "Invalid header authorization.");
                 }
                 #endregion
 

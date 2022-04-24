@@ -33,6 +33,30 @@ namespace CoreApi.Services
             base.SetTraceId(TraceId);
             __SocialUserAuditLogManagement.SetTraceId(TraceId);
         }
+
+        public async Task UpdateDefaultSocialRole()
+        {
+            var rds = SocialUserRoleDetail.GetDefaultData();
+            foreach (var r in rds) {
+                if (await __DBContext.SocialUserRoleDetails.CountAsync(e => 
+                        e.RightId == r.RightId && e.RoleId == e.RoleId
+                    ) == 0
+                ) {
+                    await __DBContext.SocialUserRoleDetails.AddAsync(
+                        new SocialUserRoleDetail(){
+                            RoleId = r.RoleId,
+                            RightId = r.RightId,
+                            Actions = r.Actions
+                        }
+                    );
+
+                    if (await __DBContext.SaveChangesAsync() <= 0) {
+                        throw new Exception("UpdateDefaultSocialRole failed.");
+                    }
+                }
+            }
+        }
+
         #region Find user, handle user login
         public async Task<(SocialUser, ErrorCodes)> FindUser(string UserName, bool isEmail)
         {
@@ -184,9 +208,13 @@ namespace CoreApi.Services
             }
             #endregion
 
-            var rights = User.Rights;
-            if (rights.ContainsKey(Right)) {
-                var right = rights[Right];
+            return HaveReadPermission(User.Rights, Right);
+        }
+
+        public ErrorCodes HaveReadPermission(Dictionary<string, JObject> UserRights, string Right)
+        {
+            if (UserRights.ContainsKey(Right)) {
+                var right = UserRights[Right];
                 if (right["read"] != default &&
                     ((bool)right["read"]) == true) {
                     return ErrorCodes.NO_ERROR;
@@ -204,9 +232,13 @@ namespace CoreApi.Services
             }
             #endregion
 
-            var rights = User.Rights;
-            if (rights.ContainsKey(Right)) {
-                var right = rights[Right];
+            return HaveFullPermission(User.Rights, Right);
+        }
+
+        public ErrorCodes HaveFullPermission(Dictionary<string, JObject> UserRights, string Right)
+        {
+            if (UserRights.ContainsKey(Right)) {
+                var right = UserRights[Right];
                 if (right["read"] != default && right["write"] != default &&
                     ((bool)right["read"]) == true && ((bool)right["write"]) == true) {
                     return ErrorCodes.NO_ERROR;

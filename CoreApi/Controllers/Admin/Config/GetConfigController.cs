@@ -66,11 +66,11 @@ namespace CoreApi.Controllers.Admin.Config
                 #region Get session token
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
-                    return Problem(403, "Missing header authorization.");
+                    return Problem(401, "Missing header authorization.");
                 }
 
                 if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    return Problem(403, "Invalid header authorization.");
+                    return Problem(401, "Invalid header authorization.");
                 }
                 #endregion
 
@@ -98,14 +98,15 @@ namespace CoreApi.Controllers.Admin.Config
 
                 #region Check Permission
                 var user = session.User;
+                var isHaveReadPermission = true;
                 if (__AdminUserManagement.HaveReadPermission(user.Rights, ADMIN_RIGHTS.CONFIG) == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogInformation($"User doesn't have permission for get admin config, user_name: { user.UserName }");
-                    return Problem(403, "User doesn't have permission for get admin config.");
+                    LogDebug($"User doesn't have permission for get admin config, user_name: { user.UserName }");
+                    isHaveReadPermission = false;
                 }
                 #endregion
 
                 #region Get all config
-                var (ret, errMsg) = __BaseConfig.GetAllConfig();
+                var (ret, errMsg) = isHaveReadPermission ? __BaseConfig.GetAllConfig() : __BaseConfig.GetAllPublicConfig();
                 if (errMsg != string.Empty) {
                     throw new Exception($"GetAllConfig Failed. ErrorMsg: { errMsg }");
                 }
@@ -144,11 +145,11 @@ namespace CoreApi.Controllers.Admin.Config
                 #region Get session token
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
-                    return Problem(403, "Missing header authorization.");
+                    return Problem(401, "Missing header authorization.");
                 }
 
                 if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    return Problem(403, "Invalid header authorization.");
+                    return Problem(401, "Invalid header authorization.");
                 }
                 #endregion
 

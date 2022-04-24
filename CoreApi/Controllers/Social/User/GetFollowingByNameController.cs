@@ -67,11 +67,11 @@ namespace CoreApi.Controllers.Social.User
                 #region Get session token
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
-                    return Problem(403, "Missing header authorization.");
+                    return Problem(401, "Missing header authorization.");
                 }
 
                 if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    return Problem(403, "Invalid header authorization.");
+                    return Problem(401, "Invalid header authorization.");
                 }
                 #endregion
 
@@ -112,7 +112,11 @@ namespace CoreApi.Controllers.Social.User
                 #endregion
 
                 List<JObject> rawReturn = new();
-                users.ForEach(e => rawReturn.Add(e.GetPublicJsonObject()));
+                users.ForEach(e => {
+                    var r = e.GetPublicJsonObject();
+                    r.Add("actions", Utils.ObjectToJsonToken(e.GetActionWithUser(session.UserId)));
+                    rawReturn.Add(e.GetPublicJsonObject());
+                });
                 var ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(rawReturn));
                 return Ok(200, "OK", new JObject(){
                     { "users", ret },
