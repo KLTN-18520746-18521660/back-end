@@ -429,7 +429,7 @@ namespace CoreApi.Services
 
         protected async Task SendNotificationTypeActionWithUser(UserNotificationModel modelData)
         {
-            var type = NotificationType.ACTION_WITH_COMMENT;
+            var type = NotificationType.ACTION_WITH_USER;
             var dataToDB = await GetValueToDB(type, modelData);
             if (dataToDB.Count == 0) {
                 LogError($"TraceId: { modelData.TraceId }, Invalid notification data to save to DB. type: { type }");
