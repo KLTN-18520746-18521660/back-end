@@ -123,11 +123,18 @@ namespace DatabaseAccess.Context.Models
         public Dictionary<string, JObject> GetRights()
         {
             Dictionary<string, JObject> rights = new();
-            var allRoleDetails = AdminUserRoleOfUsers
+            Dictionary<string, JObject> rightsPriority = new();
+            var notPriorityRoleDetails = AdminUserRoleOfUsers
+                .Where(e => e.Role.Priority)
                 .Select(e => e.Role.AdminUserRoleDetails)
                 .ToList();
 
-            foreach(var roleDetails in allRoleDetails) {
+            var priorityRoleDetails = AdminUserRoleOfUsers
+                .Where(e => e.Role.Priority)
+                .Select(e => e.Role.AdminUserRoleDetails)
+                .ToList();
+
+            foreach(var roleDetails in notPriorityRoleDetails) {
                 foreach(var detail in roleDetails) {
                     var _obj = rights.GetValueOrDefault(detail.Right.RightName, new JObject());
                     var obj = detail.Actions;
@@ -138,7 +145,6 @@ namespace DatabaseAccess.Context.Models
                             var _write = _obj.Value<bool>("write");
                             var read = obj.Value<bool>("read") ? true : _read;
                             var write = obj.Value<bool>("write") ? true : _write;
-                            rights.Remove(detail.Right.RightName);
                             action = new JObject {
                                 { "read", read },
                                 { "write", write }
@@ -146,12 +152,45 @@ namespace DatabaseAccess.Context.Models
                         } catch (Exception) {
                             action = _obj;
                         }
-                        rights.Add(detail.Right.RightName, action);
+                        rights[detail.Right.RightName] = action;
                     } else {
                         rights.Add(detail.Right.RightName, obj);
                     }
                 }
             }
+
+            foreach(var roleDetails in priorityRoleDetails) {
+                foreach(var detail in roleDetails) {
+                    var _obj = rightsPriority.GetValueOrDefault(detail.Right.RightName, new JObject());var obj = detail.Actions;
+                    JObject action;
+                    if (_obj.Count != 0) {
+                        try {
+                            var _read = _obj.Value<bool>("read");
+                            var _write = _obj.Value<bool>("write");
+                            var read = obj.Value<bool>("read") ? true : _read;
+                            var write = obj.Value<bool>("write") ? true : _write;
+                            action = new JObject {
+                                { "read", read },
+                                { "write", write }
+                            };
+                        } catch (Exception) {
+                            action = _obj;
+                        }
+                        rightsPriority[detail.Right.RightName] = action;
+                    } else {
+                        rightsPriority.Add(detail.Right.RightName, obj);
+                    }
+                }
+            }
+
+            foreach (var rp in rightsPriority) {
+                if (rights.ContainsKey(rp.Key)) {
+                    rights[rp.Key] = rp.Value;
+                } else {
+                    rights.Add(rp.Key, rp.Value);
+                }
+            }
+
             return rights;
         }
 

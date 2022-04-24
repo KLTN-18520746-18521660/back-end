@@ -11,6 +11,7 @@ using DatabaseAccess.Common.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using DatabaseAccess.Common.Interface;
+using System.Linq;
 
 #nullable disable
 
@@ -44,6 +45,10 @@ namespace DatabaseAccess.Context.Models
             set => Status = BaseStatus.StatusFromString(value,  EntityStatus.AdminUserRoleStatus);
         }
 
+        [Required]
+        [Column("priority")]
+        public bool Priority { get; set; }
+
         [InverseProperty(nameof(AdminUserRoleDetail.Role))]
         public virtual ICollection<AdminUserRoleDetail> AdminUserRoleDetails { get; set; }
         [InverseProperty(nameof(AdminUserRoleOfUser.Role))]
@@ -55,6 +60,7 @@ namespace DatabaseAccess.Context.Models
             AdminUserRoleOfUsers = new HashSet<AdminUserRoleOfUser>();
             __ModelName = "AdminUserRole";
             Status = AdminUserRoleStatus.Enabled;
+            Priority = false;
         }
 
         public override bool Parse(IBaseParserModel Parser, out string Error)
@@ -65,12 +71,23 @@ namespace DatabaseAccess.Context.Models
                 RoleName = parser.role_name;
                 DisplayName = parser.display_name;
                 Describe = parser.describe;
-                // Rights = parser.rights;
+                Priority = parser.priority;
                 return true;
             } catch (Exception ex) {
                 Error = ex.ToString();
                 return false;
             }
+        }
+
+        public JObject GetRights()
+        {
+            JObject ret = new JObject();
+            var rights = AdminUserRoleDetails
+                .Select(e => (e.Right.RightName, e.Actions)).ToList();
+            foreach (var r in rights) {
+                ret.Add(r.RightName, r.Actions);
+            }
+            return ret;
         }
 
         public override bool PrepareExportObjectJson()
@@ -81,7 +98,8 @@ namespace DatabaseAccess.Context.Models
                 { "role_name", RoleName },
                 { "display_name", DisplayName },
                 { "describe", Describe },
-                // { "rights", Rights },
+                { "rights", GetRights() },
+                { "priority", Priority },
                 { "status", Status },
 #if DEBUG
                 {"__ModelName", __ModelName }

@@ -113,6 +113,14 @@ namespace DatabaseAccess.Context.Models
                     DisplayName = "Report",
                     Describe = "Can create, interactive report.",
                     Status = SocialUserRightStatus.Readonly
+                },
+                new SocialUserRight()
+                {
+                    Id = 4,
+                    RightName = "upload",
+                    DisplayName = "Upload",
+                    Describe = "Can create, interactive report.",
+                    Status = SocialUserRightStatus.Readonly
                 }
             };
             return ListData;
@@ -134,5 +142,6 @@ namespace DatabaseAccess.Context.Models
         public static readonly string POST = "post";
         public static readonly string COMMENT = "comment";
         public static readonly string REPORT = "report";
+        public static readonly string UPLOAD = "upload";
     }
 }

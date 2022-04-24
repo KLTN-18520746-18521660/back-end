@@ -28,6 +28,7 @@ namespace DatabaseAccess.Context
         public virtual DbSet<AdminUser> AdminUsers { get; set; }
         public virtual DbSet<AdminUserRight> AdminUserRights { get; set; }
         public virtual DbSet<AdminUserRole> AdminUserRoles { get; set; }
+        public virtual DbSet<AdminUserRoleDetail> AdminUserRoleDetails { get; set; }
         public virtual DbSet<SessionAdminUser> SessionAdminUsers { get; set; }
         public virtual DbSet<SessionSocialUser> SessionSocialUsers { get; set; }
         public virtual DbSet<SocialAuditLog> SocialAuditLogs { get; set; }
@@ -48,6 +49,7 @@ namespace DatabaseAccess.Context
         public virtual DbSet<SocialUserAuditLog> SocialUserAuditLogs { get; set; }
         public virtual DbSet<SocialUserRight> SocialUserRights { get; set; }
         public virtual DbSet<SocialUserRole> SocialUserRoles { get; set; }
+        public virtual DbSet<SocialUserRoleDetail> SocialUserRoleDetails { get; set; }
 
         #region Configure Context
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

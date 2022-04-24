@@ -41,7 +41,6 @@ namespace DatabaseAccess.Context.Models
         PREFIX_URL = 8,
         HOST_NAME = 9,
         MAX_LENGTH_OF_SINGLE_FILE = 10,
-        MAX_LENGTH_OF_MULTIPLE_FILE = 11,
     }
 
     public static class DefaultBaseConfig
@@ -77,8 +76,7 @@ namespace DatabaseAccess.Context.Models
             { "host_name", "http://localhost:4200" },
         };
         public static readonly Dictionary<string, object> UploadFileConfig = new() {
-            { "max_len_of_multi_file", 5242880 }, // byte ~ 5MB
-            { "max_len_of_single_file", 52428800 }, // byte ~ 50MB
+            { "max_len_of_single_file", 5242880 }, // byte ~ 5MB
         };
         public static readonly Dictionary<string, object> UIConfig = new() {};
         public static readonly Dictionary<string, object> PublicConfig = new() {
@@ -88,6 +86,17 @@ namespace DatabaseAccess.Context.Models
             { ConfigKeyToString(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG), SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
             { ConfigKeyToString(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG), SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
             { ConfigKeyToString(CONFIG_KEY.UPLOAD_FILE_CONFIG), SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
+        };
+        public static readonly string[] DEFAULT_CONFIG_KEYS = new string[]{
+            "AdminUserLoginConfig",
+            "SocialUserLoginConfig",
+            "SessionAdminUserConfig",
+            "SessionSocialUserConfig",
+            "EmailClientConfig",
+            "SocialUserConfirmConfig",
+            "UIConfig",
+            "PublicConfig",
+            "UploadFileConfig",
         };
         #endregion
         public static JObject GetConfig(CONFIG_KEY ConfigKey, string Error = default)
@@ -195,8 +204,6 @@ namespace DatabaseAccess.Context.Models
                     return SUB_CONFIG_KEY.PREFIX_URL;
                 case "host_name":
                     return SUB_CONFIG_KEY.HOST_NAME;
-                case "max_len_of_multi_file":
-                    return SUB_CONFIG_KEY.MAX_LENGTH_OF_MULTIPLE_FILE;
                 case "max_len_of_single_file":
                     return SUB_CONFIG_KEY.MAX_LENGTH_OF_SINGLE_FILE;
                 default:
@@ -228,8 +235,6 @@ namespace DatabaseAccess.Context.Models
                     return "prefix_url";
                 case SUB_CONFIG_KEY.HOST_NAME:
                     return "host_name";
-                case SUB_CONFIG_KEY.MAX_LENGTH_OF_MULTIPLE_FILE:
-                    return "max_len_of_multi_file";
                 case SUB_CONFIG_KEY.MAX_LENGTH_OF_SINGLE_FILE:
                     return "max_len_of_single_file";
                 default:

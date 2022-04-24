@@ -10,6 +10,7 @@ using DatabaseAccess.Common.Actions;
 using DatabaseAccess.Common.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Linq;
 using DatabaseAccess.Common.Interface;
 
 #nullable disable
@@ -43,6 +44,11 @@ namespace DatabaseAccess.Context.Models
             get => BaseStatus.StatusToString(Status, EntityStatus.SocialUserRoleStatus);
             set => Status = BaseStatus.StatusFromString(value,  EntityStatus.SocialUserRoleStatus);
         }
+
+        [Required]
+        [Column("priority")]
+        public bool Priority { get; set; }
+
         [InverseProperty(nameof(SocialUserRoleDetail.Role))]
         public virtual ICollection<SocialUserRoleDetail> SocialUserRoleDetails { get; set; }
         [InverseProperty(nameof(SocialUserRoleOfUser.Role))]
@@ -54,6 +60,7 @@ namespace DatabaseAccess.Context.Models
             SocialUserRoleOfUsers = new HashSet<SocialUserRoleOfUser>();
             __ModelName = "SocialUserRole";
             Status = SocialUserRoleStatus.Enabled;
+            Priority = false;
         }
 
         public override bool Parse(IBaseParserModel Parser, out string Error)
@@ -64,12 +71,23 @@ namespace DatabaseAccess.Context.Models
                 RoleName = parser.role_name;
                 DisplayName = parser.display_name;
                 Describe = parser.describe;
-                // Rights = parser.rights;
+                Priority = parser.priority;
                 return true;
             } catch (Exception ex) {
                 Error = ex.ToString();
                 return false;
             }
+        }
+
+        public JObject GetRights()
+        {
+            JObject ret = new JObject();
+            var rights = SocialUserRoleDetails
+                .Select(e => (e.Right.RightName, e.Actions)).ToList();
+            foreach (var r in rights) {
+                ret.Add(r.RightName, r.Actions);
+            }
+            return ret;
         }
 
         public override bool PrepareExportObjectJson()
@@ -80,7 +98,8 @@ namespace DatabaseAccess.Context.Models
                 { "role_name", RoleName },
                 { "display_name", DisplayName },
                 { "describe", Describe },
-                // { "rights", Rights },
+                { "rights", GetRights() },
+                { "priority", Priority },
                 { "status", Status },
 #if DEBUG
                 {"__ModelName", __ModelName }
@@ -99,7 +118,6 @@ namespace DatabaseAccess.Context.Models
                     DisplayName = "User",
                     Describe = "Normal user",
                     Status = SocialUserRoleStatus.Readonly,
-                    // Rights = SocialUserRight.GenerateSocialUserRights()
                 }
             };
             return ListData;
