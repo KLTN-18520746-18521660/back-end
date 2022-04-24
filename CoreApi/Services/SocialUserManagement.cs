@@ -34,7 +34,30 @@ namespace CoreApi.Services
             __SocialUserAuditLogManagement.SetTraceId(TraceId);
         }
 
-        public async Task UpdateDefaultSocialRole()
+        public void UpdateDefaultSocialRole()
+        {
+            var rds = SocialUserRoleDetail.GetDefaultData();
+            foreach (var r in rds) {
+                if (__DBContext.SocialUserRoleDetails.Count(e => 
+                        e.RightId == r.RightId && e.RoleId == e.RoleId
+                    ) == 0
+                ) {
+                    __DBContext.SocialUserRoleDetails.Add(
+                        new SocialUserRoleDetail(){
+                            RoleId = r.RoleId,
+                            RightId = r.RightId,
+                            Actions = r.Actions
+                        }
+                    );
+
+                    if (__DBContext.SaveChanges() <= 0) {
+                        throw new Exception("UpdateDefaultSocialRole failed.");
+                    }
+                }
+            }
+        }
+
+        public async Task UpdateDefaultSocialRoleAsync()
         {
             var rds = SocialUserRoleDetail.GetDefaultData();
             foreach (var r in rds) {

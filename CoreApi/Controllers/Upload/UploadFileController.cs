@@ -16,7 +16,7 @@ namespace CoreApi.Controllers.Upload
 {
     [ApiController]
     [Route("/api/upload")]
-    [Produces("application/json")]
+    [Produces("multipart/form-data")]
     public class UploadFileController : BaseController
     {
         #region Config Values
@@ -88,8 +88,8 @@ namespace CoreApi.Controllers.Upload
             #region Set TraceId for services
             #endregion
             try {
-                #region Validate path
-                if (!SocialPath.Contains(path)) {
+                #region Validate params
+                if (!SocialPath.Contains(path) || formFile == default) {
                     return Problem(400, "Invalid Request.");
                 }
                 #endregion

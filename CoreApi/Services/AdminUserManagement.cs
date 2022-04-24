@@ -33,7 +33,7 @@ namespace CoreApi.Services
             __AdminAuditLogManagement.SetTraceId(TraceId);
         }
 
-        public async Task UpdateDefaultAdminRole()
+        public async Task UpdateDefaultAdminRoleAsync()
         {
             var rds = AdminUserRoleDetail.GetDefaultData();
             foreach (var r in rds) {
@@ -50,6 +50,29 @@ namespace CoreApi.Services
                     );
 
                     if (await __DBContext.SaveChangesAsync() <= 0) {
+                        throw new Exception("UpdateDefaultAdminRole failed.");
+                    }
+                }
+            }
+        }
+
+        public void UpdateDefaultAdminRole()
+        {
+            var rds = AdminUserRoleDetail.GetDefaultData();
+            foreach (var r in rds) {
+                if (__DBContext.AdminUserRoleDetails.Count(e => 
+                        e.RightId == r.RightId && e.RoleId == e.RoleId
+                    ) == 0
+                ) {
+                    __DBContext.AdminUserRoleDetails.Add(
+                        new AdminUserRoleDetail(){
+                            RoleId = r.RoleId,
+                            RightId = r.RightId,
+                            Actions = r.Actions
+                        }
+                    );
+
+                    if (__DBContext.SaveChanges() <= 0) {
                         throw new Exception("UpdateDefaultAdminRole failed.");
                     }
                 }
