@@ -16,6 +16,7 @@ namespace CoreApi.Controllers.Upload
 {
     [ApiController]
     [Route("/api/upload")]
+    [Produces("application/json")]
     public class UploadFileController : BaseController
     {
         #region Config Values
@@ -77,7 +78,7 @@ namespace CoreApi.Controllers.Upload
         [HttpPost("file/{path}")]
         public async Task<IActionResult> SpcialUploadFile([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
                                                           [FromServices] SocialUserManagement __SocialUserManagement,
-                                                          [FromBody] IFormFile formFile,
+                                                          [FromForm] IFormFile formFile,
                                                           [FromRoute] string path,
                                                           [FromHeader] string session_token)
         {

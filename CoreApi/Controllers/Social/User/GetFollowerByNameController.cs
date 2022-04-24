@@ -115,7 +115,7 @@ namespace CoreApi.Controllers.Social.User
                 users.ForEach(e => {
                     var r = e.GetPublicJsonObject();
                     r.Add("actions", Utils.ObjectToJsonToken(e.GetActionWithUser(session.UserId)));
-                    rawReturn.Add(e.GetPublicJsonObject());
+                    rawReturn.Add(r);
                 });
                 var ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(rawReturn));
                 return Ok(200, "OK", new JObject(){
