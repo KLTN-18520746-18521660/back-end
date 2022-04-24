@@ -25,6 +25,17 @@ namespace CoreApi.Models.Validators
             "status",
             "publics",
         };
+        public readonly string[] OptionalPublics = new string[]{
+            "email",
+            "description",
+            "sex",
+            "country",
+            "ranks",
+            "followers",
+            "posts",
+            "views",
+            "likes"
+        };
         public SocialUserModifyModelValidator()
         {
             When(entity => entity.user_name != default, () => {
@@ -198,7 +209,16 @@ namespace CoreApi.Models.Validators
                                 "{PropertyName}",
                                 string.Join(", ", RequiredPublics)
                             )
-                        );
+                        )
+                    .Must(publics => {
+                        foreach (var p in publics) {
+                            if (!OptionalPublics.Contains(p) && !RequiredPublics.Contains(p)) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    })
+                        .WithMessage("{PropertyName} have invalid field");
             });
         }
     }

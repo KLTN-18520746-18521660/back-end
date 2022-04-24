@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
 using DatabaseAccess.Common.Status;
+using DatabaseAccess.Common.Actions;
 
 
 #nullable disable
@@ -25,12 +26,21 @@ namespace DatabaseAccess.Context.Models
         [Column("category_id")]
         public long CategoryId { get; set; }
         [NotMapped]
-        public List<string> Actions { get; set; }
+        public List<EntityAction> Actions { get; set; }
         [Required]
         [Column("actions", TypeName = "jsonb")]
         public string ActionsStr {
             get { return JArray.FromObject(Actions).ToString(); }
-            set { Actions = JsonConvert.DeserializeObject<List<string>>(value); }
+            set {
+                Actions = new List<EntityAction>();
+                foreach (var v in JsonConvert.DeserializeObject<JArray>(value)) {
+                    Actions.Add(new(EntityActionType.UserActionWithCategory,
+                                    (v as JObject).Value<string>("action"))
+                    {
+                        date = (v as JObject).Value<DateTime>("date")
+                    });
+                }
+            }
         }
 
         [ForeignKey(nameof(CategoryId))]

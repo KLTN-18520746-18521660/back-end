@@ -300,8 +300,8 @@ namespace DatabaseAccess.Context.Models
                     e =>
                         e.Owner == this.Id ?
                         e.SocialUserActionWithPosts
-                        .Count(ac => ac.ActionsStr.Contains(
-                                BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost))
+                        .Count(
+                            ac => ac.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Like)) > 0
                         ) : 0
                 );
         }
@@ -314,18 +314,16 @@ namespace DatabaseAccess.Context.Models
         public int CountFollowing()
         {
             return SocialUserActionWithUserUsers
-                .Count(e => e.ActionsStr.Contains(
-                                BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)
-                    )
+                .Count(e => 
+                    e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0
                 );
         }
 
         public int CountFollowers()
         {
             return SocialUserActionWithUserUserIdDesNavigations
-                .Count(e => e.ActionsStr.Contains(
-                                BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)
-                    )
+                .Count(e =>
+                    e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0
                 );
         }
 
@@ -339,7 +337,7 @@ namespace DatabaseAccess.Context.Models
             Dictionary<string, JObject> rights = new();
             Dictionary<string, JObject> rightsPriority = new();
             var notPriorityRoleDetails = SocialUserRoleOfUsers
-                .Where(e => e.Role.Priority)
+                .Where(e => e.Role.Priority == false)
                 .Select(e => e.Role.SocialUserRoleDetails)
                 .ToList();
 
@@ -412,7 +410,7 @@ namespace DatabaseAccess.Context.Models
             var action = this.SocialUserActionWithUserUsers
                 .Where(e => e.UserId == socialUserId)
                 .FirstOrDefault();
-            return action != default ? action.Actions.ToArray() : new string[]{};
+            return action != default ? action.Actions.Select(e => e.action).ToArray() : new string[]{};
         }
         #endregion
 

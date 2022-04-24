@@ -104,13 +104,13 @@ namespace CoreApi.Services
                         select new {
                             gr.Key,
                             Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithComment.Like, EntityAction.UserActionWithComment))),
+                                EntityAction.GenContainsJsonStatement(ActionType.Like))),
                             DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithComment.Dislike, EntityAction.UserActionWithComment))),
+                                EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
                             Replies = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithComment.Reply, EntityAction.UserActionWithComment))),
+                                EntityAction.GenContainsJsonStatement(ActionType.Reply))),
                             Reports = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithComment.Report, EntityAction.UserActionWithComment))),
+                                EntityAction.GenContainsJsonStatement(ActionType.Report))),
                         } into ret select new {
                             ret.Key.Id,
                             likes = ret.Likes,
@@ -157,7 +157,7 @@ namespace CoreApi.Services
             var action = await __DBContext.SocialUserActionWithComments
                 .Where(e => e.CommentId == commentId && e.UserId == socialUserId)
                 .FirstOrDefaultAsync();
-            return action != default ? action.Actions.Contains(actionStr) : false;
+            return action != default ? action.Actions.Count(a => a.action == actionStr) > 0 : false;
         }
         protected async Task<ErrorCodes> AddAction(long commentId, Guid socialUserId, string actionStr)
         {
@@ -165,8 +165,8 @@ namespace CoreApi.Services
                 .Where(e => e.CommentId == commentId && e.UserId == socialUserId)
                 .FirstOrDefaultAsync();
             if (action != default) {
-                if (!action.Actions.Contains(actionStr)) {
-                    action.Actions.Add(actionStr);
+                if (!(action.Actions.Count(a => a.action == actionStr) > 0)) {
+                    action.Actions.Add(new EntityAction(EntityActionType.UserActionWithComment, actionStr));
                     if (await __DBContext.SaveChangesAsync() > 0) {
                         return ErrorCodes.NO_ERROR;
                     }
@@ -177,8 +177,8 @@ namespace CoreApi.Services
                     .AddAsync(new SocialUserActionWithComment(){
                         UserId = socialUserId,
                         CommentId = commentId,
-                        Actions = new List<string>(){
-                            actionStr
+                        Actions = new List<EntityAction>(){
+                            new EntityAction(EntityActionType.UserActionWithComment, actionStr)
                         }
                     });
                 if (await __DBContext.SaveChangesAsync() > 0) {
@@ -193,8 +193,9 @@ namespace CoreApi.Services
                 .Where(e => e.CommentId == commentId && e.UserId == socialUserId)
                 .FirstOrDefaultAsync();
             if (action != default) {
-                if (action.Actions.Contains(actionStr)) {
-                    action.Actions.Remove(actionStr);
+                var _action = action.Actions.Where(a => a.action == actionStr).FirstOrDefault();
+                if (_action != default) {
+                    action.Actions.Remove(_action);
                     if (await __DBContext.SaveChangesAsync() > 0) {
                         return ErrorCodes.NO_ERROR;
                     }
@@ -206,33 +207,33 @@ namespace CoreApi.Services
         }
         public async Task<ErrorCodes> UnLike(long commentId, Guid socialUserId)
         {
-            return await RemoveAction(commentId, socialUserId, BaseAction.ActionToString(UserActionWithComment.Like, EntityAction.UserActionWithComment));
+            return await RemoveAction(commentId, socialUserId, EntityAction.ActionTypeToString(ActionType.Like));
         }
         public async Task<ErrorCodes> Like(long commentId, Guid socialUserId)
         {
-            await RemoveAction(commentId, socialUserId, BaseAction.ActionToString(UserActionWithComment.Dislike, EntityAction.UserActionWithComment));
-            return await AddAction(commentId, socialUserId, BaseAction.ActionToString(UserActionWithComment.Like, EntityAction.UserActionWithComment));
+            await RemoveAction(commentId, socialUserId, EntityAction.ActionTypeToString(ActionType.Dislike));
+            return await AddAction(commentId, socialUserId, EntityAction.ActionTypeToString(ActionType.Like));
         }
         public async Task<ErrorCodes> UnDisLike(long commentId, Guid socialUserId)
         {
-            return await RemoveAction(commentId, socialUserId, BaseAction.ActionToString(UserActionWithComment.Dislike, EntityAction.UserActionWithComment));
+            return await RemoveAction(commentId, socialUserId, EntityAction.ActionTypeToString(ActionType.Dislike));
         }
         public async Task<ErrorCodes> DisLike(long commentId, Guid socialUserId)
         {
-            await RemoveAction(commentId, socialUserId, BaseAction.ActionToString(UserActionWithComment.Like, EntityAction.UserActionWithComment));
-            return await AddAction(commentId, socialUserId, BaseAction.ActionToString(UserActionWithComment.Dislike, EntityAction.UserActionWithComment));
+            await RemoveAction(commentId, socialUserId, EntityAction.ActionTypeToString(ActionType.Like));
+            return await AddAction(commentId, socialUserId, EntityAction.ActionTypeToString(ActionType.Dislike));
         }
         public async Task<ErrorCodes> Reply(long commentId, Guid socialUserId)
         {
-            return await AddAction(commentId, socialUserId, BaseAction.ActionToString(UserActionWithComment.Reply, EntityAction.UserActionWithComment));
+            return await AddAction(commentId, socialUserId, EntityAction.ActionTypeToString(ActionType.Reply));
         }
         public async Task<ErrorCodes> RemoveReply(long postId, Guid socialUserId)
         {
-            return await RemoveAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithComment.Reply, EntityAction.UserActionWithComment));
+            return await RemoveAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Reply));
         }
         public async Task<ErrorCodes> Report(long postId, Guid socialUserId)
         {
-            return await AddAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Report, EntityAction.UserActionWithPost));
+            return await AddAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Report));
         }
         #endregion
 

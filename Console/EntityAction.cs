@@ -2,7 +2,7 @@ using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 
-namespace DatabaseAccess.Common.Actions
+namespace MyConsole
 {
     public enum ActionType {
         Like        = 0,
@@ -57,7 +57,6 @@ namespace DatabaseAccess.Common.Actions
                 case EntityActionType.UserActionWithCategory:
                     return new string[]{
                         "Follow",
-                        "Visited",
                     };
                 case EntityActionType.UserActionWithTag:
                     return new string[]{
@@ -95,10 +94,7 @@ namespace DatabaseAccess.Common.Actions
         public static bool ValidateAction(string action, EntityActionType type)
         {
             var allowActions = GetAllowActionsByType(type);
-            if (allowActions == default) {
-                return false;
-            }
-            return allowActions.Contains(action);
+            return allowActions == default ? false : allowActions.Contains(action);
         }
 
         public static string ActionTypeToString(ActionType action)
@@ -122,16 +118,6 @@ namespace DatabaseAccess.Common.Actions
                     return "Saved";
             }
             return default;
-        }
-
-        public static string GenContainsJsonStatement(string actionStr)
-        {
-            return $"[{{\"action\":\"{ actionStr }\"}}]";
-        }
-
-        public static string GenContainsJsonStatement(ActionType action)
-        {
-            return $"[{{\"action\":\"{ ActionTypeToString(action) }\"}}]";
         }
     }
 }

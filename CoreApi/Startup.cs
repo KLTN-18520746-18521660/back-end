@@ -205,6 +205,10 @@ namespace CoreApi
             using (var serviceScope = app.ApplicationServices.CreateScope())
             {
                 var __DBContext = serviceScope.ServiceProvider.GetService<DBContext>();
+                if (Program.DropDatabase) {
+                    __Logger.Warning($"Dropping database.host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }, db_name: { BaseConfigurationDB.DBName }");
+                    __DBContext.Database.EnsureDeleted();
+                }
                 __DBContext.Database.Migrate();
                 if (__DBContext.GetStatus()) {
                     __Logger.Information($"Connected to database, host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }, db_name: { BaseConfigurationDB.DBName }");

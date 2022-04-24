@@ -106,6 +106,7 @@ namespace CoreApi
         public static readonly string CONFIG_FILE_PATH = "./appsettings.json";
         private static readonly List<string> __ValidParamsFromArgs = new List<string>();
         #region Variables
+        private static bool __DropDatabase = false;
         private static IHost __Host;
         private static ILogger __Logger;
         private static IConfigurationRoot __Configuration;
@@ -125,6 +126,7 @@ namespace CoreApi
         public static ServerConfiguration ServerConfiguration { get => __ServerConfiguration; }
         public static EmailClientConfiguration EmailClientConfig { get => __EmailClientConfig; }
         public static SwaggerDocumentConfiguration SwaggerDocumentConfiguration { get => __SwaggerDocumentConfiguration; }
+        public static bool DropDatabase { get => __DropDatabase; }
         #endregion
         private static void SetParamsFromConfiguration(in IConfigurationRoot configuration, out List<string> warnings)
         {
@@ -284,6 +286,14 @@ namespace CoreApi
             if (args.Contains("show-sql-command")) {
                 __ServerConfiguration.ShowSQLCommandInLog = true;
             }
+#if DEBUG
+            // [INFO] drop and migrate db when start
+            if (args.Contains("drop-db")) {
+                __DropDatabase = true;
+            }
+#else
+            __DropDatabase = false;
+#endif
         }
         private static string[] GetValidParamsFromArgs(in List<string> args)
         {

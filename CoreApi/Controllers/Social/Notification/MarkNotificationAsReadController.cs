@@ -158,7 +158,7 @@ namespace CoreApi.Controllers.Social.Notification
             }
         }
 
-        [HttpPost("id/all")]
+        [HttpPost("all")]
         // [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
         // [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]

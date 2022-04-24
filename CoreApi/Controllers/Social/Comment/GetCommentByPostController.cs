@@ -77,6 +77,9 @@ namespace CoreApi.Controllers.Social.Comment
                 if (post_slug == default || post_slug.Trim() == string.Empty) {
                     return Problem(400, "Invalid request.");
                 }
+                if (orders.IsValid()) {
+                    return Problem(400, "Invalid order fields.");
+                }
                 var combineOrders = orders.GetOrders();
                 var paramsAllowInOrder = __SocialCommentManagement.GetAllowOrderFields(GetCommentAction.GetCommentsAttachedToPost);
                 foreach (var it in combineOrders) {

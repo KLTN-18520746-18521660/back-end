@@ -11,6 +11,7 @@ using DatabaseAccess.Common.Status;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using Common;
+using DatabaseAccess.Common.Actions;
 
 #nullable disable
 
@@ -78,6 +79,32 @@ namespace DatabaseAccess.Context.Models
             }
         }
 
+        public int CountViews()
+        {
+            return SocialPostTags.Sum(e => e.Post.Views);
+        }
+
+        public int CountFollow()
+        {
+            return SocialUserActionWithTags.Count(e => 
+                e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0
+            );
+        }
+
+        public int CountUsed()
+        {
+            return SocialUserActionWithTags.Count(e => 
+                e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Used)) > 0
+            );
+        }
+
+        public int CountVisited()
+        {
+            return SocialUserActionWithTags.Count(e => 
+                e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Visited)) > 0
+            );
+        }
+
         public override JObject GetPublicJsonObject(List<string> publicFields = null)
         {
             if (publicFields == default) {
@@ -118,7 +145,7 @@ namespace DatabaseAccess.Context.Models
             var action = this.SocialUserActionWithTags
                 .Where(e => e.UserId == socialUserId)
                 .FirstOrDefault();
-            return action != default ? action.Actions.ToArray() : new string[]{};
+            return action != default ? action.Actions.Select(e => e.action).ToArray() : new string[]{};
         }
 
         public class SocialTagSeed

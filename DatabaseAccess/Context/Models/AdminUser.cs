@@ -125,7 +125,7 @@ namespace DatabaseAccess.Context.Models
             Dictionary<string, JObject> rights = new();
             Dictionary<string, JObject> rightsPriority = new();
             var notPriorityRoleDetails = AdminUserRoleOfUsers
-                .Where(e => e.Role.Priority)
+                .Where(e => e.Role.Priority == false)
                 .Select(e => e.Role.AdminUserRoleDetails)
                 .ToList();
 

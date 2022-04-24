@@ -282,7 +282,8 @@ namespace CoreApi.Services
                             .Where(
                                 e => e.UserIdDes == post.Owner
                                 && EF.Functions.JsonExists(e.ActionsStr,
-                                    BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser))
+                                    EntityAction.GenContainsJsonStatement(ActionType.Follow)
+                                )
                             )
                             .Select(e => e.UserId)
                             .ToArray();
@@ -375,7 +376,7 @@ namespace CoreApi.Services
                                 e => e.PostId == comment.PostId
                                 && (comment.ParentId == default || e.UserId != comment.Parent.OwnerNavigation.Id)
                                 && e.ActionsStr.Contains(
-                                    BaseAction.ActionToString(UserActionWithPost.Follow, EntityAction.UserActionWithPost)
+                                    EntityAction.GenContainsJsonStatement(ActionType.Follow)
                                 )
                             )
                             .Select(e => e.UserId)
@@ -537,10 +538,10 @@ namespace CoreApi.Services
             return ErrorCodes.NO_ERROR;
         }
         public async Task<(List<SocialNotification>, int)> GetNotifications(Guid socialUserId,
-                                                                   int start = 0,
-                                                                   int size = 20,
-                                                                   string search_term = default,
-                                                                   string[] status = default)
+                                                                            int start = 0,
+                                                                            int size = 20,
+                                                                            string search_term = default,
+                                                                            string[] status = default)
         {
             List<SocialNotification> notifications = default;
             int totalCount = default;

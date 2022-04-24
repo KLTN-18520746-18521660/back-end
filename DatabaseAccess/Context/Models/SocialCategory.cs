@@ -11,6 +11,7 @@ using DatabaseAccess.Common.Status;
 using Common;
 using Newtonsoft.Json.Linq;
 using System.Linq;
+using DatabaseAccess.Common.Actions;
 
 #nullable disable
 
@@ -86,6 +87,25 @@ namespace DatabaseAccess.Context.Models
             CreatedTimestamp = DateTime.UtcNow;
         }
 
+        public int CountViews()
+        {
+            return SocialPostCategories.Sum(e => e.Post.Views);
+        }
+
+        public int CountFollow()
+        {
+            return SocialUserActionWithCategories.Count(e =>
+                    e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0
+                );
+        }
+
+        public int CountVisited()
+        {
+            return SocialUserActionWithCategories.Count(e => 
+                e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Visited)) > 0
+            );
+        }
+
         public override bool Parse(IBaseParserModel Parser, out string Error)
         {
             Error = string.Empty;
@@ -150,7 +170,7 @@ namespace DatabaseAccess.Context.Models
             var action = this.SocialUserActionWithCategories
                 .Where(e => e.UserId == socialUserId)
                 .FirstOrDefault();
-            return action != default ? action.Actions.ToArray() : new string[]{};
+            return action != default ? action.Actions.Select(e => e.action).ToArray() : new string[]{};
         }
 
         public static List<SocialCategory> GetDefaultData()

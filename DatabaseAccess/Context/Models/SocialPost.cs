@@ -55,20 +55,6 @@ namespace DatabaseAccess.Context.Models
         [Column("views")]
         public int Views { get; set; }
         [NotMapped]
-        public int Likes { get =>
-            SocialUserActionWithPosts
-                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithPost.Like,
-                                                                         EntityAction.UserActionWithPost))
-                );
-        }
-        [NotMapped]
-        public int DisLikes { get =>
-            SocialUserActionWithPosts
-                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithPost.Dislike,
-                                                                            EntityAction.UserActionWithPost))
-                );
-        }
-        [NotMapped]
         public int Comments { get =>
             SocialComments.Count();
         }
@@ -92,13 +78,6 @@ namespace DatabaseAccess.Context.Models
                     display_name = e.Category.DisplayName,
                     slug = e.Category.Slug
                 }).ToArray();
-        }
-        [NotMapped]
-        public int VisitedCount { get =>
-            SocialUserActionWithPosts
-                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithPost.Visited,
-                                                                            EntityAction.UserActionWithPost))
-                );
         }
         [Required]
         [Column("time_read")]
@@ -204,13 +183,35 @@ namespace DatabaseAccess.Context.Models
                 return false;
             }
         }
+
+        public int CountLikes()
+        {
+            return SocialUserActionWithPosts.Count(p =>
+                p.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Like)) > 0
+            );
+        }
+
+        public int CountDisLikes()
+        {
+            return SocialUserActionWithPosts.Count(p =>
+                p.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Like)) > 0
+            );
+        }
+
+        public int CountVisited()
+        {
+            return SocialUserActionWithPosts.Count(p =>
+                p.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Visited)) > 0
+            );
+        }
+
         public JObject GetPublicStatisticJsonObject(Guid SocialUserId = default)
         {
             var ret = new Dictionary<string, object>
             {
                 { "views", Views },
-                { "likes", Likes },
-                { "dislikes", DisLikes },
+                { "likes", CountLikes() },
+                { "dislikes", CountDisLikes() },
                 { "comments", Comments },
             };
             if (this.Owner == SocialUserId) {
@@ -237,8 +238,8 @@ namespace DatabaseAccess.Context.Models
                 { "thumbnail", Thumbnail },
                 { "time_read", TimeRead },
                 { "views", Views },
-                { "likes", Likes },
-                { "dislikes", DisLikes },
+                { "likes", CountLikes() },
+                { "dislikes", CountDisLikes() },
                 { "comments", Comments },
                 { "tags", Tags },
                 { "categories", Categories },
@@ -305,12 +306,12 @@ namespace DatabaseAccess.Context.Models
                 { "thumbnail", Thumbnail },
                 { "time_read", TimeRead },
                 { "views", Views },
-                { "likes", Likes },
-                { "dislikes", DisLikes },
+                { "likes", CountLikes() },
+                { "dislikes", CountDisLikes() },
                 { "comments", Comments },
                 { "tags", Tags },
                 { "categories", Categories },
-                { "visited_count", VisitedCount },
+                { "visited_count", CountVisited() },
                 { "content", Content },
                 { "content_type", ContenTypeStr },
                 { "short_content", ShortContent },
@@ -334,7 +335,7 @@ namespace DatabaseAccess.Context.Models
             var action = this.SocialUserActionWithPosts
                 .Where(e => e.UserId == socialUserId)
                 .FirstOrDefault();
-            return action != default ? action.Actions.ToArray() : new string[]{};
+            return action != default ? action.Actions.Select(e => e.action).ToArray() : new string[]{};
         }
 
         #region static func/params

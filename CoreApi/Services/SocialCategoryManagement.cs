@@ -60,7 +60,7 @@ namespace CoreApi.Services
             }
 
             if (SocialUserId != default) {
-                // add action visted to social user_action_with_category
+                await Visited(category.Id, SocialUserId);
             }
             return (category, ErrorCodes.NO_ERROR);
         }
@@ -74,7 +74,7 @@ namespace CoreApi.Services
             }
 
             if (SocialUserId != default) {
-                // add action visted to social user_action_with_category
+                await Visited(category.Id, SocialUserId);
             }
             return (category, ErrorCodes.NO_ERROR);
         }
@@ -104,7 +104,7 @@ namespace CoreApi.Services
             var action = await __DBContext.SocialUserActionWithCategories
                 .Where(e => e.CategoryId == categoryId && e.UserId == socialUserId)
                 .FirstOrDefaultAsync();
-            return action != default ? action.Actions.Contains(actionStr) : false;
+            return action != default ? action.Actions.Count(a => a.action == actionStr) > 0 : false;
         }
         protected async Task<ErrorCodes> AddAction(long categoryId, Guid socialUserId, string actionStr)
         {
@@ -112,8 +112,8 @@ namespace CoreApi.Services
                 .Where(e => e.CategoryId == categoryId && e.UserId == socialUserId)
                 .FirstOrDefaultAsync();
             if (action != default) {
-                if (!action.Actions.Contains(actionStr)) {
-                    action.Actions.Add(actionStr);
+                if (!(action.Actions.Count(a => a.action == actionStr) > 0)) {
+                    action.Actions.Add(new EntityAction(EntityActionType.UserActionWithCategory, actionStr));
                     if (await __DBContext.SaveChangesAsync() > 0) {
                         return ErrorCodes.NO_ERROR;
                     }
@@ -124,8 +124,8 @@ namespace CoreApi.Services
                     .AddAsync(new SocialUserActionWithCategory(){
                         UserId = socialUserId,
                         CategoryId = categoryId,
-                        Actions = new List<string>(){
-                            actionStr
+                        Actions = new List<EntityAction>(){
+                            new EntityAction(EntityActionType.UserActionWithCategory, actionStr)
                         }
                     });
                 if (await __DBContext.SaveChangesAsync() > 0) {
@@ -140,8 +140,9 @@ namespace CoreApi.Services
                 .Where(e => e.CategoryId == categoryId && e.UserId == socialUserId)
                 .FirstOrDefaultAsync();
             if (action != default) {
-                if (action.Actions.Contains(actionStr)) {
-                    action.Actions.Remove(actionStr);
+                var _action = action.Actions.Where(a => a.action == actionStr).FirstOrDefault();
+                if (_action != default) {
+                    action.Actions.Remove(_action);
                     if (await __DBContext.SaveChangesAsync() > 0) {
                         return ErrorCodes.NO_ERROR;
                     }
@@ -153,17 +154,15 @@ namespace CoreApi.Services
         }
         public async Task<ErrorCodes> UnFollow(long categoryId, Guid socialUserId)
         {
-            return await RemoveAction(
-                categoryId, socialUserId,
-                BaseAction.ActionToString(UserActionWithCategory.Follow, EntityAction.UserActionWithCategory)
-            );
+            return await RemoveAction(categoryId, socialUserId, EntityAction.ActionTypeToString(ActionType.Follow));
         }
         public async Task<ErrorCodes> Follow(long categoryId, Guid socialUserId)
         {
-            return await AddAction(
-                categoryId, socialUserId,
-                BaseAction.ActionToString(UserActionWithCategory.Follow, EntityAction.UserActionWithCategory)
-            );
+            return await AddAction(categoryId, socialUserId,EntityAction.ActionTypeToString(ActionType.Follow));
+        }
+        public async Task<ErrorCodes> Visited(long categoryId, Guid socialUserId)
+        {
+            return await AddAction(categoryId, socialUserId,EntityAction.ActionTypeToString(ActionType.Visited));
         }
         #endregion
 

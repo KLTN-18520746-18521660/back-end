@@ -25,6 +25,9 @@ namespace DatabaseAccess.Context.Models
         public long? PostId { get; set; }
         [Column("comment_id")]
         public long? CommentId { get; set; }
+        [Required]
+        [Column("type")]
+        public string Type { get; set; }
         [Column("report_type")]
         public string ReportType { get; set; }
         [Column("content")]
@@ -69,7 +72,6 @@ namespace DatabaseAccess.Context.Models
             Error = string.Empty;
             try {
                 var parser = (ParserModels.ParserSocialReport)Parser;
-                CommentId = parser.comment_id;
                 Content = parser.content;
                 ReportType = parser.report_type;
 

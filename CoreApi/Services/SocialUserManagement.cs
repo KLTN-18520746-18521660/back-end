@@ -476,7 +476,7 @@ namespace CoreApi.Services
             var action = await __DBContext.SocialUserActionWithUsers
                 .Where(e => e.UserIdDes == userId && e.UserId == socialUserId)
                 .FirstOrDefaultAsync();
-            return action != default ? action.Actions.Contains(actionStr) : false;
+            return action != default ? action.Actions.Count(a => a.action == actionStr) > 0 : false;
         }
         protected async Task<ErrorCodes> AddAction(Guid userId, Guid socialUserId, string actionStr)
         {
@@ -484,8 +484,8 @@ namespace CoreApi.Services
                 .Where(e => e.UserIdDes == userId && e.UserId == socialUserId)
                 .FirstOrDefaultAsync();
             if (action != default) {
-                if (!action.Actions.Contains(actionStr)) {
-                    action.Actions.Add(actionStr);
+                if (!(action.Actions.Count(a => a.action == actionStr) > 0)) {
+                    action.Actions.Add(new EntityAction(EntityActionType.UserActionWithUser, actionStr));
                     if (await __DBContext.SaveChangesAsync() > 0) {
                         return ErrorCodes.NO_ERROR;
                     }
@@ -496,8 +496,8 @@ namespace CoreApi.Services
                     .AddAsync(new SocialUserActionWithUser(){
                         UserId = socialUserId,
                         UserIdDes = userId,
-                        Actions = new List<string>(){
-                            actionStr
+                        Actions = new List<EntityAction>(){
+                            new EntityAction(EntityActionType.UserActionWithUser, actionStr)
                         }
                     });
                 if (await __DBContext.SaveChangesAsync() > 0) {
@@ -512,8 +512,9 @@ namespace CoreApi.Services
                 .Where(e => e.UserIdDes == userId && e.UserId == socialUserId)
                 .FirstOrDefaultAsync();
             if (action != default) {
-                if (action.Actions.Contains(actionStr)) {
-                    action.Actions.Remove(actionStr);
+                var _action = action.Actions.Where(a => a.action == actionStr).FirstOrDefault();
+                if (_action != default) {
+                    action.Actions.Remove(_action);
                     if (await __DBContext.SaveChangesAsync() > 0) {
                         return ErrorCodes.NO_ERROR;
                     }
@@ -527,14 +528,14 @@ namespace CoreApi.Services
         {
             return await RemoveAction(
                 userId, socialUserId,
-                BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)
+                EntityAction.ActionTypeToString(ActionType.Follow)
             );
         }
         public async Task<ErrorCodes> Follow(Guid userId, Guid socialUserId)
         {
             return await AddAction(
                 userId, socialUserId,
-                BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)
+                EntityAction.ActionTypeToString(ActionType.Follow)
             );
         }
         #endregion
@@ -547,18 +548,12 @@ namespace CoreApi.Services
             }
 
             var ret = user.SocialUserActionWithUserUserIdDesNavigations
-                .Where(e => e.ActionsStr.Contains(
-                        BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)
-                    )
-                )
+                .Where(e => e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0)
                 .Select(e => e.User)
                 .Skip(start).Take(size)
                 .ToList();
             var total_size = user.SocialUserActionWithUserUserIdDesNavigations
-                .Count(e => e.ActionsStr.Contains(
-                        BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)
-                    )
-                );
+                .Count(e => e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0);
             return (ret, total_size, ErrorCodes.NO_ERROR);
         }
 
@@ -570,17 +565,12 @@ namespace CoreApi.Services
             }
 
             var ret = user.SocialUserActionWithUserUsers
-                .Where(e => e.ActionsStr.Contains(
-                    BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser))
-                )
+                .Where(e => e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0)
                 .Select(e => e.UserIdDesNavigation)
                 .Skip(start).Take(size)
                 .ToList();
             var total_size = user.SocialUserActionWithUserUsers
-                .Count(e => e.ActionsStr.Contains(
-                        BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)
-                    )
-                );
+                .Count(e => e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0);
             return (ret, total_size, ErrorCodes.NO_ERROR);
         }
     }

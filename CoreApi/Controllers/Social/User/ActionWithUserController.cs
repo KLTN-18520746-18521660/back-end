@@ -124,6 +124,9 @@ namespace CoreApi.Controllers.Social.User
 
                     throw new Exception($"FindUser failed, ErrorCode: { error }, user_name: { user_name }");
                 }
+                if (user_des.Id == session.UserId) {
+                    return Problem(400, "Not allow.");
+                }
                 #endregion
                 if (await __SocialUserManagement.IsContainsAction(user_des.Id, session.UserId, action)) {
                     return Problem(400, $"User already { action } this user.");

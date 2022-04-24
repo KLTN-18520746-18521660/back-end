@@ -47,18 +47,19 @@ namespace CoreApi.Controllers.Social.Report
             }
         }
 
-        [HttpPost("comment")]
+        [HttpPost("{action}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> ReportComment([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                       [FromServices] SocialCommentManagement __SocialCommentManagement,
-                                                       [FromServices] SocialUserManagement __SocialUserManagement,
-                                                       [FromServices] SocialPostManagement __SocialPostManagement,
-                                                       [FromServices] SocialReportManagement __SocialReportManagement,
-                                                       [FromHeader] string session_token,
-                                                       [FromBody] ParserSocialReport Parser)
+        public async Task<IActionResult> Report([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                [FromServices] SocialCommentManagement __SocialCommentManagement,
+                                                [FromServices] SocialUserManagement __SocialUserManagement,
+                                                [FromServices] SocialPostManagement __SocialPostManagement,
+                                                [FromServices] SocialReportManagement __SocialReportManagement,
+                                                [FromHeader] string session_token,
+                                                [FromRoute] string action,
+                                                [FromBody] ParserSocialReport Parser)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -67,12 +68,6 @@ namespace CoreApi.Controllers.Social.Report
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Validate parser
-                if (Parser.user_name == default || Parser.post_slug == default || Parser.comment_id == default) {
-                    return Problem(400, "Bad body request.");
-                }
-                #endregion
-
                 #region Get session token
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
@@ -106,41 +101,74 @@ namespace CoreApi.Controllers.Social.Report
                 }
                 #endregion
 
-                #region Get report user
-                SocialUser reportUser = default;
-                (reportUser, error) = await __SocialUserManagement.FindUser(Parser.user_name, false);
-                if (error != ErrorCodes.NO_ERROR) {
-                    return Problem(404, "Not found report user.");
+                if (Parser.report_type.ToLower() == "other" && Parser.content == default) {
+                    return Problem(400, "Not accept empty content when type is 'other'");
                 }
-                #endregion
 
-                #region Get post info
-                SocialPost reportPost = default;
-                (reportPost, error) = await __SocialPostManagement.FindPostBySlug(Parser.post_slug);
-                if (error != ErrorCodes.NO_ERROR || reportPost.Owner != reportUser.Id) {
-                    return Problem(404, "Not found report post.");
+                SocialReport report = new SocialReport();
+                report.Type = action;
+                report.ReportType = Parser.report_type;
+                report.Content = Parser.content;
+                report.ReporterId = session.UserId;
+                switch (action) {
+                    case "user":
+                        {
+                            if (Parser.user_name == default) {
+                                return Problem(400, "Invaid request body.");
+                            }
+                            SocialUser reportUser = default;
+                            (reportUser, error) = await __SocialUserManagement.FindUserIgnoreStatus(Parser.user_name, false);
+                            if (error != ErrorCodes.NO_ERROR) {
+                                return Problem(404, "Not found report user.");
+                            }
+                            if (session.UserId != reportUser.Id) {
+                                return Problem(400, "Not allow.");
+                            }
+                            report.UserId = reportUser.Id;
+                            break;
+                        }
+                    case "post":
+                        {
+                            if (Parser.post_slug == default) {
+                                return Problem(400, "Invaid request body.");
+                            }
+                            SocialPost reportPost = default;
+                            (reportPost, error) = await __SocialPostManagement.FindPostBySlug(Parser.post_slug);
+                            if (error != ErrorCodes.NO_ERROR) {
+                                return Problem(404, "Not found report post.");
+                            }
+                            if (session.UserId != reportPost.Owner) {
+                                return Problem(400, "Not allow.");
+                            }
+                            report.PostId = reportPost.Id;
+                            break;
+                        }
+                    case "comment":
+                        {
+                            if (Parser.comment_id == default) {
+                                return Problem(400, "Invaid request body.");
+                            }
+                            SocialComment reportComment = default;
+                            (reportComment, error) = await __SocialCommentManagement.FindCommentById(Parser.comment_id);
+                            if (error != ErrorCodes.NO_ERROR) {
+                                return Problem(404, "Not found report comment.");
+                            }
+                            if (session.UserId != reportComment.Owner) {
+                                return Problem(400, "Not allow.");
+                            }
+                            report.CommentId = reportComment.Id;
+                            break;
+                        }
+                    case "feedback":
+                        {
+                            if (Parser.content == default) {
+                                return Problem(400, "Invaid request body.");
+                            }
+                            break;
+                        }
+                    default:
+                        return Problem(400, "Invalid request.");
                 }
-                #endregion
-
-                #region Get comment info
-                SocialComment reportComment = default;
-                (reportComment, error) = await __SocialCommentManagement.FindCommentById(Parser.comment_id);
-                if (error != ErrorCodes.NO_ERROR
-                    || reportComment.PostId != reportPost.Id
-                    || reportComment.Status == SocialCommentStatus.Deleted
-                ) {
-                    return Problem(404, "Not found report comment.");
-                }
-                #endregion
-
-                var report = new SocialReport();
-                report.Parse(Parser, out var errMsg);
-                if (errMsg != string.Empty) {
-                    throw new Exception($"Parse social report model failed, error: { errMsg }");
-                }
-                report.UserId = reportUser.Id;
-                report.PostId = reportPost.Id;
-                report.CommentId = reportComment.Id;
 
                 error = await __SocialReportManagement.AddNewReport(report);
                 if (error != ErrorCodes.NO_ERROR) {

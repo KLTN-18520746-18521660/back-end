@@ -46,13 +46,13 @@ namespace CoreApi.Services
                             StartWith = (search_term != default) ? (gr.Key.Tag.StartsWith(search_term) ? 1 : 0) : 0,
                             Follow = gr.Count(e => (socialUserId != default)
                                 && (e.UserId == socialUserId)
-                                && EF.Functions.JsonExists(e.ActionsStr, BaseAction.ActionToString(UserActionWithTag.Follow, EntityAction.UserActionWithTag))),
+                                && EF.Functions.JsonExists(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Follow))),
                             Used = gr.Count(e => (socialUserId != default)
                                 && (e.UserId == socialUserId)
-                                && EF.Functions.JsonExists(e.ActionsStr, BaseAction.ActionToString(UserActionWithTag.Used, EntityAction.UserActionWithTag))),
+                                && EF.Functions.JsonExists(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Used))),
                             Visited = gr.Count(e => (socialUserId != default)
                                 && (e.UserId == socialUserId)
-                                && EF.Functions.JsonExists(e.ActionsStr, BaseAction.ActionToString(UserActionWithTag.Visited, EntityAction.UserActionWithTag))),
+                                && EF.Functions.JsonExists(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Visited))),
                         } into ret
                         orderby ret.Visited descending, ret.Used descending, ret.Follow descending, ret.StartWith descending
                         select ret.Key.Id).Skip(start).Take(size)
@@ -82,10 +82,10 @@ namespace CoreApi.Services
                 var action = await __DBContext.SocialUserActionWithTags
                     .Where(e => e.TagId == tag.Id && e.UserId == SocialUserId)
                     .FirstOrDefaultAsync();
-                var actionVisited = BaseAction.ActionToString(UserActionWithTag.Visited, EntityAction.UserActionWithTag);
+                var actionVisited = EntityAction.ActionTypeToString(ActionType.Used);
                 if (action != default) {
-                    if (!action.Actions.Contains(actionVisited)) {
-                        action.Actions.Add(actionVisited);
+                    if (!(action.Actions.Count(a => a.action == actionVisited) > 0)) {
+                        action.Actions.Add(new EntityAction(EntityActionType.UserActionWithTag, actionVisited));
                         await __DBContext.SaveChangesAsync();
                     }
                 } else {
@@ -93,8 +93,8 @@ namespace CoreApi.Services
                         .AddAsync(new SocialUserActionWithTag(){
                             UserId = SocialUserId,
                             TagId = tag.Id,
-                            Actions = new List<string>(){
-                                actionVisited
+                            Actions = new List<EntityAction>(){
+                                new EntityAction(EntityActionType.UserActionWithTag, actionVisited)
                             }
                         });
                     await __DBContext.SaveChangesAsync();
@@ -132,7 +132,7 @@ namespace CoreApi.Services
             var action = await __DBContext.SocialUserActionWithTags
                 .Where(e => e.TagId == tagId && e.UserId == socialUserId)
                 .FirstOrDefaultAsync();
-            return action != default ? action.Actions.Contains(actionStr) : false;
+            return action != default ? action.Actions.Count(a => a.action == actionStr) > 0 : false;
         }
         protected async Task<ErrorCodes> AddAction(long tagId, Guid socialUserId, string actionStr)
         {
@@ -140,8 +140,8 @@ namespace CoreApi.Services
                 .Where(e => e.TagId == tagId && e.UserId == socialUserId)
                 .FirstOrDefaultAsync();
             if (action != default) {
-                if (!action.Actions.Contains(actionStr)) {
-                    action.Actions.Add(actionStr);
+                if (!(action.Actions.Count(a => a.action == actionStr) > 0)) {
+                    action.Actions.Add(new EntityAction(EntityActionType.UserActionWithTag, actionStr));
                     if (await __DBContext.SaveChangesAsync() > 0) {
                         return ErrorCodes.NO_ERROR;
                     }
@@ -152,8 +152,8 @@ namespace CoreApi.Services
                     .AddAsync(new SocialUserActionWithTag(){
                         UserId = socialUserId,
                         TagId = tagId,
-                        Actions = new List<string>(){
-                            actionStr
+                        Actions = new List<EntityAction>(){
+                            new EntityAction(EntityActionType.UserActionWithTag, actionStr)
                         }
                     });
                 if (await __DBContext.SaveChangesAsync() > 0) {
@@ -168,8 +168,9 @@ namespace CoreApi.Services
                 .Where(e => e.TagId == tagId && e.UserId == socialUserId)
                 .FirstOrDefaultAsync();
             if (action != default) {
-                if (action.Actions.Contains(actionStr)) {
-                    action.Actions.Remove(actionStr);
+                var _action = action.Actions.Where(a => a.action == actionStr).FirstOrDefault();
+                if (_action != default) {
+                    action.Actions.Remove(_action);
                     if (await __DBContext.SaveChangesAsync() > 0) {
                         return ErrorCodes.NO_ERROR;
                     }
@@ -181,23 +182,23 @@ namespace CoreApi.Services
         }
         public async Task<ErrorCodes> UnFollow(long tagId, Guid socialUserId)
         {
-            return await RemoveAction(tagId, socialUserId, BaseAction.ActionToString(UserActionWithTag.Follow, EntityAction.UserActionWithTag));
+            return await RemoveAction(tagId, socialUserId, EntityAction.ActionTypeToString(ActionType.Follow));
         }
         public async Task<ErrorCodes> Follow(long tagId, Guid socialUserId)
         {
-            return await AddAction(tagId, socialUserId, BaseAction.ActionToString(UserActionWithTag.Follow, EntityAction.UserActionWithTag));
+            return await AddAction(tagId, socialUserId, EntityAction.ActionTypeToString(ActionType.Follow));
         }
         public async Task<ErrorCodes> Used(long tagId, Guid socialUserId)
         {
-            return await AddAction(tagId, socialUserId, BaseAction.ActionToString(UserActionWithTag.Used, EntityAction.UserActionWithTag));
+            return await AddAction(tagId, socialUserId, EntityAction.ActionTypeToString(ActionType.Used));
         }
         public async Task<ErrorCodes> RemoveUsed(long tagId, Guid socialUserId)
         {
-            return await RemoveAction(tagId, socialUserId, BaseAction.ActionToString(UserActionWithTag.Used, EntityAction.UserActionWithTag));
+            return await RemoveAction(tagId, socialUserId, EntityAction.ActionTypeToString(ActionType.Used));
         }
         public async Task<ErrorCodes> Visited(long tagId, Guid socialUserId)
         {
-            return await AddAction(tagId, socialUserId, BaseAction.ActionToString(UserActionWithTag.Visited, EntityAction.UserActionWithTag));
+            return await AddAction(tagId, socialUserId, EntityAction.ActionTypeToString(ActionType.Visited));
         }
         #endregion
 

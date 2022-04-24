@@ -161,14 +161,14 @@ namespace CoreApi.Services
                         select new {
                             gr.Key,
                             Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost))),
+                                EntityAction.GenContainsJsonStatement(ActionType.Like))),
                             DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithPost.Dislike, EntityAction.UserActionWithPost))),
+                                EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
                             Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
                             Follows = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithPost.Follow, EntityAction.UserActionWithPost))),
+                                EntityAction.GenContainsJsonStatement(ActionType.Follow))),
                             Reports = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithPost.Report, EntityAction.UserActionWithPost))),
+                                EntityAction.GenContainsJsonStatement(ActionType.Report))),
                         } into ret select new {
                             ret.Key.Id,
                             views = ret.Key.Views,
@@ -273,11 +273,11 @@ namespace CoreApi.Services
                             gr.Key,
                             Visited = (socialUserId == default) ? false
                                 : EF.Functions.JsonExists(gr.Key.actionStr,
-                                BaseAction.ActionToString(UserActionWithPost.Visited, EntityAction.UserActionWithPost)),
+                                EntityAction.GenContainsJsonStatement(ActionType.Visited)),
                             Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost))),
+                                EntityAction.GenContainsJsonStatement(ActionType.Like))),
                             DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithPost.Dislike, EntityAction.UserActionWithPost))),
+                                EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
                             Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
                         } into ret select new {
                             ret.Key.Id,
@@ -363,11 +363,11 @@ namespace CoreApi.Services
                             gr.Key,
                             Visited = (socialUserId == default) ? false
                                 : EF.Functions.JsonExists(gr.Key.actionStr,
-                                BaseAction.ActionToString(UserActionWithPost.Visited, EntityAction.UserActionWithPost)),
+                                EntityAction.GenContainsJsonStatement(ActionType.Visited)),
                             Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost))),
+                                EntityAction.GenContainsJsonStatement(ActionType.Like))),
                             DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithPost.Dislike, EntityAction.UserActionWithPost))),
+                                EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
                             Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
                         } into ret select new {
                             ret.Key.Id,
@@ -437,7 +437,7 @@ namespace CoreApi.Services
                     from user_following_ids in __DBContext.SocialUserActionWithUsers
                         .Where(e => e.UserId == socialUserId
                             && EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser))
+                                EntityAction.GenContainsJsonStatement(ActionType.Follow))
                         )
                         .Join(
                             __DBContext.SocialPosts,
@@ -451,7 +451,7 @@ namespace CoreApi.Services
                     from tag_following_ids in __DBContext.SocialUserActionWithTags
                         .Where(e => e.UserId == socialUserId
                             && EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithTag.Follow, EntityAction.UserActionWithTag))
+                                EntityAction.GenContainsJsonStatement(ActionType.Follow))
                         )
                         .Join(
                             __DBContext.SocialPostTags,
@@ -465,7 +465,7 @@ namespace CoreApi.Services
                     from category_following_ids in __DBContext.SocialUserActionWithCategories
                         .Where(e => e.UserId == socialUserId
                             && EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithCategory.Follow, EntityAction.UserActionWithCategory))
+                                EntityAction.GenContainsJsonStatement(ActionType.Follow))
                         )
                         .Join(
                             __DBContext.SocialPostCategories,
@@ -479,7 +479,7 @@ namespace CoreApi.Services
                     from post_following_ids in __DBContext.SocialUserActionWithPosts
                         .Where(e => e.UserId == socialUserId
                             && EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithPost.Follow, EntityAction.UserActionWithPost))
+                                EntityAction.GenContainsJsonStatement(ActionType.Follow))
                         )
                         .Select(e => e.PostId)
                     select post_following_ids;
@@ -522,11 +522,11 @@ namespace CoreApi.Services
                             gr.Key,
                             Visited = (socialUserId == default) ? false
                                 : EF.Functions.JsonExists(gr.Key.actionStr,
-                                BaseAction.ActionToString(UserActionWithPost.Visited, EntityAction.UserActionWithPost)),
+                                EntityAction.GenContainsJsonStatement(ActionType.Visited)),
                             Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost))),
+                                EntityAction.GenContainsJsonStatement(ActionType.Like))),
                             DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithPost.Dislike, EntityAction.UserActionWithPost))),
+                                EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
                             Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
                         } into ret select new {
                             ret.Key.Id,
@@ -596,26 +596,7 @@ namespace CoreApi.Services
             post.Views++;
             await __DBContext.SaveChangesAsync();
             if (SocialUserId != default && post.Status == SocialPostStatus.Approved) {
-                var action = await __DBContext.SocialUserActionWithPosts
-                    .Where(e => e.PostId == post.Id && e.UserId == SocialUserId)
-                    .FirstOrDefaultAsync();
-                var actionVisited = BaseAction.ActionToString(UserActionWithPost.Visited, EntityAction.UserActionWithPost);
-                if (action != default) {
-                    if (!action.Actions.Contains(actionVisited)) {
-                        action.Actions.Add(actionVisited);
-                        await __DBContext.SaveChangesAsync();
-                    }
-                } else {
-                    await __DBContext.SocialUserActionWithPosts
-                        .AddAsync(new SocialUserActionWithPost(){
-                            UserId = SocialUserId,
-                            PostId = post.Id,
-                            Actions = new List<string>(){
-                                actionVisited
-                            }
-                        });
-                    await __DBContext.SaveChangesAsync();
-                }
+                await Visited(post.Id, SocialUserId);
             }
             #endregion
 
@@ -657,7 +638,7 @@ namespace CoreApi.Services
             var action = await __DBContext.SocialUserActionWithPosts
                 .Where(e => e.PostId == postId && e.UserId == socialUserId)
                 .FirstOrDefaultAsync();
-            return action != default ? action.Actions.Contains(actionStr) : false;
+            return action != default ? action.Actions.Count(e => e.action == actionStr) > 0 : false;
         }
         protected async Task<ErrorCodes> AddAction(long postId, Guid socialUserId, string actionStr)
         {
@@ -665,8 +646,8 @@ namespace CoreApi.Services
                 .Where(e => e.PostId == postId && e.UserId == socialUserId)
                 .FirstOrDefaultAsync();
             if (action != default) {
-                if (!action.Actions.Contains(actionStr)) {
-                    action.Actions.Add(actionStr);
+                if (!(action.Actions.Count(a => a.action == actionStr) > 0)) {
+                    action.Actions.Add(new EntityAction(EntityActionType.UserActionWithPost, actionStr));
                     if (await __DBContext.SaveChangesAsync() > 0) {
                         return ErrorCodes.NO_ERROR;
                     }
@@ -677,8 +658,8 @@ namespace CoreApi.Services
                     .AddAsync(new SocialUserActionWithPost(){
                         UserId = socialUserId,
                         PostId = postId,
-                        Actions = new List<string>(){
-                            actionStr
+                        Actions = new List<EntityAction>(){
+                            new EntityAction(EntityActionType.UserActionWithPost, actionStr)
                         }
                     });
                 if (await __DBContext.SaveChangesAsync() > 0) {
@@ -693,8 +674,9 @@ namespace CoreApi.Services
                 .Where(e => e.PostId == postId && e.UserId == socialUserId)
                 .FirstOrDefaultAsync();
             if (action != default) {
-                if (action.Actions.Contains(actionStr)) {
-                    action.Actions.Remove(actionStr);
+                var _action = action.Actions.Where(a => a.action == actionStr).FirstOrDefault();
+                if (_action != default) {
+                    action.Actions.Remove(_action);
                     if (await __DBContext.SaveChangesAsync() > 0) {
                         return ErrorCodes.NO_ERROR;
                     }
@@ -706,49 +688,53 @@ namespace CoreApi.Services
         }
         public async Task<ErrorCodes> UnLike(long postId, Guid socialUserId)
         {
-            return await RemoveAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost));
+            return await RemoveAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Like));
         }
         public async Task<ErrorCodes> Like(long postId, Guid socialUserId)
         {
-            await RemoveAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Dislike, EntityAction.UserActionWithPost));
-            return await AddAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost));
+            await RemoveAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Dislike));
+            return await AddAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Like));
         }
         public async Task<ErrorCodes> UnDisLike(long postId, Guid socialUserId)
         {
-            return await RemoveAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Dislike, EntityAction.UserActionWithPost));
+            return await RemoveAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Dislike));
         }
         public async Task<ErrorCodes> DisLike(long postId, Guid socialUserId)
         {
-            await RemoveAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Like, EntityAction.UserActionWithPost));
-            return await AddAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Dislike, EntityAction.UserActionWithPost));
+            await RemoveAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Like));
+            return await AddAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Dislike));
         }
         public async Task<ErrorCodes> Follow(long postId, Guid socialUserId)
         {
-            return await AddAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Follow, EntityAction.UserActionWithPost));
+            return await AddAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Follow));
         }
         public async Task<ErrorCodes> UnFollow(long postId, Guid socialUserId)
         {
-            return await RemoveAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Follow, EntityAction.UserActionWithPost));
+            return await RemoveAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Follow));
         }
         public async Task<ErrorCodes> Report(long postId, Guid socialUserId)
         {
-            return await AddAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Report, EntityAction.UserActionWithPost));
+            return await AddAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Report));
         }
         public async Task<ErrorCodes> Save(long postId, Guid socialUserId)
         {
-            return await AddAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Saved, EntityAction.UserActionWithPost));
+            return await AddAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Saved));
         }
         public async Task<ErrorCodes> UnSave(long postId, Guid socialUserId)
         {
-            return await RemoveAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Saved, EntityAction.UserActionWithPost));
+            return await RemoveAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Saved));
         }
         public async Task<ErrorCodes> Comment(long postId, Guid socialUserId)
         {
-            return await AddAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Comment, EntityAction.UserActionWithPost));
+            return await AddAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Comment));
+        }
+        public async Task<ErrorCodes> Visited(long postId, Guid socialUserId)
+        {
+            return await AddAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Visited));
         }
         public async Task<ErrorCodes> UnComment(long postId, Guid socialUserId)
         {
-            return await RemoveAction(postId, socialUserId, BaseAction.ActionToString(UserActionWithPost.Comment, EntityAction.UserActionWithPost));
+            return await RemoveAction(postId, socialUserId, EntityAction.ActionTypeToString(ActionType.Comment));
         }
         #endregion
 
@@ -787,6 +773,9 @@ namespace CoreApi.Services
         public async Task<ErrorCodes> AddNewPost(ParserSocialPost Parser, SocialPost Post, Guid SocialUserId)
         {
             using var transaction = await __DBContext.Database.BeginTransactionAsync();
+            var __SocialTagManagement = (SocialTagManagement)__ServiceProvider.GetService(typeof(SocialTagManagement));
+            var __SocialCategoryManagement = (SocialCategoryManagement)__ServiceProvider.GetService(typeof(SocialCategoryManagement));
+
             Post.Slug = string.Empty;
             await __DBContext.SocialPosts.AddAsync(Post);
             var ok = await __DBContext.SaveChangesAsync() > 0;
@@ -842,26 +831,7 @@ namespace CoreApi.Services
                     }
 
                     #region Add action used tag
-                    var action = await __DBContext.SocialUserActionWithTags
-                        .Where(e => e.TagId == tag.Id && e.UserId == SocialUserId)
-                        .FirstOrDefaultAsync();
-                    var actionUsed = BaseAction.ActionToString(UserActionWithTag.Used, EntityAction.UserActionWithTag);
-                    if (action != default) {
-                        if (!action.Actions.Contains(actionUsed)) {
-                            action.Actions.Add(actionUsed);
-                            await __DBContext.SaveChangesAsync();
-                        }
-                    } else {
-                        await __DBContext.SocialUserActionWithTags
-                            .AddAsync(new SocialUserActionWithTag(){
-                                UserId = SocialUserId,
-                                TagId = tag.Id,
-                                Actions = new List<string>(){
-                                    actionUsed
-                                }
-                            });
-                        await __DBContext.SaveChangesAsync();
-                    }
+                    await __SocialTagManagement.Used(tag.Id, SocialUserId);
                     #endregion
                 }
                 #endregion
@@ -895,7 +865,9 @@ namespace CoreApi.Services
         public async Task<ErrorCodes> ModifyPost(SocialPost post, SocialPostModifyModel model)
         {
             using var transaction = await __DBContext.Database.BeginTransactionAsync();
-            
+            var __SocialTagManagement = (SocialTagManagement)__ServiceProvider.GetService(typeof(SocialTagManagement));
+            var __SocialCategoryManagement = (SocialCategoryManagement)__ServiceProvider.GetService(typeof(SocialCategoryManagement));
+
             #region Get data change and save
             var haveChange = false;
             var ok = true;
@@ -935,10 +907,8 @@ namespace CoreApi.Services
                     if (ok) {
                         foreach (var it in model.categories) {
                             // No need check status of category
-                            var category = await __DBContext.SocialCategories
-                                .Where(c => c.Name == it)
-                                .FirstOrDefaultAsync();
-                            if (category == default) {
+                            var (category, errCode) = await __SocialCategoryManagement.FindCategoryByNameIgnoreStatus(it);
+                            if (errCode != ErrorCodes.NO_ERROR) {
                                 ok = false;
                                 error = $"Not found category for add post, category: { it }";
                                 break;
@@ -974,10 +944,8 @@ namespace CoreApi.Services
                     if (ok) {
                         foreach (var it in model.tags) {
                             // No need check status of tag
-                            var tag = await __DBContext.SocialTags
-                                .Where(t => t.Tag == it)
-                                .FirstOrDefaultAsync();
-                            if (tag == default) {
+                            var (tag, errCode) = await __SocialTagManagement.FindTagByNameIgnoreStatus(it);
+                            if (errCode != ErrorCodes.NO_ERROR) {
                                 ok = false;
                                 error = $"Not found tag for add new post. tag: { it }";
                                 break;
@@ -997,26 +965,7 @@ namespace CoreApi.Services
                             }
 
                             #region Add action used tag
-                            var action = await __DBContext.SocialUserActionWithTags
-                                .Where(e => e.TagId == tag.Id && e.UserId == post.Owner)
-                                .FirstOrDefaultAsync();
-                            var actionUsed = BaseAction.ActionToString(UserActionWithTag.Used, EntityAction.UserActionWithTag);
-                            if (action != default) {
-                                if (!action.Actions.Contains(actionUsed)) {
-                                    action.Actions.Add(actionUsed);
-                                    await __DBContext.SaveChangesAsync();
-                                }
-                            } else {
-                                await __DBContext.SocialUserActionWithTags
-                                    .AddAsync(new SocialUserActionWithTag(){
-                                        UserId = post.Owner,
-                                        TagId = tag.Id,
-                                        Actions = new List<string>(){
-                                            actionUsed
-                                        }
-                                    });
-                                await __DBContext.SaveChangesAsync();
-                            }
+                            await __SocialTagManagement.Used(tag.Id, post.Owner);
                             #endregion
                         }
                     } else {

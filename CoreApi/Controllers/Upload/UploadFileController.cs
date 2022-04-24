@@ -16,7 +16,7 @@ namespace CoreApi.Controllers.Upload
 {
     [ApiController]
     [Route("/api/upload")]
-    [Produces("multipart/form-data")]
+    // [Produces("multipart/form-data")]
     public class UploadFileController : BaseController
     {
         #region Config Values
@@ -75,10 +75,11 @@ namespace CoreApi.Controllers.Upload
             }
         }
 
-        [HttpPost("file/{path}")]
-        public async Task<IActionResult> SpcialUploadFile([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+#if DEBUG
+        [HttpPost("public/file/{path}")]
+        public async Task<IActionResult> PublicUploadFile([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
                                                           [FromServices] SocialUserManagement __SocialUserManagement,
-                                                          [FromForm] IFormFile formFile,
+                                                          IFormFile formFile,
                                                           [FromRoute] string path,
                                                           [FromHeader] string session_token)
         {
@@ -89,8 +90,63 @@ namespace CoreApi.Controllers.Upload
             #endregion
             try {
                 #region Validate params
-                if (!SocialPath.Contains(path) || formFile == default) {
+                if (HttpContext.Request.Form.Files.Count != 1) {
                     return Problem(400, "Invalid Request.");
+                }
+
+                formFile = HttpContext.Request.Form.Files[0];
+                if (formFile == default || formFile.FileName == default || formFile.Length == default) {
+                    return Problem(400, "Invalid file.");
+                }
+                #endregion
+
+                if (formFile.Length > MAX_LENGTH_OF_SINGLE_FILE) {
+                    return Problem(400, "Exceed max size of file.");
+                }
+
+                var ext = Path.GetExtension(formFile.FileName);
+
+                var fileName = Utils.GenerateSlug(formFile.FileName.Replace(ext, string.Empty));
+                fileName = fileName.Length > 30 ? fileName.Substring(0, 30) : fileName;
+                fileName = $"{ fileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }-public{ ext }";
+                CommonValidate.ValidateDirectoryPath($"{ Program.ServerConfiguration.UploadFilePath }/{ path }", true);
+                var filePath = Path.Combine($"{ Program.ServerConfiguration.UploadFilePath }/{ path }", fileName);
+                using (var stream = System.IO.File.Create(filePath))
+                {
+                    await formFile.CopyToAsync(stream);
+                }
+
+                return Ok(200, "OK", new JObject(){
+                    { "url", $"{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ path }/{ fileName }" }
+                });
+            } catch (Exception e) {
+                LogError($"Unexpected exception, message: { e.ToString() }");
+                return Problem(500, "Internal Server error.");
+            }
+        }
+#endif
+
+        [HttpPost("file/{path}")]
+        public async Task<IActionResult> SocialUploadFile([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                          [FromServices] SocialUserManagement __SocialUserManagement,
+                                                          IFormFile formFile,
+                                                          [FromRoute] string path,
+                                                          [FromHeader] string session_token)
+        {
+            if (!LoadConfigSuccess) {
+                return Problem(500, "Internal Server error.");
+            }
+            #region Set TraceId for services
+            #endregion
+            try {
+                #region Validate params
+                if (HttpContext.Request.Form.Files.Count != 1) {
+                    return Problem(400, "Invalid Request.");
+                }
+
+                formFile = HttpContext.Request.Form.Files[0];
+                if (formFile == default || formFile.FileName == default || formFile.Length == default) {
+                    return Problem(400, "Invalid files.");
                 }
                 #endregion
 
@@ -131,8 +187,8 @@ namespace CoreApi.Controllers.Upload
                 var user = session.User;
                 error = __SocialUserManagement.HaveFullPermission(user.Rights, ADMIN_RIGHTS.LOG);
                 if (error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogInformation($"User doesn't have permission to upload audit log, user_name: { user.UserName }");
-                    return Problem(403, "User doesn't have permission to see admin audit log.");
+                    LogInformation($"User doesn't have permission to upload file, user_name: { user.UserName }");
+                    return Problem(403, "User doesn't have permission to upload file.");
                 }
                 #endregion
 
@@ -148,6 +204,7 @@ namespace CoreApi.Controllers.Upload
                 var fileName = Utils.GenerateSlug(formFile.FileName.Replace(ext, string.Empty));
                 fileName = fileName.Length > 30 ? fileName.Substring(0, 30) : fileName;
                 fileName = $"{ fileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ext }";
+                CommonValidate.ValidateDirectoryPath($"{ Program.ServerConfiguration.UploadFilePath }/{ path }", true);
                 var filePath = Path.Combine($"{ Program.ServerConfiguration.UploadFilePath }/{ path }", fileName);
                 using (var stream = System.IO.File.Create(filePath))
                 {
@@ -155,7 +212,102 @@ namespace CoreApi.Controllers.Upload
                 }
 
                 return Ok(200, "OK", new JObject(){
-                    { "url", $"{ Program.ServerConfiguration.HostName }{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ fileName }" }
+                    { "url", $"{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ path }/{ fileName }" }
+                });
+            } catch (Exception e) {
+                LogError($"Unexpected exception, message: { e.ToString() }");
+                return Problem(500, "Internal Server error.");
+            }
+        }
+
+        
+        [HttpPost("file/admin/{path}")]
+        public async Task<IActionResult> AdminUploadFile([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
+                                                         [FromServices] AdminUserManagement __AdminUserManagement,
+                                                         IFormFile formFile,
+                                                         [FromRoute] string path,
+                                                         [FromHeader(Name = "session_token_admin")] string session_token)
+        {
+            if (!LoadConfigSuccess) {
+                return Problem(500, "Internal Server error.");
+            }
+            #region Set TraceId for services
+            #endregion
+            try {
+                #region Validate params
+                if (HttpContext.Request.Form.Files.Count != 1) {
+                    return Problem(400, "Invalid Request.");
+                }
+
+                formFile = HttpContext.Request.Form.Files[0];
+                if (formFile == default || formFile.FileName == default || formFile.Length == default) {
+                    return Problem(400, "Invalid files.");
+                }
+                #endregion
+
+                #region Get session token
+                if (session_token == default) {
+                    LogDebug($"Missing header authorization.");
+                    return Problem(401, "Missing header authorization.");
+                }
+
+                if (!CommonValidate.IsValidSessionToken(session_token)) {
+                    return Problem(401, "Invalid header authorization.");
+                }
+                #endregion
+
+                #region Find session for use
+                SessionAdminUser session = default;
+                ErrorCodes error = ErrorCodes.NO_ERROR;
+                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
+
+                if (error != ErrorCodes.NO_ERROR) {
+                    if (error == ErrorCodes.NOT_FOUND) {
+                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
+                        return Problem(401, "Session not found.");
+                    }
+                    if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
+                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
+                        return Problem(401, "Session has expired.");
+                    }
+                    if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
+                        LogWarning($"User has been locked, session_token: { session_token.Substring(0, 15) }");
+                        return Problem(423, "You have been locked.");
+                    }
+                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
+                }
+                #endregion
+
+                #region Check Upload Permission
+                var user = session.User;
+                error = __AdminUserManagement.HaveFullPermission(user.Rights, ADMIN_RIGHTS.LOG);
+                if (error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
+                    LogInformation($"User doesn't have permission to upload file, user_name: { user.UserName }");
+                    return Problem(403, "User doesn't have permission to upload file.");
+                }
+                #endregion
+
+                if (formFile.Length > MAX_LENGTH_OF_SINGLE_FILE) {
+                    return Problem(400, "Exceed max size of file.");
+                }
+
+                var ext = Path.GetExtension(formFile.FileName);
+                if (!AllowExtensions.Contains(ext)) {
+                    return Problem(400, $"Not allow file type: { ext }");
+                }
+
+                var fileName = Utils.GenerateSlug(formFile.FileName.Replace(ext, string.Empty));
+                fileName = fileName.Length > 30 ? fileName.Substring(0, 30) : fileName;
+                fileName = $"{ fileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ext }";
+                CommonValidate.ValidateDirectoryPath($"{ Program.ServerConfiguration.UploadFilePath }/{ path }", true);
+                var filePath = Path.Combine($"{ Program.ServerConfiguration.UploadFilePath }/{ path }", fileName);
+                using (var stream = System.IO.File.Create(filePath))
+                {
+                    await formFile.CopyToAsync(stream);
+                }
+
+                return Ok(200, "OK", new JObject(){
+                    { "url", $"{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ path }/{ fileName }" }
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");

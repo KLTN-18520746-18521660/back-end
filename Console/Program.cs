@@ -5,10 +5,10 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
-using DatabaseAccess.Common.Models;
+// using DatabaseAccess.Common.Models;
 using Common;
 using System.Text;
-using CoreApi;
+// using CoreApi;
 using System.Threading;
 
 namespace MyConsole
@@ -76,23 +76,40 @@ namespace MyConsole
                 Console.WriteLine(r == results[i]);
             }
         }
+        class test {
+            public string action;
+            public DateTime date;
+
+            public test(string a, DateTime d) {
+                action = a;
+                date = d;
+            }
+        }
         static void Main(string[] args)
         {
-            JObject obj = new JObject(){
-                {"test", 10}
-            };
-            var tst = obj.SelectToken("test");
-            if (tst != default) {
-                tst.Replace(new JObject(){
-                    { "hello","test"}
-                });
-            } else {
-                obj.Add("test", new JObject(){
-                    { "default", 100 }
-                });
+            // List<(string action, DateTime date)> tst = new List<(string action, DateTime date)>();
+            List<EntityAction> tst = new List<EntityAction>();
+
+            var ac = new EntityAction(EntityActionType.UserActionWithCategory, ActionType.Follow);
+            tst.Add(ac);
+
+            Console.WriteLine(JArray.FromObject(tst));
+
+
+            List<EntityAction> tst_ser = new List<EntityAction>();
+            var obj = "[{\"action\": \"Follow\",\"date\": \"2022-04-24T10:20:15.2954809Z\"}]";
+            var arr = JsonConvert.DeserializeObject<JArray>(obj);
+
+            foreach (var a in arr) {
+                tst_ser.Add(new(EntityActionType.UserActionWithCategory,
+                                (a as JObject).Value<string>("action"))
+                {
+                        date = (a as JObject).Value<DateTime>("date")
+                    }
+                );
             }
 
-            Console.WriteLine(obj);
+            Console.WriteLine(JArray.FromObject(tst_ser));
         }
     }
 }

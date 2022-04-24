@@ -118,36 +118,32 @@ namespace DatabaseAccess.Context.Models
             return ret;
         }
 
-        public int Likes()
+        public int CountLikes()
         {
-            return SocialUserActionWithComments
-                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithComment.Like,
-                                                                         EntityAction.UserActionWithComment))
-                );
+            return SocialUserActionWithComments.Count(p =>
+                p.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Like)) > 0
+            );
         }
 
-        public int DisLikes()
+        public int CountDislikes()
         {
-            return SocialUserActionWithComments
-                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithComment.Dislike,
-                                                                         EntityAction.UserActionWithComment))
-                );
+            return SocialUserActionWithComments.Count(p =>
+                p.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Dislike)) > 0
+            );
         }
 
-        public int Reports()
+        public int CountReports()
         {
-            return SocialUserActionWithComments
-                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithComment.Report,
-                                                                         EntityAction.UserActionWithComment))
-                );
+            return SocialUserActionWithComments.Count(p =>
+                p.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Report)) > 0
+            );
         }
 
-        public int Replies()
+        public int CountReplies()
         {
-            return SocialUserActionWithComments
-                .Count(p => p.Actions.Contains(BaseAction.ActionToString(UserActionWithComment.Reply,
-                                                                         EntityAction.UserActionWithComment))
-                );
+            return SocialUserActionWithComments.Count(p =>
+                p.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Reply)) > 0
+            );
         }
 
         public override bool PrepareExportObjectJson()
@@ -167,9 +163,9 @@ namespace DatabaseAccess.Context.Models
                 },
                 { "content", Content },
                 { "status", StatusStr },
-                { "likes", Likes() },
-                { "dislikes", DisLikes() },
-                { "replies", Replies() },
+                { "likes", CountLikes() },
+                { "dislikes", CountDislikes() },
+                { "replies", CountReplies() },
                 { "last_modified_timestamp", LastModifiedTimestamp},
                 { "created_timestamp", CreatedTimestamp},
 #if DEBUG
@@ -183,7 +179,7 @@ namespace DatabaseAccess.Context.Models
             var action = this.SocialUserActionWithComments
                 .Where(e => e.UserId == socialUserId)
                 .FirstOrDefault();
-            return action != default ? action.Actions.ToArray() : new string[]{};
+            return action != default ? action.Actions.Select(e => e.action).ToArray() : new string[]{};
         }
     }
 }
