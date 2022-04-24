@@ -246,6 +246,10 @@ namespace CoreApi.Services
                 {
                     await scope.ServiceProvider.GetRequiredService<SocialPostManagement>()
                             .Comment(Comment.PostId, Comment.Owner);
+                    if (Comment.ParentId != default) {
+                        await scope.ServiceProvider.GetRequiredService<SocialCommentManagement>()
+                            .Reply(Comment.Id, Comment.Owner);
+                    }
                 }
                 #endregion
                 return ErrorCodes.NO_ERROR;

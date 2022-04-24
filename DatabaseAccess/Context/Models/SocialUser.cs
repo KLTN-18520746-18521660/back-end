@@ -314,15 +314,19 @@ namespace DatabaseAccess.Context.Models
         public int CountFollowing()
         {
             return SocialUserActionWithUserUsers
-                .Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)));
+                .Count(e => e.ActionsStr.Contains(
+                                BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)
+                    )
+                );
         }
 
         public int CountFollowers()
         {
             return SocialUserActionWithUserUserIdDesNavigations
-                .Count(e => EF.Functions.JsonExists(e.ActionsStr,
-                                BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)));
+                .Count(e => e.ActionsStr.Contains(
+                                BaseAction.ActionToString(UserActionWithUser.Follow, EntityAction.UserActionWithUser)
+                    )
+                );
         }
 
         public List<string> GetRoles()

@@ -191,8 +191,8 @@ namespace CoreApi
                     c.SerializeAsV2 = true;
                 });
                 app.UseSwaggerUI(c => {
-                    c.SwaggerEndpoint("/swagger/admin/swagger.json", "CoreApi - Admin");
                     c.SwaggerEndpoint("/swagger/social/swagger.json", "CoreApi - Social");
+                    c.SwaggerEndpoint("/swagger/admin/swagger.json", "CoreApi - Admin");
                     c.SwaggerEndpoint("/swagger/upload/swagger.json", "CoreApi - Upload");
 #if DEBUG
                     c.SwaggerEndpoint("/swagger/test/swagger.json", "CoreApi - Testing");
