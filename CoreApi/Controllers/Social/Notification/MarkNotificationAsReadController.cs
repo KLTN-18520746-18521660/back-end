@@ -16,7 +16,7 @@ using DatabaseAccess.Common.Status;
 namespace CoreApi.Controllers.Social.Notification
 {
     [ApiController]
-    [Route("/api/notification")]
+    [Route("/api/notification/read")]
     public class MarkNotificationAsReadController : BaseController
     {
         #region Config Values

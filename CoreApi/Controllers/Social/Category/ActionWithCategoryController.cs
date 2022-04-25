@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CoreApi.Controllers.Social.Post
+namespace CoreApi.Controllers.Social.Category
 {
     [ApiController]
     [Route("/api/category")]
