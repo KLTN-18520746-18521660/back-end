@@ -47,7 +47,7 @@ namespace CoreApi.Controllers.Social.Report
             }
         }
 
-        [HttpPost("{action}")]
+        [HttpPost("{type}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
@@ -58,7 +58,7 @@ namespace CoreApi.Controllers.Social.Report
                                                 [FromServices] SocialPostManagement __SocialPostManagement,
                                                 [FromServices] SocialReportManagement __SocialReportManagement,
                                                 [FromHeader] string session_token,
-                                                [FromRoute] string action,
+                                                [FromRoute] string type,
                                                 [FromBody] ParserSocialReport Parser)
         {
             if (!LoadConfigSuccess) {
@@ -106,11 +106,11 @@ namespace CoreApi.Controllers.Social.Report
                 }
 
                 SocialReport report = new SocialReport();
-                report.Type = action;
+                report.Type = type;
                 report.ReportType = Parser.report_type;
                 report.Content = Parser.content;
                 report.ReporterId = session.UserId;
-                switch (action) {
+                switch (type) {
                     case "user":
                         {
                             if (Parser.user_name == default) {

@@ -78,7 +78,7 @@ namespace CoreApi.Controllers.Social.Post
             #endregion
             try {
                 #region Validate params
-                if (orders.IsValid()) {
+                if (!orders.IsValid()) {
                     return Problem(400, "Invalid order fields.");
                 }
                 if (categories != default && !await __SocialCategoryManagement.IsExistingCategories(categories)) {

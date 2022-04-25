@@ -29,5 +29,7 @@ namespace DatabaseAccess.Context.ParserModels
         public string[] categories { get; set; }
         [DefaultValue("[]")]
         public string[] tags { get; set; }
+        [DefaultValue(true)]  // if null or default --> true
+        public bool is_private { get; set; }
     }
 }

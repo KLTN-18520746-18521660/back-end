@@ -115,6 +115,13 @@ namespace DatabaseAccess.Context.Models
                 }
             }
         }
+        [NotMapped]
+        public JObject PendingContent { get; set; }
+        [Column("pending_content", TypeName = "jsonb")]
+        public string PendingContentStr {
+            get { return PendingContent != default ? PendingContent.ToString() : default; }
+            set { PendingContent = value != default ? JsonConvert.DeserializeObject<JObject>(value) : default; }
+        }
         [Required]
         [Column("short_content")]
         public string ShortContent { get; set; }
@@ -250,6 +257,7 @@ namespace DatabaseAccess.Context.Models
             };
             if (this.Owner == SocialUserId) {
                 ret.Add("id", this.Id);
+                ret.Add("have_pending_content", PendingContent != default);
             }
             return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
         }
@@ -315,6 +323,7 @@ namespace DatabaseAccess.Context.Models
                 { "content", Content },
                 { "content_type", ContenTypeStr },
                 { "short_content", ShortContent },
+                { "have_pending_content", PendingContent != default },
                 { "status", StatusStr },
                 { "created_timestamp", CreatedTimestamp },
                 { "last_modified_timestamp", LastModifiedTimestamp },

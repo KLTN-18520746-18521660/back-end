@@ -128,7 +128,7 @@ namespace CoreApi.Controllers.Social.Post
                 if (user_name == default || user_name.Trim() == string.Empty || user_name.Length > 50) {
                     return Problem(400, "Invalid user_name.");
                 }
-                if (orders.IsValid()) {
+                if (!orders.IsValid()) {
                     return Problem(400, "Invalid order fields.");
                 }
                 if (categories != default && !await __SocialCategoryManagement.IsExistingCategories(categories)) {

@@ -17,9 +17,11 @@ namespace CoreApi.Models
 
         public bool IsValid()
         {
-            foreach (var o in order.Split(',')) {
-                if (o != "asc" && o != "desc") {
-                    return false;
+            if (order != default) {
+                foreach (var o in order.Split(',')) {
+                    if (o != "asc" && o != "desc") {
+                        return false;
+                    }
                 }
             }
             return true;
@@ -28,8 +30,8 @@ namespace CoreApi.Models
         public (string, bool)[] GetOrders()
         {
             var ret = new List<(string, bool)>();
-            var _orders = sort_by.Split(',');
-            var _descs = order.Split(',');
+            var _orders = sort_by != default ? sort_by.Split(',') : new string[]{};
+            var _descs = order != default ? order.Split(',') : new string[]{};
             if (_orders != default) {
                 for (int i = 0; i < _orders.Length; i++) {
                     ret.Add(new (
