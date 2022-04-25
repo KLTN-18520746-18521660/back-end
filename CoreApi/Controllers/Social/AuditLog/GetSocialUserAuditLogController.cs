@@ -55,7 +55,8 @@ namespace CoreApi.Controllers.Social.AuditLog
                                                       [FromServices] SocialUserAuditLogManagement __SocialUserAuditLogManagement,
                                                       [FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
                                                       [FromHeader] string session_token,
-                                                      [FromQuery] string action,
+                                                      [FromQuery] string type,
+                                                      [FromQuery] string key = default,       // post_id | comment_id
                                                       [FromQuery] int start = 0,
                                                       [FromQuery] int size = 20,
                                                       [FromQuery] string search_term = default)
@@ -108,7 +109,7 @@ namespace CoreApi.Controllers.Social.AuditLog
 
                 #region Get all audit logs
                 var user = session.User;
-                var (logs, totalSize)= await __SocialUserAuditLogManagement.GetAuditLogs(user.Id, action, start, size, search_term);
+                var (logs, totalSize)= await __SocialUserAuditLogManagement.GetAuditLogs(user.Id, type, start, size, search_term);
 
                 List<JObject> rawReturn = new();
                 logs.ForEach(e => rawReturn.Add(e.GetJsonObject()));

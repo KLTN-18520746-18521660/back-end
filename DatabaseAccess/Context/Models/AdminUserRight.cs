@@ -204,7 +204,6 @@ namespace DatabaseAccess.Context.Models
         public static readonly string ADMIN_USER = "admin_user";
         public static readonly string LOG = "log";
         public static readonly string CONFIG = "config";
-        
         public static readonly string UPLOAD = "upload";
     }
 }

@@ -185,7 +185,7 @@ namespace CoreApi.Controllers.Upload
 
                 #region Check Upload Permission
                 var user = session.User;
-                error = __SocialUserManagement.HaveFullPermission(user.Rights, ADMIN_RIGHTS.LOG);
+                error = __SocialUserManagement.HaveFullPermission(user.Rights, SOCIAL_RIGHTS.UPLOAD);
                 if (error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
                     LogInformation($"User doesn't have permission to upload file, user_name: { user.UserName }");
                     return Problem(403, "User doesn't have permission to upload file.");
@@ -280,7 +280,7 @@ namespace CoreApi.Controllers.Upload
 
                 #region Check Upload Permission
                 var user = session.User;
-                error = __AdminUserManagement.HaveFullPermission(user.Rights, ADMIN_RIGHTS.LOG);
+                error = __AdminUserManagement.HaveFullPermission(user.Rights, ADMIN_RIGHTS.UPLOAD);
                 if (error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
                     LogInformation($"User doesn't have permission to upload file, user_name: { user.UserName }");
                     return Problem(403, "User doesn't have permission to upload file.");
