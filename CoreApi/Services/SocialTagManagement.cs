@@ -35,7 +35,7 @@ namespace CoreApi.Services
             var query =
                     from ids in (
                         (from tag in __DBContext.SocialTags
-                            .Where(e => e.StatusStr != BaseStatus.StatusToString(SocialTagStatus.Disabled, EntityStatus.SocialTagStatus)
+                            .Where(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
                                     && (search_term == default || (search_term != default && e.Tag.Contains(search_term))))
                         join action in __DBContext.SocialUserActionWithTags on tag.Id equals action.TagId
                         into tagWithAction
@@ -61,7 +61,7 @@ namespace CoreApi.Services
                     select tags;
 
             var totalCount = await __DBContext.SocialTags
-                            .CountAsync(e => e.StatusStr != BaseStatus.StatusToString(SocialTagStatus.Disabled, EntityStatus.SocialTagStatus)
+                            .CountAsync(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
                                     && (search_term == default || (search_term != default && e.Tag.Contains(search_term))));
 
             return (await query.ToListAsync(), totalCount);
@@ -70,7 +70,7 @@ namespace CoreApi.Services
         {
             var tag = await __DBContext.SocialTags
                     .Where(e => e.Tag == Tag
-                            && e.StatusStr != BaseStatus.StatusToString(SocialTagStatus.Disabled, EntityStatus.SocialTagStatus))
+                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
                     .FirstOrDefaultAsync();
             if (tag == default) {
                 return (default, ErrorCodes.NOT_FOUND);
@@ -228,7 +228,9 @@ namespace CoreApi.Services
                             Tag = tag,
                             Name = tag,
                             Describe = tag,
-                            Status = isEnableTag ? SocialTagStatus.Enabled : SocialTagStatus.Disabled,
+                            StatusStr = isEnableTag
+                                ? EntityStatus.StatusTypeToString(StatusType.Enabled)
+                                : EntityStatus.StatusTypeToString(StatusType.Disabled),
                         });
                         if (await __DBContext.SaveChangesAsync() <= 0) {
                             return (false, ErrorCodes.INTERNAL_SERVER_ERROR);

@@ -51,13 +51,13 @@ namespace DatabaseAccess.Context.Models
         [Column("thumbnail")]
         public string Thumbnail { get; set; }
         [NotMapped]
-        public int Status { get; set; }
+        public EntityStatus Status { get; set; }
         [Required]
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => BaseStatus.StatusToString(Status, EntityStatus.SocialCategoryStatus);
-            set => Status = BaseStatus.StatusFromString(value,  EntityStatus.SocialCategoryStatus);
+            get => Status.ToString();
+            set => Status = new EntityStatus(EntityStatusType.SocialCategory, value);
         }
         [Column("search_vector")]
         public NpgsqlTsVector SearchVector { get; set; }
@@ -83,7 +83,7 @@ namespace DatabaseAccess.Context.Models
             SocialUserActionWithCategories = new HashSet<SocialUserActionWithCategory>();
 
             __ModelName = "SocialCategory";
-            Status = SocialCategoryStatus.Enabled;
+            Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Enabled);
             CreatedTimestamp = DateTime.UtcNow;
         }
 
@@ -187,7 +187,7 @@ namespace DatabaseAccess.Context.Models
                     Slug = "technology",
                     Thumbnail = default,
                     CreatedTimestamp = DateTime.UtcNow,
-                    Status = SocialCategoryStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Readonly)
                 },
                 new SocialCategory
                 {
@@ -199,7 +199,7 @@ namespace DatabaseAccess.Context.Models
                     Slug = "developer",
                     Thumbnail = default,
                     CreatedTimestamp = DateTime.UtcNow,
-                    Status = SocialCategoryStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Readonly)
                 },
                 new SocialCategory
                 {
@@ -211,7 +211,7 @@ namespace DatabaseAccess.Context.Models
                     Slug = "dicussion",
                     Thumbnail = default,
                     CreatedTimestamp = DateTime.UtcNow,
-                    Status = SocialCategoryStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Readonly)
                 },
                 new SocialCategory
                 {
@@ -223,7 +223,7 @@ namespace DatabaseAccess.Context.Models
                     Slug = "blog",
                     Thumbnail = default,
                     CreatedTimestamp = DateTime.UtcNow,
-                    Status = SocialCategoryStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Readonly)
                 },
                 new SocialCategory
                 {
@@ -235,7 +235,7 @@ namespace DatabaseAccess.Context.Models
                     Slug = "left",
                     Thumbnail = default,
                     CreatedTimestamp = DateTime.UtcNow,
-                    Status = SocialCategoryStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Readonly)
                 }
             };
             return ListData;

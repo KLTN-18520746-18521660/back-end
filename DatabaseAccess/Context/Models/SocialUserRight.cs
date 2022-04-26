@@ -36,13 +36,13 @@ namespace DatabaseAccess.Context.Models
         [StringLength(150)]
         public string Describe { get; set; }
         [NotMapped]
-        public int Status { get; set; }
+        public EntityStatus Status { get; set; }
         [Required]
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => BaseStatus.StatusToString(Status, EntityStatus.SocialUserRightStatus);
-            set => Status = BaseStatus.StatusFromString(value, EntityStatus.SocialUserRightStatus);
+            get => Status.ToString();
+            set => Status = new EntityStatus(EntityStatusType.SocialUserRight, value);
         }
         [InverseProperty(nameof(SocialUserRoleDetail.Right))]
         public virtual ICollection<SocialUserRoleDetail> SocialUserRoleDetails { get; set; }
@@ -51,7 +51,7 @@ namespace DatabaseAccess.Context.Models
         {
             SocialUserRoleDetails = new HashSet<SocialUserRoleDetail>();
             __ModelName = "SocialUserRight";
-            Status = SocialUserRightStatus.Enabled;
+            Status = new EntityStatus(EntityStatusType.SocialUserRight, StatusType.Enabled);
         }
 
         public override bool Parse(IBaseParserModel Parser, out string Error)
@@ -96,7 +96,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "post",
                     DisplayName = "Post",
                     Describe = "Can create, interactive posts.",
-                    Status = SocialUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.SocialUserRight, StatusType.Readonly)
                 },
                 new SocialUserRight()
                 {
@@ -104,7 +104,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "comment",
                     DisplayName = "Comment",
                     Describe = "Can create, interactive comment.",
-                    Status = SocialUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.SocialUserRight, StatusType.Readonly)
                 },
                 new SocialUserRight()
                 {
@@ -112,7 +112,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "report",
                     DisplayName = "Report",
                     Describe = "Can create, interactive report.",
-                    Status = SocialUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.SocialUserRight, StatusType.Readonly)
                 },
                 new SocialUserRight()
                 {
@@ -120,7 +120,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "upload",
                     DisplayName = "Upload",
                     Describe = "Can create, interactive report.",
-                    Status = SocialUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.SocialUserRight, StatusType.Readonly)
                 }
             };
             return ListData;

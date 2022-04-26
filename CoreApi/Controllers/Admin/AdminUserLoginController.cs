@@ -26,6 +26,7 @@ namespace CoreApi.Controllers.Admin
         public AdminUserLoginController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
             __ControllerName = "AdminUserLogin";
+            __IsAdminController = true;
             LoadConfig();
         }
 
@@ -112,7 +113,7 @@ namespace CoreApi.Controllers.Admin
                 #endregion
 
                 #region Check user is lock or not
-                if (user.Status == AdminUserStatus.Blocked) {
+                if (user.Status.Type == StatusType.Blocked) {
                     LogWarning($"User has been locked user_name: { model.user_name }, isEmail: { isEmail }");
                     return Problem(423, "You have been locked.");
                 }

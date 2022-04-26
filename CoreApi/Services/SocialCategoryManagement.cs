@@ -29,7 +29,7 @@ namespace CoreApi.Services
         {
             return (
                 await __DBContext.SocialCategories
-                    .Where(e => e.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus))
+                    .Where(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
                     .ToListAsync(),
                 ErrorCodes.NO_ERROR
             );
@@ -38,7 +38,7 @@ namespace CoreApi.Services
         {
             var category = await __DBContext.SocialCategories
                     .Where(e => e.Slug == CategorySlug
-                            && e.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus))
+                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
                     .FirstOrDefaultAsync();
             if (category == default) {
                 return (default, ErrorCodes.NOT_FOUND);
@@ -53,7 +53,7 @@ namespace CoreApi.Services
         {
             var category = await __DBContext.SocialCategories
                     .Where(e => e.Name == CategoryName
-                            && e.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus))
+                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
                     .FirstOrDefaultAsync();
             if (category == default) {
                 return (default, ErrorCodes.NOT_FOUND);
@@ -94,7 +94,7 @@ namespace CoreApi.Services
         {
             var count = (await __DBContext.SocialCategories
                     .CountAsync(e => (e.Slug == slug || e.Name == name)
-                            && e.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus)));
+                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)));
             return (count > 0, ErrorCodes.NO_ERROR);
         }
 
@@ -174,9 +174,9 @@ namespace CoreApi.Services
             {
                 var __AdminUserManagement = scope.ServiceProvider.GetRequiredService<AdminUserManagement>();
                 var (user, error) = await __AdminUserManagement.FindUserById(AdminUserId);
-                if (error != ErrorCodes.NO_ERROR || (user.Status != AdminUserStatus.Activated && user.Status != AdminUserStatus.Readonly)) {
+                if (error != ErrorCodes.NO_ERROR || (user.Status.Type != StatusType.Activated && user.Status.Type != StatusType.Readonly)) {
                     return error == ErrorCodes.NOT_FOUND ? error :
-                        (user.Status == AdminUserStatus.Deleted ? ErrorCodes.DELETED : ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION);
+                        (user.Status.Type == StatusType.Deleted ? ErrorCodes.DELETED : ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION);
                 }
             }
             #endregion

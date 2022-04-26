@@ -112,9 +112,8 @@ namespace CoreApi.Controllers.Social.Notification
                 #region Validate params
                 if (status != default) {
                     foreach (var statusStr in status) {
-                        var statusInt = BaseStatus.StatusFromString(statusStr, EntityStatus.SocialNotificationStatus);
-                        if (statusInt == BaseStatus.InvalidStatus ||
-                            statusInt == SocialNotificationStatus.Deleted) {
+                        var statusType = EntityStatus.StatusStringToType(statusStr);
+                        if (statusType == default || statusType == StatusType.Deleted) {
                             return Problem(400, $"Invalid status: { statusStr }.");
                         }
                     }

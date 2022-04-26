@@ -23,6 +23,7 @@ namespace CoreApi.Controllers.Admin.Config
         public GetConfigController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
             __ControllerName = "GetConfig";
+            __IsAdminController = true;
             LoadConfig();
         }
 

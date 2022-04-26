@@ -15,6 +15,9 @@
     <ProjectReference Include="..\Common\Common.csproj">
       <Name>Common</Name>
     </ProjectReference>
+    <ProjectReference Include="..\CoreApi\CoreApi.csproj">
+      <Name>CoreApis</Name>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>

@@ -23,6 +23,7 @@ namespace CoreApi.Controllers.Admin.Session
         public DeleteSessionAdminUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
             __ControllerName = "DeleteSessionAdminUser";
+            __IsAdminController = true;
             LoadConfig();
         }
 

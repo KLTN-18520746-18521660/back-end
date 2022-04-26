@@ -23,13 +23,13 @@ namespace DatabaseAccess.Context.Models
         [Column("user_id")]
         public Guid UserId { get; set; }
         [NotMapped]
-        public int Status { get; set; }
+        public EntityStatus Status { get; set; }
         [Required]
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => BaseStatus.StatusToString(Status, EntityStatus.SocialNotificationStatus);
-            set => Status = BaseStatus.StatusFromString(value, EntityStatus.SocialNotificationStatus);
+            get => Status.ToString();
+            set => Status = new EntityStatus(EntityStatusType.SocialNotification, value);
         }
         [NotMapped]
         public JObject Content { get; set; }
@@ -57,7 +57,7 @@ namespace DatabaseAccess.Context.Models
             __ModelName = "SocialNotification";
             CreatedTimestamp = DateTime.UtcNow;
             ContentStr = "{}";
-            Status = SocialNotificationStatus.Sent;
+            Status = new EntityStatus(EntityStatusType.SocialNotification, StatusType.Sent);
         }
 
         public override bool Parse(IBaseParserModel Parser, out string Error)

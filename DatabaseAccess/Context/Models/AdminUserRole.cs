@@ -36,15 +36,14 @@ namespace DatabaseAccess.Context.Models
         [StringLength(150)]
         public string Describe { get; set; }
         [NotMapped]
-        public int Status { get; set; }
+        public EntityStatus Status { get; set; }
         [Required]
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => BaseStatus.StatusToString(Status, EntityStatus.AdminUserRoleStatus);
-            set => Status = BaseStatus.StatusFromString(value,  EntityStatus.AdminUserRoleStatus);
+            get => Status.ToString();
+            set => Status = new EntityStatus(EntityStatusType.AdminUserRole, value);
         }
-
         [Required]
         [Column("priority")]
         public bool Priority { get; set; }
@@ -59,7 +58,7 @@ namespace DatabaseAccess.Context.Models
             AdminUserRoleDetails = new HashSet<AdminUserRoleDetail>();
             AdminUserRoleOfUsers = new HashSet<AdminUserRoleOfUser>();
             __ModelName = "AdminUserRole";
-            Status = AdminUserRoleStatus.Enabled;
+            Status = new EntityStatus(EntityStatusType.AdminUserRole, StatusType.Enabled);
             Priority = false;
         }
 
@@ -117,7 +116,7 @@ namespace DatabaseAccess.Context.Models
                     RoleName = "admin",
                     DisplayName = "Administrator",
                     Describe = "Administrator",
-                    Status = AdminUserRoleStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.AdminUserRole, StatusType.Readonly)
                 }
             };
             return ListData;

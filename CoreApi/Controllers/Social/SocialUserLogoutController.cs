@@ -124,13 +124,13 @@ namespace CoreApi.Controllers.Social
 
                 LogInformation($"Logout success, user_name: { user.UserName }, session_token: { session_token.Substring(0, 15) }");
 
-                #region cookie header
+                #region set cookie header to remove session token
                 CookieOptions option = new CookieOptions();
                 option.Expires = new DateTime(1970, 1, 1, 0, 0, 0);
                 option.Path = "/";
                 option.SameSite = SameSiteMode.Strict;
 
-                Response.Cookies.Append("session_token", session.SessionToken, option);
+                Response.Cookies.Append("session_token", string.Empty, option);
                 #endregion
 
                 return Ok(200, "OK");

@@ -35,13 +35,13 @@ namespace DatabaseAccess.Context.Models
         [StringLength(150)]
         public string Describe { get; set; }
         [NotMapped]
-        public int Status { get; set; }
+        public EntityStatus Status { get; set; }
         [Required]
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => BaseStatus.StatusToString(Status, EntityStatus.AdminUserRightStatus);
-            set => Status = BaseStatus.StatusFromString(value, EntityStatus.AdminUserRightStatus);
+            get => Status.ToString();
+            set => Status = new EntityStatus(EntityStatusType.AdminUserRight, value);
         }
 
         [InverseProperty(nameof(AdminUserRoleDetail.Right))]
@@ -51,7 +51,7 @@ namespace DatabaseAccess.Context.Models
         {
             AdminUserRoleDetails = new HashSet<AdminUserRoleDetail>();
             __ModelName = "SocialUserRight";
-            Status = AdminUserRightStatus.Enabled;
+            Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled);
         }
 
         public override bool Parse(IBaseParserModel Parser, out string Error)
@@ -96,7 +96,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "dashboard",
                     DisplayName = "Dashboard",
                     Describe = "Can access Homepage and see statistic.",
-                    Status = AdminUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
                 },
                 new AdminUserRight()
                 {
@@ -104,7 +104,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "category",
                     DisplayName = "Category",
                     Describe = "Add, create, disable category.",
-                    Status = AdminUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
                 },
                 new AdminUserRight()
                 {
@@ -112,7 +112,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "topic",
                     DisplayName = "Topic",
                     Describe = "Add, create, disable topics",
-                    Status = AdminUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
                 },
                 new AdminUserRight()
                 {
@@ -120,7 +120,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "tag",
                     DisplayName = "Tag",
                     Describe = "Add, create, disable tag.",
-                    Status = AdminUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
                 },
                 new AdminUserRight()
                 {
@@ -128,7 +128,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "post",
                     DisplayName = "Post",
                     Describe = "Review, accept, reject post. See report about post.",
-                    Status = AdminUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
                 },
                 new AdminUserRight()
                 {
@@ -136,7 +136,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "comment",
                     DisplayName = "Comment",
                     Describe = "Delete comment. See report about comment.",
-                    Status = AdminUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
                 },
                 new AdminUserRight()
                 {
@@ -144,7 +144,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "security",
                     DisplayName = "Security",
                     Describe = "Configure security of Server.",
-                    Status = AdminUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
                 },
                 new AdminUserRight()
                 {
@@ -152,7 +152,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "social_user",
                     DisplayName = "Social User",
                     Describe = "Block, unblock SocialUser",
-                    Status = AdminUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
                 },
                 new AdminUserRight()
                 {
@@ -160,7 +160,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "admin_user",
                     DisplayName = "Admin User",
                     Describe = "Add, block, unblock, delete AdminUser.",
-                    Status = AdminUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
                 },
                 new AdminUserRight()
                 {
@@ -168,7 +168,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "log",
                     DisplayName = "Log",
                     Describe = "See and tracking log file.",
-                    Status = AdminUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
                 },
                 new AdminUserRight()
                 {
@@ -176,7 +176,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "config",
                     DisplayName = "Config",
                     Describe = "Modify, get config of server.",
-                    Status = AdminUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
                 },
                 new AdminUserRight()
                 {
@@ -184,7 +184,7 @@ namespace DatabaseAccess.Context.Models
                     RightName = "upload",
                     DisplayName = "Upload",
                     Describe = "Upload files.",
-                    Status = AdminUserRightStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
                 }
             };
             return ListData;

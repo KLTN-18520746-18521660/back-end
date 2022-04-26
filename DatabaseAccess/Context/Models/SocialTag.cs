@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
-using NpgsqlTypes;
 using Newtonsoft.Json;
 using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
@@ -36,13 +34,13 @@ namespace DatabaseAccess.Context.Models
         [StringLength(300)]
         public string Describe { get; set; }
         [NotMapped]
-        public int Status { get; set; }
+        public EntityStatus Status { get; set; }
         [Required]
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => BaseStatus.StatusToString(Status, EntityStatus.SocialTagStatus);
-            set => Status = BaseStatus.StatusFromString(value, EntityStatus.SocialTagStatus);
+            get => Status.ToString();
+            set => Status = new EntityStatus(EntityStatusType.SocialTag, value);
         }
         [Column("created_timestamp", TypeName = "timestamp with time zone")]
         public DateTime CreatedTimestamp { get; private set; }
@@ -61,7 +59,7 @@ namespace DatabaseAccess.Context.Models
 
             __ModelName = "SocialTag";
             CreatedTimestamp = DateTime.UtcNow;
-            Status = SocialTagStatus.Disabled;
+            Status = new EntityStatus(EntityStatusType.SocialTag, StatusType.Enabled);
         }
 
         public override bool Parse(IBaseParserModel Parser, out string Error)
@@ -158,12 +156,12 @@ namespace DatabaseAccess.Context.Models
         public static List<SocialTag> GetDefaultData()
         {
             List<SocialTag> ListData = new();
-            var (listDataSeed, errMsg) = Utils.LoadListJsonFromFile<SocialTagSeed>(@"..\DatabaseAccess\Context\DataSeed\SocialTag.json");
+            var (listDataSeed, errMsg) = Utils.LoadListJsonFromFile<SocialTagSeed>(DataSeed.DataPath.SOCIAL_TAG);
             if (listDataSeed == default) {
 #if DEBUG
                 throw new Exception($"GetDefaultData for SocialTag failed, error: { errMsg }");
 #else
-				listDataSeed = new();
+                listDataSeed = new();
 #endif
             }
             listDataSeed.ForEach(e => {
@@ -174,7 +172,7 @@ namespace DatabaseAccess.Context.Models
                     Name = e.name,
                     Describe = e.describe,
                     CreatedTimestamp = DateTime.UtcNow,
-                    Status = SocialCategoryStatus.Readonly
+                    Status = new EntityStatus(EntityStatusType.SocialTag, StatusType.Readonly),
                 });
             });
             return ListData;

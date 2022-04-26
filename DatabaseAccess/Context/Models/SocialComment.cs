@@ -33,13 +33,13 @@ namespace DatabaseAccess.Context.Models
         [Column("content")]
         public string Content { get; set; }
         [NotMapped]
-        public int Status { get; set; }
+        public EntityStatus Status { get; set; }
         [Required]
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => BaseStatus.StatusToString(Status, EntityStatus.SocialCommentStatus);
-            set => Status = BaseStatus.StatusFromString(value, EntityStatus.SocialCommentStatus);
+            get => Status.ToString();
+            set => Status = new EntityStatus(EntityStatusType.SocialComment, value);
         }
         [Column("search_vector")]
         public NpgsqlTsVector SearchVector { get; set; }
@@ -72,7 +72,7 @@ namespace DatabaseAccess.Context.Models
 
             __ModelName = "SocialComment";
             CreatedTimestamp = DateTime.UtcNow;
-            Status = SocialCommentStatus.Created;
+            Status = new EntityStatus(EntityStatusType.SocialComment, StatusType.Created);
         }
 
         public override bool Parse(IBaseParserModel Parser, out string Error)

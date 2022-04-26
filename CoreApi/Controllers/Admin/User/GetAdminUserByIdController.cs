@@ -23,6 +23,7 @@ namespace CoreApi.Controllers.Admin.User
         public GetAdminUserByIdController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
             __ControllerName = "GetAdminUserById";
+            __IsAdminController = true;
             LoadConfig();
         }
 

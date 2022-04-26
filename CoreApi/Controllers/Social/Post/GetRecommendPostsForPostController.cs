@@ -101,9 +101,8 @@ namespace CoreApi.Controllers.Social.Post
                 }
                 if (status != default) {
                     foreach (var statusStr in status) {
-                        var statusInt = BaseStatus.StatusFromString(statusStr, EntityStatus.SocialPostStatus);
-                        if (statusInt == BaseStatus.InvalidStatus ||
-                            statusInt == SocialPostStatus.Deleted) {
+                        var statusType = EntityStatus.StatusStringToType(statusStr);
+                        if (statusType == default || statusType == StatusType.Deleted) {
                             return Problem(400, $"Invalid status: { statusStr }.");
                         }
                     }

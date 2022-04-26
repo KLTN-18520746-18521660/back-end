@@ -87,12 +87,12 @@ namespace CoreApi.Services
             if (isEmail) {
                 user = await __DBContext.SocialUsers
                         .Where(e => e.Email == UserName
-                            && e.StatusStr != BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus))
+                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                         .FirstOrDefaultAsync();
             } else {
                 user = await __DBContext.SocialUsers
                         .Where(e => e.UserName == UserName
-                            && e.StatusStr != BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus))
+                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                         .FirstOrDefaultAsync();
             }
             if (user != default) {
@@ -137,10 +137,10 @@ namespace CoreApi.Services
         {
             var count_email = (await __DBContext.SocialUsers
                     .CountAsync(e => e.Email == UserName
-                        && e.StatusStr != BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus)));
+                        && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)));
             var count_username = (await __DBContext.SocialUsers
                     .CountAsync(e => e.UserName == UserName
-                        && e.StatusStr != BaseStatus.StatusToString(SocialUserStatus.Deleted, EntityStatus.SocialUserStatus)));
+                        && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)));
             return (count_username > 0, count_email > 0, ErrorCodes.NO_ERROR);
         }
 
@@ -165,10 +165,10 @@ namespace CoreApi.Services
                     int numberLoginFailure = config.Value<int>("number");
                     long lastLoginFailure = config.Value<long>("last_login");
 
-                    if (User.Status == SocialUserStatus.Blocked) {
+                    if (User.Status.Type == StatusType.Blocked) {
                         long currentUnixTime = DateTimeOffset.Now.ToUnixTimeSeconds();
                         if (currentUnixTime - lastLoginFailure > LockTime * 60) {
-                            User.Status = SocialUserStatus.Activated;
+                            User.Status.ChangeStatus(StatusType.Activated);
                             numberLoginFailure = 1;
                             lastLoginFailure = DateTimeOffset.Now.ToUnixTimeSeconds();
                         }
@@ -178,7 +178,7 @@ namespace CoreApi.Services
                     }
 
                     if (numberLoginFailure >= NumberOfTimesAllowLoginFailure) {
-                        User.Status = SocialUserStatus.Blocked;
+                        User.Status.ChangeStatus(StatusType.Blocked);
                     }
 
                     config["number"] = numberLoginFailure;
@@ -413,9 +413,9 @@ namespace CoreApi.Services
             }
             #endregion
 
-            if (User.Status == SocialUserStatus.Deleted) {
+            if (User.Status.Type == StatusType.Deleted) {
                 return ErrorCodes.DELETED;
-            } else if (User.Status == SocialUserStatus.Blocked) {
+            } else if (User.Status.Type == StatusType.Blocked) {
                 return ErrorCodes.USER_HAVE_BEEN_LOCKED;
             }
 
@@ -445,9 +445,9 @@ namespace CoreApi.Services
             }
             #endregion
 
-            if (User.Status == SocialUserStatus.Deleted) {
+            if (User.Status.Type == StatusType.Deleted) {
                 return ErrorCodes.DELETED;
-            } else if (User.Status == SocialUserStatus.Blocked) {
+            } else if (User.Status.Type == StatusType.Blocked) {
                 return ErrorCodes.USER_HAVE_BEEN_LOCKED;
             }
 

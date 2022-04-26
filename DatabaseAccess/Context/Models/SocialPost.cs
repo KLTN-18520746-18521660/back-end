@@ -38,7 +38,7 @@ namespace DatabaseAccess.Context.Models
             get => _title; 
             set {
                 _title = value;
-                if (Status == SocialPostStatus.Approved || Status == SocialPostStatus.Private) {
+                if (Status.Type == StatusType.Approved || Status.Type == StatusType.Private) {
                     Slug = Utils.GenerateSlug(value, true);
                 } else {
                     Slug = string.Empty;
@@ -61,7 +61,7 @@ namespace DatabaseAccess.Context.Models
         [NotMapped]
         public object[] Tags { get =>
             SocialPostTags
-                .Where(e => e.Tag.StatusStr != BaseStatus.StatusToString(SocialTagStatus.Disabled, EntityStatus.SocialTagStatus))
+                .Where(e => e.Tag.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
                 .Select(e => new {
                     tag = e.Tag.Tag,
                     name = e.Tag.Name
@@ -71,7 +71,7 @@ namespace DatabaseAccess.Context.Models
         public object[] Categories { get =>
             SocialPostCategories
                 .Where(e => 
-                    e.Category.StatusStr != BaseStatus.StatusToString(SocialCategoryStatus.Disabled, EntityStatus.SocialCategoryStatus)
+                    e.Category.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
                 )
                 .Select(e => new {
                     name = e.Category.Name,
@@ -83,17 +83,16 @@ namespace DatabaseAccess.Context.Models
         [Column("time_read")]
         public int TimeRead { get; set; }
         [NotMapped]
-        public int Status { get; set; }
-        [Required]
+        public EntityStatus Status { get; set; }
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => BaseStatus.StatusToString(Status, EntityStatus.SocialPostStatus);
+            get => Status.ToString();
             set {
-                Status = BaseStatus.StatusFromString(value, EntityStatus.SocialPostStatus);
-                if ((Status == SocialPostStatus.Approved || Status == SocialPostStatus.Private) && Slug == string.Empty) {
+                Status = new EntityStatus(EntityStatusType.SocialPost, value);
+                if ((Status.Type == StatusType.Approved || Status.Type == StatusType.Private) && Slug == string.Empty) {
                     Slug = Utils.GenerateSlug(this.Title, true);
-                } else if ((Status != SocialPostStatus.Approved && Status != SocialPostStatus.Private) && Slug != string.Empty) {
+                } else if ((Status.Type != StatusType.Approved && Status.Type != StatusType.Private) && Slug != string.Empty) {
                     Slug = string.Empty;
                 }
             }
@@ -165,7 +164,7 @@ namespace DatabaseAccess.Context.Models
 
             __ModelName = "SocialPost";
             CreatedTimestamp = DateTime.UtcNow;
-            Status = SocialPostStatus.Pending;
+            Status = new EntityStatus(EntityStatusType.SocialPost, StatusType.Pending);
         }
         public override bool Parse(IBaseParserModel Parser, out string Error)
         {
@@ -176,6 +175,9 @@ namespace DatabaseAccess.Context.Models
                 Thumbnail = parser.thumbnail;
                 Content = parser.content;
                 ContenTypeStr = parser.content_type;
+                if (parser.is_private) {
+                    Status = new EntityStatus(EntityStatusType.SocialPost, StatusType.Private);
+                }
 
                 if (parser.short_content != default) {
                     ShortContent = parser.short_content;

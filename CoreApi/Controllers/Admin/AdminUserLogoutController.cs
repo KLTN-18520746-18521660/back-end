@@ -22,6 +22,7 @@ namespace CoreApi.Controllers.Admin
         public AdminUserLogoutController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
             __ControllerName = "AdminUserLogout";
+            __IsAdminController = true;
             LoadConfig();
         }
 
@@ -125,13 +126,13 @@ namespace CoreApi.Controllers.Admin
 
                 LogInformation($"Logout success, user_name: { user.UserName }, session_token: { session_token.Substring(0, 15) }");
 
-                #region cookie header
+                #region set cookie header to remove session_token
                 CookieOptions option = new CookieOptions();
                 option.Expires = new DateTime(1970, 1, 1, 0, 0, 0);
                 option.Path = "/";
                 option.SameSite = SameSiteMode.Strict;
 
-                Response.Cookies.Append("session_token_admin", session.SessionToken, option);
+                Response.Cookies.Append("session_token_admin", string.Empty, option);
                 #endregion
 
                 return Ok(200, "OK");

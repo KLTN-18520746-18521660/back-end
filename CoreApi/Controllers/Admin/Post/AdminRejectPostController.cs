@@ -24,6 +24,7 @@ namespace CoreApi.Controllers.Admin.Post
         public AdminRejectPostController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
             __ControllerName = "AdminRejectPost";
+            __IsAdminController = true;
             LoadConfig();
         }
 
@@ -173,7 +174,7 @@ namespace CoreApi.Controllers.Admin.Post
                     }
                     throw new Exception($"FindPostById failed. Post_id: { post_id }, ErrorCode: { error} ");
                 }
-                if (__SocialPostManagement.ValidateChangeStatusAction(post.Status, SocialPostStatus.Rejected) == ErrorCodes.INVALID_ACTION) {
+                if (__SocialPostManagement.ValidateChangeStatusAction(post.Status.Type, StatusType.Rejected) == ErrorCodes.INVALID_ACTION) {
                     return Problem(400, "Invalid action.");
                 }
                 #endregion

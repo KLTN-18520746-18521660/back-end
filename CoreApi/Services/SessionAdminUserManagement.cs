@@ -60,7 +60,7 @@ namespace CoreApi.Services
                 return (session, error);
             }
 
-            if (session.User.Status == AdminUserStatus.Blocked) {
+            if (session.User.Status.Type == StatusType.Blocked) {
                 return (default, ErrorCodes.USER_HAVE_BEEN_LOCKED);
             }
             // Clear expired session

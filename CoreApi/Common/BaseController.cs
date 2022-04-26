@@ -1,7 +1,9 @@
 using CoreApi.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Serilog;
+using System;
 using System.Diagnostics;
 using System.Text;
 
@@ -15,13 +17,19 @@ namespace CoreApi.Common
     public class BaseController : ControllerBase
     {
         private ILogger __Logger;
-        protected string __ControllerName;
-        protected string __TraceId;
         protected BaseConfig __BaseConfig;
+        protected string __TraceId;
+        protected string __ControllerName;
         protected bool __LoadConfigSuccess = false;
-        public string ControllerName { get => __ControllerName; }
+        protected bool __IsAdminController = false;
+
+        #region Property
         public string TraceId { get => __TraceId; }
+        public string ControllerName { get => __ControllerName; }
         public bool LoadConfigSuccess { get => __LoadConfigSuccess; }
+        public bool IsAdminController { get => __IsAdminController; }
+        #endregion
+
         public BaseController(BaseConfig _BaseConfig)
         {
             __Logger = Log.Logger;
@@ -88,6 +96,14 @@ namespace CoreApi.Common
                 { "message", msg }
             });
             obj.StatusCode = statusCode;
+            if (statusCode == (int) StatusCodes.Status401Unauthorized) {
+                CookieOptions option = new CookieOptions();
+                option.Expires = new DateTime(1970, 1, 1, 0, 0, 0);
+                option.Path = "/";
+                option.SameSite = SameSiteMode.Strict;
+
+                Response.Cookies.Append(IsAdminController ? "session_token_admin" : "session_token", string.Empty, option);
+            }
             return obj;
         }
         [NonAction]

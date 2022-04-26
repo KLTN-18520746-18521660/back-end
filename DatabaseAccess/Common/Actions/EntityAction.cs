@@ -31,7 +31,7 @@ namespace DatabaseAccess.Common.Actions
         private string __action;
         public string action { get => __action;  set {
             if (!ValidateAction(value, type)) {
-                throw new Exception($"Invalid action of action entity type: { type }.");
+                throw new Exception($"Invalid action: { value } , action entity type: { type }.");
             }
             __action = value;
         }}
@@ -120,6 +120,8 @@ namespace DatabaseAccess.Common.Actions
                     return "Visited";
                 case ActionType.Saved:
                     return "Saved";
+                case ActionType.Comment:
+                    return "Comment";
             }
             return default;
         }

@@ -59,9 +59,8 @@ namespace CoreApi.Services
             #region validate params
             if (status != default) {
                 foreach (var statusStr in status) {
-                    var statusInt = BaseStatus.StatusFromString(statusStr, EntityStatus.SocialCommentStatus);
-                    if (statusInt == BaseStatus.InvalidStatus ||
-                        statusInt == SocialCommentStatus.Deleted) {
+                    var statusType = EntityStatus.StatusStringToType(statusStr);
+                        if (statusType == default || statusType == StatusType.Deleted) {
                         return (default, default, ErrorCodes.INVALID_PARAMS);
                     }
                 }
@@ -88,8 +87,7 @@ namespace CoreApi.Services
                                     && (search_term == default || e.SearchVector.Matches(search_term))
                                     && (e.ParentId == parrent_comment_id)
                                     && ((status.Count() == 0
-                                            && e.StatusStr != BaseStatus
-                                                .StatusToString(SocialPostStatus.Deleted, EntityStatus.SocialPostStatus))
+                                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                                         || status.Contains(e.StatusStr)
                                     )
                                 )
@@ -131,8 +129,7 @@ namespace CoreApi.Services
                                     && (search_term == default || e.SearchVector.Matches(search_term))
                                     && (e.ParentId == parrent_comment_id)
                                     && ((status.Count() == 0
-                                            && e.StatusStr != BaseStatus
-                                                .StatusToString(SocialPostStatus.Deleted, EntityStatus.SocialPostStatus))
+                                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                                         || status.Contains(e.StatusStr)
                                     )
                                 );
@@ -259,7 +256,7 @@ namespace CoreApi.Services
         }
         public async Task<ErrorCodes> DeleteComment(SocialComment Comment)
         {
-            Comment.Status = SocialCommentStatus.Deleted;
+            Comment.Status.ChangeStatus(StatusType.Deleted);
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region Remove action comment post
                 using (var scope = __ServiceProvider.CreateScope())
@@ -277,7 +274,7 @@ namespace CoreApi.Services
             if (Comment.Content == NewData.content) {
                 return ErrorCodes.NO_CHANGE_DETECTED;
             }
-            Comment.Status = SocialCommentStatus.Edited;
+            Comment.Status.ChangeStatus(StatusType.Edited);
             Comment.Content = NewData.content;
             Comment.LastModifiedTimestamp = DateTime.UtcNow;
             if (await __DBContext.SaveChangesAsync() > 0) {

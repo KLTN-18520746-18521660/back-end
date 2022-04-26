@@ -86,12 +86,12 @@ namespace CoreApi.Services
             if (isEmail) {
                 user = await __DBContext.AdminUsers
                         .Where<AdminUser>(e => e.Email == UserName
-                            && e.StatusStr != BaseStatus.StatusToString(AdminUserStatus.Deleted, EntityStatus.AdminUserStatus))
+                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                         .FirstOrDefaultAsync();
             } else {
                 user = await __DBContext.AdminUsers
                         .Where<AdminUser>(e => e.UserName == UserName
-                            && e.StatusStr != BaseStatus.StatusToString(AdminUserStatus.Deleted, EntityStatus.AdminUserStatus))
+                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                         .FirstOrDefaultAsync();
             }
             if (user != default) {
@@ -136,10 +136,10 @@ namespace CoreApi.Services
         {
             var count_email = (await __DBContext.AdminUsers
                     .CountAsync(e => e.Email == UserName
-                        && e.StatusStr != BaseStatus.StatusToString(AdminUserStatus.Deleted, EntityStatus.AdminUserStatus)));
+                        && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)));
             var count_username = (await __DBContext.AdminUsers
                     .CountAsync(e => e.UserName == UserName
-                        && e.StatusStr != BaseStatus.StatusToString(AdminUserStatus.Deleted, EntityStatus.AdminUserStatus)));
+                        && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)));
             return (count_username > 0, count_email > 0, ErrorCodes.NO_ERROR);
         }
 
@@ -164,10 +164,10 @@ namespace CoreApi.Services
                     int numberLoginFailure = config.Value<int>("number");
                     long lastLoginFailure = config.Value<long>("last_login");
 
-                    if (User.Status == AdminUserStatus.Blocked) {
+                    if (User.Status.Type == StatusType.Blocked) {
                         long currentUnixTime = DateTimeOffset.Now.ToUnixTimeSeconds();
                         if (currentUnixTime - lastLoginFailure > LockTime * 60) {
-                            User.Status = AdminUserStatus.Activated;
+                            User.Status.ChangeStatus(StatusType.Activated);
                             numberLoginFailure = 1;
                             lastLoginFailure = DateTimeOffset.Now.ToUnixTimeSeconds();
                         }
@@ -178,7 +178,7 @@ namespace CoreApi.Services
 
                     if (numberLoginFailure >= NumberOfTimesAllowLoginFailure) {
                         if (User.UserName != AdminUser.GetAdminUserName()) {
-                            User.Status = AdminUserStatus.Blocked;
+                            User.Status.ChangeStatus(StatusType.Blocked);
                         }
                     }
 

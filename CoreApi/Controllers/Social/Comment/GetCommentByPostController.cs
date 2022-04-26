@@ -89,9 +89,8 @@ namespace CoreApi.Controllers.Social.Comment
                 }
                 if (status != default) {
                     foreach (var statusStr in status) {
-                        var statusInt = BaseStatus.StatusFromString(statusStr, EntityStatus.SocialCommentStatus);
-                        if (statusInt == BaseStatus.InvalidStatus ||
-                            statusInt == SocialCommentStatus.Deleted) {
+                        var statusType = EntityStatus.StatusStringToType(statusStr);
+                        if (statusType == default || statusType == StatusType.Deleted) {
                             return Problem(400, $"Invalid status: { statusStr }.");
                         }
                     }

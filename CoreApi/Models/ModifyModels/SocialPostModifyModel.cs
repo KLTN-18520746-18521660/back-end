@@ -12,6 +12,7 @@ using CoreApi.Common.Interface;
 using DatabaseAccess.Common.Models;
 using DatabaseAccess.Context.Models;
 using CoreApi.Common;
+using Newtonsoft.Json;
 
 namespace CoreApi.Models.ModifyModels
 {
@@ -33,5 +34,15 @@ namespace CoreApi.Models.ModifyModels
         public string[] categories { get; set; }
         [DefaultValue("[\"new_tag\"]")]
         public string[] tags { get; set; }
+
+        public static SocialPostModifyModel FromJson(JObject obj)
+        {
+            return JsonConvert.DeserializeObject<SocialPostModifyModel>(obj.ToString());
+        }
+
+        public JObject ToJsonObject()
+        {
+            return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(this));
+        }
     }
 }

@@ -25,6 +25,7 @@ namespace CoreApi.Controllers.Admin.User
         public CreateAdminUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
             __ControllerName = "CreateAdminUser";
+            __IsAdminController = true;
             LoadConfig();
         }
 

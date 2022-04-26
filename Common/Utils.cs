@@ -146,7 +146,7 @@ namespace Common
             retStr = Regex.Replace(retStr, "[\\u0300-\\u036f]", "");
             retStr = Regex.Replace(retStr, "đ", "d");
             retStr = Regex.Replace(retStr, "[-,\\/]+", "-");
-            retStr = Regex.Replace(retStr, "[~`!@#$%^&*()+={}\\[\\];:\\'\\\"<>.,\\/\\\\?-_]", "");
+            retStr = Regex.Replace(retStr, "[~`'!@#$%^&*()+={}\\[\\];:\\\"<>.,\\/\\\\?-_]", "");
             retStr = Regex.Replace(retStr, "\\s", "-");
             retStr = Regex.Replace(retStr, "\\-\\-+", "-");
             if (appendTimeStamp) {

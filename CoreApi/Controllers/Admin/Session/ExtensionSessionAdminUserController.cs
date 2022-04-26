@@ -23,6 +23,7 @@ namespace CoreApi.Controllers.Admin.Session
         public ExtensionSessionAdminUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
             __ControllerName = "ExtensionSessionAdminUser";
+            __IsAdminController = true;
             LoadConfig();
         }
 

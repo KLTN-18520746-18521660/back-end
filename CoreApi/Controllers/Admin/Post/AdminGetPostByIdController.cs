@@ -23,6 +23,7 @@ namespace CoreApi.Controllers.Admin.Post
         public AdminGetPostByIdController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
             __ControllerName = "AdminGetPostById";
+            __IsAdminController = true;
             LoadConfig();
         }
 

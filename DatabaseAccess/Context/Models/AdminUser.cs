@@ -49,13 +49,13 @@ namespace DatabaseAccess.Context.Models
         [StringLength(320)]
         public string Email { get; set; }
         [NotMapped]
-        public int Status { get; set; }
+        public EntityStatus Status { get; set; }
         [Required]
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => BaseStatus.StatusToString(Status, EntityStatus.AdminUserStatus);
-            set => Status = BaseStatus.StatusFromString(value, EntityStatus.AdminUserStatus);
+            get => Status.ToString();
+            set => Status = new EntityStatus(EntityStatusType.AdminUser, value);
         }
         [NotMapped]
         public Dictionary<string, JObject> Rights { get => GetRights(); }
@@ -91,7 +91,7 @@ namespace DatabaseAccess.Context.Models
             __ModelName = "AdminUser";
             Id = Guid.NewGuid();
             CreatedTimestamp = DateTime.UtcNow;
-            Status = AdminUserStatus.Activated;
+            Status = new EntityStatus(EntityStatusType.AdminUser, StatusType.Enabled);
             Salt = PasswordEncryptor.GenerateSalt();
             SettingsStr = "{}";
         }
@@ -230,7 +230,7 @@ namespace DatabaseAccess.Context.Models
                     Salt = PasswordEncryptor.GenerateSalt(),
                     Password = AdminUserName,
                     Email = "admin@admin",
-                    Status = AdminUserStatus.Readonly,
+                    Status = new EntityStatus(EntityStatusType.AdminUser, StatusType.Readonly),
                     SettingsStr = "{}",
                     CreatedTimestamp = DateTime.UtcNow
                 }

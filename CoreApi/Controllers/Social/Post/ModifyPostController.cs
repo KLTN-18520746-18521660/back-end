@@ -168,7 +168,7 @@ namespace CoreApi.Controllers.Social.Post
 
                 if (ModelModify.tags != default) {
                     var isValidTags = false;
-                    (isValidTags, error) = await __SocialTagManagement.IsValidTags(ModelModify.tags, true);
+                    (isValidTags, error) = await __SocialTagManagement.IsValidTags(ModelModify.tags);
                     if (!isValidTags) {
                         if (error == ErrorCodes.INVALID_PARAMS) {
                             return Problem(400, "Invalid tags.");
@@ -178,12 +178,12 @@ namespace CoreApi.Controllers.Social.Post
                 }
                 #endregion
 
-                error = await __SocialPostManagement.ModifyPost(post, ModelModify);
+                error = await __SocialPostManagement.AddPendingContent(post, ModelModify);
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NO_CHANGE_DETECTED) {
                         return Problem(400, "No change detected.");
                     }
-                    throw new Exception($"ModifyPost Failed, ErrorCode: { error }"); 
+                    throw new Exception($"AddPendingContent Failed, ErrorCode: { error }"); 
                 }
 
                 var ret = post.GetJsonObject();

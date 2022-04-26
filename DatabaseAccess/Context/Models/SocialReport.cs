@@ -33,13 +33,13 @@ namespace DatabaseAccess.Context.Models
         [Column("content")]
         public string Content { get; set; }
         [NotMapped]
-        public int Status { get; set; }
+        public EntityStatus Status { get; set; }
         [Required]
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => BaseStatus.StatusToString(Status, EntityStatus.SocialReportStatus);
-            set => Status = BaseStatus.StatusFromString(value, EntityStatus.SocialReportStatus);
+            get => Status.ToString();
+            set => Status = new EntityStatus(EntityStatusType.SocialReport, value);
         }
         [Column("reporter_id")]
         public Guid ReporterId { get; set; }
@@ -64,7 +64,7 @@ namespace DatabaseAccess.Context.Models
         {
             __ModelName = "SocialReport";
             CreatedTimestamp = DateTime.UtcNow;
-            Status = SocialReportStatus.Pending;
+            Status = new EntityStatus(EntityStatusType.SocialReport, StatusType.Pending);
         }
 
         public override bool Parse(IBaseParserModel Parser, out string Error)

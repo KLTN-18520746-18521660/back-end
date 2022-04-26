@@ -256,26 +256,25 @@ namespace DatabaseAccess.Context.Models
         [NotMapped]
         public JObject Value { get; set; }
         [Column("value", TypeName = "JSON")]
-        public string ValueStr  {
+        public string ValueStr {
             get { return Value.ToString(); }
             set { Value = JsonConvert.DeserializeObject<JObject>(value); }
         }
         [NotMapped]
-        public int Status { get; set; }
+        public EntityStatus Status { get; set; }
         [Required]
         [Column("status")]
         [StringLength(15)]
-        public string StatusStr
-        {
-            get => BaseStatus.StatusToString(Status, EntityStatus.AdminBaseConfigStatus);
-            set => Status = BaseStatus.StatusFromString(value, EntityStatus.AdminBaseConfigStatus);
+        public string StatusStr {
+            get => Status.ToString();
+            set => Status = new EntityStatus(EntityStatusType.AdminBaseConfig, value);
         }
         public AdminBaseConfig()
         {
             __ModelName = "BaseConfig";
             ConfigKey = string.Empty;
             ValueStr = "{}";
-            Status = AdminBaseConfigStatus.Enabled;
+            Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled);
         }
 
         public override bool Parse(IBaseParserModel Parser, out string Error)
@@ -329,49 +328,49 @@ namespace DatabaseAccess.Context.Models
                     Id = 1,
                     ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG),
                     Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG),
-                    Status = AdminBaseConfigStatus.Enabled
+                    Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled)
                 },
                 new AdminBaseConfig() {
                     Id = 2,
                     ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG),
                     Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG),
-                    Status = AdminBaseConfigStatus.Enabled
+                    Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled)
                 },
                 new AdminBaseConfig() {
                     Id = 3,
                     ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG),
                     Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG),
-                    Status = AdminBaseConfigStatus.Enabled
+                    Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled)
                 },
                 new AdminBaseConfig() {
                     Id = 4,
                     ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG),
                     Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG),
-                    Status = AdminBaseConfigStatus.Enabled
+                    Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled)
                 },
                 new AdminBaseConfig() {
                     Id = 5,
                     ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.EMAIL_CLIENT_CONFIG),
                     Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.EMAIL_CLIENT_CONFIG),
-                    Status = AdminBaseConfigStatus.Enabled
+                    Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled)
                 },
                 new AdminBaseConfig() {
                     Id = 6,
                     ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG),
                     Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG),
-                    Status = AdminBaseConfigStatus.Enabled
+                    Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled)
                 },
                 new AdminBaseConfig() {
                     Id = 7,
                     ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.UI_CONFIG),
                     Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.UI_CONFIG),
-                    Status = AdminBaseConfigStatus.Enabled
+                    Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled)
                 },
                 new AdminBaseConfig() {
                     Id = 8,
                     ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.PUBLIC_CONFIG),
                     Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.PUBLIC_CONFIG),
-                    Status = AdminBaseConfigStatus.Enabled
+                    Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled)
                 },
             };
             return ListData;

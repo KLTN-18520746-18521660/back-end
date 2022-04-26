@@ -23,6 +23,7 @@ namespace CoreApi.Controllers.Admin.Config
         public ReloadConfigController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
             __ControllerName = "ReloadConfig";
+            __IsAdminController = true;
             LoadConfig();
         }
 

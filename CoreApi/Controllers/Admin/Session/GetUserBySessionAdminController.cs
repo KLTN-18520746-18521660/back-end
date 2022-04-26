@@ -23,6 +23,7 @@ namespace CoreApi.Controllers.Admin.Session
         public GetUserBySessionAdminController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
             __ControllerName = "GetUserBySessionAdmin";
+            __IsAdminController = true;
             LoadConfig();
         }
 

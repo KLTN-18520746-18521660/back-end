@@ -36,15 +36,14 @@ namespace DatabaseAccess.Context.Models
         [StringLength(150)]
         public string Describe { get; set; }
         [NotMapped]
-        public int Status { get; set; }
+        public EntityStatus Status { get; set; }
         [Required]
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => BaseStatus.StatusToString(Status, EntityStatus.SocialUserRoleStatus);
-            set => Status = BaseStatus.StatusFromString(value,  EntityStatus.SocialUserRoleStatus);
+            get => Status.ToString();
+            set => Status = new EntityStatus(EntityStatusType.SocialUserRole, value);
         }
-
         [Required]
         [Column("priority")]
         public bool Priority { get; set; }
@@ -59,7 +58,7 @@ namespace DatabaseAccess.Context.Models
             SocialUserRoleDetails = new HashSet<SocialUserRoleDetail>();
             SocialUserRoleOfUsers = new HashSet<SocialUserRoleOfUser>();
             __ModelName = "SocialUserRole";
-            Status = SocialUserRoleStatus.Enabled;
+            Status = new EntityStatus(EntityStatusType.SocialUserRole, StatusType.Enabled);
             Priority = false;
         }
 
@@ -117,7 +116,7 @@ namespace DatabaseAccess.Context.Models
                     RoleName = "user",
                     DisplayName = "User",
                     Describe = "Normal user",
-                    Status = SocialUserRoleStatus.Readonly,
+                    Status = new EntityStatus(EntityStatusType.SocialUserRole, StatusType.Readonly),
                 }
             };
             return ListData;

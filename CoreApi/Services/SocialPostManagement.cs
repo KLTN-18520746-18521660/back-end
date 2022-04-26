@@ -97,9 +97,8 @@ namespace CoreApi.Services
             #region validate params
             if (status != default) {
                 foreach (var statusStr in status) {
-                    var statusInt = BaseStatus.StatusFromString(statusStr, EntityStatus.SocialPostStatus);
-                    if (statusInt == BaseStatus.InvalidStatus ||
-                        statusInt == SocialPostStatus.Deleted) {
+                    var statusType = EntityStatus.StatusStringToType(statusStr);
+                    if (statusType == default || statusType == StatusType.Deleted) {
                         return (default, default, ErrorCodes.INVALID_PARAMS);
                     }
                 }
@@ -134,11 +133,9 @@ namespace CoreApi.Services
                                     && (search_term == default || e.SearchVector.Matches(search_term))
                                     && (isOwner
                                         ? ((status.Count() == 0
-                                                && e.StatusStr != BaseStatus
-                                                    .StatusToString(SocialPostStatus.Deleted, EntityStatus.SocialPostStatus))
+                                                && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                                             || status.Contains(e.StatusStr))
-                                        : e.StatusStr == BaseStatus
-                                                    .StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
+                                        : e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
                                     )
                                     && (tags.Count() == 0
                                         || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
@@ -194,11 +191,9 @@ namespace CoreApi.Services
                                     && (search_term == default || e.SearchVector.Matches(search_term))
                                     && (isOwner
                                         ? ((status.Count() == 0
-                                                && e.StatusStr != BaseStatus
-                                                    .StatusToString(SocialPostStatus.Deleted, EntityStatus.SocialPostStatus))
+                                                && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                                             || status.Contains(e.StatusStr))
-                                        : e.StatusStr == BaseStatus
-                                                    .StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
+                                        : e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
                                     )
                                     && (tags.Count() == 0
                                         || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
@@ -247,8 +242,7 @@ namespace CoreApi.Services
                     from ids in (
                         (from post in __DBContext.SocialPosts
                                 .Where(e => (search_term == default || e.SearchVector.Matches(search_term))
-                                    && (e.StatusStr == BaseStatus
-                                                    .StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
+                                    && (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
                                     )
                                     && (tags.Count() == 0
                                         || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
@@ -297,9 +291,7 @@ namespace CoreApi.Services
 
             var totalCount = await __DBContext.SocialPosts
                                 .CountAsync(e => (search_term == default || e.SearchVector.Matches(search_term))
-                                    && (e.StatusStr == BaseStatus
-                                                    .StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
-                                    )
+                                    && (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
                                     && (tags.Count() == 0
                                         || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
                                     )
@@ -336,9 +328,7 @@ namespace CoreApi.Services
                     from ids in (
                         (from post in __DBContext.SocialPosts
                                 .Where(e => (search_term == default || e.SearchVector.Matches(search_term))
-                                    && (e.StatusStr == BaseStatus
-                                                    .StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
-                                    )
+                                    && (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
                                     && (tags.Count() == 0
                                         || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
                                     )
@@ -387,9 +377,7 @@ namespace CoreApi.Services
 
             var totalCount = await __DBContext.SocialPosts
                                 .CountAsync(e => (search_term == default || e.SearchVector.Matches(search_term))
-                                    && (e.StatusStr == BaseStatus
-                                                    .StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
-                                    )
+                                    && (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
                                     && (tags.Count() == 0
                                         || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
                                     )
@@ -494,9 +482,7 @@ namespace CoreApi.Services
                         (from follow_post in
                             (from post in __DBContext.SocialPosts
                                     .Where(e =>
-                                        (e.StatusStr == BaseStatus
-                                                        .StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
-                                        )
+                                        (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
                                         && (tags.Count() == 0
                                             || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
                                         )
@@ -546,9 +532,7 @@ namespace CoreApi.Services
 
             var totalCount = await (from post in __DBContext.SocialPosts
                                     .Where(e =>
-                                        (e.StatusStr == BaseStatus
-                                                        .StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
-                                        )
+                                        (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
                                         && (tags.Count() == 0
                                             || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
                                         )
@@ -568,8 +552,10 @@ namespace CoreApi.Services
             }
             var post = await __DBContext.SocialPosts
                     .Where(e => e.Slug == Slug
-                        && (e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
-                        || e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Private, EntityStatus.SocialPostStatus)))
+                        && (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
+                            || e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Private)
+                        )
+                    )
                     .FirstOrDefaultAsync();
             if (post == default) {
                 return (default, ErrorCodes.NOT_FOUND);
@@ -585,8 +571,10 @@ namespace CoreApi.Services
             }
             var post = await __DBContext.SocialPosts
                     .Where(e => e.Slug == Slug
-                        && (e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
-                        || e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Private, EntityStatus.SocialPostStatus)))
+                        && (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
+                            || e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Private)
+                        )
+                    )
                     .FirstOrDefaultAsync();
             if (post == default) {
                 return (default, ErrorCodes.NOT_FOUND);
@@ -595,12 +583,12 @@ namespace CoreApi.Services
             #region increase views + add action 'Visited'
             post.Views++;
             await __DBContext.SaveChangesAsync();
-            if (SocialUserId != default && post.Status == SocialPostStatus.Approved) {
+            if (SocialUserId != default && post.Status.Type == StatusType.Approved) {
                 await Visited(post.Id, SocialUserId);
             }
             #endregion
 
-            if (post.Status != SocialPostStatus.Approved && (SocialUserId == default || SocialUserId != post.Owner)) {
+            if (post.Status.Type != StatusType.Approved && (SocialUserId == default || SocialUserId != post.Owner)) {
                 return (default, ErrorCodes.NOT_FOUND);
             } else {
                 if (SocialUserId == default || SocialUserId != post.Owner) {
@@ -627,8 +615,8 @@ namespace CoreApi.Services
         {
             var count = (await __DBContext.SocialPosts
                     .CountAsync(e => e.Slug == Slug
-                            && e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Approved, EntityStatus.SocialPostStatus)
-                            && e.StatusStr == BaseStatus.StatusToString(SocialPostStatus.Private, EntityStatus.SocialPostStatus)));
+                            && e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
+                            && e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Private)));
             return (count > 0, ErrorCodes.NO_ERROR);
         }
 
@@ -739,30 +727,30 @@ namespace CoreApi.Services
         #endregion
 
         #region Post handle
-        public ErrorCodes ValidateChangeStatusAction(int from, int to)
+        public ErrorCodes ValidateChangeStatusAction(StatusType from, StatusType to)
         {
             if ((
-                    from == SocialPostStatus.Pending && (
-                    to == SocialPostStatus.Approved ||
-                    to == SocialPostStatus.Deleted ||
-                    to == SocialPostStatus.Rejected ||
-                    to == SocialPostStatus.Private)
+                    from == StatusType.Pending && (
+                    to == StatusType.Approved ||
+                    to == StatusType.Deleted ||
+                    to == StatusType.Rejected ||
+                    to == StatusType.Private)
                 ) ||
                 (
-                    from == SocialPostStatus.Approved && (
-                    to == SocialPostStatus.Deleted ||
-                    to == SocialPostStatus.Rejected ||
-                    to == SocialPostStatus.Private)
+                    from == StatusType.Approved && (
+                    to == StatusType.Deleted ||
+                    to == StatusType.Rejected ||
+                    to == StatusType.Private)
                 ) ||
                 (
-                    from == SocialPostStatus.Rejected && (
-                    to == SocialPostStatus.Deleted ||
-                    to == SocialPostStatus.Approved)
+                    from == StatusType.Rejected && (
+                    to == StatusType.Deleted ||
+                    to == StatusType.Approved)
                 ) ||
                 (
-                    from == SocialPostStatus.Private && (
-                    to == SocialPostStatus.Deleted ||
-                    to == SocialPostStatus.Approved)
+                    from == StatusType.Private && (
+                    to == StatusType.Deleted ||
+                    to == StatusType.Approved)
                 )
             ) {
                 return ErrorCodes.NO_ERROR;
@@ -862,6 +850,52 @@ namespace CoreApi.Services
             return ErrorCodes.NO_ERROR;
         }
 
+        public async Task<ErrorCodes> AddPendingContent(SocialPost post, SocialPostModifyModel model)
+        {
+            #region Check data change
+            var haveChange = false;
+            if (model.title != default && post.Title != model.title) {
+                haveChange = true;
+            }
+            if (model.thumbnail != default && post.Thumbnail != model.thumbnail) {
+                haveChange = true;
+            }
+            if (model.short_content != default && post.ShortContent != model.short_content) {
+                haveChange = true;
+            }
+            if (model.content != default && post.Content != model.content) {
+                haveChange = true;
+            }
+            if (model.time_read != default && post.TimeRead != model.time_read) {
+                haveChange = true;
+            }
+            if (model.content_type != default && post.ContenTypeStr != model.content_type) {
+                haveChange = true;
+            }
+            if (model.categories != default) {
+                var old_categories = post.SocialPostCategories.Select(c => c.Category.Name);
+                if (model.categories != old_categories) {
+                    haveChange = true;
+                }
+            }
+            if (model.tags != default) {
+                var old_tags = post.SocialPostTags.Select(c => c.Tag.Tag);
+                if (model.tags != old_tags) {
+                    haveChange = true;
+                }
+            }
+            #endregion
+            if (!haveChange) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+
+            post.PendingContent = model.ToJsonObject();
+            if (await __DBContext.SaveChangesAsync() <= 0) {
+                LogError($"AddPendingContent failed.");
+            }
+            return ErrorCodes.NO_ERROR;
+        }
+
         public async Task<ErrorCodes> ModifyPost(SocialPost post, SocialPostModifyModel model)
         {
             using var transaction = await __DBContext.Database.BeginTransactionAsync();
@@ -932,7 +966,6 @@ namespace CoreApi.Services
                     }
                 }
             }
-
             if (ok && model.tags != default) {
                 var old_tags = post.SocialPostTags.Select(c => c.Tag.Tag);
                 if (model.tags != old_tags) {
@@ -998,36 +1031,40 @@ namespace CoreApi.Services
                 return error;
             }
             var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
-            post.Status = SocialPostStatus.Approved;
-            post.Slug = Utils.GenerateSlug(post.Title, true);
-            foreach (var it in post.SocialPostTags) {
-                if (it.Tag.Status == SocialTagStatus.Disabled) {
-                    it.Tag.Status = SocialTagStatus.Enabled;
-                }
-            }
-
-            if (await __DBContext.SaveChangesAsync() > 0) {
-                #region [ADMIN] Write social audit log
-                (post, error) = await FindPostById(Id);
-                if (error == ErrorCodes.NO_ERROR) {
-                    using (var scope = __ServiceProvider.CreateScope())
-                    {
-                        var __SocialAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialAuditLogManagement>();
-                        var (oldVal, newVal) = Utils.GetDataChanges(oldPost, post.GetJsonObjectForLog());
-                        await __SocialAuditLogManagement.AddNewAuditLog(
-                            post.GetModelName(),
-                            post.Id.ToString(),
-                            LOG_ACTIONS.CREATE,
-                            AdminUserId,
-                            oldVal,
-                            newVal
-                        );
+            if (post.Status.Type == StatusType.Pending) {
+                post.Status.ChangeStatus(StatusType.Approved);
+                post.Slug = Utils.GenerateSlug(post.Title, true);
+                foreach (var it in post.SocialPostTags) {
+                    if (it.Tag.Status.Type == StatusType.Disabled) {
+                        it.Tag.Status.ChangeStatus(StatusType.Enabled);
                     }
-                } else {
-                    return ErrorCodes.INTERNAL_SERVER_ERROR;
                 }
-                #endregion
-                return ErrorCodes.NO_ERROR;
+
+                if (await __DBContext.SaveChangesAsync() > 0) {
+                    #region [ADMIN] Write social audit log
+                    (post, error) = await FindPostById(Id);
+                    if (error == ErrorCodes.NO_ERROR) {
+                        using (var scope = __ServiceProvider.CreateScope())
+                        {
+                            var __SocialAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialAuditLogManagement>();
+                            var (oldVal, newVal) = Utils.GetDataChanges(oldPost, post.GetJsonObjectForLog());
+                            await __SocialAuditLogManagement.AddNewAuditLog(
+                                post.GetModelName(),
+                                post.Id.ToString(),
+                                LOG_ACTIONS.CREATE,
+                                AdminUserId,
+                                oldVal,
+                                newVal
+                            );
+                        }
+                    } else {
+                        return ErrorCodes.INTERNAL_SERVER_ERROR;
+                    }
+                    #endregion
+                    return ErrorCodes.NO_ERROR;
+                }
+            } else {
+                // [TODO]
             }
             return ErrorCodes.INTERNAL_SERVER_ERROR;
         }
@@ -1039,7 +1076,7 @@ namespace CoreApi.Services
                 return error;
             }
             var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
-            post.Status = SocialPostStatus.Rejected;
+            post.Status.ChangeStatus(StatusType.Rejected);
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [ADMIN] Write social audit log
                 (post, error) = await FindPostById(Id);
@@ -1073,7 +1110,7 @@ namespace CoreApi.Services
                 return error;
             }
             var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
-            post.Status = SocialPostStatus.Deleted;
+            post.Status.ChangeStatus(StatusType.Deleted);
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [ADMIN] Write social audit log
                 (post, error) = await FindPostById(Id);
@@ -1107,7 +1144,7 @@ namespace CoreApi.Services
                 return error;
             }
             var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
-            post.Status = SocialPostStatus.Private;
+            post.Status.ChangeStatus(StatusType.Private);
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [ADMIN] Write social audit log
                 (post, error) = await FindPostById(Id);

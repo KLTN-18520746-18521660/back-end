@@ -44,7 +44,6 @@ namespace CoreApi.Services
                             new AdminBaseConfig() {
                                 ConfigKey = key,
                                 Value = DefaultBaseConfig.GetConfig(DefaultBaseConfig.StringToConfigKey(key)),
-                                Status = AdminBaseConfigStatus.Enabled
                             }
                         );
                         if (__DBContext.SaveChanges() <= 0) {
@@ -67,7 +66,6 @@ namespace CoreApi.Services
                             new AdminBaseConfig() {
                                 ConfigKey = key,
                                 Value = DefaultBaseConfig.GetConfig(DefaultBaseConfig.StringToConfigKey(key)),
-                                Status = AdminBaseConfigStatus.Enabled
                             }
                         );
                         if (await __DBContext.SaveChangesAsync() <= 0) {

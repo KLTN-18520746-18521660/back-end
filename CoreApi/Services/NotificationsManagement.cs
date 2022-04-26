@@ -498,7 +498,7 @@ namespace CoreApi.Services
                 if (notification == default) {
                     return ErrorCodes.NOT_FOUND;
                 }
-                notification.Status = SocialNotificationStatus.Deleted;
+                notification.Status.ChangeStatus(StatusType.Deleted);
                 if (await __DBContext.SaveChangesAsync() <= 0) {
                     return ErrorCodes.INTERNAL_SERVER_ERROR;
                 }
@@ -516,7 +516,7 @@ namespace CoreApi.Services
                 if (notification == default) {
                     return ErrorCodes.NOT_FOUND;
                 }
-                notification.Status = SocialNotificationStatus.Read;
+                notification.Status.ChangeStatus(StatusType.Read);
                 if (await __DBContext.SaveChangesAsync() <= 0) {
                     return ErrorCodes.INTERNAL_SERVER_ERROR;
                 }
@@ -529,7 +529,7 @@ namespace CoreApi.Services
             {
                 var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
                 await __DBContext.SocialNotifications
-                                        .ForEachAsync(e => e.Status = SocialNotificationStatus.Read);
+                                        .ForEachAsync(e => e.StatusStr = EntityStatus.StatusTypeToString(StatusType.Read));
 
                 if (await __DBContext.SaveChangesAsync() < 0) {
                     return ErrorCodes.INTERNAL_SERVER_ERROR;
@@ -551,9 +551,8 @@ namespace CoreApi.Services
                 var query = (from notification in __DBContext.SocialNotifications
                                 .Where(e => e.UserId == socialUserId
                                     && ((status.Count() == 0
-                                        && e.StatusStr != BaseStatus
-                                            .StatusToString(SocialPostStatus.Deleted, EntityStatus.SocialPostStatus)
-                                        ) || status.Contains(e.StatusStr)
+                                        && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
+                                        || status.Contains(e.StatusStr)
                                     )
                                     && (search_term == default || (search_term != default && e.ContentStr.Contains(search_term)))
                                 )
@@ -565,9 +564,8 @@ namespace CoreApi.Services
                 totalCount = await __DBContext.SocialNotifications
                                 .CountAsync(e => e.UserId == socialUserId
                                     && ((status.Count() == 0
-                                        && e.StatusStr != BaseStatus
-                                            .StatusToString(SocialPostStatus.Deleted, EntityStatus.SocialPostStatus)
-                                        ) || status.Contains(e.StatusStr)
+                                        && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
+                                        || status.Contains(e.StatusStr)
                                     )
                                     && (search_term == default || (search_term != default && e.ContentStr.Contains(search_term)))
                                 );

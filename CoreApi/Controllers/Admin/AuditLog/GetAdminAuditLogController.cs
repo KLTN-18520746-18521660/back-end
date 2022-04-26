@@ -24,6 +24,7 @@ namespace CoreApi.Controllers.Admin.AuditLog
         public GetAdminAuditLogController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
             __ControllerName = "GetAdminAuditLog";
+            __IsAdminController = true;
             LoadConfig();
         }
 

@@ -81,13 +81,13 @@ namespace DatabaseAccess.Context.Models
         [Column("avatar")]
         public string Avatar { get; set; }
         [NotMapped]
-        public int Status { get; set; }
+        public EntityStatus Status { get; set; }
         [Required]
         [Column("status")]
         [StringLength(15)]
         public string StatusStr {
-            get => BaseStatus.StatusToString(Status, EntityStatus.AdminUserStatus);
-            set => Status = BaseStatus.StatusFromString(value, EntityStatus.AdminUserStatus);
+            get => Status.ToString();
+            set => Status = new EntityStatus(EntityStatusType.SocialUser, value);
         }
         [NotMapped]
         public Dictionary<string, JObject> Rights { get => GetRights(); }
@@ -170,7 +170,7 @@ namespace DatabaseAccess.Context.Models
             __ModelName = "SocialUser";
             Id = Guid.NewGuid();
             CreatedTimestamp = DateTime.UtcNow;
-            Status = SocialUserStatus.Activated;
+            Status = new EntityStatus(EntityStatusType.SocialUser, StatusType.Activated);
             Salt = PasswordEncryptor.GenerateSalt();
             Publics = GetDefaultPublicFields();
             SettingsStr = "{}";
