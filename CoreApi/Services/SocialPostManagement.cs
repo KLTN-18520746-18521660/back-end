@@ -1036,6 +1036,7 @@ namespace CoreApi.Services
             ) {
                 post.Status.ChangeStatus(StatusType.Approved);
                 post.Slug = Utils.GenerateSlug(post.Title, true);
+                post.ApprovedTimestamp = DateTime.UtcNow;
                 foreach (var it in post.SocialPostTags) {
                     if (it.Tag.Status.Type == StatusType.Disabled) {
                         it.Tag.Status.ChangeStatus(StatusType.Enabled);
