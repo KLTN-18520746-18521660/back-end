@@ -34,7 +34,7 @@ namespace DatabaseAccess.Context.ParserModels
         public string city { get; set; }
         [DefaultValue("province")]
         public string province { get; set; }
-        [DefaultValue("avatar")]
+        [DefaultValue("avatar.png")]
         public string avatar { get; set; }
         [DefaultValue("{}")]
         public JObject settings { get; set; }

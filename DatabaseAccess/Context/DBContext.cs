@@ -501,6 +501,24 @@ namespace DatabaseAccess.Context
                     .HasForeignKey(d => d.UserId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_social_notification_user_id");
+
+                entity.HasOne(d => d.UserIdDesNavigation)
+                    .WithMany(p => p.SocialNotificationUserIdDesNavigations)
+                    .HasForeignKey(d => d.UserIdDes)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_social_notification_user_id_des");
+
+                entity.HasOne(d => d.Post)
+                    .WithMany(p => p.SocialNotifications)
+                    .HasForeignKey(d => d.PostId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_social_notification_post_id");
+
+                entity.HasOne(d => d.Comment)
+                    .WithMany(p => p.SocialNotifications)
+                    .HasForeignKey(d => d.CommentId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_social_notification_comment_id");
             });
         }
         #endregion
@@ -851,6 +869,12 @@ namespace DatabaseAccess.Context
                     .HasForeignKey(d => d.UserId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_social_user_audit_log_user_id");
+
+                entity.HasOne(d => d.UserAdmin)
+                    .WithMany(p => p.SocialUserAuditLogs)
+                    .HasForeignKey(d => d.AdminUserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_social_user_audit_log_admin_user_id");
                 entity
                     .HasGeneratedTsVectorColumn(
                         e => e.SearchVector,

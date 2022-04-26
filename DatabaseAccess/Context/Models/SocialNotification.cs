@@ -20,8 +20,15 @@ namespace DatabaseAccess.Context.Models
         [Key]
         [Column("id")]
         public long Id { get; private set; }
+        [Required]
         [Column("user_id")]
         public Guid UserId { get; set; }
+        [Column("post_id")]
+        public long? PostId { get; private set; }
+        [Column("comment_id")]
+        public long? CommentId { get; private set; }
+        [Column("user_id_des")]
+        public Guid? UserIdDes { get; set; }
         [NotMapped]
         public EntityStatus Status { get; set; }
         [Required]
@@ -51,6 +58,15 @@ namespace DatabaseAccess.Context.Models
         [ForeignKey(nameof(UserId))]
         [InverseProperty(nameof(SocialUser.SocialNotifications))]
         public virtual SocialUser User { get; set; }
+        [ForeignKey(nameof(UserIdDes))]
+        [InverseProperty(nameof(SocialUser.SocialNotificationUserIdDesNavigations))]
+        public virtual SocialUser UserIdDesNavigation { get; set; }
+        [ForeignKey(nameof(PostId))]
+        [InverseProperty(nameof(SocialPost.SocialNotifications))]
+        public virtual SocialPost Post { get; set; }
+        [ForeignKey(nameof(CommentId))]
+        [InverseProperty(nameof(SocialComment.SocialNotifications))]
+        public virtual SocialComment Comment { get; set; }
 
         public SocialNotification()
         {

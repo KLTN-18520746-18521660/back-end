@@ -123,7 +123,7 @@ namespace DatabaseAccess.Migrations
 
                     b.ToTable("admin_base_config");
 
-                    b.HasCheckConstraint("CK_admin_base_config_status_valid_value", "status = 'Disabled' OR status = 'Enabled' OR status = 'Readonly'");
+                    b.HasCheckConstraint("CK_admin_base_config_status_valid_value", "status = 'Enabled' OR status = 'Disabled' OR status = 'Readonly'");
 
                     b.HasData(
                         new
@@ -180,7 +180,7 @@ namespace DatabaseAccess.Migrations
                             Id = 8,
                             ConfigKey = "PublicConfig",
                             StatusStr = "Enabled",
-                            ValueStr = "{\r\n  \"UIConfig\": \"all\"\r\n}"
+                            ValueStr = "{\r\n  \"UIConfig\": \"all\",\r\n  \"SessionAdminUserConfig\": \"all\",\r\n  \"SessionSocialUserConfig\": \"all\",\r\n  \"UploadFileConfig\": \"all\"\r\n}"
                         });
                 });
 
@@ -264,14 +264,14 @@ namespace DatabaseAccess.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("6a9507fc-68a3-47c8-9b06-7432c82880aa"),
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 18, 972, DateTimeKind.Utc).AddTicks(4559),
+                            Id = new Guid("1afc27e9-85c3-4e48-89ab-dd997621ab32"),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 359, DateTimeKind.Utc).AddTicks(2302),
                             DisplayName = "Administrator",
                             Email = "admin@admin",
-                            Salt = "db2bc2df",
+                            Salt = "f0925c2b",
                             SettingsStr = "{}",
                             StatusStr = "Readonly",
-                            StorePassword = "E335512BCF9F4B61EFA4C6208DD24AFB",
+                            StorePassword = "9F1E9DA16B5E9E11CE426F4843F22742",
                             UserName = "admin"
                         });
                 });
@@ -327,7 +327,7 @@ namespace DatabaseAccess.Migrations
                             Describe = "Can access Homepage and see statistic.",
                             DisplayName = "Dashboard",
                             RightName = "dashboard",
-                            StatusStr = "Readonly"
+                            StatusStr = "Enabled"
                         },
                         new
                         {
@@ -335,7 +335,7 @@ namespace DatabaseAccess.Migrations
                             Describe = "Add, create, disable category.",
                             DisplayName = "Category",
                             RightName = "category",
-                            StatusStr = "Readonly"
+                            StatusStr = "Enabled"
                         },
                         new
                         {
@@ -343,7 +343,7 @@ namespace DatabaseAccess.Migrations
                             Describe = "Add, create, disable topics",
                             DisplayName = "Topic",
                             RightName = "topic",
-                            StatusStr = "Readonly"
+                            StatusStr = "Enabled"
                         },
                         new
                         {
@@ -351,7 +351,7 @@ namespace DatabaseAccess.Migrations
                             Describe = "Add, create, disable tag.",
                             DisplayName = "Tag",
                             RightName = "tag",
-                            StatusStr = "Readonly"
+                            StatusStr = "Enabled"
                         },
                         new
                         {
@@ -359,7 +359,7 @@ namespace DatabaseAccess.Migrations
                             Describe = "Review, accept, reject post. See report about post.",
                             DisplayName = "Post",
                             RightName = "post",
-                            StatusStr = "Readonly"
+                            StatusStr = "Enabled"
                         },
                         new
                         {
@@ -367,7 +367,7 @@ namespace DatabaseAccess.Migrations
                             Describe = "Delete comment. See report about comment.",
                             DisplayName = "Comment",
                             RightName = "comment",
-                            StatusStr = "Readonly"
+                            StatusStr = "Enabled"
                         },
                         new
                         {
@@ -375,7 +375,7 @@ namespace DatabaseAccess.Migrations
                             Describe = "Configure security of Server.",
                             DisplayName = "Security",
                             RightName = "security",
-                            StatusStr = "Readonly"
+                            StatusStr = "Enabled"
                         },
                         new
                         {
@@ -383,7 +383,7 @@ namespace DatabaseAccess.Migrations
                             Describe = "Block, unblock SocialUser",
                             DisplayName = "Social User",
                             RightName = "social_user",
-                            StatusStr = "Readonly"
+                            StatusStr = "Enabled"
                         },
                         new
                         {
@@ -391,7 +391,7 @@ namespace DatabaseAccess.Migrations
                             Describe = "Add, block, unblock, delete AdminUser.",
                             DisplayName = "Admin User",
                             RightName = "admin_user",
-                            StatusStr = "Readonly"
+                            StatusStr = "Enabled"
                         },
                         new
                         {
@@ -399,7 +399,7 @@ namespace DatabaseAccess.Migrations
                             Describe = "See and tracking log file.",
                             DisplayName = "Log",
                             RightName = "log",
-                            StatusStr = "Readonly"
+                            StatusStr = "Enabled"
                         },
                         new
                         {
@@ -407,7 +407,15 @@ namespace DatabaseAccess.Migrations
                             Describe = "Modify, get config of server.",
                             DisplayName = "Config",
                             RightName = "config",
-                            StatusStr = "Readonly"
+                            StatusStr = "Enabled"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Describe = "Upload files.",
+                            DisplayName = "Upload",
+                            RightName = "upload",
+                            StatusStr = "Enabled"
                         });
                 });
 
@@ -430,6 +438,10 @@ namespace DatabaseAccess.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("display_name");
+
+                    b.Property<bool>("Priority")
+                        .HasColumnType("boolean")
+                        .HasColumnName("priority");
 
                     b.Property<string>("RoleName")
                         .IsRequired()
@@ -461,6 +473,7 @@ namespace DatabaseAccess.Migrations
                             Id = 1,
                             Describe = "Administrator",
                             DisplayName = "Administrator",
+                            Priority = false,
                             RoleName = "admin",
                             StatusStr = "Readonly"
                         });
@@ -555,6 +568,12 @@ namespace DatabaseAccess.Migrations
                             RoleId = 1,
                             RightId = 11,
                             ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 12,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
                         });
                 });
 
@@ -577,7 +596,7 @@ namespace DatabaseAccess.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = new Guid("6a9507fc-68a3-47c8-9b06-7432c82880aa"),
+                            UserId = new Guid("1afc27e9-85c3-4e48-89ab-dd997621ab32"),
                             RoleId = 1
                         });
                 });
@@ -820,7 +839,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 12, DateTimeKind.Utc).AddTicks(530),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 483, DateTimeKind.Utc).AddTicks(1482),
                             Describe = "This not a bug this a feature",
                             DisplayName = "Technology",
                             Name = "technology",
@@ -830,7 +849,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 2L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 12, DateTimeKind.Utc).AddTicks(1163),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 483, DateTimeKind.Utc).AddTicks(4341),
                             Describe = "Do not click to this",
                             DisplayName = "Developer",
                             Name = "developer",
@@ -840,7 +859,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 3L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 12, DateTimeKind.Utc).AddTicks(1221),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 483, DateTimeKind.Utc).AddTicks(4563),
                             Describe = "Search google to have better solution",
                             DisplayName = "Dicussion",
                             Name = "dicussion",
@@ -850,7 +869,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 4L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 12, DateTimeKind.Utc).AddTicks(1254),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 483, DateTimeKind.Utc).AddTicks(4651),
                             Describe = "Nothing in here",
                             DisplayName = "Blog",
                             Name = "blog",
@@ -860,7 +879,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 5L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 12, DateTimeKind.Utc).AddTicks(1286),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 483, DateTimeKind.Utc).AddTicks(4714),
                             Describe = "Life die have number",
                             DisplayName = "Left",
                             Name = "left",
@@ -945,6 +964,10 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("id")
                         .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn);
 
+                    b.Property<long?>("CommentId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("comment_id");
+
                     b.Property<string>("ContentStr")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -961,6 +984,10 @@ namespace DatabaseAccess.Migrations
                     b.Property<DateTime?>("LastModifiedTimestamp")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_modified_timestamp");
+
+                    b.Property<long?>("PostId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("post_id");
 
                     b.Property<string>("StatusStr")
                         .IsRequired()
@@ -980,9 +1007,19 @@ namespace DatabaseAccess.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
 
+                    b.Property<Guid?>("UserIdDes")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id_des");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("CommentId");
+
+                    b.HasIndex("PostId");
+
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserIdDes");
 
                     b.ToTable("social_notification");
 
@@ -998,6 +1035,10 @@ namespace DatabaseAccess.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("id")
                         .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn);
+
+                    b.Property<DateTime>("ApprovedTimestamp")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved_timestamp");
 
                     b.Property<string>("ContenTypeStr")
                         .IsRequired()
@@ -1029,6 +1070,10 @@ namespace DatabaseAccess.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("owner");
 
+                    b.Property<string>("PendingContentStr")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("pending_content");
+
                     b.Property<NpgsqlTsVector>("SearchVector")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("tsvector")
@@ -1047,7 +1092,6 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("slug");
 
                     b.Property<string>("StatusStr")
-                        .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(15)
                         .HasColumnType("character varying(15)")
@@ -1185,6 +1229,11 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("status")
                         .HasDefaultValueSql("'Pending'");
 
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("type");
+
                     b.Property<Guid?>("UserId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
@@ -1262,7 +1311,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2183),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(4804),
                             Describe = "Angular is a TypeScript-based open-source web application platform led by the Angular Team at Google and by a community of individuals and corporations. Angular is a complete rewrite from the same team that built AngularJS.",
                             Name = "Angular",
                             StatusStr = "Readonly",
@@ -1271,7 +1320,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 2L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2230),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(4975),
                             Describe = "React is a JavaScript library for building user interfaces. It is maintained by Facebook and a community of individual developers and companies. React can be used as a base in the development of single-page or mobile applications.",
                             Name = "React",
                             StatusStr = "Readonly",
@@ -1280,7 +1329,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 3L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2234),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(4988),
                             Describe = "Vue.js is an open-source JavaScript framework for building user interfaces. It is maintained by a community of individual developers and companies. Vue can be used as a base in the development of single-page or mobile applications.",
                             Name = "Vue",
                             StatusStr = "Readonly",
@@ -1289,7 +1338,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 4L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2238),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(4998),
                             Describe = "Angular CLI is a command-line interface for the Angular development platform. It is used to create and manage projects for the Angular framework.",
                             Name = "Angular CLI",
                             StatusStr = "Readonly",
@@ -1298,7 +1347,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 5L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2241),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5008),
                             Describe = "React Native is a framework for building native apps using React. It is maintained by Facebook and a community of individual developers and companies.",
                             Name = "React Native",
                             StatusStr = "Readonly",
@@ -1307,7 +1356,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 6L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2258),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5027),
                             Describe = "Vue CLI is a command-line interface for the Vue.js development platform. It is used to create and manage projects for the Vue framework.",
                             Name = "Vue CLI",
                             StatusStr = "Readonly",
@@ -1316,7 +1365,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 7L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2262),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5037),
                             Describe = "Webpack is a module bundler that packs multiple modules with dependencies into a single module. It is maintained by a community of individual developers and companies.",
                             Name = "Webpack",
                             StatusStr = "Readonly",
@@ -1325,7 +1374,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 8L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2266),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5049),
                             Describe = "Gulp is a streaming build system. It is maintained by a community of individual developers and companies.",
                             Name = "Gulp",
                             StatusStr = "Readonly",
@@ -1334,7 +1383,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 9L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2270),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5061),
                             Describe = "Sass is a stylesheet language that is interpreted into Cascading Style Sheets (CSS). It is maintained by a community of individual developers and companies.",
                             Name = "Sass",
                             StatusStr = "Readonly",
@@ -1343,7 +1392,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 10L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2275),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5074),
                             Describe = "Less is a stylesheet language that is interpreted into Cascading Style Sheets (CSS). It is maintained by a community of individual developers and companies.",
                             Name = "Less",
                             StatusStr = "Readonly",
@@ -1352,7 +1401,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 11L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2279),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5083),
                             Describe = "Bootstrap is a free and open-source front-end web framework for designing websites and web applications. It is maintained by a community of individual developers and companies.",
                             Name = "Bootstrap",
                             StatusStr = "Readonly",
@@ -1361,7 +1410,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 12L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2282),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5092),
                             Describe = "Material-UI is a React component library that enables you to create beautiful, high-fidelity, mobile-first experiences. It is maintained by a community of individual developers and companies.",
                             Name = "Material-UI",
                             StatusStr = "Readonly",
@@ -1370,7 +1419,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 13L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2285),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5103),
                             Describe = "Material Design is a design language developed by Google. It is used to create a consistent and beautiful user experience across all products on Android, iOS, and the web.",
                             Name = "Material Design",
                             StatusStr = "Readonly",
@@ -1379,7 +1428,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 14L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2289),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5114),
                             Describe = "Material Icons is a set of open source icons for use in web and mobile applications. It is maintained by a community of individual developers and companies.",
                             Name = "Material Icons",
                             StatusStr = "Readonly",
@@ -1388,7 +1437,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 15L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2292),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5147),
                             Describe = "Bootstrap Vue is a Vue.js wrapper for Bootstrap. It is maintained by a community of individual developers and companies.",
                             Name = "Bootstrap Vue",
                             StatusStr = "Readonly",
@@ -1397,7 +1446,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 16L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2296),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5157),
                             Describe = "Vue Router is a routing library for Vue.js. It is maintained by a community of individual developers and companies.",
                             Name = "Vue Router",
                             StatusStr = "Readonly",
@@ -1406,7 +1455,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 17L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2300),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5168),
                             Describe = "Vuex is a state management pattern and library for Vue.js applications. It is maintained by a community of individual developers and companies.",
                             Name = "Vuex",
                             StatusStr = "Readonly",
@@ -1415,7 +1464,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 18L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2305),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5181),
                             Describe = "Vue I18n is a localization library for Vue.js. It is maintained by a community of individual developers and companies.",
                             Name = "Vue I18n",
                             StatusStr = "Readonly",
@@ -1424,7 +1473,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 19L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2309),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5191),
                             Describe = "Vue Resource is a REST client for Vue.js. It is maintained by a community of individual developers and companies.",
                             Name = "Vue Resource",
                             StatusStr = "Readonly",
@@ -1433,7 +1482,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 20L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2312),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5201),
                             Describe = "Vue Router I18n is a localization library for Vue Router. It is maintained by a community of individual developers and companies.",
                             Name = "Vue Router I18n",
                             StatusStr = "Readonly",
@@ -1442,7 +1491,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 21L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2315),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5210),
                             Describe = ".NET is a programming language and runtime environment developed by Microsoft. It is maintained by a community of individual developers and companies.",
                             Name = ".NET",
                             StatusStr = "Readonly",
@@ -1451,7 +1500,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 22L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2319),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5221),
                             Describe = "C# is a programming language and runtime environment developed by Microsoft. It is maintained by a community of individual developers and companies.",
                             Name = "CSharp",
                             StatusStr = "Readonly",
@@ -1460,7 +1509,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 23L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2322),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5231),
                             Describe = "ASP.NET is a web application framework developed by Microsoft. It is maintained by a community of individual developers and companies.",
                             Name = "ASP.NET",
                             StatusStr = "Readonly",
@@ -1469,7 +1518,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 24L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2325),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5241),
                             Describe = "ASP.NET Core is a web application framework developed by Microsoft. It is maintained by a community of individual developers and companies.",
                             Name = "ASP.NET Core",
                             StatusStr = "Readonly",
@@ -1478,7 +1527,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 25L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2329),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5250),
                             Describe = "Next.js is a JavaScript framework for building web applications. It is maintained by a community of individual developers and companies.",
                             Name = "Next.js",
                             StatusStr = "Readonly",
@@ -1487,7 +1536,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 26L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2332),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5260),
                             Describe = "React Router is a routing library for React. It is maintained by a community of individual developers and companies.",
                             Name = "React Router",
                             StatusStr = "Readonly",
@@ -1496,7 +1545,7 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 27L,
-                            CreatedTimestamp = new DateTime(2022, 4, 17, 8, 49, 19, 66, DateTimeKind.Utc).AddTicks(2335),
+                            CreatedTimestamp = new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5270),
                             Describe = "React Router DOM is a routing library for React. It is maintained by a community of individual developers and companies.",
                             Name = "React Router DOM",
                             StatusStr = "Readonly",
@@ -1790,6 +1839,10 @@ namespace DatabaseAccess.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("action");
 
+                    b.Property<Guid?>("AdminUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("amin_user_id");
+
                     b.Property<string>("NewValueStr")
                         .IsRequired()
                         .HasColumnType("TEXT")
@@ -1830,6 +1883,8 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AdminUserId");
 
                     b.HasIndex("SearchVector")
                         .HasMethod("GIN");
@@ -1909,6 +1964,14 @@ namespace DatabaseAccess.Migrations
                             DisplayName = "Report",
                             RightName = "report",
                             StatusStr = "Readonly"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Describe = "Can create, interactive report.",
+                            DisplayName = "Upload",
+                            RightName = "upload",
+                            StatusStr = "Readonly"
                         });
                 });
 
@@ -1931,6 +1994,10 @@ namespace DatabaseAccess.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("display_name");
+
+                    b.Property<bool>("Priority")
+                        .HasColumnType("boolean")
+                        .HasColumnName("priority");
 
                     b.Property<string>("RoleName")
                         .IsRequired()
@@ -1962,6 +2029,7 @@ namespace DatabaseAccess.Migrations
                             Id = 1,
                             Describe = "Normal user",
                             DisplayName = "User",
+                            Priority = false,
                             RoleName = "user",
                             StatusStr = "Readonly"
                         });
@@ -2007,6 +2075,12 @@ namespace DatabaseAccess.Migrations
                         {
                             RoleId = 1,
                             RightId = 3,
+                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            RightId = 4,
                             ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
                         });
                 });
@@ -2148,13 +2222,34 @@ namespace DatabaseAccess.Migrations
 
             modelBuilder.Entity("DatabaseAccess.Context.Models.SocialNotification", b =>
                 {
+                    b.HasOne("DatabaseAccess.Context.Models.SocialComment", "Comment")
+                        .WithMany("SocialNotifications")
+                        .HasForeignKey("CommentId")
+                        .HasConstraintName("FK_social_notification_comment_id");
+
+                    b.HasOne("DatabaseAccess.Context.Models.SocialPost", "Post")
+                        .WithMany("SocialNotifications")
+                        .HasForeignKey("PostId")
+                        .HasConstraintName("FK_social_notification_post_id");
+
                     b.HasOne("DatabaseAccess.Context.Models.SocialUser", "User")
                         .WithMany("SocialNotifications")
                         .HasForeignKey("UserId")
                         .HasConstraintName("FK_social_notification_user_id")
                         .IsRequired();
 
+                    b.HasOne("DatabaseAccess.Context.Models.SocialUser", "UserIdDesNavigation")
+                        .WithMany("SocialNotificationUserIdDesNavigations")
+                        .HasForeignKey("UserIdDes")
+                        .HasConstraintName("FK_social_notification_user_id_des");
+
+                    b.Navigation("Comment");
+
+                    b.Navigation("Post");
+
                     b.Navigation("User");
+
+                    b.Navigation("UserIdDesNavigation");
                 });
 
             modelBuilder.Entity("DatabaseAccess.Context.Models.SocialPost", b =>
@@ -2327,6 +2422,11 @@ namespace DatabaseAccess.Migrations
 
             modelBuilder.Entity("DatabaseAccess.Context.Models.SocialUserAuditLog", b =>
                 {
+                    b.HasOne("DatabaseAccess.Context.Models.AdminUser", "UserAdmin")
+                        .WithMany("SocialUserAuditLogs")
+                        .HasForeignKey("AdminUserId")
+                        .HasConstraintName("FK_social_user_audit_log_admin_user_id");
+
                     b.HasOne("DatabaseAccess.Context.Models.SocialUser", "User")
                         .WithMany("SocialUserAuditLogs")
                         .HasForeignKey("UserId")
@@ -2334,6 +2434,8 @@ namespace DatabaseAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+
+                    b.Navigation("UserAdmin");
                 });
 
             modelBuilder.Entity("DatabaseAccess.Context.Models.SocialUserRoleDetail", b =>
@@ -2383,6 +2485,8 @@ namespace DatabaseAccess.Migrations
                     b.Navigation("SessionAdminUsers");
 
                     b.Navigation("SocialAuditLogs");
+
+                    b.Navigation("SocialUserAuditLogs");
                 });
 
             modelBuilder.Entity("DatabaseAccess.Context.Models.AdminUserRight", b =>
@@ -2410,6 +2514,8 @@ namespace DatabaseAccess.Migrations
                 {
                     b.Navigation("InverseParent");
 
+                    b.Navigation("SocialNotifications");
+
                     b.Navigation("SocialReports");
 
                     b.Navigation("SocialUserActionWithComments");
@@ -2418,6 +2524,8 @@ namespace DatabaseAccess.Migrations
             modelBuilder.Entity("DatabaseAccess.Context.Models.SocialPost", b =>
                 {
                     b.Navigation("SocialComments");
+
+                    b.Navigation("SocialNotifications");
 
                     b.Navigation("SocialPostCategories");
 
@@ -2442,6 +2550,8 @@ namespace DatabaseAccess.Migrations
                     b.Navigation("SocialComments");
 
                     b.Navigation("SocialNotifications");
+
+                    b.Navigation("SocialNotificationUserIdDesNavigations");
 
                     b.Navigation("SocialPosts");
 

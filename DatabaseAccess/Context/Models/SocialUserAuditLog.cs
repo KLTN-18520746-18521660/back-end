@@ -7,6 +7,7 @@ using NpgsqlTypes;
 using Newtonsoft.Json;
 using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
+using Newtonsoft.Json.Linq;
 
 #nullable disable
 
@@ -48,8 +49,11 @@ namespace DatabaseAccess.Context.Models
             get { return NewValue.ToString(); }
             set { NewValue = new LogValue(value); }
         }
+        [Required]
         [Column("user_id")]
         public Guid UserId { get; set; }
+        [Column("amin_user_id")]
+        public Guid? AdminUserId { get; set; }
         [Column("timestamp", TypeName = "timestamp with time zone")]
         public DateTime Timestamp { get; private set; }
         [Column("search_vector")]
@@ -57,12 +61,15 @@ namespace DatabaseAccess.Context.Models
         [ForeignKey(nameof(UserId))]
         [InverseProperty(nameof(SocialUser.SocialUserAuditLogs))]
         public virtual SocialUser User { get; set; }
+        [ForeignKey(nameof(AdminUserId))]
+        [InverseProperty(nameof(AdminUser.SocialUserAuditLogs))]
+        public virtual AdminUser UserAdmin { get; set; }
 
         public SocialUserAuditLog()
         {
             __ModelName = "SocialUserAuditLog";
-            NewValueStr = "[]";
-            OldValueStr = "[]";
+            NewValueStr = "{}";
+            OldValueStr = "{}";
             Timestamp = DateTime.UtcNow;
         }
 
@@ -70,6 +77,26 @@ namespace DatabaseAccess.Context.Models
         {
             Error = "Not Implemented Error";
             return false;
+        }
+
+        public override JObject GetPublicJsonObject(List<string> publicFields = default) {
+            if (publicFields == default) {
+                publicFields = new List<string>() {
+                    "action",
+                    "old_value",
+                    "new_value",
+                    "owner",
+                    "admin",
+                    "timestamp",
+                };
+            }
+            var ret = GetJsonObject();
+            foreach (var x in __ObjectJson) {
+                if (!publicFields.Contains(x.Key)) {
+                    ret.Remove(x.Key);
+                }
+            }
+            return ret;
         }
 
         public override bool PrepareExportObjectJson()
@@ -88,6 +115,16 @@ namespace DatabaseAccess.Context.Models
                 {"__ModelName", __ModelName }
 #endif
             };
+            if (AdminUserId != default) {
+                __ObjectJson.Add(
+                    "admin",
+                    new JObject(){
+                        { "user_name", this.UserAdmin.UserName },
+                        { "display_name", this.UserAdmin.DisplayName },
+                        { "avatar", default },
+                    }
+                );
+            }
             return true;
         }
     }

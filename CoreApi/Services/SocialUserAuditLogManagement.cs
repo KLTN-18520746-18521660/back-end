@@ -68,13 +68,17 @@ namespace CoreApi.Services
             string Action,
             Guid UserId,
             JObject OldValue,
-            JObject NewValue
+            JObject NewValue,
+            Guid AdminUserId = default
         ) {
             SocialUserAuditLog log = new SocialUserAuditLog();
             log.Table = TableName;
             log.TableKey = TableKey;
             log.Action = Action;
             log.UserId = UserId;
+            if (AdminUserId != default) {
+                log.AdminUserId = AdminUserId;
+            }
             log.OldValue = new LogValue(OldValue);
             log.NewValue = new LogValue(NewValue);
 

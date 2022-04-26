@@ -18,30 +18,18 @@ namespace DatabaseAccess.Common.Models
     public class LogValue
     {
         public LogValue() {
-            Data = new List<EntityValue>();
+            Data = new JObject();
         }
         public LogValue(JObject obj) {
-            Data = new List<EntityValue>();
-            List<string> keys = obj.Properties().Select(p => p.Name).ToList();
-            foreach (var key in keys) {
-                Data.Add(new EntityValue(){
-                    Property = key,
-                    Value = obj[key]
-                });
-            }
+            Data = obj;
         }
         public LogValue(string value) {
-            Data = JsonConvert.DeserializeObject<List<EntityValue>>(value);
+            Data = JsonConvert.DeserializeObject<JObject>(value);
         }
-        public List<EntityValue> Data { get; set; }
+        public JObject Data { get; set; }
 
         public override string ToString() {
             return JsonConvert.SerializeObject(Data);
         }
-    }
-    public class EntityValue
-    {
-        public string Property { get; set; }
-        public object Value { get; set; }
     }
 }

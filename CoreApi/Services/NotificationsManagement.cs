@@ -158,7 +158,7 @@ namespace CoreApi.Services
                             { "id", post.Owner },
                             { "user_name", post.OwnerNavigation.UserName },
                             { "display_name", post.OwnerNavigation.DisplayName },
-                            { "avartar", post.OwnerNavigation.Avatar },
+                            { "avatar", post.OwnerNavigation.Avatar },
                         });
                         ret.Add("post_detail", new JObject(){
                             { "id", post.Id },
@@ -185,7 +185,7 @@ namespace CoreApi.Services
                             { "id", comment.Post.Owner },
                             { "user_name", comment.Post.OwnerNavigation.UserName },
                             { "display_name", comment.Post.OwnerNavigation.DisplayName },
-                            { "avartar", comment.Post.OwnerNavigation.Avatar },
+                            { "avatar", comment.Post.OwnerNavigation.Avatar },
                         });
                         ret.Add("post_detail", new JObject(){
                             { "id", comment.Post.Id },
@@ -196,7 +196,7 @@ namespace CoreApi.Services
                             { "id", comment.Owner },
                             { "user_name", comment.OwnerNavigation.UserName },
                             { "display_name", comment.OwnerNavigation.DisplayName },
-                            { "avartar", comment.OwnerNavigation.Avatar },
+                            { "avatar", comment.OwnerNavigation.Avatar },
                         });
                         ret.Add("commment_content", comment.Content.Substring(0, comment.Content.Length > 50 ? 50 : comment.Content.Length));
                         break;
@@ -219,7 +219,7 @@ namespace CoreApi.Services
                             { "id", user.Id },
                             { "user_name", user.UserName },
                             { "display_name", user.DisplayName },
-                            { "avartar", user.Avatar },
+                            { "avatar", user.Avatar },
                         });
                         break;
                     }

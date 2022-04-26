@@ -63,12 +63,15 @@ namespace DatabaseAccess.Context.Models
         public virtual ICollection<SocialReport> SocialReports { get; set; }
         [InverseProperty(nameof(SocialUserActionWithComment.Comment))]
         public virtual ICollection<SocialUserActionWithComment> SocialUserActionWithComments { get; set; }
+        [InverseProperty(nameof(SocialNotification.Comment))]
+        public virtual ICollection<SocialNotification> SocialNotifications { get; set; }
         
         public SocialComment()
         {
             InverseParent = new HashSet<SocialComment>();
             SocialReports = new HashSet<SocialReport>();
             SocialUserActionWithComments = new HashSet<SocialUserActionWithComment>();
+            SocialNotifications = new HashSet<SocialNotification>();
 
             __ModelName = "SocialComment";
             CreatedTimestamp = DateTime.UtcNow;

@@ -1031,7 +1031,9 @@ namespace CoreApi.Services
                 return error;
             }
             var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
-            if (post.Status.Type == StatusType.Pending) {
+            if (post.Status.Type == StatusType.Pending
+                || (post.Status.Type == StatusType.Private && post.PendingContent == default)
+            ) {
                 post.Status.ChangeStatus(StatusType.Approved);
                 post.Slug = Utils.GenerateSlug(post.Title, true);
                 foreach (var it in post.SocialPostTags) {

@@ -81,6 +81,8 @@ namespace DatabaseAccess.Context.Models
         public virtual ICollection<AdminAuditLog> AdminAuditLogs { get; set; }
         [InverseProperty(nameof(SocialAuditLog.User))]
         public virtual ICollection<SocialAuditLog> SocialAuditLogs { get; set; }
+        [InverseProperty(nameof(SocialUserAuditLog.UserAdmin))]
+        public virtual ICollection<SocialUserAuditLog> SocialUserAuditLogs { get; set; }
 
         public AdminUser() : base()
         {
@@ -88,10 +90,11 @@ namespace DatabaseAccess.Context.Models
             SessionAdminUsers = new HashSet<SessionAdminUser>();
             AdminAuditLogs = new HashSet<AdminAuditLog>();
             SocialAuditLogs = new HashSet<SocialAuditLog>();
+            SocialUserAuditLogs = new HashSet<SocialUserAuditLog>();
             __ModelName = "AdminUser";
             Id = Guid.NewGuid();
             CreatedTimestamp = DateTime.UtcNow;
-            Status = new EntityStatus(EntityStatusType.AdminUser, StatusType.Enabled);
+            Status = new EntityStatus(EntityStatusType.AdminUser, StatusType.Activated);
             Salt = PasswordEncryptor.GenerateSalt();
             SettingsStr = "{}";
         }

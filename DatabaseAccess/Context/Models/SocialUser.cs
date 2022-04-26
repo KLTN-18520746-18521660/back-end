@@ -132,6 +132,8 @@ namespace DatabaseAccess.Context.Models
         public virtual ICollection<SocialComment> SocialComments { get; set; }
         [InverseProperty(nameof(SocialNotification.User))]
         public virtual ICollection<SocialNotification> SocialNotifications { get; set; }
+        [InverseProperty(nameof(SocialNotification.UserIdDesNavigation))]
+        public virtual ICollection<SocialNotification> SocialNotificationUserIdDesNavigations { get; set; }
         [InverseProperty(nameof(SocialPost.OwnerNavigation))]
         public virtual ICollection<SocialPost> SocialPosts { get; set; }
         [InverseProperty(nameof(SocialReport.User))]
@@ -157,6 +159,7 @@ namespace DatabaseAccess.Context.Models
             SocialUserAuditLogs = new HashSet<SocialUserAuditLog>();
             SocialComments = new HashSet<SocialComment>();
             SocialNotifications = new HashSet<SocialNotification>();
+            SocialNotificationUserIdDesNavigations = new HashSet<SocialNotification>();
             SocialPosts = new HashSet<SocialPost>();
             SocialReports = new HashSet<SocialReport>();
             SocialUserActionWithCategories = new HashSet<SocialUserActionWithCategory>();

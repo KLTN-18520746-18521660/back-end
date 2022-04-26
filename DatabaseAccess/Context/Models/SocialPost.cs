@@ -30,21 +30,9 @@ namespace DatabaseAccess.Context.Models
         public long Id { get; private set; }
         [Column("owner")]
         public Guid Owner { get; set; }
-        [NotMapped]
-        private string _title;
         [Required]
         [Column("title")]
-        public string Title { 
-            get => _title; 
-            set {
-                _title = value;
-                if (Status.Type == StatusType.Approved || Status.Type == StatusType.Private) {
-                    Slug = Utils.GenerateSlug(value, true);
-                } else {
-                    Slug = string.Empty;
-                }
-            }
-        }
+        public string Title { get; set; }
         [Required]
         [Column("slug")]
         public string Slug { get; set; } // only != empty when status is approve or private
@@ -88,14 +76,7 @@ namespace DatabaseAccess.Context.Models
         [StringLength(15)]
         public string StatusStr {
             get => Status.ToString();
-            set {
-                Status = new EntityStatus(EntityStatusType.SocialPost, value);
-                if ((Status.Type == StatusType.Approved || Status.Type == StatusType.Private) && Slug == string.Empty) {
-                    Slug = Utils.GenerateSlug(this.Title, true);
-                } else if ((Status.Type != StatusType.Approved && Status.Type != StatusType.Private) && Slug != string.Empty) {
-                    Slug = string.Empty;
-                }
-            }
+            set => Status = new EntityStatus(EntityStatusType.SocialPost, value);
         }
         [Required]
         [Column("content_search")]
@@ -137,6 +118,8 @@ namespace DatabaseAccess.Context.Models
         public NpgsqlTsVector SearchVector { get; set; }
         [Column("created_timestamp", TypeName = "timestamp with time zone")]
         public DateTime CreatedTimestamp { get; set; }
+        [Column("approved_timestamp", TypeName = "timestamp with time zone")]
+        public DateTime ApprovedTimestamp { get; set; }
         [Column("last_modified_timestamp", TypeName = "timestamp with time zone")]
         public DateTime? LastModifiedTimestamp { get; set; }
 
@@ -153,6 +136,8 @@ namespace DatabaseAccess.Context.Models
         public virtual ICollection<SocialReport> SocialReports { get; set; }
         [InverseProperty(nameof(SocialUserActionWithPost.Post))]
         public virtual ICollection<SocialUserActionWithPost> SocialUserActionWithPosts { get; set; }
+        [InverseProperty(nameof(SocialNotification.Post))]
+        public virtual ICollection<SocialNotification> SocialNotifications { get; set; }
         
         public SocialPost()
         {
@@ -161,6 +146,7 @@ namespace DatabaseAccess.Context.Models
             SocialPostCategories = new HashSet<SocialPostCategory>();
             SocialPostTags = new HashSet<SocialPostTag>();
             SocialUserActionWithPosts = new HashSet<SocialUserActionWithPost>();
+            SocialNotifications = new HashSet<SocialNotification>();
 
             __ModelName = "SocialPost";
             CreatedTimestamp = DateTime.UtcNow;
@@ -254,7 +240,7 @@ namespace DatabaseAccess.Context.Models
                 { "categories", Categories },
                 { "short_content", ShortContent },
                 { "status", StatusStr },
-                { "created_timestamp", CreatedTimestamp },
+                { "approved_timestamp", CreatedTimestamp },
                 { "last_modified_timestamp", LastModifiedTimestamp },
             };
             if (this.Owner == SocialUserId) {
@@ -264,7 +250,7 @@ namespace DatabaseAccess.Context.Models
             return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
         }
 
-        public override JObject GetPublicJsonObject(List<string> publicFields = null)
+        public override JObject GetPublicJsonObject(List<string> publicFields = default)
         {
             if (publicFields == default) {
                 publicFields = new List<string>() {
@@ -285,7 +271,7 @@ namespace DatabaseAccess.Context.Models
                     "content_type",
                     "short_content",
                     "status",
-                    "created_timestamp",
+                    "approved_timestamp",
                     "last_modified_timestamp",
                 };
             }
@@ -328,6 +314,7 @@ namespace DatabaseAccess.Context.Models
                 { "have_pending_content", PendingContent != default },
                 { "status", StatusStr },
                 { "created_timestamp", CreatedTimestamp },
+                { "approved_timestamp", ApprovedTimestamp },
                 { "last_modified_timestamp", LastModifiedTimestamp },
 #if DEBUG
                 {"__ModelName", __ModelName }

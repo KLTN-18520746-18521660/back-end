@@ -4,6 +4,7 @@ using Common;
 using DatabaseAccess.Context.Models;
 using CoreApi.Models.ModifyModels;
 using System.Linq;
+using System.IO;
 
 namespace CoreApi.Models.Validators
 {
@@ -191,7 +192,7 @@ namespace CoreApi.Models.Validators
                     .Cascade(CascadeMode.Stop)
                     .NotEmpty()
                         .WithMessage("{PropertyName} is empty.")
-                    .Must(thumbnail => CommonValidate.IsValidUrl(thumbnail))
+                    .Must(thumbnail => Path.HasExtension(thumbnail))
                         .WithMessage("{PropertyName} is is invalid.");
 
             });

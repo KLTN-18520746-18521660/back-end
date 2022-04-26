@@ -49,6 +49,7 @@ namespace DatabaseAccess.Context.Models
             get { return NewValue.ToString(); }
             set { NewValue = new LogValue(value); }
         }
+        [Required]
         [Column("user_id")]
         public Guid UserId { get; set; }
         [Column("timestamp", TypeName = "timestamp with time zone")]
@@ -62,8 +63,8 @@ namespace DatabaseAccess.Context.Models
         public AdminAuditLog()
         {
             __ModelName = "AdminAuditLog";
-            NewValueStr = "[]";
-            OldValueStr = "[]";
+            NewValueStr = "{}";
+            OldValueStr = "{}";
             Timestamp = DateTime.UtcNow;
         }
 
