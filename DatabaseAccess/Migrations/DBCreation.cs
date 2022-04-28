@@ -676,13 +676,14 @@ namespace DatabaseAccess.Migrations
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn),
-                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    owner = table.Column<Guid>(type: "uuid", nullable: false),
                     post_id = table.Column<long>(type: "bigint", nullable: true),
                     comment_id = table.Column<long>(type: "bigint", nullable: true),
-                    user_id_des = table.Column<Guid>(type: "uuid", nullable: true),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: true),
                     status = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: false, defaultValueSql: "'Sent'"),
                     type = table.Column<string>(type: "character varying(25)", maxLength: 25, nullable: false),
                     content = table.Column<string>(type: "jsonb", nullable: false, defaultValueSql: "'{}'"),
+                    last_update_content = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     created_timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW() AT TIME ZONE 'UTC'"),
                     last_modified_timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
@@ -705,13 +706,13 @@ namespace DatabaseAccess.Migrations
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_social_notification_user_id",
-                        column: x => x.user_id,
+                        column: x => x.owner,
                         principalTable: "social_user",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_social_notification_user_id_des",
-                        column: x => x.user_id_des,
+                        column: x => x.user_id,
                         principalTable: "social_user",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
@@ -804,7 +805,7 @@ namespace DatabaseAccess.Migrations
             migrationBuilder.InsertData(
                 table: "admin_user",
                 columns: new[] { "id", "created_timestamp", "display_name", "email", "last_access_timestamp", "salt", "settings", "status", "password", "user_name" },
-                values: new object[] { new Guid("1afc27e9-85c3-4e48-89ab-dd997621ab32"), new DateTime(2022, 4, 26, 19, 20, 54, 359, DateTimeKind.Utc).AddTicks(2302), "Administrator", "admin@admin", null, "f0925c2b", "{}", "Readonly", "9F1E9DA16B5E9E11CE426F4843F22742", "admin" });
+                values: new object[] { new Guid("1afc27e9-85c3-4e48-89ab-dd997621ab32"), new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Administrator", "admin@admin", null, "f80b6823", "{}", "Readonly", "48A6F00F5897601027C519ED5049F5AA", "admin" });
 
             migrationBuilder.InsertData(
                 table: "admin_user_right",
@@ -835,11 +836,11 @@ namespace DatabaseAccess.Migrations
                 columns: new[] { "id", "created_timestamp", "describe", "display_name", "last_modified_timestamp", "name", "parent_id", "slug", "status", "thumbnail" },
                 values: new object[,]
                 {
-                    { 5L, new DateTime(2022, 4, 26, 19, 20, 54, 483, DateTimeKind.Utc).AddTicks(4714), "Life die have number", "Left", null, "left", null, "left", "Readonly", null },
-                    { 4L, new DateTime(2022, 4, 26, 19, 20, 54, 483, DateTimeKind.Utc).AddTicks(4651), "Nothing in here", "Blog", null, "blog", null, "blog", "Readonly", null },
-                    { 2L, new DateTime(2022, 4, 26, 19, 20, 54, 483, DateTimeKind.Utc).AddTicks(4341), "Do not click to this", "Developer", null, "developer", null, "developer", "Readonly", null },
-                    { 1L, new DateTime(2022, 4, 26, 19, 20, 54, 483, DateTimeKind.Utc).AddTicks(1482), "This not a bug this a feature", "Technology", null, "technology", null, "technology", "Readonly", null },
-                    { 3L, new DateTime(2022, 4, 26, 19, 20, 54, 483, DateTimeKind.Utc).AddTicks(4563), "Search google to have better solution", "Dicussion", null, "dicussion", null, "dicussion", "Readonly", null }
+                    { 5L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Life die have number", "Left", null, "left", null, "left", "Readonly", null },
+                    { 4L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Nothing in here", "Blog", null, "blog", null, "blog", "Readonly", null },
+                    { 2L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Do not click to this", "Developer", null, "developer", null, "developer", "Readonly", null },
+                    { 1L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "This not a bug this a feature", "Technology", null, "technology", null, "technology", "Readonly", null },
+                    { 3L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Search google to have better solution", "Dicussion", null, "dicussion", null, "dicussion", "Readonly", null }
                 });
 
             migrationBuilder.InsertData(
@@ -847,33 +848,33 @@ namespace DatabaseAccess.Migrations
                 columns: new[] { "id", "created_timestamp", "describe", "last_modified_timestamp", "name", "status", "tag" },
                 values: new object[,]
                 {
-                    { 20L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5201), "Vue Router I18n is a localization library for Vue Router. It is maintained by a community of individual developers and companies.", null, "Vue Router I18n", "Readonly", "vue-router-i18n" },
-                    { 17L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5168), "Vuex is a state management pattern and library for Vue.js applications. It is maintained by a community of individual developers and companies.", null, "Vuex", "Readonly", "vuex" },
-                    { 18L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5181), "Vue I18n is a localization library for Vue.js. It is maintained by a community of individual developers and companies.", null, "Vue I18n", "Readonly", "vue-i18n" },
-                    { 19L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5191), "Vue Resource is a REST client for Vue.js. It is maintained by a community of individual developers and companies.", null, "Vue Resource", "Readonly", "vue-resource" },
-                    { 21L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5210), ".NET is a programming language and runtime environment developed by Microsoft. It is maintained by a community of individual developers and companies.", null, ".NET", "Readonly", "dotnet" },
-                    { 27L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5270), "React Router DOM is a routing library for React. It is maintained by a community of individual developers and companies.", null, "React Router DOM", "Readonly", "react-router-dom" },
-                    { 23L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5231), "ASP.NET is a web application framework developed by Microsoft. It is maintained by a community of individual developers and companies.", null, "ASP.NET", "Readonly", "aspnet" },
-                    { 24L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5241), "ASP.NET Core is a web application framework developed by Microsoft. It is maintained by a community of individual developers and companies.", null, "ASP.NET Core", "Readonly", "aspnet-core" },
-                    { 25L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5250), "Next.js is a JavaScript framework for building web applications. It is maintained by a community of individual developers and companies.", null, "Next.js", "Readonly", "nextjs" },
-                    { 26L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5260), "React Router is a routing library for React. It is maintained by a community of individual developers and companies.", null, "React Router", "Readonly", "react-router" },
-                    { 16L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5157), "Vue Router is a routing library for Vue.js. It is maintained by a community of individual developers and companies.", null, "Vue Router", "Readonly", "vue-router" },
-                    { 22L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5221), "C# is a programming language and runtime environment developed by Microsoft. It is maintained by a community of individual developers and companies.", null, "CSharp", "Readonly", "csharp" },
-                    { 15L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5147), "Bootstrap Vue is a Vue.js wrapper for Bootstrap. It is maintained by a community of individual developers and companies.", null, "Bootstrap Vue", "Readonly", "bootstrap-vue" },
-                    { 3L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(4988), "Vue.js is an open-source JavaScript framework for building user interfaces. It is maintained by a community of individual developers and companies. Vue can be used as a base in the development of single-page or mobile applications.", null, "Vue", "Readonly", "vue" },
-                    { 13L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5103), "Material Design is a design language developed by Google. It is used to create a consistent and beautiful user experience across all products on Android, iOS, and the web.", null, "Material Design", "Readonly", "material-design" },
-                    { 1L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(4804), "Angular is a TypeScript-based open-source web application platform led by the Angular Team at Google and by a community of individuals and corporations. Angular is a complete rewrite from the same team that built AngularJS.", null, "Angular", "Readonly", "angular" },
-                    { 2L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(4975), "React is a JavaScript library for building user interfaces. It is maintained by Facebook and a community of individual developers and companies. React can be used as a base in the development of single-page or mobile applications.", null, "React", "Readonly", "react" },
-                    { 4L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(4998), "Angular CLI is a command-line interface for the Angular development platform. It is used to create and manage projects for the Angular framework.", null, "Angular CLI", "Readonly", "angular-cli" },
-                    { 14L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5114), "Material Icons is a set of open source icons for use in web and mobile applications. It is maintained by a community of individual developers and companies.", null, "Material Icons", "Readonly", "material-icons" },
-                    { 6L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5027), "Vue CLI is a command-line interface for the Vue.js development platform. It is used to create and manage projects for the Vue framework.", null, "Vue CLI", "Readonly", "vue-cli" },
-                    { 5L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5008), "React Native is a framework for building native apps using React. It is maintained by Facebook and a community of individual developers and companies.", null, "React Native", "Readonly", "react-native" },
-                    { 8L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5049), "Gulp is a streaming build system. It is maintained by a community of individual developers and companies.", null, "Gulp", "Readonly", "gulp" },
-                    { 9L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5061), "Sass is a stylesheet language that is interpreted into Cascading Style Sheets (CSS). It is maintained by a community of individual developers and companies.", null, "Sass", "Readonly", "sass" },
-                    { 10L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5074), "Less is a stylesheet language that is interpreted into Cascading Style Sheets (CSS). It is maintained by a community of individual developers and companies.", null, "Less", "Readonly", "less" },
-                    { 11L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5083), "Bootstrap is a free and open-source front-end web framework for designing websites and web applications. It is maintained by a community of individual developers and companies.", null, "Bootstrap", "Readonly", "bootstrap" },
-                    { 12L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5092), "Material-UI is a React component library that enables you to create beautiful, high-fidelity, mobile-first experiences. It is maintained by a community of individual developers and companies.", null, "Material-UI", "Readonly", "material-ui" },
-                    { 7L, new DateTime(2022, 4, 26, 19, 20, 54, 665, DateTimeKind.Utc).AddTicks(5037), "Webpack is a module bundler that packs multiple modules with dependencies into a single module. It is maintained by a community of individual developers and companies.", null, "Webpack", "Readonly", "webpack" }
+                    { 20L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue Router I18n is a localization library for Vue Router. It is maintained by a community of individual developers and companies.", null, "Vue Router I18n", "Readonly", "vue-router-i18n" },
+                    { 17L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vuex is a state management pattern and library for Vue.js applications. It is maintained by a community of individual developers and companies.", null, "Vuex", "Readonly", "vuex" },
+                    { 18L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue I18n is a localization library for Vue.js. It is maintained by a community of individual developers and companies.", null, "Vue I18n", "Readonly", "vue-i18n" },
+                    { 19L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue Resource is a REST client for Vue.js. It is maintained by a community of individual developers and companies.", null, "Vue Resource", "Readonly", "vue-resource" },
+                    { 21L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), ".NET is a programming language and runtime environment developed by Microsoft. It is maintained by a community of individual developers and companies.", null, ".NET", "Readonly", "dotnet" },
+                    { 27L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "React Router DOM is a routing library for React. It is maintained by a community of individual developers and companies.", null, "React Router DOM", "Readonly", "react-router-dom" },
+                    { 23L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "ASP.NET is a web application framework developed by Microsoft. It is maintained by a community of individual developers and companies.", null, "ASP.NET", "Readonly", "aspnet" },
+                    { 24L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "ASP.NET Core is a web application framework developed by Microsoft. It is maintained by a community of individual developers and companies.", null, "ASP.NET Core", "Readonly", "aspnet-core" },
+                    { 25L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Next.js is a JavaScript framework for building web applications. It is maintained by a community of individual developers and companies.", null, "Next.js", "Readonly", "nextjs" },
+                    { 26L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "React Router is a routing library for React. It is maintained by a community of individual developers and companies.", null, "React Router", "Readonly", "react-router" },
+                    { 16L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue Router is a routing library for Vue.js. It is maintained by a community of individual developers and companies.", null, "Vue Router", "Readonly", "vue-router" },
+                    { 22L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "C# is a programming language and runtime environment developed by Microsoft. It is maintained by a community of individual developers and companies.", null, "CSharp", "Readonly", "csharp" },
+                    { 15L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Bootstrap Vue is a Vue.js wrapper for Bootstrap. It is maintained by a community of individual developers and companies.", null, "Bootstrap Vue", "Readonly", "bootstrap-vue" },
+                    { 3L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue.js is an open-source JavaScript framework for building user interfaces. It is maintained by a community of individual developers and companies. Vue can be used as a base in the development of single-page or mobile applications.", null, "Vue", "Readonly", "vue" },
+                    { 13L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Material Design is a design language developed by Google. It is used to create a consistent and beautiful user experience across all products on Android, iOS, and the web.", null, "Material Design", "Readonly", "material-design" },
+                    { 1L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Angular is a TypeScript-based open-source web application platform led by the Angular Team at Google and by a community of individuals and corporations. Angular is a complete rewrite from the same team that built AngularJS.", null, "Angular", "Readonly", "angular" },
+                    { 2L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "React is a JavaScript library for building user interfaces. It is maintained by Facebook and a community of individual developers and companies. React can be used as a base in the development of single-page or mobile applications.", null, "React", "Readonly", "react" },
+                    { 4L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Angular CLI is a command-line interface for the Angular development platform. It is used to create and manage projects for the Angular framework.", null, "Angular CLI", "Readonly", "angular-cli" },
+                    { 14L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Material Icons is a set of open source icons for use in web and mobile applications. It is maintained by a community of individual developers and companies.", null, "Material Icons", "Readonly", "material-icons" },
+                    { 6L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue CLI is a command-line interface for the Vue.js development platform. It is used to create and manage projects for the Vue framework.", null, "Vue CLI", "Readonly", "vue-cli" },
+                    { 5L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "React Native is a framework for building native apps using React. It is maintained by Facebook and a community of individual developers and companies.", null, "React Native", "Readonly", "react-native" },
+                    { 8L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Gulp is a streaming build system. It is maintained by a community of individual developers and companies.", null, "Gulp", "Readonly", "gulp" },
+                    { 9L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Sass is a stylesheet language that is interpreted into Cascading Style Sheets (CSS). It is maintained by a community of individual developers and companies.", null, "Sass", "Readonly", "sass" },
+                    { 10L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Less is a stylesheet language that is interpreted into Cascading Style Sheets (CSS). It is maintained by a community of individual developers and companies.", null, "Less", "Readonly", "less" },
+                    { 11L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Bootstrap is a free and open-source front-end web framework for designing websites and web applications. It is maintained by a community of individual developers and companies.", null, "Bootstrap", "Readonly", "bootstrap" },
+                    { 12L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Material-UI is a React component library that enables you to create beautiful, high-fidelity, mobile-first experiences. It is maintained by a community of individual developers and companies.", null, "Material-UI", "Readonly", "material-ui" },
+                    { 7L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Webpack is a module bundler that packs multiple modules with dependencies into a single module. It is maintained by a community of individual developers and companies.", null, "Webpack", "Readonly", "webpack" }
                 });
 
             migrationBuilder.InsertData(
@@ -1064,6 +1065,11 @@ namespace DatabaseAccess.Migrations
                 column: "comment_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_social_notification_owner",
+                table: "social_notification",
+                column: "owner");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_social_notification_post_id",
                 table: "social_notification",
                 column: "post_id");
@@ -1072,11 +1078,6 @@ namespace DatabaseAccess.Migrations
                 name: "IX_social_notification_user_id",
                 table: "social_notification",
                 column: "user_id");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_social_notification_user_id_des",
-                table: "social_notification",
-                column: "user_id_des");
 
             migrationBuilder.CreateIndex(
                 name: "IX_social_post_owner",

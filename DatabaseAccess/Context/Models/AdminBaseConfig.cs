@@ -15,32 +15,34 @@ namespace DatabaseAccess.Context.Models
 {
     public enum CONFIG_KEY
     {
-        INVALID = 0,
-        ADMIN_USER_LOGIN_CONFIG = 1,
-        SOCIAL_USER_LOGIN_CONFIG = 2,
-        SESSION_ADMIN_USER_CONFIG = 3,
-        SESSION_SOCIAL_USER_CONFIG = 4,
-        EMAIL_CLIENT_CONFIG = 5,
-        SOCIAL_USER_CONFIRM_CONFIG = 6,
-        UI_CONFIG = 7,
-        PUBLIC_CONFIG = 8,
-        UPLOAD_FILE_CONFIG = 9,
+        INVALID                             = 0,
+        ADMIN_USER_LOGIN_CONFIG             = 1,
+        SOCIAL_USER_LOGIN_CONFIG            = 2,
+        SESSION_ADMIN_USER_CONFIG           = 3,
+        SESSION_SOCIAL_USER_CONFIG          = 4,
+        EMAIL_CLIENT_CONFIG                 = 5,
+        SOCIAL_USER_CONFIRM_CONFIG          = 6,
+        UI_CONFIG                           = 7,
+        PUBLIC_CONFIG                       = 8,
+        UPLOAD_FILE_CONFIG                  = 9,
+        NOTIFICATION                        = 10,
     }
 
     public enum SUB_CONFIG_KEY
     {
-        ALL = -1,
-        INVALID = 0,
-        NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE = 1,
-        LOCK_TIME = 2,
-        EXPIRY_TIME = 3,
-        EXTENSION_TIME = 4,
-        EMAIL_LIMIT_SENDER = 5,
-        EMAIL_TEMPLATE_USER_SIGNUP = 6,
-        NUMBER_OF_TIMES_ALLOW_CONFIRM_FAILURE = 7,
-        PREFIX_URL = 8,
-        HOST_NAME = 9,
-        MAX_LENGTH_OF_SINGLE_FILE = 10,
+        ALL                                         = -1,
+        INVALID                                     = 0,
+        NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE         = 1,
+        LOCK_TIME                                   = 2,
+        EXPIRY_TIME                                 = 3,
+        EXTENSION_TIME                              = 4,
+        EMAIL_LIMIT_SENDER                          = 5,
+        EMAIL_TEMPLATE_USER_SIGNUP                  = 6,
+        NUMBER_OF_TIMES_ALLOW_CONFIRM_FAILURE       = 7,
+        PREFIX_URL                                  = 8,
+        HOST_NAME                                   = 9,
+        MAX_LENGTH_OF_SINGLE_FILE                   = 10,
+        INTERVAL_TIME                               = 11,
     }
 
     public static class DefaultBaseConfig
@@ -78,6 +80,9 @@ namespace DatabaseAccess.Context.Models
         public static readonly Dictionary<string, object> UploadFileConfig = new() {
             { "max_len_of_single_file", 5242880 }, // byte ~ 5MB
         };
+        public static readonly Dictionary<string, object> Notification = new() {
+            { "interval_time", 120 }, // minute
+        };
         public static readonly Dictionary<string, object> UIConfig = new() {};
         public static readonly Dictionary<string, object> PublicConfig = new() {
             // { "UIConfig", "all" } --> mean all config in 'UIConfig' is public
@@ -97,6 +102,7 @@ namespace DatabaseAccess.Context.Models
             "UIConfig",
             "PublicConfig",
             "UploadFileConfig",
+            "Notification",
         };
         #endregion
         public static JObject GetConfig(CONFIG_KEY ConfigKey, string Error = default)
@@ -121,6 +127,8 @@ namespace DatabaseAccess.Context.Models
                     return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(PublicConfig));
                 case CONFIG_KEY.UPLOAD_FILE_CONFIG:
                     return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(UploadFileConfig));
+                case CONFIG_KEY.NOTIFICATION:
+                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(Notification));
                 default:
                     Error ??= "Invalid config key.";
                     return new JObject();
@@ -148,6 +156,8 @@ namespace DatabaseAccess.Context.Models
                     return CONFIG_KEY.PUBLIC_CONFIG;
                 case "UploadFileConfig":
                     return CONFIG_KEY.UPLOAD_FILE_CONFIG;
+                case "Notification":
+                    return CONFIG_KEY.NOTIFICATION;
                 default:
                     Error ??= "Invalid config key.";
                     return CONFIG_KEY.INVALID;
@@ -175,6 +185,8 @@ namespace DatabaseAccess.Context.Models
                     return "PublicConfig";
                 case CONFIG_KEY.UPLOAD_FILE_CONFIG:
                     return "UploadFileConfig";
+                case CONFIG_KEY.NOTIFICATION:
+                    return "Notification";
                 default:
                     Error ??= "Invalid config key.";
                     return "Invalid config key.";
@@ -206,6 +218,8 @@ namespace DatabaseAccess.Context.Models
                     return SUB_CONFIG_KEY.HOST_NAME;
                 case "max_len_of_single_file":
                     return SUB_CONFIG_KEY.MAX_LENGTH_OF_SINGLE_FILE;
+                case "interval_time":
+                    return SUB_CONFIG_KEY.INTERVAL_TIME;
                 default:
                     Error ??= "Invalid sub config key.";
                     return SUB_CONFIG_KEY.INVALID;
@@ -237,6 +251,8 @@ namespace DatabaseAccess.Context.Models
                     return "host_name";
                 case SUB_CONFIG_KEY.MAX_LENGTH_OF_SINGLE_FILE:
                     return "max_len_of_single_file";
+                case SUB_CONFIG_KEY.INTERVAL_TIME:
+                    return "interval_time";
                 default:
                     Error ??= "Invalid sub config key.";
                     return "Invalid sub config key.";

@@ -2,6 +2,7 @@
 using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
@@ -58,6 +59,7 @@ namespace DatabaseAccess.Context
             {
                 optionsBuilder
                 .UseLazyLoadingProxies()
+                .ConfigureWarnings(w => w.Ignore(CoreEventId.LazyLoadOnDisposedContextWarning))
                 .UseNpgsql(
                     BaseConfigurationDB.GetConnectStringToDB(),
                     npgsqlOptionsAction: o => {
@@ -496,15 +498,15 @@ namespace DatabaseAccess.Context
                         "CK_social_notification_last_modified_timestamp_valid_value",
                         "(last_modified_timestamp IS NULL) OR (last_modified_timestamp > created_timestamp)"
                     );
-                entity.HasOne(d => d.User)
+                entity.HasOne(d => d.OwnerNavigation)
                     .WithMany(p => p.SocialNotifications)
-                    .HasForeignKey(d => d.UserId)
+                    .HasForeignKey(d => d.Owner)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_social_notification_user_id");
 
                 entity.HasOne(d => d.UserIdDesNavigation)
-                    .WithMany(p => p.SocialNotificationUserIdDesNavigations)
-                    .HasForeignKey(d => d.UserIdDes)
+                    .WithMany(p => p.SocialNotificationUserIdNavigations)
+                    .HasForeignKey(d => d.UserId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_social_notification_user_id_des");
 

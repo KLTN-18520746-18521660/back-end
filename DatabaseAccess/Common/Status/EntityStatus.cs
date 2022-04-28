@@ -24,6 +24,7 @@ namespace DatabaseAccess.Common.Status
     }
 
     public enum EntityStatusType {
+        Invalid                         = -1,
         AdminBaseConfig                 = 0,
         AdminUserRight                  = 1,
         AdminUserRole                   = 2,
@@ -52,6 +53,12 @@ namespace DatabaseAccess.Common.Status
 
         public StatusType Type { get => StatusStringToType(status); }
         public new string ToString() { return status; }
+
+        public EntityStatus()
+        {
+            type = EntityStatusType.Invalid;
+            status = default;
+        }
 
         public EntityStatus(EntityStatusType _type, string _status)
         {

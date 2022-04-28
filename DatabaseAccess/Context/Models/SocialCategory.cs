@@ -186,7 +186,7 @@ namespace DatabaseAccess.Context.Models
                     Describe = "This not a bug this a feature",
                     Slug = "technology",
                     Thumbnail = default,
-                    CreatedTimestamp = DateTime.UtcNow,
+                    CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
                     Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Readonly)
                 },
                 new SocialCategory
@@ -198,7 +198,7 @@ namespace DatabaseAccess.Context.Models
                     Describe = "Do not click to this",
                     Slug = "developer",
                     Thumbnail = default,
-                    CreatedTimestamp = DateTime.UtcNow,
+                    CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
                     Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Readonly)
                 },
                 new SocialCategory
@@ -210,7 +210,7 @@ namespace DatabaseAccess.Context.Models
                     Describe = "Search google to have better solution",
                     Slug = "dicussion",
                     Thumbnail = default,
-                    CreatedTimestamp = DateTime.UtcNow,
+                    CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
                     Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Readonly)
                 },
                 new SocialCategory
@@ -222,7 +222,7 @@ namespace DatabaseAccess.Context.Models
                     Describe = "Nothing in here",
                     Slug = "blog",
                     Thumbnail = default,
-                    CreatedTimestamp = DateTime.UtcNow,
+                    CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
                     Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Readonly)
                 },
                 new SocialCategory
@@ -234,7 +234,7 @@ namespace DatabaseAccess.Context.Models
                     Describe = "Life die have number",
                     Slug = "left",
                     Thumbnail = default,
-                    CreatedTimestamp = DateTime.UtcNow,
+                    CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
                     Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Readonly)
                 }
             };

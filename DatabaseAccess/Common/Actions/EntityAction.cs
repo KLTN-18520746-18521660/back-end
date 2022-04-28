@@ -44,6 +44,13 @@ namespace DatabaseAccess.Common.Actions
             date = DateTime.UtcNow;
         }
 
+        public EntityAction()
+        {
+            type = EntityActionType.InvalidEntity;
+            action = default;
+            date = DateTime.UtcNow;
+        }
+
         public EntityAction(EntityActionType _type, ActionType _action)
         {
             type = _type;

@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Interface;
 using DatabaseAccess.Common.Status;
+using System.Text;
 
 #nullable disable
 
@@ -21,14 +22,14 @@ namespace DatabaseAccess.Context.Models
         [Column("id")]
         public long Id { get; private set; }
         [Required]
-        [Column("user_id")]
-        public Guid UserId { get; set; }
+        [Column("owner")]
+        public Guid Owner { get; set; }
         [Column("post_id")]
-        public long? PostId { get; private set; }
+        public long? PostId { get; set; }
         [Column("comment_id")]
-        public long? CommentId { get; private set; }
-        [Column("user_id_des")]
-        public Guid? UserIdDes { get; set; }
+        public long? CommentId { get; set; }
+        [Column("user_id")]
+        public Guid? UserId { get; set; }
         [NotMapped]
         public EntityStatus Status { get; set; }
         [Required]
@@ -50,16 +51,18 @@ namespace DatabaseAccess.Context.Models
             get { return Content.ToString(); }
             set { Content = JsonConvert.DeserializeObject<JObject>(value); }
         }
+        [Column("last_update_content", TypeName = "timestamp with time zone")]
+        public DateTime? LastUpdateContent { get; set; }
         [Column("created_timestamp", TypeName = "timestamp with time zone")]
         public DateTime CreatedTimestamp { get; private set; }
         [Column("last_modified_timestamp", TypeName = "timestamp with time zone")]
         public DateTime? LastModifiedTimestamp { get; set; }
 
-        [ForeignKey(nameof(UserId))]
+        [ForeignKey(nameof(Owner))]
         [InverseProperty(nameof(SocialUser.SocialNotifications))]
-        public virtual SocialUser User { get; set; }
-        [ForeignKey(nameof(UserIdDes))]
-        [InverseProperty(nameof(SocialUser.SocialNotificationUserIdDesNavigations))]
+        public virtual SocialUser OwnerNavigation { get; set; }
+        [ForeignKey(nameof(UserId))]
+        [InverseProperty(nameof(SocialUser.SocialNotificationUserIdNavigations))]
         public virtual SocialUser UserIdDesNavigation { get; set; }
         [ForeignKey(nameof(PostId))]
         [InverseProperty(nameof(SocialPost.SocialNotifications))]
@@ -81,6 +84,7 @@ namespace DatabaseAccess.Context.Models
             Error = "Not Implemented Error";
             return false;
         }
+
 
         public override JObject GetPublicJsonObject(List<string> publicFields = null)
         {

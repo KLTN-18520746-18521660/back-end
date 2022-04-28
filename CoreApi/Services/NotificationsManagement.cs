@@ -47,14 +47,12 @@ namespace CoreApi.Services
         public string TraceId { get; set; }
         public string ActionStr { get; protected set; }
         public NotificationSenderAction Action { get; protected set; }
-        public DateTime DateTimeSend { get; protected set; }
         public BaseNotificationSenderModel()
         {
             __ModelName = "BaseNotificationSenderModel";
         }
         public BaseNotificationSenderModel(NotificationSenderAction action)
         {
-            DateTimeSend = DateTime.UtcNow;
             Action = action;
         }
     }
@@ -149,22 +147,10 @@ namespace CoreApi.Services
 
                         var (post, error) = await __SocialPostManagement.FindPostById(postId);
                         if (error != ErrorCodes.NO_ERROR) {
+                            ret.Add("error", $"ErrorCode: { error }");
                             LogError($"Not found post, PostId: { postId }");
                             break;
                         }
-                        ret.Add("action", modelData.ActionStr);
-                        ret.Add("date_send", modelData.DateTimeSend);
-                        ret.Add("post_owner", new JObject(){
-                            { "id", post.Owner },
-                            { "user_name", post.OwnerNavigation.UserName },
-                            { "display_name", post.OwnerNavigation.DisplayName },
-                            { "avatar", post.OwnerNavigation.Avatar },
-                        });
-                        ret.Add("post_detail", new JObject(){
-                            { "id", post.Id },
-                            { "slug", post.Slug },
-                            { "title", post.Title },
-                        });
                         break;
                     }
                 case NotificationType.ACTION_WITH_COMMENT:
@@ -176,29 +162,10 @@ namespace CoreApi.Services
 
                         var (comment, error) = await __SocialCommentManagement.FindCommentById(commentId);
                         if (error != ErrorCodes.NO_ERROR) {
+                            ret.Add("error", $"ErrorCode: { error }");
                             LogError($"Not found comment, CommentId: { commentId }");
                             break;
                         }
-                        ret.Add("action", modelData.ActionStr);
-                        ret.Add("date_send", modelData.DateTimeSend);
-                        ret.Add("post_owner", new JObject(){
-                            { "id", comment.Post.Owner },
-                            { "user_name", comment.Post.OwnerNavigation.UserName },
-                            { "display_name", comment.Post.OwnerNavigation.DisplayName },
-                            { "avatar", comment.Post.OwnerNavigation.Avatar },
-                        });
-                        ret.Add("post_detail", new JObject(){
-                            { "id", comment.Post.Id },
-                            { "slug", comment.Post.Slug },
-                            { "title", comment.Post.Title },
-                        });
-                        ret.Add("comment_owner", new JObject(){
-                            { "id", comment.Owner },
-                            { "user_name", comment.OwnerNavigation.UserName },
-                            { "display_name", comment.OwnerNavigation.DisplayName },
-                            { "avatar", comment.OwnerNavigation.Avatar },
-                        });
-                        ret.Add("commment_content", comment.Content.Substring(0, comment.Content.Length > 50 ? 50 : comment.Content.Length));
                         break;
                     }
                 case NotificationType.ACTION_WITH_USER:
@@ -210,17 +177,10 @@ namespace CoreApi.Services
 
                         var (user, error) = await __SocialUserManagement.FindUserById(userId);
                         if (error != ErrorCodes.NO_ERROR) {
+                            ret.Add("error", $"ErrorCode: { error }");
                             LogError($"Not found user, UserId: { userId }");
                             break;
                         }
-                        ret.Add("action", modelData.ActionStr);
-                        ret.Add("date_send", modelData.DateTimeSend);
-                        ret.Add("user_des", new JObject(){
-                            { "id", user.Id },
-                            { "user_name", user.UserName },
-                            { "display_name", user.DisplayName },
-                            { "avatar", user.Avatar },
-                        });
                         break;
                     }
                 default:
@@ -237,9 +197,9 @@ namespace CoreApi.Services
                 var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
                 await __DBContext.SocialNotifications.AddAsync(notification);
                 if (await __DBContext.SaveChangesAsync() <= 0) {
-                    LogError($"TraceId: { traceId }, AddNotification failed, owner: { notification.UserId }, type: { notification.Type }, conent: { notification.ContentStr }");
+                    LogError($"TraceId: { traceId }, AddNotification failed, owner: { notification.Owner }, type: { notification.Type }, conent: { notification.ContentStr }");
                 } else {
-                    LogDebug($"TraceId: { traceId }, AddNotification success, owner: { notification.UserId }, type: { notification.Type }, conent: { notification.ContentStr }");
+                    LogDebug($"TraceId: { traceId }, AddNotification success, owner: { notification.Owner }, type: { notification.Type }, conent: { notification.ContentStr }");
                 }
             }
         }
@@ -262,7 +222,7 @@ namespace CoreApi.Services
         {
             var type = NotificationType.ACTION_WITH_POST;
             var dataToDB = await GetValueToDB(type, modelData);
-            if (dataToDB.Count == 0) {
+            if (dataToDB.Count != 0) {
                 LogError($"TraceId: { modelData.TraceId }, Invalid notification data to save to DB. type: { type }");
                 return;
             }
@@ -290,15 +250,17 @@ namespace CoreApi.Services
                         foreach (var userId in userIds) {
                             notifications.Add(new SocialNotification(){
                                 Content = dataToDB,
-                                UserId = userId,
+                                Owner = userId,
                                 Type = modelData.ActionStr,
+                                PostId = modelData.PostId,
                             });
                         }
                         if (!userIds.Contains(post.Owner)) {
                             notifications.Add(new SocialNotification(){
                                 Content = dataToDB,
-                                UserId = post.Owner,
+                                Owner = post.Owner,
                                 Type = modelData.ActionStr,
+                                PostId = modelData.PostId,
                             });
                         }
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
@@ -321,8 +283,9 @@ namespace CoreApi.Services
                         List<SocialNotification> notifications = new List<SocialNotification>();
                         notifications.Add(new SocialNotification(){
                             Content = dataToDB,
-                            UserId = post.Owner,
+                            Owner = post.Owner,
                             Type = modelData.ActionStr,
+                            PostId = modelData.PostId,
                         });
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
                         break;
@@ -336,7 +299,7 @@ namespace CoreApi.Services
         {
             var type = NotificationType.ACTION_WITH_COMMENT;
             var dataToDB = await GetValueToDB(type, modelData);
-            if (dataToDB.Count == 0) {
+            if (dataToDB.Count != 0) {
                 LogError($"TraceId: { modelData.TraceId }, Invalid notification data to save to DB. type: { type }");
                 return;
             }
@@ -354,8 +317,9 @@ namespace CoreApi.Services
                         List<SocialNotification> notifications = new List<SocialNotification>();
                         notifications.Add(new SocialNotification(){
                             Content = dataToDB,
-                            UserId = comment.Owner,
+                            Owner = comment.Owner,
                             Type = modelData.ActionStr,
+                            CommentId = modelData.CommentId,
                         });
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
                         break;
@@ -384,15 +348,17 @@ namespace CoreApi.Services
                         foreach (var userId in userIds) {
                             notifications.Add(new SocialNotification(){
                                 Content = dataToDB,
-                                UserId = userId,
+                                Owner = userId,
                                 Type = modelData.ActionStr,
+                                CommentId = modelData.CommentId,
                             });
                         }
                         if (!userIds.Contains(comment.Post.Owner)) {
                             notifications.Add(new SocialNotification(){
                                 Content = dataToDB,
-                                UserId = comment.Post.Owner,
+                                Owner = comment.Post.Owner,
                                 Type = modelData.ActionStr,
+                                CommentId = modelData.CommentId,
                             });
                         }
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
@@ -411,8 +377,9 @@ namespace CoreApi.Services
                         List<SocialNotification> notifications = new List<SocialNotification>();
                         notifications.Add(new SocialNotification(){
                             Content = dataToDB,
-                            UserId = comment.Parent.Owner,
+                            Owner = comment.Parent.Owner,
                             Type = modelData.ActionStr,
+                            CommentId = modelData.CommentId,
                         });
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
                         await SendNotificationTypeActionWithComment(
@@ -432,7 +399,7 @@ namespace CoreApi.Services
         {
             var type = NotificationType.ACTION_WITH_USER;
             var dataToDB = await GetValueToDB(type, modelData);
-            if (dataToDB.Count == 0) {
+            if (dataToDB.Count != 0) {
                 LogError($"TraceId: { modelData.TraceId }, Invalid notification data to save to DB. type: { type }");
                 return;
             }
@@ -450,8 +417,9 @@ namespace CoreApi.Services
                         List<SocialNotification> notifications = new List<SocialNotification>();
                         notifications.Add(new SocialNotification(){
                             Content = dataToDB,
-                            UserId = user.Id,
+                            Owner = user.Id,
                             Type = modelData.ActionStr,
+                            UserId = modelData.UserId,
                         });
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
                         break;
@@ -487,13 +455,13 @@ namespace CoreApi.Services
         #endregion
 
         #region Handle notifications
-        public async Task<ErrorCodes> DeleteNotification(Guid UserId, long NotificatinId)
+        public async Task<ErrorCodes> DeleteNotification(Guid UserId, long NotificationId)
         {
             using (var scope = __ServiceProvider.CreateScope())
             {
                 var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
                 var notification = await __DBContext.SocialNotifications
-                                        .Where(e => e.Id == NotificatinId && e.UserId == UserId)
+                                        .Where(e => e.Id == NotificationId && e.Owner == UserId)
                                         .FirstOrDefaultAsync();
                 if (notification == default) {
                     return ErrorCodes.NOT_FOUND;
@@ -505,14 +473,14 @@ namespace CoreApi.Services
             }
             return ErrorCodes.NO_ERROR;
         }
-        public async Task<ErrorCodes> MarkNotificationAsRead(Guid UserId, long NotificatinId)
+        public async Task<ErrorCodes> MarkNotificationAsRead(Guid UserId, long NotificationId)
         {
             using (var scope = __ServiceProvider.CreateScope())
             {
                 var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
                 var notification = await __DBContext.SocialNotifications
-                                        .Where(e => e.Id == NotificatinId && e.UserId == UserId)
-                                        .FirstOrDefaultAsync();
+                    .Where(e => e.Id == NotificationId && e.Owner == UserId)
+                    .FirstOrDefaultAsync();
                 if (notification == default) {
                     return ErrorCodes.NOT_FOUND;
                 }
@@ -529,7 +497,8 @@ namespace CoreApi.Services
             {
                 var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
                 await __DBContext.SocialNotifications
-                                        .ForEachAsync(e => e.StatusStr = EntityStatus.StatusTypeToString(StatusType.Read));
+                    .Where(e => e.Owner == UserId)
+                    .ForEachAsync(e => e.StatusStr = EntityStatus.StatusTypeToString(StatusType.Read));
 
                 if (await __DBContext.SaveChangesAsync() < 0) {
                     return ErrorCodes.INTERNAL_SERVER_ERROR;
@@ -548,31 +517,172 @@ namespace CoreApi.Services
             using (var scope = __ServiceProvider.CreateScope())
             {
                 var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
-                var query = (from notification in __DBContext.SocialNotifications
-                                .Where(e => e.UserId == socialUserId
-                                    && ((status.Count() == 0
-                                        && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
-                                        || status.Contains(e.StatusStr)
-                                    )
-                                    && (search_term == default || (search_term != default && e.ContentStr.Contains(search_term)))
-                                )
-                            select notification)
-                            .OrderByDescending(e => e.CreatedTimestamp)
-                            .Skip(start).Take(size);
+                // var all_notification = __DBContext.SocialNotifications
+                //     .Where(e => e.Owner == socialUserId
+                //         && ((status.Count() == 0
+                //             && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
+                //             || status.Contains(e.StatusStr)
+                //         )
+                //         && (search_term == default || (search_term != default && e.ContentStr.Contains(search_term)))
+                //     )
+                //     .Select(e => new { e.Id, e.Owner, e.PostId, e.CommentId, e.UserId });
+                // var valid_postId = __DBContext.SocialPosts
+                //     .Where(p => p.Owner == socialUserId
+                //         || p.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
+                //     )
+                //     .Select(p => p.Id);
+                // var valid_commentId = __DBContext.SocialPosts
+                //     .Where(c => c.Owner == socialUserId
+                //         || c.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                //     )
+                //     .Select(c => c.Id);
+                // var valid_userId = __DBContext.SocialUsers
+                //     .Where(u => u.Id == socialUserId
+                //         || u.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                //     )
+                //     .Select(u => u.Id);
+                
+                // var np = from p in valid_postId
+                //         join _n in all_notification
+                //             on p equals _n.PostId into tmp_np
+                //         from _np in tmp_np.DefaultIfEmpty()
+                //         select new _np.Id ,
+                        
+                var query = __DBContext.SocialNotifications
+                    .Where(e => e.Owner == socialUserId
+                        && ((status.Count() == 0
+                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
+                            || status.Contains(e.StatusStr)
+                        )
+                        && (search_term == default || (search_term != default && e.ContentStr.Contains(search_term)))
+                        && (e.PostId == default || e.Post.Owner == socialUserId
+                            || e.Post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
+                        )
+                        && (e.CommentId == default || e.Comment.Owner == socialUserId
+                            || e.Comment.StatusStr == EntityStatus.StatusTypeToString(StatusType.Deleted)
+                        )
+                        && (e.UserId == default || e.UserId == socialUserId
+                            || e.UserIdDesNavigation.StatusStr == EntityStatus.StatusTypeToString(StatusType.Deleted)
+                        )
+                    )
+                    .OrderByDescending(e => e.CreatedTimestamp)
+                    .Skip(start).Take(size);
 
                 notifications = await query.ToListAsync();
                 totalCount = await __DBContext.SocialNotifications
-                                .CountAsync(e => e.UserId == socialUserId
-                                    && ((status.Count() == 0
-                                        && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
-                                        || status.Contains(e.StatusStr)
-                                    )
-                                    && (search_term == default || (search_term != default && e.ContentStr.Contains(search_term)))
-                                );
+                    .CountAsync(e => e.Owner == socialUserId
+                        && ((status.Count() == 0
+                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
+                            || status.Contains(e.StatusStr)
+                        )
+                        && (search_term == default || (search_term != default && e.ContentStr.Contains(search_term)))
+                        && (e.PostId == default || e.Post.Owner == socialUserId
+                            || e.Post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
+                        )
+                        && (e.CommentId == default || e.Comment.Owner == socialUserId
+                            || e.Comment.StatusStr == EntityStatus.StatusTypeToString(StatusType.Deleted)
+                        )
+                        && (e.UserId == default || e.UserId == socialUserId
+                            || e.UserIdDesNavigation.StatusStr == EntityStatus.StatusTypeToString(StatusType.Deleted)
+                        )
+                    );
+
+                #region Update content notifications
+                var __BaseConfig = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
+                var (intervalTime, error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.NOTIFICATION, SUB_CONFIG_KEY.INTERVAL_TIME);
+                LogWarning(error);
+                var now = DateTime.UtcNow;
+                foreach (var notify in notifications) {
+                    if (notify.LastUpdateContent.HasValue == false
+                        || (now = notify.LastUpdateContent.Value.ToUniversalTime()).Minute > intervalTime
+                    ) {
+                        notify.LastUpdateContent = now;
+                        notify.Content = ProcessingContent(notify);
+                    }
+                }
+                await __DBContext.SaveChangesAsync();
+                #endregion
             }
-            
 
             return (notifications, totalCount);
+        }
+
+        protected JObject ProcessingContent(SocialNotification notify)
+        {
+            var count = notify.UserId != default ? 1 : 0;
+            count += notify.CommentId != default ? 1 : 0;
+            count += notify.PostId != default ? 1 : 0;
+            if (count != 1) {
+                return new JObject(){
+                    { "error", "Invalid notification." }
+                };
+            }
+
+            if (notify.UserId != default) {
+                return new JObject(){
+                    {
+                        "user_des",
+                        new JObject(){
+                            { "user_name", notify.UserIdDesNavigation.UserName },
+                            { "display_name", notify.UserIdDesNavigation.DisplayName },
+                            { "avatar", notify.UserIdDesNavigation.Avatar },
+                        }
+                    }
+                };
+            } else if (notify.CommentId != default) {
+                StringBuilder cmtContent = new StringBuilder(
+                    notify.Comment.Content.Substring(0, notify.Comment.Content.Length > 47 ? 47 : notify.Comment.Content.Length)
+                );
+                cmtContent.Append("...");
+
+                return new JObject(){
+                    {
+                        "post_owner",
+                        new JObject(){
+                            { "user_name", notify.Comment.Post.OwnerNavigation.UserName },
+                            { "display_name", notify.Comment.Post.OwnerNavigation.DisplayName },
+                            { "avatar", notify.Comment.Post.OwnerNavigation.Avatar },
+                        }
+                    },
+                    {
+                        "post_detail",
+                        new JObject(){
+                            { "slug", notify.Comment.Post.Slug },
+                            { "title", notify.Comment.Post.Title },
+                        }
+                    },
+                    {
+                        "comment_owner",
+                        new JObject(){
+                            { "user_name", notify.Comment.OwnerNavigation.UserName },
+                            { "display_name", notify.Comment.OwnerNavigation.DisplayName },
+                            { "avatar", notify.Comment.OwnerNavigation.Avatar },
+                        }
+                    },
+                    { "commment_content", cmtContent.ToString() },
+                };
+            } else if (notify.PostId != default) {
+                return new JObject(){
+                    {
+                        "post_owner",
+                        new JObject(){
+                            { "user_name", notify.Post.OwnerNavigation.UserName },
+                            { "display_name", notify.Post.OwnerNavigation.DisplayName },
+                            { "avatar", notify.Post.OwnerNavigation.Avatar },
+                        }
+                    },
+                    {
+                        "post_detail",
+                        new JObject(){
+                            { "slug", notify.Post.Slug },
+                            { "title", notify.Post.Title },
+                        }
+                    },
+                };
+            }
+            return new JObject(){
+                { "error", "Invalid notification." }
+            };
         }
         #endregion
     }

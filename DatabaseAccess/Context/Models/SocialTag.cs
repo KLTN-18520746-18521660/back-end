@@ -171,7 +171,7 @@ namespace DatabaseAccess.Context.Models
                     Tag = e.tag,
                     Name = e.name,
                     Describe = e.describe,
-                    CreatedTimestamp = DateTime.UtcNow,
+                    CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
                     Status = new EntityStatus(EntityStatusType.SocialTag, StatusType.Readonly),
                 });
             });

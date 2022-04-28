@@ -12,6 +12,7 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using DatabaseAccess.Common;
 using Microsoft.EntityFrameworkCore;
+using Common;
 
 #nullable disable
 
@@ -220,22 +221,20 @@ namespace DatabaseAccess.Context.Models
             return true;
         }
 
-        private static Guid AdminUserId = Guid.NewGuid();
-        private static string AdminUserName = "admin";
         public static List<AdminUser> GetDefaultData()
         {
             List<AdminUser> ListData = new ()
             {
                 new AdminUser() {
-                    Id = AdminUserId,
-                    UserName = "admin",
+                    Id = DBCommon.FIRST_ADMIN_USER_ID,
+                    UserName = DBCommon.FIRST_ADMIN_USER_NAME,
                     DisplayName = "Administrator",
                     Salt = PasswordEncryptor.GenerateSalt(),
-                    Password = AdminUserName,
+                    Password = DBCommon.FIRST_ADMIN_USER_NAME,
                     Email = "admin@admin",
                     Status = new EntityStatus(EntityStatusType.AdminUser, StatusType.Readonly),
                     SettingsStr = "{}",
-                    CreatedTimestamp = DateTime.UtcNow
+                    CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
                 }
             };
             return ListData;
@@ -243,12 +242,12 @@ namespace DatabaseAccess.Context.Models
 
         public static Guid GetAdminUserId()
         {
-            return AdminUserId;
+            return DBCommon.FIRST_ADMIN_USER_ID;
         }
 
         public static string GetAdminUserName()
         {
-            return AdminUserName;
+            return DBCommon.FIRST_ADMIN_USER_NAME;
         }
         #endregion
         #region Handle session user
