@@ -84,14 +84,17 @@ namespace DatabaseAccess.Context.Models
         public virtual ICollection<SocialAuditLog> SocialAuditLogs { get; set; }
         [InverseProperty(nameof(SocialUserAuditLog.UserAdmin))]
         public virtual ICollection<SocialUserAuditLog> SocialUserAuditLogs { get; set; }
+        [InverseProperty(nameof(SocialNotification.ActionOfAdminUserIdNavigation))]
+        public virtual ICollection<SocialNotification> SocialNotificationActionOfAdminUserIdNavigations { get; set; }
 
         public AdminUser() : base()
         {
-            AdminUserRoleOfUsers = new HashSet<AdminUserRoleOfUser>();
-            SessionAdminUsers = new HashSet<SessionAdminUser>();
-            AdminAuditLogs = new HashSet<AdminAuditLog>();
-            SocialAuditLogs = new HashSet<SocialAuditLog>();
-            SocialUserAuditLogs = new HashSet<SocialUserAuditLog>();
+            AdminAuditLogs                                          = new HashSet<AdminAuditLog>();
+            SocialAuditLogs                                         = new HashSet<SocialAuditLog>();
+            SessionAdminUsers                                       = new HashSet<SessionAdminUser>();
+            SocialUserAuditLogs                                     = new HashSet<SocialUserAuditLog>();
+            AdminUserRoleOfUsers                                    = new HashSet<AdminUserRoleOfUser>();
+            SocialNotificationActionOfAdminUserIdNavigations        = new HashSet<SocialNotification>();
             __ModelName = "AdminUser";
             Id = Guid.NewGuid();
             CreatedTimestamp = DateTime.UtcNow;

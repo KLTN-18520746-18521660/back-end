@@ -61,7 +61,7 @@ namespace CoreApi.Controllers.Social.Comment
                                                           [FromQuery] int start = 0,
                                                           [FromQuery] int size = 20,
                                                           [FromQuery] string search_term = default,
-                                                          [FromQuery] string[] status = default,
+                                                          [FromQuery] string status = default,
                                                           [FromQuery] Models.OrderModel orders = default)
         {
             if (!LoadConfigSuccess) {
@@ -87,8 +87,9 @@ namespace CoreApi.Controllers.Social.Comment
                         return Problem(400, $"Not allow order field: { it.Item1 }.");
                     }
                 }
+                string[] statusArr = status == default ? default : status.Split(',');
                 if (status != default) {
-                    foreach (var statusStr in status) {
+                    foreach (var statusStr in statusArr) {
                         var statusType = EntityStatus.StatusStringToType(statusStr);
                         if (statusType == default || statusType == StatusType.Deleted) {
                             return Problem(400, $"Invalid status: { statusStr }.");
@@ -145,7 +146,7 @@ namespace CoreApi.Controllers.Social.Comment
                         start,
                         size,
                         search_term,
-                        status,
+                        statusArr,
                         combineOrders
                     );
                 if (error != ErrorCodes.NO_ERROR) {
@@ -176,7 +177,7 @@ namespace CoreApi.Controllers.Social.Comment
                             0,
                             2,
                             search_term,
-                            status,
+                            statusArr,
                             combineOrders
                         );
                     replyComments.ForEach(e => {

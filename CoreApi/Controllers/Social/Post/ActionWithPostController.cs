@@ -174,7 +174,9 @@ namespace CoreApi.Controllers.Social.Post
                 if (notificationAction != NotificationSenderAction.INVALID_ACTION) {
                     await __NotificationsManagement.SendNotification(
                         NotificationType.ACTION_WITH_POST,
-                        new PostNotificationModel(notificationAction){
+                        new PostNotificationModel(notificationAction,
+                                                  session.UserId,
+                                                  default){
                             PostId = post.Id,
                         }
                     );

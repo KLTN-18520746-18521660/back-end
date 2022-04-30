@@ -187,7 +187,9 @@ namespace CoreApi.Controllers.Admin.Post
                 LogInformation($"RejectPost success, post_id: { post_id }");
                 await __NotificationsManagement.SendNotification(
                     NotificationType.ACTION_WITH_POST,
-                    new PostNotificationModel(NotificationSenderAction.REJECT_POST){
+                    new PostNotificationModel(NotificationSenderAction.REJECT_POST,
+                                              default,
+                                              session.UserId){
                         PostId = post.Id,
                     }
                 );

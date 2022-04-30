@@ -193,7 +193,9 @@ namespace CoreApi.Controllers.Social.Post
                 LogInformation($"Add new post successfully, user_name: { session.User.UserName }, post_id: { post.Id }");
                 await __NotificationsManagement.SendNotification(
                     NotificationType.ACTION_WITH_POST,
-                    new PostNotificationModel(NotificationSenderAction.NEW_POST){
+                    new PostNotificationModel(NotificationSenderAction.NEW_POST,
+                                              session.UserId,
+                                              default){
                         PostId = post.Id,
                     }
                 );

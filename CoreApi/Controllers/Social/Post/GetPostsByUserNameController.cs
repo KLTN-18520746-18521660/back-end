@@ -108,10 +108,10 @@ namespace CoreApi.Controllers.Social.Post
                                                             [FromQuery] int start = 0,
                                                             [FromQuery] int size = 20,
                                                             [FromQuery] string search_term = default,
-                                                            [FromQuery] string[] status = default,
+                                                            [FromQuery] string status = default,
                                                             [FromQuery] Models.OrderModel orders = default,
-                                                            [FromQuery] string[] tags = default,
-                                                            [FromQuery] string[] categories = default)
+                                                            [FromQuery] string tags = default,
+                                                            [FromQuery] string categories = default)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -131,10 +131,12 @@ namespace CoreApi.Controllers.Social.Post
                 if (!orders.IsValid()) {
                     return Problem(400, "Invalid order fields.");
                 }
-                if (categories != default && !await __SocialCategoryManagement.IsExistingCategories(categories)) {
+                string[] categoriesArr = categories == default ? default : categories.Split(',');
+                if (categories != default && !await __SocialCategoryManagement.IsExistingCategories(categoriesArr)) {
                     return Problem(400, "Invalid categories not exists.");
                 }
-                if (tags != default && !await __SocialTagManagement.IsExistsTags(tags)) {
+                string[] tagsArr = tags == default ? default : tags.Split(',');
+                if (tags != default && !await __SocialTagManagement.IsExistsTags(tagsArr)) {
                     return Problem(400, "Invalid tags not exists.");
                 }
                 var combineOrders = orders.GetOrders();
@@ -144,8 +146,9 @@ namespace CoreApi.Controllers.Social.Post
                         return Problem(400, $"Not allow order field: { it.Item1 }.");
                     }
                 }
+                string[] statusArr = status == default ? default : status.Split(',');
                 if (status != default) {
-                    foreach (var statusStr in status) {
+                    foreach (var statusStr in statusArr) {
                         var statusType = EntityStatus.StatusStringToType(statusStr);
                         if (statusType == default || statusType == StatusType.Deleted) {
                             return Problem(400, $"Invalid status: { statusStr }.");
@@ -189,10 +192,10 @@ namespace CoreApi.Controllers.Social.Post
                         start,
                         size,
                         search_term,
-                        status,
+                        statusArr,
                         combineOrders,
-                        tags,
-                        categories
+                        tagsArr,
+                        categoriesArr
                     );
                 if (error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"GetPostsAttachedToUser failed, ErrorCode: { error }");

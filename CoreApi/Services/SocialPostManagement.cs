@@ -850,8 +850,13 @@ namespace CoreApi.Services
             return ErrorCodes.NO_ERROR;
         }
 
-        public async Task<ErrorCodes> AddPendingContent(SocialPost post, SocialPostModifyModel model)
+        public async Task<ErrorCodes> AddPendingContent(long Id, SocialPostModifyModel model)
         {
+            var (post, error) = await FindPostById(Id);
+            if (error != ErrorCodes.NO_ERROR) {
+                return error;
+            }
+
             #region Check data change
             var haveChange = false;
             if (model.title != default && post.Title != model.title) {
@@ -896,11 +901,12 @@ namespace CoreApi.Services
             return ErrorCodes.NO_ERROR;
         }
 
-        public async Task<ErrorCodes> ModifyPost(SocialPost post, SocialPostModifyModel model)
+        protected async Task<ErrorCodes> ModifyPost(SocialPost post, SocialPostModifyModel model, bool approvePost = false)
         {
             using var transaction = await __DBContext.Database.BeginTransactionAsync();
             var __SocialTagManagement = (SocialTagManagement)__ServiceProvider.GetService(typeof(SocialTagManagement));
             var __SocialCategoryManagement = (SocialCategoryManagement)__ServiceProvider.GetService(typeof(SocialCategoryManagement));
+            var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
 
             #region Get data change and save
             var haveChange = false;
@@ -1008,19 +1014,66 @@ namespace CoreApi.Services
             }
             #endregion
             if (!haveChange) {
-                return ErrorCodes.NO_CHANGE_DETECTED;
+                LogWarning($"ModifyPost with no change detected, post_id: { post.Id }");
             }
 
             if (!ok) {
                 LogError($"ModifyPost failed. error: { error }");
                 return ErrorCodes.INTERNAL_SERVER_ERROR;
             }
+
+            if (approvePost) {
+                post.PendingContent = default;
+                post.Status.ChangeStatus(StatusType.Approved);
+                foreach (var it in post.SocialPostTags) {
+                    if (it.Tag.Status.Type == StatusType.Disabled) {
+                        it.Tag.Status.ChangeStatus(StatusType.Enabled);
+                    }
+                }
+            }
+
             post.LastModifiedTimestamp = DateTime.UtcNow;
             ok = await __DBContext.SaveChangesAsync() > 0;
             if (!ok) {
                 LogError($"ModifyPost failed. error: can't update last modified timestamp.");
             }
             await transaction.CommitAsync();
+            return ErrorCodes.NO_ERROR;
+        }
+
+        public async Task<ErrorCodes> ModifyPostNotApproved(long Id, SocialPostModifyModel model)
+        {
+            var (post, error) = await FindPostById(Id);
+            if (error != ErrorCodes.NO_ERROR) {
+                return error;
+            }
+
+            var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
+            error = await ModifyPost(post, model, false);
+            if (error != ErrorCodes.NO_ERROR) {
+                return error;
+            }
+
+            #region Write social audit log
+            (post, error) = await FindPostById(Id);
+            if (error == ErrorCodes.NO_ERROR) {
+                using (var scope = __ServiceProvider.CreateScope())
+                {
+                    var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
+                    var (oldVal, newVal) = Utils.GetDataChanges(oldPost, post.GetJsonObjectForLog());
+                    await __SocialUserAuditLogManagement.AddNewUserAuditLog(
+                        post.GetModelName(),
+                        post.Id.ToString(),
+                        LOG_ACTIONS.MODIFY,
+                        post.Owner,
+                        oldVal,
+                        newVal
+                    );
+                }
+            } else {
+                return ErrorCodes.INTERNAL_SERVER_ERROR;
+            }
+            #endregion
             return ErrorCodes.NO_ERROR;
         }
 
@@ -1043,33 +1096,38 @@ namespace CoreApi.Services
                     }
                 }
 
-                if (await __DBContext.SaveChangesAsync() > 0) {
-                    #region [ADMIN] Write social audit log
-                    (post, error) = await FindPostById(Id);
-                    if (error == ErrorCodes.NO_ERROR) {
-                        using (var scope = __ServiceProvider.CreateScope())
-                        {
-                            var __SocialAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialAuditLogManagement>();
-                            var (oldVal, newVal) = Utils.GetDataChanges(oldPost, post.GetJsonObjectForLog());
-                            await __SocialAuditLogManagement.AddNewAuditLog(
-                                post.GetModelName(),
-                                post.Id.ToString(),
-                                LOG_ACTIONS.CREATE,
-                                AdminUserId,
-                                oldVal,
-                                newVal
-                            );
-                        }
-                    } else {
-                        return ErrorCodes.INTERNAL_SERVER_ERROR;
-                    }
-                    #endregion
-                    return ErrorCodes.NO_ERROR;
+                if (await __DBContext.SaveChangesAsync() <= 0) {
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
                 }
             } else {
-                // [TODO]
+                error = await ModifyPost(post, SocialPostModifyModel.FromJson(Utils.DeepClone(post.PendingContent)), true);
+                if (error != ErrorCodes.NO_ERROR) {
+                    return error;
+                }
             }
-            return ErrorCodes.INTERNAL_SERVER_ERROR;
+
+            #region Write social audit log
+            (post, error) = await FindPostById(Id);
+            if (error == ErrorCodes.NO_ERROR) {
+                using (var scope = __ServiceProvider.CreateScope())
+                {
+                    var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
+                    var (oldVal, newVal) = Utils.GetDataChanges(oldPost, post.GetJsonObjectForLog());
+                    await __SocialUserAuditLogManagement.AddNewUserAuditLog(
+                        post.GetModelName(),
+                        post.Id.ToString(),
+                        LOG_ACTIONS.MODIFY,
+                        post.Owner,
+                        oldVal,
+                        newVal,
+                        AdminUserId
+                    );
+                }
+            } else {
+                return ErrorCodes.INTERNAL_SERVER_ERROR;
+            }
+            #endregion
+            return ErrorCodes.NO_ERROR;
         }
 
         public async Task<ErrorCodes> RejectPost(long Id, Guid AdminUserId)
@@ -1086,15 +1144,16 @@ namespace CoreApi.Services
                 if (error == ErrorCodes.NO_ERROR) {
                     using (var scope = __ServiceProvider.CreateScope())
                     {
-                        var __SocialAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialAuditLogManagement>();
+                        var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
                         var (oldVal, newVal) = Utils.GetDataChanges(oldPost, post.GetJsonObjectForLog());
-                        await __SocialAuditLogManagement.AddNewAuditLog(
+                        await __SocialUserAuditLogManagement.AddNewUserAuditLog(
                             post.GetModelName(),
                             post.Id.ToString(),
-                            LOG_ACTIONS.CREATE,
-                            AdminUserId,
+                            LOG_ACTIONS.MODIFY,
+                            post.Owner,
                             oldVal,
-                            newVal
+                            newVal,
+                            AdminUserId
                         );
                     }
                 } else {
@@ -1127,8 +1186,8 @@ namespace CoreApi.Services
                             post.Id.ToString(),
                             LOG_ACTIONS.CREATE,
                             SocialUser,
-                            oldVal,
-                            newVal
+                            new JObject(),
+                            new JObject()
                         );
                     }
                 } else {

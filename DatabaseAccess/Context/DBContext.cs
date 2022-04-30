@@ -504,6 +504,18 @@ namespace DatabaseAccess.Context
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_social_notification_user_id");
 
+                entity.HasOne(d => d.ActionOfAdminUserIdNavigation)
+                    .WithMany(p => p.SocialNotificationActionOfAdminUserIdNavigations)
+                    .HasForeignKey(d => d.ActionOfAdminUserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_social_notification_action_of_amdin_user_id");
+
+                entity.HasOne(d => d.ActionOfUserIdNavigation)
+                    .WithMany(p => p.SocialNotificationActionOfUserIdNavigations)
+                    .HasForeignKey(d => d.ActionOfUserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_social_notification_action_of_user_id");
+
                 entity.HasOne(d => d.UserIdDesNavigation)
                     .WithMany(p => p.SocialNotificationUserIdNavigations)
                     .HasForeignKey(d => d.UserId)

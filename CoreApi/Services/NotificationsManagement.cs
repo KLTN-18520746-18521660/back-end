@@ -47,20 +47,27 @@ namespace CoreApi.Services
         public string TraceId { get; set; }
         public string ActionStr { get; protected set; }
         public NotificationSenderAction Action { get; protected set; }
+        public Guid? ActionOfUserId { get; protected set; }
+        public Guid? ActionOfAdminUserId { get; protected set; }
         public BaseNotificationSenderModel()
         {
             __ModelName = "BaseNotificationSenderModel";
         }
-        public BaseNotificationSenderModel(NotificationSenderAction action)
+        public BaseNotificationSenderModel(NotificationSenderAction action, Guid? actionOfUserId, Guid? actionOfAdminUserId)
         {
+            if (actionOfAdminUserId == actionOfUserId == default) {
+                throw new Exception("Not exception null userId's action");
+            }
             Action = action;
+            ActionOfUserId = actionOfUserId;
+            ActionOfAdminUserId = actionOfAdminUserId;
         }
     }
 
     public class PostNotificationModel : BaseNotificationSenderModel {
         public long PostId { get; set; }
-        public PostNotificationModel(NotificationSenderAction action)
-            : base(action)
+        public PostNotificationModel(NotificationSenderAction action, Guid? actionOfUserId, Guid? actionOfAdminUserId)
+            : base(action, actionOfUserId, actionOfAdminUserId)
         {
             __ModelName = "PostNotificationModel";
             switch (action) {
@@ -89,8 +96,8 @@ namespace CoreApi.Services
     }
     public class CommentNotificationModel : BaseNotificationSenderModel {
         public long CommentId { get; set; }
-        public CommentNotificationModel(NotificationSenderAction action)
-            : base(action)
+        public CommentNotificationModel(NotificationSenderAction action, Guid? actionOfUserId, Guid? actionOfAdminUserId)
+            : base(action, actionOfUserId, actionOfAdminUserId)
         {
             __ModelName = "CommentNotificationModel";
             switch (action) {
@@ -110,8 +117,8 @@ namespace CoreApi.Services
     }
     public class UserNotificationModel : BaseNotificationSenderModel {
         public Guid UserId { get; set; }
-        public UserNotificationModel(NotificationSenderAction action)
-            : base(action)
+        public UserNotificationModel(NotificationSenderAction action, Guid? actionOfUserId, Guid? actionOfAdminUserId)
+            : base(action, actionOfUserId, actionOfAdminUserId)
         {
             __ModelName = "UserNotificationModel";
             switch (action) {
@@ -249,18 +256,20 @@ namespace CoreApi.Services
                             .ToArray();
                         foreach (var userId in userIds) {
                             notifications.Add(new SocialNotification(){
-                                Content = dataToDB,
-                                Owner = userId,
-                                Type = modelData.ActionStr,
-                                PostId = modelData.PostId,
+                                Content             = dataToDB,
+                                Owner               = userId,
+                                ActionOfUserId      = modelData.ActionOfUserId,
+                                Type                = modelData.ActionStr,
+                                PostId              = modelData.PostId,
                             });
                         }
                         if (!userIds.Contains(post.Owner)) {
                             notifications.Add(new SocialNotification(){
-                                Content = dataToDB,
-                                Owner = post.Owner,
-                                Type = modelData.ActionStr,
-                                PostId = modelData.PostId,
+                                Content             = dataToDB,
+                                Owner               = post.Owner,
+                                ActionOfUserId      = modelData.ActionOfUserId,
+                                Type                = modelData.ActionStr,
+                                PostId              = modelData.PostId,
                             });
                         }
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
@@ -282,10 +291,11 @@ namespace CoreApi.Services
 
                         List<SocialNotification> notifications = new List<SocialNotification>();
                         notifications.Add(new SocialNotification(){
-                            Content = dataToDB,
-                            Owner = post.Owner,
-                            Type = modelData.ActionStr,
-                            PostId = modelData.PostId,
+                            Content             = dataToDB,
+                            Owner               = post.Owner,
+                            ActionOfUserId      = modelData.ActionOfUserId,
+                            Type                = modelData.ActionStr,
+                            PostId              = modelData.PostId,
                         });
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
                         break;
@@ -316,10 +326,11 @@ namespace CoreApi.Services
 
                         List<SocialNotification> notifications = new List<SocialNotification>();
                         notifications.Add(new SocialNotification(){
-                            Content = dataToDB,
-                            Owner = comment.Owner,
-                            Type = modelData.ActionStr,
-                            CommentId = modelData.CommentId,
+                            Content             = dataToDB,
+                            Owner               = comment.Owner,
+                            ActionOfUserId      = modelData.ActionOfUserId,
+                            Type                = modelData.ActionStr,
+                            CommentId           = modelData.CommentId,
                         });
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
                         break;
@@ -347,18 +358,20 @@ namespace CoreApi.Services
                             .ToArray();
                         foreach (var userId in userIds) {
                             notifications.Add(new SocialNotification(){
-                                Content = dataToDB,
-                                Owner = userId,
-                                Type = modelData.ActionStr,
-                                CommentId = modelData.CommentId,
+                                Content             = dataToDB,
+                                Owner               = userId,
+                                ActionOfUserId      = modelData.ActionOfUserId,
+                                Type                = modelData.ActionStr,
+                                CommentId           = modelData.CommentId,
                             });
                         }
                         if (!userIds.Contains(comment.Post.Owner)) {
                             notifications.Add(new SocialNotification(){
-                                Content = dataToDB,
-                                Owner = comment.Post.Owner,
-                                Type = modelData.ActionStr,
-                                CommentId = modelData.CommentId,
+                                Content             = dataToDB,
+                                Owner               = comment.Post.Owner,
+                                ActionOfUserId      = modelData.ActionOfUserId,
+                                Type                = modelData.ActionStr,
+                                CommentId           = modelData.CommentId,
                             });
                         }
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
@@ -383,7 +396,9 @@ namespace CoreApi.Services
                         });
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
                         await SendNotificationTypeActionWithComment(
-                            new CommentNotificationModel(NotificationSenderAction.NEW_COMMENT){
+                            new CommentNotificationModel(NotificationSenderAction.NEW_COMMENT,
+                                                         modelData.ActionOfUserId,
+                                                         modelData.ActionOfAdminUserId){
                                 CommentId = comment.Id,
                                 TraceId = modelData.TraceId
                             }
@@ -416,10 +431,11 @@ namespace CoreApi.Services
 
                         List<SocialNotification> notifications = new List<SocialNotification>();
                         notifications.Add(new SocialNotification(){
-                            Content = dataToDB,
-                            Owner = user.Id,
-                            Type = modelData.ActionStr,
-                            UserId = modelData.UserId,
+                            Content             = dataToDB,
+                            Owner               = user.Id,
+                            ActionOfUserId      = modelData.ActionOfUserId,
+                            Type                = modelData.ActionStr,
+                            UserId              = modelData.UserId,
                         });
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
                         break;
@@ -509,7 +525,6 @@ namespace CoreApi.Services
         public async Task<(List<SocialNotification>, int)> GetNotifications(Guid socialUserId,
                                                                             int start = 0,
                                                                             int size = 20,
-                                                                            string search_term = default,
                                                                             string[] status = default)
         {
             List<SocialNotification> notifications = default;
@@ -517,44 +532,12 @@ namespace CoreApi.Services
             using (var scope = __ServiceProvider.CreateScope())
             {
                 var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
-                // var all_notification = __DBContext.SocialNotifications
-                //     .Where(e => e.Owner == socialUserId
-                //         && ((status.Count() == 0
-                //             && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
-                //             || status.Contains(e.StatusStr)
-                //         )
-                //         && (search_term == default || (search_term != default && e.ContentStr.Contains(search_term)))
-                //     )
-                //     .Select(e => new { e.Id, e.Owner, e.PostId, e.CommentId, e.UserId });
-                // var valid_postId = __DBContext.SocialPosts
-                //     .Where(p => p.Owner == socialUserId
-                //         || p.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
-                //     )
-                //     .Select(p => p.Id);
-                // var valid_commentId = __DBContext.SocialPosts
-                //     .Where(c => c.Owner == socialUserId
-                //         || c.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
-                //     )
-                //     .Select(c => c.Id);
-                // var valid_userId = __DBContext.SocialUsers
-                //     .Where(u => u.Id == socialUserId
-                //         || u.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
-                //     )
-                //     .Select(u => u.Id);
-                
-                // var np = from p in valid_postId
-                //         join _n in all_notification
-                //             on p equals _n.PostId into tmp_np
-                //         from _np in tmp_np.DefaultIfEmpty()
-                //         select new _np.Id ,
-                        
                 var query = __DBContext.SocialNotifications
                     .Where(e => e.Owner == socialUserId
                         && ((status.Count() == 0
                             && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                             || status.Contains(e.StatusStr)
                         )
-                        && (search_term == default || (search_term != default && e.ContentStr.Contains(search_term)))
                         && (e.PostId == default || e.Post.Owner == socialUserId
                             || e.Post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
                         )
@@ -575,7 +558,6 @@ namespace CoreApi.Services
                             && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                             || status.Contains(e.StatusStr)
                         )
-                        && (search_term == default || (search_term != default && e.ContentStr.Contains(search_term)))
                         && (e.PostId == default || e.Post.Owner == socialUserId
                             || e.Post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
                         )

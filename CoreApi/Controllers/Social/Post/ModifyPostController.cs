@@ -2,6 +2,7 @@ using Common;
 using CoreApi.Common;
 using CoreApi.Models.ModifyModels;
 using CoreApi.Services;
+using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -178,12 +179,26 @@ namespace CoreApi.Controllers.Social.Post
                 }
                 #endregion
 
-                error = await __SocialPostManagement.AddPendingContent(post, ModelModify);
+                if (post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)) {
+                    error = await __SocialPostManagement.AddPendingContent(post.Id, ModelModify);
+                } else if (
+                    post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Private)
+                    || post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Pending)
+                ) {
+                    error = await __SocialPostManagement.ModifyPostNotApproved(post.Id, ModelModify);
+                } else {
+                    return Problem(400, $"Not allow modify post has '{ post.StatusStr }'.");
+                }
+
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NO_CHANGE_DETECTED) {
                         return Problem(400, "No change detected.");
                     }
-                    throw new Exception($"AddPendingContent Failed, ErrorCode: { error }"); 
+                    if (post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)) {
+                        throw new Exception($"AddPendingContent Failed, ErrorCode: { error }");
+                    } else {
+                        throw new Exception($"ModifyPostNotApproved Failed, ErrorCode: { error }");
+                    }
                 }
 
                 var ret = post.GetJsonObject();

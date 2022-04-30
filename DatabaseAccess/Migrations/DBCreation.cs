@@ -677,6 +677,8 @@ namespace DatabaseAccess.Migrations
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn),
                     owner = table.Column<Guid>(type: "uuid", nullable: false),
+                    action_of_user_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    action_of_admin_user_id = table.Column<Guid>(type: "uuid", nullable: true),
                     post_id = table.Column<long>(type: "bigint", nullable: true),
                     comment_id = table.Column<long>(type: "bigint", nullable: true),
                     user_id = table.Column<Guid>(type: "uuid", nullable: true),
@@ -692,6 +694,18 @@ namespace DatabaseAccess.Migrations
                     table.PrimaryKey("PK_social_notification", x => x.id);
                     table.CheckConstraint("CK_social_notification_status_valid_value", "status = 'Sent' OR status = 'Read' OR status = 'Deleted'");
                     table.CheckConstraint("CK_social_notification_last_modified_timestamp_valid_value", "(last_modified_timestamp IS NULL) OR (last_modified_timestamp > created_timestamp)");
+                    table.ForeignKey(
+                        name: "FK_social_notification_action_of_amdin_user_id",
+                        column: x => x.action_of_admin_user_id,
+                        principalTable: "admin_user",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_social_notification_action_of_user_id",
+                        column: x => x.action_of_user_id,
+                        principalTable: "social_user",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_social_notification_comment_id",
                         column: x => x.comment_id,
@@ -805,7 +819,7 @@ namespace DatabaseAccess.Migrations
             migrationBuilder.InsertData(
                 table: "admin_user",
                 columns: new[] { "id", "created_timestamp", "display_name", "email", "last_access_timestamp", "salt", "settings", "status", "password", "user_name" },
-                values: new object[] { new Guid("1afc27e9-85c3-4e48-89ab-dd997621ab32"), new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Administrator", "admin@admin", null, "f80b6823", "{}", "Readonly", "48A6F00F5897601027C519ED5049F5AA", "admin" });
+                values: new object[] { new Guid("1afc27e9-85c3-4e48-89ab-dd997621ab32"), new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Administrator", "admin@admin", null, "5b8f88a6", "{}", "Readonly", "E6D2B26A29B297BC60A28C891ABAC464", "admin" });
 
             migrationBuilder.InsertData(
                 table: "admin_user_right",
@@ -1058,6 +1072,16 @@ namespace DatabaseAccess.Migrations
                 table: "social_comment",
                 column: "search_vector")
                 .Annotation("Npgsql:IndexMethod", "GIST");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_social_notification_action_of_admin_user_id",
+                table: "social_notification",
+                column: "action_of_admin_user_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_social_notification_action_of_user_id",
+                table: "social_notification",
+                column: "action_of_user_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_social_notification_comment_id",

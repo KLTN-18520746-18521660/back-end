@@ -24,6 +24,10 @@ namespace DatabaseAccess.Context.Models
         [Required]
         [Column("owner")]
         public Guid Owner { get; set; }
+        [Column("action_of_user_id")]
+        public Guid? ActionOfUserId { get; set; }
+        [Column("action_of_admin_user_id")]
+        public Guid? ActionOfAdminUserId { get; set; }
         [Column("post_id")]
         public long? PostId { get; set; }
         [Column("comment_id")]
@@ -61,6 +65,12 @@ namespace DatabaseAccess.Context.Models
         [ForeignKey(nameof(Owner))]
         [InverseProperty(nameof(SocialUser.SocialNotifications))]
         public virtual SocialUser OwnerNavigation { get; set; }
+        [ForeignKey(nameof(ActionOfUserId))]
+        [InverseProperty(nameof(SocialUser.SocialNotificationActionOfUserIdNavigations))]
+        public virtual SocialUser ActionOfUserIdNavigation { get; set; }
+        [ForeignKey(nameof(ActionOfAdminUserId))]
+        [InverseProperty(nameof(AdminUser.SocialNotificationActionOfAdminUserIdNavigations))]
+        public virtual AdminUser ActionOfAdminUserIdNavigation { get; set; }
         [ForeignKey(nameof(UserId))]
         [InverseProperty(nameof(SocialUser.SocialNotificationUserIdNavigations))]
         public virtual SocialUser UserIdDesNavigation { get; set; }
@@ -91,6 +101,8 @@ namespace DatabaseAccess.Context.Models
             if (publicFields == default) {
                 publicFields = new List<string>(){
                     "id",
+                    "type",
+                    "user_action",
                     "content",
                     "status",
                     "created_timestamp",
@@ -112,6 +124,7 @@ namespace DatabaseAccess.Context.Models
             {
                 { "id", Id },
                 { "user_id", UserId },
+                { "type", Type },
                 { "content", Content },
                 { "status", StatusStr },
                 { "created_timestamp", CreatedTimestamp },
@@ -120,6 +133,35 @@ namespace DatabaseAccess.Context.Models
                 {"__ModelName", __ModelName }
 #endif
             };
+
+            if (ActionOfUserId != default) {
+                __ObjectJson.Add(
+                    "user_action",
+                    new JObject(){
+                        { "user_name", this.ActionOfUserIdNavigation.UserName },
+                        { "display_name", this.ActionOfUserIdNavigation.DisplayName },
+                        { "avatar", this.ActionOfUserIdNavigation.Avatar },
+                        { "status", this.ActionOfUserIdNavigation.StatusStr },
+                        { "admin", false },
+                    }
+                );
+            } else if (ActionOfAdminUserId != default) {
+                __ObjectJson.Add(
+                    "user_action",
+                    new JObject(){
+                        { "user_name", this.ActionOfAdminUserIdNavigation.UserName },
+                        { "display_name", this.ActionOfAdminUserIdNavigation.DisplayName },
+                        { "avatar", default },
+                        { "status", this.ActionOfAdminUserIdNavigation.StatusStr },
+                        { "admin", true },
+                    }
+                );
+            } else {
+                __ObjectJson.Add(
+                    "user_action",
+                    "Invalid user's action information"
+                );
+            }
             return true;
         }
     }

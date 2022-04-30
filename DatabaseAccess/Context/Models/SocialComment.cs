@@ -96,31 +96,6 @@ namespace DatabaseAccess.Context.Models
             }
         }
 
-        public override JObject GetPublicJsonObject(List<string> publicFields = null)
-        {
-            if (publicFields == default) {
-                publicFields = new List<string>() {
-                    "id",
-                    "parent_id",
-                    "owner",
-                    "content",
-                    "status",
-                    "likes",
-                    "dislikes",
-                    "replies",
-                    "last_modified_timestamp",
-                    "created_timestamp",
-                };
-            }
-            var ret = GetJsonObject();
-            foreach (var x in __ObjectJson) {
-                if (!publicFields.Contains(x.Key)) {
-                    ret.Remove(x.Key);
-                }
-            }
-            return ret;
-        }
-
         public int CountLikes()
         {
             return SocialUserActionWithComments.Count(p =>
@@ -147,6 +122,31 @@ namespace DatabaseAccess.Context.Models
             return SocialUserActionWithComments.Count(p =>
                 p.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Reply)) > 0
             );
+        }
+
+        public override JObject GetPublicJsonObject(List<string> publicFields = null)
+        {
+            if (publicFields == default) {
+                publicFields = new List<string>() {
+                    "id",
+                    "parent_id",
+                    "owner",
+                    "content",
+                    "status",
+                    "likes",
+                    "dislikes",
+                    "replies",
+                    "last_modified_timestamp",
+                    "created_timestamp",
+                };
+            }
+            var ret = GetJsonObject();
+            foreach (var x in __ObjectJson) {
+                if (!publicFields.Contains(x.Key)) {
+                    ret.Remove(x.Key);
+                }
+            }
+            return ret;
         }
 
         public override bool PrepareExportObjectJson()
@@ -176,6 +176,18 @@ namespace DatabaseAccess.Context.Models
 #endif
             };
             return true;
+        }
+
+        public override JObject GetJsonObjectForLog() {
+            var ret = new Dictionary<string, object>
+            {
+                { "parent_id",                  ParentId },
+                { "content",                    Content },
+                { "status",                     StatusStr },
+                { "last_modified_timestamp",    LastModifiedTimestamp},
+                { "created_timestamp",          CreatedTimestamp},
+            };
+            return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
         }
 
         public string[] GetActionWithUser(Guid socialUserId) {

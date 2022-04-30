@@ -144,7 +144,9 @@ namespace CoreApi.Controllers.Social.Comment
                 var notifications = new List<(NotificationType, BaseNotificationSenderModel)>{
                     (
                         NotificationType.ACTION_WITH_COMMENT,
-                        new CommentNotificationModel(NotificationSenderAction.NEW_COMMENT){
+                        new CommentNotificationModel(NotificationSenderAction.NEW_COMMENT,
+                                                     session.UserId,
+                                                     default){
                             CommentId = comment.Id
                         }
                     )
@@ -153,7 +155,9 @@ namespace CoreApi.Controllers.Social.Comment
                     notifications.Add(
                         (
                             NotificationType.ACTION_WITH_COMMENT,
-                            new CommentNotificationModel(NotificationSenderAction.REPLY_COMMENT){
+                            new CommentNotificationModel(NotificationSenderAction.REPLY_COMMENT,
+                                                         session.UserId,
+                                                         default){
                                 CommentId = comment.Id
                             }
                         )

@@ -284,7 +284,7 @@ namespace CoreApi.Services
             #endregion
 
             if (await __DBContext.SaveChangesAsync() > 0) {
-                #region [SOCIAL] Write user activity
+                #region [SOCIAL] Write user audit log
                 (var user, var error) = await FindUserById(NewUser.Id);
                 if (error == ErrorCodes.NO_ERROR) {
                     await __SocialUserAuditLogManagement.AddNewUserAuditLog(
@@ -293,7 +293,7 @@ namespace CoreApi.Services
                         LOG_ACTIONS.CREATE,
                         user.Id,
                         new JObject(),
-                        user.GetJsonObject()
+                        user.GetJsonObjectForLog()
                     );
                 } else {
                     return ErrorCodes.INTERNAL_SERVER_ERROR;
@@ -310,6 +310,7 @@ namespace CoreApi.Services
             if (error != ErrorCodes.NO_ERROR) {
                 return error;
             }
+            var oldUser = Utils.DeepClone(user.GetJsonObjectForLog());
             #region Get data change and save
             var haveChange = false;
             if (modelModify.user_name != default) {
@@ -377,6 +378,22 @@ namespace CoreApi.Services
             }
 
             if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [SOCIAL] Write user audit log
+                (user, error) = await FindUserById(user.Id);
+                var (oldVal, newVal) = Utils.GetDataChanges(oldUser, user.GetJsonObjectForLog());
+                if (error == ErrorCodes.NO_ERROR) {
+                    await __SocialUserAuditLogManagement.AddNewUserAuditLog(
+                        user.GetModelName(),
+                        user.Id.ToString(),
+                        LOG_ACTIONS.MODIFY,
+                        user.Id,
+                        oldVal,
+                        newVal
+                    );
+                } else {
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+                #endregion
                 return ErrorCodes.NO_ERROR;
             }
             return ErrorCodes.INTERNAL_SERVER_ERROR;
@@ -412,6 +429,7 @@ namespace CoreApi.Services
                 return Error;
             }
             #endregion
+            var oldUser = Utils.DeepClone(User.GetJsonObjectForLog());
 
             if (User.Status.Type == StatusType.Deleted) {
                 return ErrorCodes.DELETED;
@@ -432,6 +450,22 @@ namespace CoreApi.Services
             User.VerifiedEmail = true;
 
             if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [SOCIAL] Write user audit log
+                (User, Error) = await FindUserById(Id);
+                var (oldVal, newVal) = Utils.GetDataChanges(oldUser, User.GetJsonObjectForLog());
+                if (Error == ErrorCodes.NO_ERROR) {
+                    await __SocialUserAuditLogManagement.AddNewUserAuditLog(
+                        User.GetModelName(),
+                        User.Id.ToString(),
+                        LOG_ACTIONS.MODIFY,
+                        User.Id,
+                        oldVal,
+                        newVal
+                    );
+                } else {
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+                #endregion
                 return ErrorCodes.NO_ERROR;
             }
             return ErrorCodes.INTERNAL_SERVER_ERROR;

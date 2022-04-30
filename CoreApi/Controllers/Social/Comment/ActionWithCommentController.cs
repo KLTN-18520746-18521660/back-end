@@ -159,7 +159,9 @@ namespace CoreApi.Controllers.Social.Comment
                 if (notificationAction != NotificationSenderAction.INVALID_ACTION) {
                     await __NotificationsManagement.SendNotification(
                         NotificationType.ACTION_WITH_COMMENT,
-                        new CommentNotificationModel(notificationAction){
+                        new CommentNotificationModel(notificationAction,
+                                                     session.UserId,
+                                                     default){
                             CommentId = comment.Id
                         }
                     );

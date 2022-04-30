@@ -132,6 +132,8 @@ namespace DatabaseAccess.Context.Models
         public virtual ICollection<SocialComment> SocialComments { get; set; }
         [InverseProperty(nameof(SocialNotification.OwnerNavigation))]
         public virtual ICollection<SocialNotification> SocialNotifications { get; set; }
+        [InverseProperty(nameof(SocialNotification.ActionOfUserIdNavigation))]
+        public virtual ICollection<SocialNotification> SocialNotificationActionOfUserIdNavigations { get; set; }
         [InverseProperty(nameof(SocialNotification.UserIdDesNavigation))]
         public virtual ICollection<SocialNotification> SocialNotificationUserIdNavigations { get; set; }
         [InverseProperty(nameof(SocialPost.OwnerNavigation))]
@@ -155,20 +157,21 @@ namespace DatabaseAccess.Context.Models
 
         public SocialUser()
         {
-            SessionSocialUsers = new HashSet<SessionSocialUser>();
-            SocialUserAuditLogs = new HashSet<SocialUserAuditLog>();
-            SocialComments = new HashSet<SocialComment>();
-            SocialNotifications = new HashSet<SocialNotification>();
-            SocialNotificationUserIdNavigations = new HashSet<SocialNotification>();
-            SocialPosts = new HashSet<SocialPost>();
-            SocialReports = new HashSet<SocialReport>();
-            SocialUserActionWithCategories = new HashSet<SocialUserActionWithCategory>();
-            SocialUserActionWithComments = new HashSet<SocialUserActionWithComment>();
-            SocialUserActionWithPosts = new HashSet<SocialUserActionWithPost>();
-            SocialUserActionWithTags = new HashSet<SocialUserActionWithTag>();
-            SocialUserActionWithUserUserIdDesNavigations = new HashSet<SocialUserActionWithUser>();
-            SocialUserActionWithUserUsers = new HashSet<SocialUserActionWithUser>();
-            SocialUserRoleOfUsers = new HashSet<SocialUserRoleOfUser>();
+            SocialPosts                                     = new HashSet<SocialPost>();
+            SocialReports                                   = new HashSet<SocialReport>();
+            SocialComments                                  = new HashSet<SocialComment>();
+            SessionSocialUsers                              = new HashSet<SessionSocialUser>();
+            SocialUserAuditLogs                             = new HashSet<SocialUserAuditLog>();
+            SocialNotifications                             = new HashSet<SocialNotification>();
+            SocialUserRoleOfUsers                           = new HashSet<SocialUserRoleOfUser>();
+            SocialUserActionWithTags                        = new HashSet<SocialUserActionWithTag>();
+            SocialUserActionWithPosts                       = new HashSet<SocialUserActionWithPost>();
+            SocialUserActionWithComments                    = new HashSet<SocialUserActionWithComment>();
+            SocialUserActionWithUserUsers                   = new HashSet<SocialUserActionWithUser>();
+            SocialUserActionWithCategories                  = new HashSet<SocialUserActionWithCategory>();
+            SocialNotificationUserIdNavigations             = new HashSet<SocialNotification>();
+            SocialNotificationActionOfUserIdNavigations     = new HashSet<SocialNotification>();
+            SocialUserActionWithUserUserIdDesNavigations    = new HashSet<SocialUserActionWithUser>();
 
             __ModelName = "SocialUser";
             Id = Guid.NewGuid();
@@ -290,6 +293,30 @@ namespace DatabaseAccess.Context.Models
             };
         }
 
+        public override JObject GetJsonObjectForLog() {
+            var ret = new Dictionary<string, object>
+            {
+                { "first_name",             FirstName },
+                { "last_name",              LastName },
+                { "display_name",           DisplayName },
+                { "user_name",              UserName },
+                { "email",                  Email },
+                { "description",            Description },
+                { "sex",                    Sex },
+                { "phone",                  Phone },
+                { "country",                Country },
+                { "city",                   City },
+                { "province",               Province },
+                { "verified_email",         VerifiedEmail },
+                { "avatar",                 Avatar },
+                { "status",                 StatusStr },
+                { "publics",                Publics },
+                { "password",               "*********" },
+                { "created_timestamp",      CreatedTimestamp },
+            };
+            return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
+        }
+
         #region Handle default data
         public int CountPosts()
         {
@@ -408,7 +435,7 @@ namespace DatabaseAccess.Context.Models
 
             return rights;
         }
-        
+
         public string[] GetActionWithUser(Guid socialUserId) {
             var action = this.SocialUserActionWithUserUsers
                 .Where(e => e.UserId == socialUserId)

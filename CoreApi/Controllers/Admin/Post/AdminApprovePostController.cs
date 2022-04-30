@@ -194,7 +194,9 @@ namespace CoreApi.Controllers.Admin.Post
 
                 await __NotificationsManagement.SendNotification(
                     NotificationType.ACTION_WITH_POST,
-                    new PostNotificationModel(NotificationSenderAction.APPROVE_POST){
+                    new PostNotificationModel(NotificationSenderAction.APPROVE_POST,
+                                              default,
+                                              session.UserId){
                         PostId = post.Id,
                     }
                 );

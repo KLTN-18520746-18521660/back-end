@@ -152,7 +152,9 @@ namespace CoreApi.Controllers.Social.User
                 if (notificationAction != NotificationSenderAction.INVALID_ACTION) {
                     await __NotificationsManagement.SendNotification(
                         NotificationType.ACTION_WITH_USER,
-                        new UserNotificationModel(notificationAction){
+                        new UserNotificationModel(notificationAction,
+                                                  session.UserId,
+                                                  default){
                             UserId = user_des.Id
                         }
                     );

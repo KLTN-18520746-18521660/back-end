@@ -70,8 +70,8 @@ namespace CoreApi.Controllers.Social.Post
                                                           [FromQuery] int start = 0,
                                                           [FromQuery] int size = 20,
                                                           [FromQuery] string search_term = default,
-                                                          [FromQuery] string[] tags = default,
-                                                          [FromQuery] string[] categories = default)
+                                                          [FromQuery] string tags = default,
+                                                          [FromQuery] string categories = default)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -88,10 +88,12 @@ namespace CoreApi.Controllers.Social.Post
                 if (!AllowTimeTrending.Contains(time)) {
                     return Problem(400, "Invalid trending time");
                 }
-                if (categories != default && !await __SocialCategoryManagement.IsExistingCategories(categories)) {
+                string[] categoriesArr = categories == default ? default : categories.Split(',');
+                if (categories != default && !await __SocialCategoryManagement.IsExistingCategories(categoriesArr)) {
                     return Problem(400, "Invalid categories not exists.");
                 }
-                if (tags != default && !await __SocialTagManagement.IsExistsTags(tags)) {
+                string[] tagsArr = tags == default ? default : tags.Split(',');
+                if (tags != default && !await __SocialTagManagement.IsExistsTags(tagsArr)) {
                     return Problem(400, "Invalid tags not exists.");
                 }
                 #endregion
@@ -125,8 +127,8 @@ namespace CoreApi.Controllers.Social.Post
                         start,
                         size,
                         search_term,
-                        tags,
-                        categories
+                        tagsArr,
+                        categoriesArr
                     );
                 if (error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"GetTrendingPosts failed, ErrorCode: { error }");

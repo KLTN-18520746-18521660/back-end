@@ -322,11 +322,23 @@ namespace DatabaseAccess.Context.Models
             };
             return true;
         }
+
         public override JObject GetJsonObjectForLog() {
-            var ret = base.GetJsonObjectForLog();
-            var removeFields = new List<string>(){"views", "likes", "dislikes", "comments", "owner"};
-            removeFields.ForEach(r => ret.Remove(r));
-            return ret;
+            var ret = new Dictionary<string, object>
+            {
+                { "title", Title },
+                { "slug", Slug },
+                { "thumbnail", Thumbnail },
+                { "time_read", TimeRead },
+                { "tags", Tags },
+                { "categories", Categories },
+                { "short_content", ShortContent },
+                { "status", StatusStr },
+                { "approved_timestamp", CreatedTimestamp },
+                { "last_modified_timestamp", LastModifiedTimestamp },
+                { "have_pending_content", PendingContent != default },
+            };
+            return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
         }
 
         public string[] GetActionWithUser(Guid socialUserId) {

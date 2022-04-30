@@ -266,10 +266,10 @@ namespace DatabaseAccess.Migrations
                             CreatedTimestamp = new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc),
                             DisplayName = "Administrator",
                             Email = "admin@admin",
-                            Salt = "f80b6823",
+                            Salt = "5b8f88a6",
                             SettingsStr = "{}",
                             StatusStr = "Readonly",
-                            StorePassword = "48A6F00F5897601027C519ED5049F5AA",
+                            StorePassword = "E6D2B26A29B297BC60A28C891ABAC464",
                             UserName = "admin"
                         });
                 });
@@ -962,6 +962,14 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("id")
                         .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn);
 
+                    b.Property<Guid?>("ActionOfAdminUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("action_of_admin_user_id");
+
+                    b.Property<Guid?>("ActionOfUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("action_of_user_id");
+
                     b.Property<long?>("CommentId")
                         .HasColumnType("bigint")
                         .HasColumnName("comment_id");
@@ -1014,6 +1022,10 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ActionOfAdminUserId");
+
+                    b.HasIndex("ActionOfUserId");
 
                     b.HasIndex("CommentId");
 
@@ -2224,6 +2236,16 @@ namespace DatabaseAccess.Migrations
 
             modelBuilder.Entity("DatabaseAccess.Context.Models.SocialNotification", b =>
                 {
+                    b.HasOne("DatabaseAccess.Context.Models.AdminUser", "ActionOfAdminUserIdNavigation")
+                        .WithMany("SocialNotificationActionOfAdminUserIdNavigations")
+                        .HasForeignKey("ActionOfAdminUserId")
+                        .HasConstraintName("FK_social_notification_action_of_amdin_user_id");
+
+                    b.HasOne("DatabaseAccess.Context.Models.SocialUser", "ActionOfUserIdNavigation")
+                        .WithMany("SocialNotificationActionOfUserIdNavigations")
+                        .HasForeignKey("ActionOfUserId")
+                        .HasConstraintName("FK_social_notification_action_of_user_id");
+
                     b.HasOne("DatabaseAccess.Context.Models.SocialComment", "Comment")
                         .WithMany("SocialNotifications")
                         .HasForeignKey("CommentId")
@@ -2244,6 +2266,10 @@ namespace DatabaseAccess.Migrations
                         .WithMany("SocialNotificationUserIdNavigations")
                         .HasForeignKey("UserId")
                         .HasConstraintName("FK_social_notification_user_id_des");
+
+                    b.Navigation("ActionOfAdminUserIdNavigation");
+
+                    b.Navigation("ActionOfUserIdNavigation");
 
                     b.Navigation("Comment");
 
@@ -2488,6 +2514,8 @@ namespace DatabaseAccess.Migrations
 
                     b.Navigation("SocialAuditLogs");
 
+                    b.Navigation("SocialNotificationActionOfAdminUserIdNavigations");
+
                     b.Navigation("SocialUserAuditLogs");
                 });
 
@@ -2550,6 +2578,8 @@ namespace DatabaseAccess.Migrations
                     b.Navigation("SessionSocialUsers");
 
                     b.Navigation("SocialComments");
+
+                    b.Navigation("SocialNotificationActionOfUserIdNavigations");
 
                     b.Navigation("SocialNotifications");
 

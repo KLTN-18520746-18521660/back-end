@@ -184,7 +184,9 @@ namespace CoreApi.Controllers.Social.Post
                 }
                 await __NotificationsManagement.SendNotification(
                     NotificationType.ACTION_WITH_POST,
-                    new PostNotificationModel(NotificationSenderAction.DELETE_POST){
+                    new PostNotificationModel(NotificationSenderAction.DELETE_POST,
+                                              session.UserId,
+                                              default){
                         PostId = post.Id,
                     }
                 );

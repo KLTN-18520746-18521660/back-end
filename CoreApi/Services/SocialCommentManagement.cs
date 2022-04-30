@@ -248,6 +248,18 @@ namespace CoreApi.Services
                         await scope.ServiceProvider.GetRequiredService<SocialCommentManagement>()
                             .Reply(Comment.Id, Comment.Owner);
                     }
+
+                    #region Write log
+                    var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
+                    await __SocialUserAuditLogManagement.AddNewUserAuditLog(
+                        Comment.GetModelName(),
+                        Comment.Id.ToString(),
+                        LOG_ACTIONS.CREATE,
+                        Comment.Owner,
+                        new JObject(),
+                        Comment.GetJsonObjectForLog()
+                    );
+                    #endregion
                 }
                 #endregion
                 return ErrorCodes.NO_ERROR;
@@ -263,6 +275,18 @@ namespace CoreApi.Services
                 {
                     await scope.ServiceProvider.GetRequiredService<SocialPostManagement>()
                             .UnComment(Comment.PostId, Comment.Owner);
+
+                    #region Write log
+                    var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
+                    await __SocialUserAuditLogManagement.AddNewUserAuditLog(
+                        Comment.GetModelName(),
+                        Comment.Id.ToString(),
+                        LOG_ACTIONS.DELETE,
+                        Comment.Owner,
+                        new JObject(),
+                        new JObject()
+                    );
+                    #endregion
                 }
                 #endregion
                 return ErrorCodes.NO_ERROR;
@@ -274,10 +298,24 @@ namespace CoreApi.Services
             if (Comment.Content == NewData.content) {
                 return ErrorCodes.NO_CHANGE_DETECTED;
             }
+            var oldComment = Utils.DeepClone(Comment.GetJsonObjectForLog());
             Comment.Status.ChangeStatus(StatusType.Edited);
             Comment.Content = NewData.content;
             Comment.LastModifiedTimestamp = DateTime.UtcNow;
             if (await __DBContext.SaveChangesAsync() > 0) {
+                using (var scope = __ServiceProvider.CreateScope())
+                {
+                    var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
+                    var (oldVal, newVal) = Utils.GetDataChanges(oldComment, Comment.GetJsonObjectForLog());
+                    await __SocialUserAuditLogManagement.AddNewUserAuditLog(
+                        Comment.GetModelName(),
+                        Comment.Id.ToString(),
+                        LOG_ACTIONS.MODIFY,
+                        Comment.Owner,
+                        oldVal,
+                        newVal
+                    );
+                }
                 return ErrorCodes.NO_ERROR;
             }
             return ErrorCodes.INTERNAL_SERVER_ERROR;

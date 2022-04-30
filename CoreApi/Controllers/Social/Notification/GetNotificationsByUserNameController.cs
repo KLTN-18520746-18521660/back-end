@@ -58,7 +58,6 @@ namespace CoreApi.Controllers.Social.Notification
         /// <param name="session_token"></param>
         /// <param name="start"></param>
         /// <param name="size"></param>
-        /// <param name="search_term"></param>
         /// <param name="status"></param>
         ///
         /// <remarks>
@@ -98,8 +97,7 @@ namespace CoreApi.Controllers.Social.Notification
                                                                     [FromHeader] string session_token,
                                                                     [FromQuery] int start = 0,
                                                                     [FromQuery] int size = 20,
-                                                                    [FromQuery] string search_term = default,
-                                                                    [FromQuery] string[] status = default)
+                                                                    [FromQuery] string status = default)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -110,8 +108,9 @@ namespace CoreApi.Controllers.Social.Notification
             #endregion
             try {
                 #region Validate params
+                string[] statusArr = status == default ? default : status.Split(',');
                 if (status != default) {
-                    foreach (var statusStr in status) {
+                    foreach (var statusStr in statusArr) {
                         var statusType = EntityStatus.StatusStringToType(statusStr);
                         if (statusType == default || statusType == StatusType.Deleted) {
                             return Problem(400, $"Invalid status: { statusStr }.");
@@ -161,14 +160,13 @@ namespace CoreApi.Controllers.Social.Notification
                         session.UserId,
                         start,
                         size,
-                        search_term,
-                        status
+                        statusArr
                     );
                 #endregion
 
                 #region Validate params: start, size, total_size
                 if (totalSize != 0 && start >= totalSize) {
-                    LogWarning($"Invalid request params for get posts, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
+                    LogWarning($"Invalid request params for get posts, start: { start }, size: { size }, total_size: { totalSize }");
                     return Problem(400, $"Invalid request params start: { start }. Total size is { totalSize }");
                 }
                 #endregion
