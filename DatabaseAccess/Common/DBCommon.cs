@@ -10,7 +10,7 @@ namespace Common
 #if DEBUG
         public static readonly Guid FIRST_ADMIN_USER_ID = new Guid("1afc27e9-85c3-4e48-89ab-dd997621ab32");
 #else
-        public static readonly Guid FIRST_ADMIN_USER_ID = new Guid();
+        public static readonly Guid FIRST_ADMIN_USER_ID = Guid.NewGuid();
 #endif
     }
 }

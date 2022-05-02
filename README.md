@@ -55,7 +55,7 @@
 ## Build and Run CoreApi
 > cd CoreApi
 - Base command
-> dotnet run [ssl] [disable-cors] [show-sql-command] [--launch-profile (pro|dev)] [-c (release|debug)]
+> dotnet run [ssl] [disable-cors] [show-sql-command] [drop-db] [--launch-profile (pro|dev)] [-c (release|debug)]
 - debug mode + environment develop
 > dotnet run ssl disable-cors --launch-profile dev -c debug
 - release mode + environment production
