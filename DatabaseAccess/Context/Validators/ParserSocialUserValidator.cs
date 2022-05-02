@@ -140,7 +140,7 @@ namespace DatabaseAccess.Context.Validators
                     .Cascade(CascadeMode.Stop)
                     .NotEmpty()
                         .WithMessage("{PropertyName} is empty.")
-                    .Must(thumbnail => Path.HasExtension(thumbnail))
+                    .Must(avatar => Path.HasExtension(avatar))
                         .WithMessage("{PropertyName} is is invalid.");
             });
         }
