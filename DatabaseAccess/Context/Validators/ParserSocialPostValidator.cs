@@ -2,6 +2,7 @@
 using System;
 using Common;
 using DatabaseAccess.Context.Models;
+using System.IO;
 
 namespace DatabaseAccess.Context.Validators
 {
@@ -31,9 +32,8 @@ namespace DatabaseAccess.Context.Validators
                     .Cascade(CascadeMode.Stop)
                     .NotEmpty()
                         .WithMessage("{PropertyName} is empty.")
-                    .Must(thumbnail => CommonValidate.IsValidUrl(thumbnail))
+                    .Must(thumbnail => Path.HasExtension(thumbnail))
                         .WithMessage("{PropertyName} is is invalid.");
-
             });
 
             RuleFor(entity => entity.content)

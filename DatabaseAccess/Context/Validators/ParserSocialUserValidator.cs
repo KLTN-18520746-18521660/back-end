@@ -142,7 +142,6 @@ namespace DatabaseAccess.Context.Validators
                         .WithMessage("{PropertyName} is empty.")
                     .Must(thumbnail => Path.HasExtension(thumbnail))
                         .WithMessage("{PropertyName} is is invalid.");
-
             });
         }
     }

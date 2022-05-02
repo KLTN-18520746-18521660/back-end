@@ -194,7 +194,6 @@ namespace CoreApi.Models.Validators
                         .WithMessage("{PropertyName} is empty.")
                     .Must(thumbnail => Path.HasExtension(thumbnail))
                         .WithMessage("{PropertyName} is is invalid.");
-
             });
 
             When(entity => entity.publics != default, () => {
