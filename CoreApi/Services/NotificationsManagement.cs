@@ -55,7 +55,7 @@ namespace CoreApi.Services
         }
         public BaseNotificationSenderModel(NotificationSenderAction action, Guid? actionOfUserId, Guid? actionOfAdminUserId)
         {
-            if (actionOfAdminUserId == actionOfUserId == default) {
+            if (actionOfAdminUserId == default && actionOfUserId == default) {
                 throw new Exception("Not exception null userId's action");
             }
             Action = action;

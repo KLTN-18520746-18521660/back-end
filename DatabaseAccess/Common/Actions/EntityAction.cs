@@ -94,6 +94,10 @@ namespace DatabaseAccess.Common.Actions
                         "Follow",
                         "Report",
                     };
+                case EntityActionType.InvalidEntity:
+                    return new string[]{
+                        default,
+                    };
                 default:
                     return default;
             }

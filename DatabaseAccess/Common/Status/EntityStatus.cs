@@ -166,6 +166,10 @@ namespace DatabaseAccess.Common.Status
                         "Deleted",
                         "Blocked",
                     };
+                case EntityStatusType.Invalid:
+                    return new string[]{
+                        default,
+                    };
                 default:
                     return default;
             }
