@@ -64,6 +64,8 @@ namespace CoreApi.Services
                         return (default, default, ErrorCodes.INVALID_PARAMS);
                     }
                 }
+            } else {
+                status = new string[]{};
             }
 
             var ColumnAllowOrder = GetAllowOrderFields(GetCommentAction.GetCommentsAttachedToPost);

@@ -191,7 +191,7 @@ namespace CoreApi.Services
                         break;
                     }
                 default:
-                    throw new Exception($"Invalid type when send notification: { type }");
+                    throw new Exception($"TraceId: { modelData.TraceId }, Invalid type when send notification: { type }");
             }
 
             return ret;
@@ -229,6 +229,7 @@ namespace CoreApi.Services
         {
             var type = NotificationType.ACTION_WITH_POST;
             var dataToDB = await GetValueToDB(type, modelData);
+            LogInformation($"TraceId: { modelData.TraceId }, Received new notification, type = { type }, Action = { modelData.ActionStr }, ActionOfUserId = { modelData.ActionOfUserId }, ActionOfAdminUserId = { modelData.ActionOfAdminUserId }");
             if (dataToDB.Count != 0) {
                 LogError($"TraceId: { modelData.TraceId }, Invalid notification data to save to DB. type: { type }");
                 return;
@@ -303,12 +304,14 @@ namespace CoreApi.Services
                 default:
                     throw new Exception($"TraceId: { modelData.TraceId }, Invalid action with post: { modelData.Action }");
             }
+            LogInformation($"TraceId: { modelData.TraceId }, Handle new notification successfully.");
         }
 
         protected async Task SendNotificationTypeActionWithComment(CommentNotificationModel modelData)
         {
             var type = NotificationType.ACTION_WITH_COMMENT;
             var dataToDB = await GetValueToDB(type, modelData);
+            LogInformation($"TraceId: { modelData.TraceId }, Received new notification, type = { type }, Action = { modelData.ActionStr }, ActionOfUserId = { modelData.ActionOfUserId }, ActionOfAdminUserId = { modelData.ActionOfAdminUserId }");
             if (dataToDB.Count != 0) {
                 LogError($"TraceId: { modelData.TraceId }, Invalid notification data to save to DB. type: { type }");
                 return;
@@ -408,12 +411,14 @@ namespace CoreApi.Services
                 default:
                     throw new Exception($"TraceId: { modelData.TraceId }, Invalid action with comment: { modelData.Action }");
             }
+            LogInformation($"TraceId: { modelData.TraceId }, Handle new notification successfully.");
         }
 
         protected async Task SendNotificationTypeActionWithUser(UserNotificationModel modelData)
         {
             var type = NotificationType.ACTION_WITH_USER;
             var dataToDB = await GetValueToDB(type, modelData);
+            LogInformation($"TraceId: { modelData.TraceId }, Received new notification, type = { type }, Action = { modelData.ActionStr }, ActionOfUserId = { modelData.ActionOfUserId }, ActionOfAdminUserId = { modelData.ActionOfAdminUserId }");
             if (dataToDB.Count != 0) {
                 LogError($"TraceId: { modelData.TraceId }, Invalid notification data to save to DB. type: { type }");
                 return;
@@ -443,22 +448,27 @@ namespace CoreApi.Services
                 default:
                     throw new Exception($"TraceId: { modelData.TraceId }, Invalid action with user: { modelData.Action }");
             }
+            LogInformation($"TraceId: { modelData.TraceId }, Handle new notification successfully.");
         }
 
         public async Task SendNotification(NotificationType type, BaseNotificationSenderModel modelData)
         {
-            switch(type) {
-                case NotificationType.ACTION_WITH_POST:
-                    await SendNotificationTypeActionWithPost(modelData as PostNotificationModel);
-                    break;
-                case NotificationType.ACTION_WITH_COMMENT:
-                    await SendNotificationTypeActionWithComment(modelData as CommentNotificationModel);
-                    break;
-                case NotificationType.ACTION_WITH_USER:
-                    await SendNotificationTypeActionWithUser(modelData as UserNotificationModel);
-                    break;
-                default:
-                    throw new Exception($"Invalid type when send notification: { type }");
+            try {
+                switch(type) {
+                    case NotificationType.ACTION_WITH_POST:
+                        await SendNotificationTypeActionWithPost(modelData as PostNotificationModel);
+                        break;
+                    case NotificationType.ACTION_WITH_COMMENT:
+                        await SendNotificationTypeActionWithComment(modelData as CommentNotificationModel);
+                        break;
+                    case NotificationType.ACTION_WITH_USER:
+                        await SendNotificationTypeActionWithUser(modelData as UserNotificationModel);
+                        break;
+                    default:
+                        throw new Exception($"TraceId: { modelData.TraceId }, Invalid type when send notification: { type }");
+                }
+            } catch (Exception e) {
+                LogError(e.ToString());
             }
         }
 
@@ -529,6 +539,9 @@ namespace CoreApi.Services
         {
             List<SocialNotification> notifications = default;
             int totalCount = default;
+            if (status == default) {
+                status = new string[]{};
+            }
             using (var scope = __ServiceProvider.CreateScope())
             {
                 var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();

@@ -139,7 +139,7 @@ namespace DatabaseAccess.Context.Models
             return true;
         }
 
-        public string[] GetActionWithUser(Guid socialUserId) {
+        public string[] GetActionByUser(Guid socialUserId) {
             var action = this.SocialUserActionWithTags
                 .Where(e => e.UserId == socialUserId)
                 .FirstOrDefault();

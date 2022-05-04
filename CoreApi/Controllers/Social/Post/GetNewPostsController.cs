@@ -146,7 +146,7 @@ namespace CoreApi.Controllers.Social.Post
                 posts.ForEach(e => {
                     var obj = e.GetPublicShortJsonObject();
                     if (IsValidSession) {
-                        obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionWithUser(session.UserId)));
+                        obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionByUser(session.UserId)));
                     }
                     ret.Add(obj);
                 });

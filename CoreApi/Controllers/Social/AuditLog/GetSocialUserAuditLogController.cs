@@ -2,6 +2,7 @@ using Common;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -50,7 +51,64 @@ namespace CoreApi.Controllers.Social.AuditLog
             }
         }
 
-        [HttpGet]
+
+        /// <summary>
+        /// Get social user auditlog
+        /// </summary>
+        /// <param name="__SocialUserManagement"></param>
+        /// <param name="__SocialUserAuditLogManagement"></param>
+        /// <param name="__SessionSocialUserManagement"></param>
+        /// <param name="session_token"></param>
+        /// <param name="type"></param>
+        /// <param name="key"></param>
+        /// <param name="start"></param>
+        /// <param name="size"></param>
+        /// <param name="search_term"></param>
+        /// <returns><b>List social user auditlog</b></returns>
+        ///
+        /// <remarks>
+        /// <b>Using endpoint need:</b>
+        /// 
+        /// - Need header or cookie 'session_token'.
+        /// - User have read permission of 'log'.
+        /// 
+        /// </remarks>
+        ///
+        /// <response code="200">
+        /// <b>Success Case:</b> List auditlogs order by created_date desc.
+        /// </response>
+        /// 
+        /// <response code="400">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>Invalid params start, size</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="401">
+        /// <b>Error case <i>(Server auto send response with will clear cookie 'session_token')</i>, reasons:</b>
+        /// <ul>
+        /// <li>Session has expired.</li>
+        /// <li>Session not found.</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="423">
+        /// <b>Error case, reasons:</b>
+        /// <ul>
+        /// <li>User have been locked.</li>
+        /// </ul>
+        /// </response>
+        /// 
+        /// <response code="500">
+        /// <b>Unexpected case, reason:</b> Internal Server Error.<br/><i>See server log for detail.</i>
+        /// </response>
+        [HttpGet("")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetSocialUserAuditLogSuccessExample))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
+        [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> GetAuditLogs([FromServices] SocialUserManagement __SocialUserManagement,
                                                       [FromServices] SocialUserAuditLogManagement __SocialUserAuditLogManagement,
                                                       [FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
@@ -72,16 +130,19 @@ namespace CoreApi.Controllers.Social.AuditLog
             try {
                 #region Validate params
                 if (start < 0 || size < 1) {
+                    LogDebug($"Bad request params.");
                     return Problem(400, "Bad request params.");
                 }
                 #endregion
                 #region Get session token
+                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     return Problem(401, "Missing header authorization.");
                 }
 
                 if (!CommonValidate.IsValidSessionToken(session_token)) {
+                    LogDebug($"Invalid header authorization.");
                     return Problem(401, "Invalid header authorization.");
                 }
                 #endregion
@@ -92,11 +153,11 @@ namespace CoreApi.Controllers.Social.AuditLog
                 (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
+                        LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session not found.");
                     }
                     if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
+                        LogWarning($"Session has expired, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session has expired.");
                     }
                     if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
@@ -118,12 +179,12 @@ namespace CoreApi.Controllers.Social.AuditLog
 
                 #region Validate params: start, size, total_size
                 if (totalSize != 0 && start >= totalSize) {
-                    LogInformation($"Invalid request params for get audit log, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
+                    LogWarning($"Invalid request params for get audit log, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
                     return Problem(400, $"Invalid request params start: { start }. Total size is { totalSize }");
                 }
                 #endregion
 
-                LogDebug($"Get all auditlog success, user_name: { user.UserName }, start: { start }, size: { size }, search_term: { search_term }");
+                LogInformation($"Get social user auditlogs success, user_name: { user.UserName }, start: { start }, size: { size }, search_term: { search_term }");
                 return Ok(200, "OK", new JObject(){
                     { "logs", ret },
                     { "total_size", totalSize },

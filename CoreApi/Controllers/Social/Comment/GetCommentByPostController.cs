@@ -164,7 +164,7 @@ namespace CoreApi.Controllers.Social.Comment
                 foreach (var comment in comments) {
                     var obj = comment.GetPublicJsonObject();
                     if (IsValidSession) {
-                        obj.Add("actions", Utils.ObjectToJsonToken(comment.GetActionWithUser(session.UserId)));
+                        obj.Add("actions", Utils.ObjectToJsonToken(comment.GetActionByUser(session.UserId)));
                     }
                     #region Handle reply comments
                     List<SocialComment> replyComments = default;
@@ -183,7 +183,7 @@ namespace CoreApi.Controllers.Social.Comment
                     replyComments.ForEach(e => {
                         var childObj = e.GetPublicJsonObject();
                         if (IsValidSession) {
-                            childObj.Add("actions", Utils.ObjectToJsonToken(e.GetActionWithUser(session.UserId)));
+                            childObj.Add("actions", Utils.ObjectToJsonToken(e.GetActionByUser(session.UserId)));
                         }
                         replyRet.Add(childObj);
                     });

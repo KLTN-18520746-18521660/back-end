@@ -71,17 +71,10 @@ namespace CoreApi.Controllers.Admin.Session
         /// </response>
         /// 
         /// <response code="401">
-        /// <b>Error case, reasons:</b>
+        /// <b>Error case <i>(Server auto send response with will clear cookie 'session_token_admin')</i>, reasons:</b>
         /// <ul>
         /// <li>Session has expired.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="403">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>Missing header session_token.</li>
-        /// <li>Header session_token is invalid.</li>
+        /// <li>Session not found.</li>
         /// </ul>
         /// </response>
         /// 
@@ -99,7 +92,6 @@ namespace CoreApi.Controllers.Admin.Session
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ExtensionSessionAdminUserSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
-        [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> ExtensionSession([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
@@ -113,12 +105,14 @@ namespace CoreApi.Controllers.Admin.Session
             #endregion
             try {
                 #region Get session token
+                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     return Problem(401, "Missing header authorization.");
                 }
 
                 if (!CommonValidate.IsValidSessionToken(session_token)) {
+                    LogDebug($"Invalid header authorization.");
                     return Problem(401, "Invalid header authorization.");
                 }
                 #endregion
@@ -130,11 +124,11 @@ namespace CoreApi.Controllers.Admin.Session
 
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
+                        LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session not found.");
                     }
                     if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
+                        LogWarning($"Session has expired, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session has expired.");
                     }
                     if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
@@ -145,7 +139,7 @@ namespace CoreApi.Controllers.Admin.Session
                 }
                 #endregion
 
-                LogDebug($"Session extension success, session_token: { session_token.Substring(0, 15) }");
+                LogInformation($"Session extension success, session_token: { session_token.Substring(0, 15) }");
 
                 #region cookie header
                 CookieOptions option = new CookieOptions();

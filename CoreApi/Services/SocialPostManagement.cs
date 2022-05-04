@@ -102,6 +102,8 @@ namespace CoreApi.Services
                         return (default, default, ErrorCodes.INVALID_PARAMS);
                     }
                 }
+            } else {
+                status = new string[]{};
             }
 
             if (tags == default) {
@@ -938,7 +940,7 @@ namespace CoreApi.Services
             }
             if (ok && model.categories != default) {
                 var old_categories = post.SocialPostCategories.Select(c => c.Category.Name);
-                if (model.categories != old_categories) {
+                if (model.categories.Count(e => old_categories.Contains(e)) == old_categories.Count()) {
                     haveChange = true;
                     __DBContext.SocialPostCategories.RemoveRange(
                         post.SocialPostCategories
@@ -974,7 +976,7 @@ namespace CoreApi.Services
             }
             if (ok && model.tags != default) {
                 var old_tags = post.SocialPostTags.Select(c => c.Tag.Tag);
-                if (model.tags != old_tags) {
+                if (model.tags.Count(e => old_tags.Contains(e)) == old_tags.Count()) {
                     haveChange = true;
                     __DBContext.SocialPostTags.RemoveRange(
                         post.SocialPostTags

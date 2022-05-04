@@ -130,7 +130,7 @@ namespace CoreApi.Controllers.Social.Post
 
                 // Add action if user is valid
                 if (IsValidSession) {
-                    ret.Add("actions", Utils.ObjectToJsonToken(post.GetActionWithUser(session.UserId)));
+                    ret.Add("actions", Utils.ObjectToJsonToken(post.GetActionByUser(session.UserId)));
                 }
                 return Ok(200, "OK", new JObject(){
                     { "post", ret },
@@ -146,10 +146,10 @@ namespace CoreApi.Controllers.Social.Post
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetActionCountPostBySlug([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                                  [FromServices] SocialPostManagement __SocialPostManagement,
-                                                                  [FromRoute] string post_slug,
-                                                                  [FromHeader] string session_token)
+        public async Task<IActionResult> GetStatisticPostBySlug([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                                [FromServices] SocialPostManagement __SocialPostManagement,
+                                                                [FromRoute] string post_slug,
+                                                                [FromHeader] string session_token)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -195,7 +195,7 @@ namespace CoreApi.Controllers.Social.Post
                 }
                 var ret = post.GetPublicStatisticJsonObject();
                 if (IsValidSession) {
-                    ret.Add("actions", Utils.ObjectToJsonToken(post.GetActionWithUser(session.UserId)));
+                    ret.Add("actions", Utils.ObjectToJsonToken(post.GetActionByUser(session.UserId)));
                 }
 
                 return Ok(200, "OK", new JObject(){

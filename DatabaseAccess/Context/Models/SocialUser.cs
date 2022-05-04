@@ -258,19 +258,38 @@ namespace DatabaseAccess.Context.Models
 
         public override JObject GetPublicJsonObject(List<string> publicFields = default)
         {
-            if (publicFields == default) {
-                publicFields = new List<string>();
-                foreach(var item in Publics.ToArray()) {
-                    publicFields.Add(item.ToString());
-                }
-            }
+            var publics = publicFields == default ? Publics.Select(e => e.ToString()).ToArray() : publicFields.ToArray();
             var ret = GetJsonObject();
             foreach (var x in __ObjectJson) {
-                if (!publicFields.Contains(x.Key)) {
+                if (!publics.Contains(x.Key)) {
                     ret.Remove(x.Key);
                 }
             }
             return ret;
+        }
+
+        public JObject GetPublicStatisticInfo(List<string> publicFields = default)
+        {
+            var publics = publicFields == default ? Publics.Select(e => e.ToString()).ToArray() : publicFields.ToArray();
+            var ret = GetStatisticInfo();
+            foreach (var x in __ObjectJson) {
+                if (!publics.Contains(x.Key)) {
+                    ret.Remove(x.Key);
+                }
+            }
+            return ret;
+        }
+
+        public JObject GetStatisticInfo()
+        {
+            return new JObject()
+            {
+                { "ranks", Ranks },
+                { "followers", CountFollowers() },
+                { "posts", CountPosts() },
+                { "views", CountViews() },
+                { "likes", CountLikes() },
+            };
         }
 
         public JArray GetDefaultPublicFields()
@@ -436,8 +455,8 @@ namespace DatabaseAccess.Context.Models
             return rights;
         }
 
-        public string[] GetActionWithUser(Guid socialUserId) {
-            var action = this.SocialUserActionWithUserUsers
+        public string[] GetActionByUser(Guid socialUserId) {
+            var action = this.SocialUserActionWithUserUserIdDesNavigations
                 .Where(e => e.UserId == socialUserId)
                 .FirstOrDefault();
             return action != default ? action.Actions.Select(e => e.action).ToArray() : new string[]{};

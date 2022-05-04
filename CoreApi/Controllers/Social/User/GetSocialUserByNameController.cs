@@ -62,32 +62,33 @@ namespace CoreApi.Controllers.Social.User
             __SocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                bool isSessionInvalid = true;
-                #region Get session token
-                if (session_token == default) {
-                    LogDebug($"Missing header authorization.");
-                    isSessionInvalid = false;
-                }
-
-                if (isSessionInvalid && !CommonValidate.IsValidSessionToken(session_token)) {
-                    LogDebug("Invalid header authorization.");
-                }
-                #endregion
-
                 #region Validate user_name
                 if (user_name == default || user_name == string.Empty || user_name.Length < 4) {
                     return Problem(400, "Invalid user_name.");
                 }
                 #endregion
 
+                bool IsValidSession = true;
+                #region Get session token
+                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
+                if (session_token == default) {
+                    LogDebug($"Missing header authorization.");
+                    IsValidSession = false;
+                }
+
+                if (IsValidSession && !CommonValidate.IsValidSessionToken(session_token)) {
+                    LogDebug("Invalid header authorization.");
+                }
+                #endregion
+
                 #region Find session for use
                 SessionSocialUser session = default;
                 ErrorCodes error = ErrorCodes.NO_ERROR;
-                if (isSessionInvalid) {
+                if (IsValidSession) {
                     (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
 
                     if (error != ErrorCodes.NO_ERROR) {
-                        isSessionInvalid = false;
+                        IsValidSession = false;
                     }
                 }
                 #endregion
@@ -99,12 +100,71 @@ namespace CoreApi.Controllers.Social.User
                 }
                 LogInformation($"Get info user by user_name success, user_name: { user.UserName }");
 
-                var ret = (isSessionInvalid && session.User.Id == user.Id) ? user.GetJsonObject() : user.GetPublicJsonObject();
+                var ret = (IsValidSession && session.User.Id == user.Id) ? user.GetJsonObject() : user.GetPublicJsonObject();
 
-                if (isSessionInvalid) {
-                    ret.Add("actions", Utils.ObjectToJsonToken(user.GetActionWithUser(session.UserId)));
+                if (IsValidSession) {
+                    ret.Add("actions", Utils.ObjectToJsonToken(user.GetActionByUser(session.UserId)));
                 }
 
+                return Ok(200, "OK", new JObject(){
+                    { "user", ret },
+                });
+            } catch (Exception e) {
+                LogError($"Unexpected exception, message: { e.ToString() }");
+                return Problem(500, "Internal Server error.");
+            }
+        }
+
+        [HttpGet("{user_name}/statistic")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
+        [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
+        public async Task<IActionResult> GetStatisticUserByUserName([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                                    [FromServices] SocialUserManagement __SocialUserManagement,
+                                                                    [FromHeader] string session_token,
+                                                                    [FromRoute] string user_name)
+        {
+            if (!LoadConfigSuccess) {
+                return Problem(500, "Internal Server error.");
+            }
+            #region Set TraceId for services
+            __SessionSocialUserManagement.SetTraceId(TraceId);
+            #endregion
+            try {
+                #region Validate user_name
+                if (user_name == default || user_name == string.Empty || user_name.Length < 4) {
+                    return Problem(400, "Invalid user_name.");
+                }
+                #endregion
+
+                bool IsValidSession = false;
+                #region Get session token
+                if (session_token != default) {
+                    IsValidSession = CommonValidate.IsValidSessionToken(session_token);
+                }
+                #endregion
+
+                #region Find session for use
+                SessionSocialUser session = default;
+                ErrorCodes error = ErrorCodes.NO_ERROR;
+                if (IsValidSession) {
+                    (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
+
+                    if (error != ErrorCodes.NO_ERROR) {
+                        IsValidSession = false;
+                    }
+                }
+                #endregion
+
+                SocialUser user = default;
+                (user, error) = await __SocialUserManagement.FindUser(user_name, false);
+                if (error != ErrorCodes.NO_ERROR) {
+                    return Problem(404, "Not found any user.");
+                }
+
+                LogInformation($"Get statistic info user by user_name success, user_name: { user.UserName }");
+                var ret = (IsValidSession && session.User.Id == user.Id) ? user.GetStatisticInfo() : user.GetPublicStatisticInfo();
                 return Ok(200, "OK", new JObject(){
                     { "user", ret },
                 });

@@ -73,6 +73,7 @@ namespace CoreApi.Controllers.Social.Comment
                 #endregion
 
                 #region Get session token
+                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     return Problem(401, "Missing header authorization.");
@@ -175,7 +176,7 @@ namespace CoreApi.Controllers.Social.Comment
                 comment.Post = post;
 
                 var ret = comment.GetPublicJsonObject();
-                ret.Add("actions", Utils.ObjectToJsonToken(comment.GetActionWithUser(session.UserId)));
+                ret.Add("actions", Utils.ObjectToJsonToken(comment.GetActionByUser(session.UserId)));
 
                 return Ok(201, "OK", new JObject(){
                     { "comment", ret },

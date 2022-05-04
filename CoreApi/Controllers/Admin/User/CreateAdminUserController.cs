@@ -77,17 +77,16 @@ namespace CoreApi.Controllers.Admin.User
         /// </response>
         /// 
         /// <response code="401">
-        /// <b>Error case, reasons:</b>
+        /// <b>Error case <i>(Server auto send response with will clear cookie 'session_token_admin')</i>, reasons:</b>
         /// <ul>
         /// <li>Session has expired.</li>
+        /// <li>Session not found.</li>
         /// </ul>
         /// </response>
         /// 
         /// <response code="403">
         /// <b>Error case, reasons:</b>
         /// <ul>
-        /// <li>Missing header session_token.</li>
-        /// <li>Header session_token is invalid.</li>
         /// <li>User doesn't have permission to create admin user.</li>
         /// </ul>
         /// </response>
@@ -123,12 +122,14 @@ namespace CoreApi.Controllers.Admin.User
             #endregion
             try {
                 #region Get session token
+                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     return Problem(401, "Missing header authorization.");
                 }
 
                 if (!CommonValidate.IsValidSessionToken(session_token)) {
+                    LogDebug($"Invalid header authorization.");
                     return Problem(401, "Invalid header authorization.");
                 }
                 #endregion
@@ -137,7 +138,7 @@ namespace CoreApi.Controllers.Admin.User
                 AdminUser newUser = new AdminUser();
                 string Error = string.Empty;
                 if (!newUser.Parse(parser, out Error)) {
-                    LogInformation(Error);
+                    LogWarning(Error);
                     return Problem(400, "Bad request body.");
                 }
                 #endregion
@@ -149,11 +150,11 @@ namespace CoreApi.Controllers.Admin.User
 
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
+                        LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session not found.");
                     }
                     if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
+                        LogWarning($"Session has expired, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session has expired.");
                     }
                     if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
@@ -167,7 +168,7 @@ namespace CoreApi.Controllers.Admin.User
                 #region Check Permission
                 var user = session.User;
                 if (__AdminUserManagement.HaveFullPermission(user.Rights, ADMIN_RIGHTS.ADMIN_USER) == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogInformation($"User doesn't have permission to create admin user, user_name: { user.UserName }");
+                    LogWarning($"User doesn't have permission to create admin user, user_name: { user.UserName }");
                     return Problem(403, "User doesn't have permission to create admin user.");
                 }
                 #endregion
@@ -178,10 +179,10 @@ namespace CoreApi.Controllers.Admin.User
                 if (error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"IsUserExsiting Failed. ErrorCode: { error }");
                 } else if (username_existed) {
-                    LogDebug($"UserName have been used, user_name: { newUser.UserName }");
+                    LogWarning($"UserName have been used, user_name: { newUser.UserName }");
                     return Problem(400, "UserName have been used.");
                 } else if (email_existed) {
-                    LogDebug($"Email have been used, email: { newUser.Email }");
+                    LogWarning($"Email have been used, email: { newUser.Email }");
                     return Problem(400, "Email have been used.");
                 }
                 #endregion

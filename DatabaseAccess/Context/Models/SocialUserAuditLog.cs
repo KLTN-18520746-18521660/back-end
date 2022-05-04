@@ -85,7 +85,6 @@ namespace DatabaseAccess.Context.Models
                     "action",
                     "old_value",
                     "new_value",
-                    "owner",
                     "admin",
                     "timestamp",
                 };

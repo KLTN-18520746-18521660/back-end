@@ -23,7 +23,7 @@ namespace CoreApi.Services
             __ServiceName = "AdminAuditLogManagement";
         }
 
-        public async Task<(List<AdminAuditLog> AuditLogs, int TotalSize)> GetAllAuditLog(int Start, int Size, string SearchTerm = default)
+        public async Task<(List<AdminAuditLog> AuditLogs, int TotalSize)> GetAuditLogs(int Start, int Size, string SearchTerm = default)
         {
             if (SearchTerm == default || SearchTerm == string.Empty) {
                 return 

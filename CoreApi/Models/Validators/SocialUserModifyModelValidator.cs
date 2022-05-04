@@ -202,7 +202,7 @@ namespace CoreApi.Models.Validators
                     .NotNull()
                         .WithMessage("{PropertyName} is null.")
                     .Must(publics => {
-                        return publics.Count(e => RequiredPublics.Contains(e)) != RequiredPublics.Length;
+                        return publics.Count(e => RequiredPublics.Contains(e)) == RequiredPublics.Length;
                     })
                         .WithMessage(
                             string.Format("{0} is missing required field. Required fields: {1}",

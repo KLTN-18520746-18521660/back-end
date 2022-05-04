@@ -107,12 +107,14 @@ namespace CoreApi.Controllers.Admin.Session
             #endregion
             try {
                 #region Get session token
+                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     return Problem(401, "Missing header authorization.");
                 }
 
                 if (!CommonValidate.IsValidSessionToken(session_token)) {
+                    LogDebug($"Invalid header authorization.");
                     return Problem(401, "Invalid header authorization.");
                 }
                 #endregion
@@ -124,11 +126,11 @@ namespace CoreApi.Controllers.Admin.Session
 
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
+                        LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session not found.");
                     }
                     if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
+                        LogWarning($"Session has expired, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session has expired.");
                     }
                     if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
@@ -151,7 +153,7 @@ namespace CoreApi.Controllers.Admin.Session
                 var ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(rawReturn));
                 #endregion
 
-                LogDebug($"Get all session success, user_name: { session.User.UserName }");
+                LogInformation($"Get all session success, user_name: { session.User.UserName }");
                 return Ok(200, "OK", new JObject(){
                     { "sessions", ret },
                 });
@@ -188,17 +190,10 @@ namespace CoreApi.Controllers.Admin.Session
         /// </response>
         /// 
         /// <response code="401">
-        /// <b>Error case, reasons:</b>
+        /// <b>Error case <i>(Server auto send response with will clear cookie 'session_token_admin')</i>, reasons:</b>
         /// <ul>
         /// <li>Session has expired.</li>
-        /// </ul>
-        /// </response>
-        /// 
-        /// <response code="403">
-        /// <b>Error case, reasons:</b>
-        /// <ul>
-        /// <li>Missing header session_token.</li>
-        /// <li>Header session_token is invalid.</li>
+        /// <li>Session not found.</li>
         /// </ul>
         /// </response>
         /// 
@@ -223,7 +218,6 @@ namespace CoreApi.Controllers.Admin.Session
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetSessionAdminUserSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
-        [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
@@ -234,20 +228,26 @@ namespace CoreApi.Controllers.Admin.Session
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
             }
+            #region Set TraceId for services
+            __SessionAdminUserManagement.SetTraceId(TraceId);
+            #endregion
             try {
                 #region Get session token
+                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     return Problem(401, "Missing header authorization.");
                 }
 
                 if (!CommonValidate.IsValidSessionToken(session_token)) {
+                    LogDebug($"Invalid header authorization.");
                     return Problem(401, "Invalid header authorization.");
                 }
                 #endregion
 
                 #region Check param get_session_token
                 if (!CommonValidate.IsValidSessionToken(get_session_token)) {
+                    LogWarning($"Invalid session_token fore get.");
                     return Problem(400, "Invalid header authorization.");
                 }
                 #endregion
@@ -259,11 +259,11 @@ namespace CoreApi.Controllers.Admin.Session
 
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
+                        LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session not found.");
                     }
                     if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
+                        LogWarning($"Session has expired, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session has expired.");
                     }
                     if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
@@ -278,12 +278,12 @@ namespace CoreApi.Controllers.Admin.Session
                 SessionAdminUser ret = default;
                 (ret, error) = await __SessionAdminUserManagement.FindSession(get_session_token);
                 if (error != ErrorCodes.NO_ERROR || ret.UserId != session.UserId) {
-                    LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
+                    LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
                     return Problem(404, "Session not found.");
                 }
                 #endregion
 
-                LogDebug($"Get session success, user_name: { session.User.UserName }, session_token: { get_session_token.Substring(0, 15) }");
+                LogInformation($"Get session success, user_name: { session.User.UserName }, session_token: { get_session_token.Substring(0, 15) }");
                 return Ok(200, "OK", new JObject(){
                     { "session", ret.GetJsonObject() },
                 });

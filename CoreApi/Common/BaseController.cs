@@ -11,6 +11,7 @@ namespace CoreApi.Common
 {
     public static class HEADER_KEYS {
         public static readonly string API_KEY = "session_token";
+        public static readonly string API_KEY_ADMIN = "session_token_admin";
     }
     [Controller]
     [Produces("application/json")]
@@ -27,7 +28,18 @@ namespace CoreApi.Common
         public string TraceId { get => __TraceId; }
         public string ControllerName { get => __ControllerName; }
         public bool LoadConfigSuccess { get => __LoadConfigSuccess; }
-        public bool IsAdminController { get => __IsAdminController; }
+        public bool IsAdminController {
+            get => __IsAdminController;
+            set {
+                __IsAdminController = value;
+                if (value) {
+                    SessionTokenHeaderKey = SessionTokenHeaderKey;
+                } else {
+                    SessionTokenHeaderKey = "session_token";
+                }
+            }
+        }
+        public string SessionTokenHeaderKey { get; private set; }
         #endregion
 
         public BaseController(BaseConfig _BaseConfig)
@@ -36,6 +48,7 @@ namespace CoreApi.Common
             __TraceId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
             __BaseConfig = _BaseConfig;
             __ControllerName = "BaseController";
+            SessionTokenHeaderKey = "session_token";
         }
         [NonAction]
         public virtual void LoadConfig()
@@ -89,6 +102,11 @@ namespace CoreApi.Common
             }
         }
         [NonAction]
+        public string GetValueFromCookie(string Key)
+        {
+            return Request.Cookies[Key];
+        }
+        [NonAction]
         protected ObjectResult Problem(int statusCode, string msg)
         {
             ObjectResult obj = new(new JObject(){
@@ -102,7 +120,7 @@ namespace CoreApi.Common
                 option.Path = "/";
                 option.SameSite = SameSiteMode.Strict;
 
-                Response.Cookies.Append(IsAdminController ? "session_token_admin" : "session_token", string.Empty, option);
+                Response.Cookies.Append(IsAdminController ? SessionTokenHeaderKey : "session_token", string.Empty, option);
             }
             return obj;
         }

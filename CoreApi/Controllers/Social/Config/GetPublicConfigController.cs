@@ -63,6 +63,7 @@ namespace CoreApi.Controllers.Social.Config
             try {
                 bool isSessionInvalid = true;
                 #region Get session token
+                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     isSessionInvalid = false;
@@ -129,6 +130,7 @@ namespace CoreApi.Controllers.Social.Config
 
                 bool isSessionInvalid = false;
                 #region Get session token
+                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                 }

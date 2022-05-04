@@ -75,17 +75,16 @@ namespace CoreApi.Controllers.Admin.User
         /// </response>
         /// 
         /// <response code="401">
-        /// <b>Error case, reasons:</b>
+        /// <b>Error case <i>(Server auto send response with will clear cookie 'session_token_admin')</i>, reasons:</b>
         /// <ul>
         /// <li>Session has expired.</li>
+        /// <li>Session not found.</li>
         /// </ul>
         /// </response>
         /// 
         /// <response code="403">
         /// <b>Error case, reasons:</b>
         /// <ul>
-        /// <li>Missing header session_token.</li>
-        /// <li>Header session_token is invalid.</li>
         /// <li>User doesn't have permission to get admin user.</li>
         /// </ul>
         /// </response>
@@ -121,12 +120,14 @@ namespace CoreApi.Controllers.Admin.User
             #endregion
             try {
                 #region Get session token
+                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     return Problem(401, "Missing header authorization.");
                 }
 
                 if (!CommonValidate.IsValidSessionToken(session_token)) {
+                    LogDebug($"Invalid header authorization.");
                     return Problem(401, "Invalid header authorization.");
                 }
                 #endregion
@@ -138,11 +139,11 @@ namespace CoreApi.Controllers.Admin.User
 
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
+                        LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session not found.");
                     }
                     if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
+                        LogWarning($"Session has expired, session_token: { session_token.Substring(0, 15) }");
                         return Problem(401, "Session has expired.");
                     }
                     if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
@@ -165,7 +166,7 @@ namespace CoreApi.Controllers.Admin.User
                 AdminUser retUser = default;
                 (retUser, error) = await __AdminUserManagement.FindUserById(id);
                 if (error != ErrorCodes.NO_ERROR) {
-                    LogDebug($"User not found by id: { id }");
+                    LogWarning($"User not found by id: { id }");
                     return Problem(404, "User not found.");
                 }
                 #endregion

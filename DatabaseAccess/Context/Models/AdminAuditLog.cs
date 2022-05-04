@@ -74,6 +74,25 @@ namespace DatabaseAccess.Context.Models
             return false;
         }
 
+        public override JObject GetPublicJsonObject(List<string> publicFields = default) {
+            if (publicFields == default) {
+                publicFields = new List<string>() {
+                    "action",
+                    "old_value",
+                    "new_value",
+                    "user",
+                    "timestamp",
+                };
+            }
+            var ret = GetJsonObject();
+            foreach (var x in __ObjectJson) {
+                if (!publicFields.Contains(x.Key)) {
+                    ret.Remove(x.Key);
+                }
+            }
+            return ret;
+        }
+
         public override bool PrepareExportObjectJson()
         {
             __ObjectJson = new Dictionary<string, object>
@@ -84,7 +103,14 @@ namespace DatabaseAccess.Context.Models
                 { "action", Action },
                 { "old_value", OldValue.Data },
                 { "new_value", NewValue.Data },
-                { "user_id", UserId },
+                {
+                    "user",
+                    new JObject(){
+                        { "user_name", this.User.UserName },
+                        { "display_name", this.User.DisplayName },
+                        { "avatar", default },
+                    }
+                },
                 { "timestamp", Timestamp },
 #if DEBUG
                 {"__ModelName", __ModelName }

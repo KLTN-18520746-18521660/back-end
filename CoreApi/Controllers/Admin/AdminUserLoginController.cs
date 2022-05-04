@@ -121,7 +121,7 @@ namespace CoreApi.Controllers.Admin
 
                 #region Compare password
                 if (PasswordEncryptor.EncryptPassword(model.password, user.Salt) != user.Password) {
-                    LogInformation($"Incorrect password user_name: { model.user_name }, isEmail: { isEmail }");
+                    LogWarning($"Incorrect password user_name: { model.user_name }, isEmail: { isEmail }");
                     error = await __AdminUserManagement.HandleLoginFail(user.Id, LOCK_TIME, NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE);
                     if (error != ErrorCodes.NO_ERROR) {
                         throw new Exception($"Handle AdminUseLoginFail failed. ErrorCode: { error }");
@@ -152,7 +152,7 @@ namespace CoreApi.Controllers.Admin
                 option.Path = "/";
                 option.SameSite = SameSiteMode.Strict;
 
-                Response.Cookies.Append("session_token_admin", session.SessionToken, option);
+                Response.Cookies.Append(SessionTokenHeaderKey, session.SessionToken, option);
                 #endregion
 
                 return Ok(200, "OK", new JObject(){

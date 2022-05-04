@@ -190,7 +190,7 @@ namespace DatabaseAccess.Context.Models
             return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
         }
 
-        public string[] GetActionWithUser(Guid socialUserId) {
+        public string[] GetActionByUser(Guid socialUserId) {
             var action = this.SocialUserActionWithComments
                 .Where(e => e.UserId == socialUserId)
                 .FirstOrDefault();

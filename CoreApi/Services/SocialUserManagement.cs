@@ -136,7 +136,7 @@ namespace CoreApi.Services
         public async Task<(bool, bool, ErrorCodes)> IsUserExsiting(string UserName, string Email)
         {
             var count_email = (await __DBContext.SocialUsers
-                    .CountAsync(e => e.Email == UserName
+                    .CountAsync(e => e.Email == Email
                         && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)));
             var count_username = (await __DBContext.SocialUsers
                     .CountAsync(e => e.UserName == UserName
@@ -313,63 +313,71 @@ namespace CoreApi.Services
             var oldUser = Utils.DeepClone(user.GetJsonObjectForLog());
             #region Get data change and save
             var haveChange = false;
-            if (modelModify.user_name != default) {
+            if (modelModify.user_name != default && modelModify.user_name != user.UserName) {
                 user.UserName = modelModify.user_name;
                 haveChange = true;
             }
-            if (modelModify.first_name != default) {
+            if (modelModify.first_name != default && modelModify.first_name != user.FirstName) {
                 user.FirstName = modelModify.first_name;
                 haveChange = true;
             }
-            if (modelModify.last_name != default) {
+            if (modelModify.last_name != default && modelModify.last_name != user.LastName) {
                 user.LastName = modelModify.last_name;
                 haveChange = true;
             }
-            if (modelModify.display_name != default) {
+            if (modelModify.display_name != default && modelModify.display_name != user.DisplayName) {
                 user.DisplayName = modelModify.display_name;
                 haveChange = true;
             }
-            if (modelModify.description != default) {
+            if (modelModify.description != default && modelModify.description != user.Description) {
                 user.Description = modelModify.description;
                 haveChange = true;
             }
-            if (modelModify.email != default) {
+            if (modelModify.email != default && modelModify.email != user.Email) {
                 user.Email = modelModify.email;
                 haveChange = true;
             }
-            if (modelModify.avatar != default) {
+            if (modelModify.avatar != default && modelModify.avatar != user.Avatar) {
                 user.Avatar = modelModify.avatar;
                 haveChange = true;
             }
-            if (modelModify.sex != default) {
+            if (modelModify.sex != default && modelModify.sex != user.Sex) {
                 user.Sex = modelModify.sex;
                 haveChange = true;
             }
-            if (modelModify.phone != default) {
+            if (modelModify.phone != default && modelModify.phone != user.Phone) {
                 user.Phone = modelModify.phone;
                 haveChange = true;
             }
-            if (modelModify.city != default) {
+            if (modelModify.city != default && modelModify.city != user.City) {
                 user.City = modelModify.city;
                 haveChange = true;
             }
-            if (modelModify.province != default) {
+            if (modelModify.province != default && modelModify.province != user.Province) {
                 user.Province = modelModify.province;
                 haveChange = true;
             }
-            if (modelModify.country != default) {
+            if (modelModify.country != default && modelModify.country != user.Country) {
                 user.Country = modelModify.country;
                 haveChange = true;
             }
             if (modelModify.ui_settings != default) {
                 haveChange = true;
                 if (user.Settings.ContainsKey("ui_settings")) {
-                    user.Settings.SelectToken("ui_settings").Replace(Utils.ObjectToJsonToken(modelModify.ui_settings));
+                    if (user.Settings.SelectToken("ui_settings").ToString() != modelModify.ui_settings.ToString()) {
+                        user.Settings.SelectToken("ui_settings").Replace(Utils.ObjectToJsonToken(modelModify.ui_settings));
+                    } else {
+                        haveChange = false;
+                    }
+                } else {
+                    user.Settings.Add("ui_settings", Utils.ObjectToJsonToken(modelModify.ui_settings));
                 }
-                user.Settings.Add("ui_settings", Utils.ObjectToJsonToken(modelModify.ui_settings));
             }
             if (modelModify.publics != default) {
-                user.Publics = JArray.FromObject(modelModify.publics);
+                if (modelModify.publics.Count(e => user.Publics.Contains(e)) != user.Publics.Count()) {
+                    haveChange = true;
+                    user.Publics = JArray.FromObject(modelModify.publics);
+                }
             }
             #endregion
 

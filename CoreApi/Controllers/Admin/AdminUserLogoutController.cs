@@ -64,11 +64,11 @@ namespace CoreApi.Controllers.Admin
         /// </ul>
         /// </response>
         /// 
-        /// <response code="403">
-        /// <b>Error case, reasons:</b>
+        /// <response code="401">
+        /// <b>Error case <i>(Server auto send response with will clear cookie 'session_token_admin')</i>, reasons:</b>
         /// <ul>
-        /// <li>Missing header session_token.</li>
-        /// <li>Header session_token is invalid.</li>
+        /// <li>Session has expired.</li>
+        /// <li>Session not found.</li>
         /// </ul>
         /// </response>
         /// 
@@ -78,7 +78,7 @@ namespace CoreApi.Controllers.Admin
         [HttpPost("")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AdminUserLogoutSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
-        [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> AdminUserLogout([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
                                                          [FromHeader(Name = "session_token_admin")] string session_token)
@@ -91,12 +91,14 @@ namespace CoreApi.Controllers.Admin
             #endregion
             try {
                 #region Get session token
+                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     return Problem(401, "Missing header authorization.");
                 }
 
                 if (!CommonValidate.IsValidSessionToken(session_token)) {
+                    LogDebug($"Invalid header authorization.");
                     return Problem(401, "Invalid header authorization.");
                 }
                 #endregion

@@ -71,6 +71,7 @@ namespace CoreApi.Controllers.Social.Tag
                 #endregion
                 bool IsValidSession = true;
                 #region Get session token
+                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     IsValidSession = false;
@@ -109,7 +110,7 @@ namespace CoreApi.Controllers.Social.Tag
                 tags.ForEach(e => {
                     var obj = e.GetPublicJsonObject();
                     if (IsValidSession) {
-                        obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionWithUser(session.UserId)));
+                        obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionByUser(session.UserId)));
                     }
                     ret.Add(obj);
                 });
@@ -149,6 +150,7 @@ namespace CoreApi.Controllers.Social.Tag
                 #endregion
                 bool IsValidSession = true;
                 #region Get session token
+                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
                 if (session_token == default) {
                     LogDebug($"Missing header authorization.");
                     IsValidSession = false;
@@ -188,7 +190,7 @@ namespace CoreApi.Controllers.Social.Tag
 
                 var ret = findTag.GetPublicJsonObject();
                 if (IsValidSession) {
-                    ret.Add("actions", Utils.ObjectToJsonToken(findTag.GetActionWithUser(session.UserId)));
+                    ret.Add("actions", Utils.ObjectToJsonToken(findTag.GetActionByUser(session.UserId)));
                 }
 
                 LogDebug("GetTagByName success.");
