@@ -260,6 +260,7 @@ namespace CoreApi.Services
                                 Content             = dataToDB,
                                 Owner               = userId,
                                 ActionOfUserId      = modelData.ActionOfUserId,
+                                ActionOfAdminUserId = modelData.ActionOfAdminUserId,
                                 Type                = modelData.ActionStr,
                                 PostId              = modelData.PostId,
                             });
@@ -269,6 +270,7 @@ namespace CoreApi.Services
                                 Content             = dataToDB,
                                 Owner               = post.Owner,
                                 ActionOfUserId      = modelData.ActionOfUserId,
+                                ActionOfAdminUserId = modelData.ActionOfAdminUserId,
                                 Type                = modelData.ActionStr,
                                 PostId              = modelData.PostId,
                             });
@@ -295,6 +297,7 @@ namespace CoreApi.Services
                             Content             = dataToDB,
                             Owner               = post.Owner,
                             ActionOfUserId      = modelData.ActionOfUserId,
+                            ActionOfAdminUserId = modelData.ActionOfAdminUserId,
                             Type                = modelData.ActionStr,
                             PostId              = modelData.PostId,
                         });
@@ -332,6 +335,7 @@ namespace CoreApi.Services
                             Content             = dataToDB,
                             Owner               = comment.Owner,
                             ActionOfUserId      = modelData.ActionOfUserId,
+                            ActionOfAdminUserId = modelData.ActionOfAdminUserId,
                             Type                = modelData.ActionStr,
                             CommentId           = modelData.CommentId,
                         });
@@ -364,6 +368,7 @@ namespace CoreApi.Services
                                 Content             = dataToDB,
                                 Owner               = userId,
                                 ActionOfUserId      = modelData.ActionOfUserId,
+                                ActionOfAdminUserId = modelData.ActionOfAdminUserId,
                                 Type                = modelData.ActionStr,
                                 CommentId           = modelData.CommentId,
                             });
@@ -373,6 +378,7 @@ namespace CoreApi.Services
                                 Content             = dataToDB,
                                 Owner               = comment.Post.Owner,
                                 ActionOfUserId      = modelData.ActionOfUserId,
+                                ActionOfAdminUserId = modelData.ActionOfAdminUserId,
                                 Type                = modelData.ActionStr,
                                 CommentId           = modelData.CommentId,
                             });
@@ -392,10 +398,12 @@ namespace CoreApi.Services
 
                         List<SocialNotification> notifications = new List<SocialNotification>();
                         notifications.Add(new SocialNotification(){
-                            Content = dataToDB,
-                            Owner = comment.Parent.Owner,
-                            Type = modelData.ActionStr,
-                            CommentId = modelData.CommentId,
+                            Content             = dataToDB,
+                            Owner               = comment.Parent.Owner,
+                            ActionOfUserId      = modelData.ActionOfUserId,
+                            ActionOfAdminUserId = modelData.ActionOfAdminUserId,
+                            Type                = modelData.ActionStr,
+                            CommentId           = modelData.CommentId,
                         });
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
                         await SendNotificationTypeActionWithComment(
@@ -439,6 +447,7 @@ namespace CoreApi.Services
                             Content             = dataToDB,
                             Owner               = user.Id,
                             ActionOfUserId      = modelData.ActionOfUserId,
+                            ActionOfAdminUserId = modelData.ActionOfAdminUserId,
                             Type                = modelData.ActionStr,
                             UserId              = modelData.UserId,
                         });
@@ -562,7 +571,9 @@ namespace CoreApi.Services
                         )
                     )
                     .OrderByDescending(e => e.CreatedTimestamp)
-                    .Skip(start).Take(size);
+                    .Skip(start).Take(size)
+                    .Include(e => e.ActionOfAdminUserIdNavigation)
+                    .Include(e => e.ActionOfUserIdNavigation);
 
                 notifications = await query.ToListAsync();
                 totalCount = await __DBContext.SocialNotifications

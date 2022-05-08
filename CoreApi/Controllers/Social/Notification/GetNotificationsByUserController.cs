@@ -17,16 +17,16 @@ namespace CoreApi.Controllers.Social.Notification
 {
     [ApiController]
     [Route("/api/notification")]
-    public class GetNotificationsByUserNameController : BaseController
+    public class GetNotificationsByUserController : BaseController
     {
         #region Config Values
         private int EXTENSION_TIME; // minutes
         private int EXPIRY_TIME; // minute
         #endregion
 
-        public GetNotificationsByUserNameController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public GetNotificationsByUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetNotificationsByUserName";
+            __ControllerName = "GetNotificationsByUser";
             LoadConfig();
         }
 
@@ -91,13 +91,13 @@ namespace CoreApi.Controllers.Social.Notification
         // [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         // [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetNotificationsByUserName([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                                    [FromServices] SocialUserManagement __SocialUserManagement,
-                                                                    [FromServices] NotificationsManagement __NotificationsManagement,
-                                                                    [FromHeader] string session_token,
-                                                                    [FromQuery] int start = 0,
-                                                                    [FromQuery] int size = 20,
-                                                                    [FromQuery] string status = default)
+        public async Task<IActionResult> GetNotificationsByUser([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
+                                                                [FromServices] SocialUserManagement __SocialUserManagement,
+                                                                [FromServices] NotificationsManagement __NotificationsManagement,
+                                                                [FromHeader] string session_token,
+                                                                [FromQuery] int start = 0,
+                                                                [FromQuery] int size = 20,
+                                                                [FromQuery] string status = default)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");

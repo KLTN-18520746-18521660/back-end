@@ -120,7 +120,7 @@ namespace CoreApi.Common
                 option.Path = "/";
                 option.SameSite = SameSiteMode.Strict;
 
-                Response.Cookies.Append(IsAdminController ? SessionTokenHeaderKey : "session_token", string.Empty, option);
+                Response.Cookies.Append(IsAdminController ? "session_token_admin" : "session_token", string.Empty, option);
             }
             return obj;
         }
