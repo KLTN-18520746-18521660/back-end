@@ -536,6 +536,39 @@ namespace CoreApi.Services
             }
             return ErrorCodes.NO_ERROR;
         }
+        public async Task<ErrorCodes> MarkNotificationAsUnRead(Guid UserId, long NotificationId)
+        {
+            using (var scope = __ServiceProvider.CreateScope())
+            {
+                var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
+                var notification = await __DBContext.SocialNotifications
+                    .Where(e => e.Id == NotificationId && e.Owner == UserId)
+                    .FirstOrDefaultAsync();
+                if (notification == default) {
+                    return ErrorCodes.NOT_FOUND;
+                }
+                notification.Status.ChangeStatus(StatusType.Sent);
+                if (await __DBContext.SaveChangesAsync() <= 0) {
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+            }
+            return ErrorCodes.NO_ERROR;
+        }
+        public async Task<ErrorCodes> MarkNotificationsAsUnRead(Guid UserId)
+        {
+            using (var scope = __ServiceProvider.CreateScope())
+            {
+                var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
+                await __DBContext.SocialNotifications
+                    .Where(e => e.Owner == UserId)
+                    .ForEachAsync(e => e.StatusStr = EntityStatus.StatusTypeToString(StatusType.Sent));
+
+                if (await __DBContext.SaveChangesAsync() < 0) {
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+            }
+            return ErrorCodes.NO_ERROR;
+        }
         public async Task<ErrorCodes> MarkNotificationAsRead(Guid UserId, long NotificationId)
         {
             using (var scope = __ServiceProvider.CreateScope())
@@ -667,7 +700,9 @@ namespace CoreApi.Services
                 StringBuilder cmtContent = new StringBuilder(
                     notify.Comment.Content.Substring(0, notify.Comment.Content.Length > 47 ? 47 : notify.Comment.Content.Length)
                 );
-                cmtContent.Append("...");
+                if (notify.Comment.Content.Length > 47) {
+                    cmtContent.Append("...");
+                }
 
                 return new JObject(){
                     {
