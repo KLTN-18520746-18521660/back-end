@@ -184,6 +184,7 @@ namespace CoreApi.Controllers.Admin.Post
 
                 #region Get post info
                 SocialPost post = default;
+                bool isApproveModifyPost = false;
                 (post, error) = await __SocialPostManagement.FindPostById(post_id);
                 if (error != ErrorCodes.NO_ERROR) {
                     if (error == ErrorCodes.NOT_FOUND) {
@@ -192,7 +193,8 @@ namespace CoreApi.Controllers.Admin.Post
                     }
                     throw new Exception($"FindPostById failed. Post_id: { post_id }, ErrorCode: { error} ");
                 }
-                if (__SocialPostManagement.ValidateChangeStatusAction(post.Status.Type, StatusType.Approved) == ErrorCodes.INVALID_ACTION) {
+                isApproveModifyPost = post.PendingContent != default && post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved);
+                if (!isApproveModifyPost && __SocialPostManagement.ValidateChangeStatusAction(post.Status.Type, StatusType.Approved) == ErrorCodes.INVALID_ACTION) {
                     LogWarning($"Not allow change status post, old_status: { post.StatusStr }, new_status: Approved");
                     return Problem(400, "Not allow to approve post.");
                 }
@@ -206,7 +208,7 @@ namespace CoreApi.Controllers.Admin.Post
                 LogInformation($"ApprovePost success, post_id: { post_id }");
                 await __NotificationsManagement.SendNotification(
                     NotificationType.ACTION_WITH_POST,
-                    new PostNotificationModel(NotificationSenderAction.APPROVE_POST,
+                    new PostNotificationModel(isApproveModifyPost ? NotificationSenderAction.APPROVE_MODIFY_POST : NotificationSenderAction.APPROVE_POST,
                                               default,
                                               session.UserId){
                         PostId = post.Id,

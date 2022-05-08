@@ -26,9 +26,9 @@ namespace CoreApi.Services
         NEW_POST                    = 0,
         LIKE_POST                   = 1,
         APPROVE_POST                = 2,
-        REJECT_POST                 = 3,
-        PRIVATE_POST                = 4,
-        DELETE_POST                 = 5,
+        APPROVE_MODIFY_POST         = 3,
+        REJECT_POST                 = 4,
+        REJECT_MODIFY_POST          = 5,
         NEW_COMMENT                 = 6,
         LIKE_COMMENT                = 7,
         REPLY_COMMENT               = 8,
@@ -77,14 +77,14 @@ namespace CoreApi.Services
                 case NotificationSenderAction.APPROVE_POST:
                     ActionStr = "approve-post";
                     break;
+                case NotificationSenderAction.APPROVE_MODIFY_POST:
+                    ActionStr = "approve-modify-post";
+                    break;
                 case NotificationSenderAction.REJECT_POST:
                     ActionStr = "reject-post";
                     break;
-                case NotificationSenderAction.PRIVATE_POST:
-                    ActionStr = "private-post";
-                    break;
-                case NotificationSenderAction.DELETE_POST:
-                    ActionStr = "delete-post";
+                case NotificationSenderAction.REJECT_MODIFY_POST:
+                    ActionStr = "reject-modify-post";
                     break;
                 case NotificationSenderAction.LIKE_POST:
                     ActionStr = "like-post";
@@ -255,6 +255,45 @@ namespace CoreApi.Services
                             )
                             .Select(e => e.UserId)
                             .ToArray();
+                        notifications.Add(new SocialNotification(){
+                            Content             = dataToDB,
+                            Owner               = post.Owner,
+                            ActionOfUserId      = modelData.ActionOfUserId,
+                            ActionOfAdminUserId = modelData.ActionOfAdminUserId,
+                            Type                = modelData.ActionStr,
+                            PostId              = modelData.PostId,
+                        });
+                        await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
+                        await SendNotificationTypeActionWithPost(
+                            new PostNotificationModel(NotificationSenderAction.NEW_POST,
+                                                      post.Owner,
+                                                      default){
+                                PostId  = post.Id,
+                                TraceId = modelData.TraceId
+                            }
+                        );
+                        break;
+                    }
+                case NotificationSenderAction.NEW_POST:
+                using (var scope = __ServiceProvider.CreateScope())
+                    {
+                        var __SocialPostManagement = scope.ServiceProvider.GetRequiredService<SocialPostManagement>();
+                        __SocialPostManagement.SetTraceId(modelData.TraceId);
+                        var (post, error) = await __SocialPostManagement.FindPostById(modelData.PostId);
+                        if (error != ErrorCodes.NO_ERROR) {
+                            throw new Exception($"TraceId: { modelData.TraceId }, Not found post, PostId: { modelData.PostId }");
+                        }
+
+                        List<SocialNotification> notifications = new List<SocialNotification>();
+                        var userIds = post.OwnerNavigation.SocialUserActionWithUserUsers
+                            .Where(
+                                e => e.UserIdDes == post.Owner
+                                && EF.Functions.JsonExists(e.ActionsStr,
+                                    EntityAction.GenContainsJsonStatement(ActionType.Follow)
+                                )
+                            )
+                            .Select(e => e.UserId)
+                            .ToArray();
                         foreach (var userId in userIds) {
                             notifications.Add(new SocialNotification(){
                                 Content             = dataToDB,
@@ -265,23 +304,12 @@ namespace CoreApi.Services
                                 PostId              = modelData.PostId,
                             });
                         }
-                        if (!userIds.Contains(post.Owner)) {
-                            notifications.Add(new SocialNotification(){
-                                Content             = dataToDB,
-                                Owner               = post.Owner,
-                                ActionOfUserId      = modelData.ActionOfUserId,
-                                ActionOfAdminUserId = modelData.ActionOfAdminUserId,
-                                Type                = modelData.ActionStr,
-                                PostId              = modelData.PostId,
-                            });
-                        }
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
                         break;
                     }
-                case NotificationSenderAction.NEW_POST:
+                case NotificationSenderAction.APPROVE_MODIFY_POST:
+                case NotificationSenderAction.REJECT_MODIFY_POST:
                 case NotificationSenderAction.REJECT_POST:
-                case NotificationSenderAction.PRIVATE_POST:
-                case NotificationSenderAction.DELETE_POST:
                 case NotificationSenderAction.LIKE_POST:
                     using (var scope = __ServiceProvider.CreateScope())
                     {
@@ -665,7 +693,7 @@ namespace CoreApi.Services
                             { "avatar", notify.Comment.OwnerNavigation.Avatar },
                         }
                     },
-                    { "commment_content", cmtContent.ToString() },
+                    { "comment_content", cmtContent.ToString() },
                 };
             } else if (notify.PostId != default) {
                 return new JObject(){

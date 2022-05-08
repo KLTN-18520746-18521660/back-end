@@ -90,10 +90,10 @@ namespace CoreApi.Controllers.Social.Notification
         // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         // [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> MarkNotificationAsRead([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                                    [FromServices] SocialUserManagement __SocialUserManagement,
-                                                                    [FromServices] NotificationsManagement __NotificationsManagement,
-                                                                    [FromServices] long notification_id,
-                                                                    [FromHeader] string session_token)
+                                                                [FromServices] SocialUserManagement __SocialUserManagement,
+                                                                [FromServices] NotificationsManagement __NotificationsManagement,
+                                                                [FromRoute] long notification_id,
+                                                                [FromHeader] string session_token)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -165,9 +165,9 @@ namespace CoreApi.Controllers.Social.Notification
         // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         // [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> MarkNotificationsAsRead([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                                    [FromServices] SocialUserManagement __SocialUserManagement,
-                                                                    [FromServices] NotificationsManagement __NotificationsManagement,
-                                                                    [FromHeader] string session_token)
+                                                                 [FromServices] SocialUserManagement __SocialUserManagement,
+                                                                 [FromServices] NotificationsManagement __NotificationsManagement,
+                                                                 [FromHeader] string session_token)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");

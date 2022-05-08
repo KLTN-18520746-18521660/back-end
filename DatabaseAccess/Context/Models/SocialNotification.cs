@@ -149,7 +149,7 @@ namespace DatabaseAccess.Context.Models
                 __ObjectJson.Add(
                     "user_action",
                     new JObject(){
-                        { "user_name", this.ActionOfAdminUserIdNavigation.UserName },
+                        { "user_name", default },
                         { "display_name", this.ActionOfAdminUserIdNavigation.DisplayName },
                         { "avatar", default },
                         { "status", this.ActionOfAdminUserIdNavigation.StatusStr },
@@ -159,7 +159,7 @@ namespace DatabaseAccess.Context.Models
             } else {
                 __ObjectJson.Add(
                     "user_action",
-                    "Invalid user's action information"
+                    default
                 );
             }
             return true;

@@ -8,6 +8,7 @@ using DatabaseAccess.Common.Status;
 using DatabaseAccess.Common.Actions;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Linq;
 
 #nullable disable
 
@@ -26,6 +27,10 @@ namespace DatabaseAccess.Context.Models
         PUBLIC_CONFIG                       = 8,
         UPLOAD_FILE_CONFIG                  = 9,
         NOTIFICATION                        = 10,
+        USER_IDLE                           = 11,
+        ADMIN_USER_IDLE                     = 12,
+        PASSWORD_POLICY                     = 13,
+        ADMIN_PASSWORD_POLICY               = 14,
     }
 
     public enum SUB_CONFIG_KEY
@@ -43,220 +48,201 @@ namespace DatabaseAccess.Context.Models
         HOST_NAME                                   = 9,
         MAX_LENGTH_OF_SINGLE_FILE                   = 10,
         INTERVAL_TIME                               = 11,
+        IDLE                                        = 12,
+        TIMEOUT                                     = 13,
+        PING                                        = 14,
+        MIN_LEN                                     = 15,
+        MAX_LEN                                     = 16,
+        MIN_UPPER_CHAR                              = 17,
+        MIN_LOWER_CHAR                              = 18,
+        MIN_NUMBER_CHAR                             = 19,
+        MIN_SPECIAL_CHAR                            = 20,
+        REQUIRED_CHANGE_EXPIRED_PASSWORD            = 21,
     }
 
     public static class DefaultBaseConfig
     {
         #region Default Config
         public static readonly Dictionary<string, int> AdminUserLoginConfig = new() {
-            { "number_of_times_allow_login_failure", 5 },
-            { "lock_time", 360 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE),    5 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.LOCK_TIME),                              360 },
         };
         public static readonly Dictionary<string, int> SocialUserLoginConfig = new() {
-            { "number_of_times_allow_login_failure", 5 },
-            { "lock_time", 360 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE),    5 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.LOCK_TIME),                              360 },
         };
         public static readonly Dictionary<string, int> SessionAdminUserConfig = new() {
-            { "expiry_time", 5 },
-            { "extension_time", 5 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.EXPIRY_TIME),        5 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.EXTENSION_TIME),     5 },
         };
         public static readonly Dictionary<string, int> SessionSocialUserConfig = new() {
-            { "expiry_time", 5 },
-            { "extension_time", 5 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.EXPIRY_TIME),        5 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.EXTENSION_TIME),     5 },
         };
         public static readonly Dictionary<string, object> EmailClientConfig = new() {
-            { "limit_sender", 5 },
-            { "template_user_signup", @"<p>Dear @Model.UserName,</p>
-                                        <p>Confirm link here: <a href='@Model.ConfirmLink'>@Model.ConfirmLink</a><br>
-                                        Send datetime: @Model.DateTimeSend</p>
-                                        <p>Thanks for your register.</p>" },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.EMAIL_LIMIT_SENDER),           5 },
+            {
+                SubConfigKeyToString(SUB_CONFIG_KEY.EMAIL_TEMPLATE_USER_SIGNUP),
+                @"<p>Dear @Model.UserName,</p>"
+                    + @"<p>Confirm link here: <a href='@Model.ConfirmLink'>@Model.ConfirmLink</a><br>"
+                    + @"Send datetime: @Model.DateTimeSend</p>"
+                    + @"<p>Thanks for your register.</p>"
+            },
         };
         public static readonly Dictionary<string, object> SocialUserConfirmConfig = new() {
-            { "expiry_time", 2880 }, // 2 days
-            { "number_of_times_allow_confirm_failure", 3 },
-            { "prefix_url", "/auth/confirm-account"},
-            { "host_name", "http://localhost:4200" },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.EXPIRY_TIME),                                2880 }, // 2 days
+            { SubConfigKeyToString(SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_CONFIRM_FAILURE),      3 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.PREFIX_URL),                                 "/auth/confirm-account" },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.HOST_NAME),                                  "http://localhost:4200" },
         };
         public static readonly Dictionary<string, object> UploadFileConfig = new() {
-            { "max_len_of_single_file", 5242880 }, // byte ~ 5MB
+            { SubConfigKeyToString(SUB_CONFIG_KEY.MAX_LENGTH_OF_SINGLE_FILE),   5242880 }, // byte ~ 5MB
         };
         public static readonly Dictionary<string, object> Notification = new() {
-            { "interval_time", 120 }, // minute
+            { SubConfigKeyToString(SUB_CONFIG_KEY.INTERVAL_TIME),   120 }, // minute
+        };
+        public static readonly Dictionary<string, object> UserIdle = new() {
+            { SubConfigKeyToString(SUB_CONFIG_KEY.IDLE),       300 }, // sec
+            { SubConfigKeyToString(SUB_CONFIG_KEY.TIMEOUT),    10 }, // sec
+            { SubConfigKeyToString(SUB_CONFIG_KEY.PING),       10 }, // sec
+        };
+        public static readonly Dictionary<string, object> AdminUserIdle = new() {
+            { SubConfigKeyToString(SUB_CONFIG_KEY.IDLE),       300 }, // sec
+            { SubConfigKeyToString(SUB_CONFIG_KEY.TIMEOUT),    10 }, // sec
+            { SubConfigKeyToString(SUB_CONFIG_KEY.PING),       10 }, // sec
+        };
+        public static readonly Dictionary<string, object> PasswordPolicy = new() {
+            { SubConfigKeyToString(SUB_CONFIG_KEY.MIN_LEN),                                 5 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.MAX_LEN),                                 25 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.MIN_UPPER_CHAR),                          1 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.MIN_LOWER_CHAR),                          1 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.MIN_NUMBER_CHAR),                         1 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.MIN_SPECIAL_CHAR),                        1 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.EXPIRY_TIME),                             30 }, // days
+            { SubConfigKeyToString(SUB_CONFIG_KEY.REQUIRED_CHANGE_EXPIRED_PASSWORD),        false },
+        };
+        public static readonly Dictionary<string, object> AdminPasswordPolicy = new() {
+            { SubConfigKeyToString(SUB_CONFIG_KEY.MIN_LEN),                                 5 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.MAX_LEN),                                 25 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.MIN_UPPER_CHAR),                          1 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.MIN_LOWER_CHAR),                          1 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.MIN_NUMBER_CHAR),                         1 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.MIN_SPECIAL_CHAR),                        1 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.EXPIRY_TIME),                             30 }, // days
+            { SubConfigKeyToString(SUB_CONFIG_KEY.REQUIRED_CHANGE_EXPIRED_PASSWORD),        true },
         };
         public static readonly Dictionary<string, object> UIConfig = new() {};
         public static readonly Dictionary<string, object> PublicConfig = new() {
             // { "UIConfig", "all" } --> mean all config in 'UIConfig' is public
             // { "EmailClientConfig", "limit_sender" } --> mean 'limit_sender' in 'EmailClientConfig' is public config
-            { ConfigKeyToString(CONFIG_KEY.UI_CONFIG), SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
-            { ConfigKeyToString(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG), SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
-            { ConfigKeyToString(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG), SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
-            { ConfigKeyToString(CONFIG_KEY.UPLOAD_FILE_CONFIG), SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
+            { ConfigKeyToString(CONFIG_KEY.UI_CONFIG),                      SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
+            { ConfigKeyToString(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG),      SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
+            { ConfigKeyToString(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG),     SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
+            { ConfigKeyToString(CONFIG_KEY.UPLOAD_FILE_CONFIG),             SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
+            { ConfigKeyToString(CONFIG_KEY.USER_IDLE),                      SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
+            { ConfigKeyToString(CONFIG_KEY.ADMIN_USER_IDLE),                SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
         };
         public static readonly string[] DEFAULT_CONFIG_KEYS = new string[]{
-            "AdminUserLoginConfig",
-            "SocialUserLoginConfig",
-            "SessionAdminUserConfig",
-            "SessionSocialUserConfig",
-            "EmailClientConfig",
-            "SocialUserConfirmConfig",
-            "UIConfig",
-            "PublicConfig",
-            "UploadFileConfig",
-            "Notification",
+            ConfigKeyToString(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG),
+            ConfigKeyToString(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG),
+            ConfigKeyToString(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG),
+            ConfigKeyToString(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG),
+            ConfigKeyToString(CONFIG_KEY.EMAIL_CLIENT_CONFIG),
+            ConfigKeyToString(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG),
+            ConfigKeyToString(CONFIG_KEY.UI_CONFIG),
+            ConfigKeyToString(CONFIG_KEY.PUBLIC_CONFIG),
+            ConfigKeyToString(CONFIG_KEY.UPLOAD_FILE_CONFIG),
+            ConfigKeyToString(CONFIG_KEY.NOTIFICATION),
+            ConfigKeyToString(CONFIG_KEY.USER_IDLE),
+            ConfigKeyToString(CONFIG_KEY.ADMIN_USER_IDLE),
         };
         #endregion
         public static JObject GetConfig(CONFIG_KEY ConfigKey, string Error = default)
         {
             Error ??= string.Empty;
-            switch(ConfigKey) {
-                case CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG:
-                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(AdminUserLoginConfig));
-                case CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG:
-                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(SocialUserLoginConfig));
-                case CONFIG_KEY.SESSION_ADMIN_USER_CONFIG:
-                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(SessionAdminUserConfig));
-                case CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG:
-                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(SessionSocialUserConfig));
-                case CONFIG_KEY.EMAIL_CLIENT_CONFIG:
-                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(EmailClientConfig));
-                case CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG:
-                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(SocialUserConfirmConfig));
-                case CONFIG_KEY.UI_CONFIG:
-                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(UIConfig));
-                case CONFIG_KEY.PUBLIC_CONFIG:
-                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(PublicConfig));
-                case CONFIG_KEY.UPLOAD_FILE_CONFIG:
-                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(UploadFileConfig));
-                case CONFIG_KEY.NOTIFICATION:
-                    return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(Notification));
-                default:
-                    Error ??= "Invalid config key.";
-                    return new JObject();
+            if (ConfigKey == CONFIG_KEY.INVALID) {
+                Error ??= "Invalid config key.";
+                return new JObject();
             }
+            var config = typeof(DefaultBaseConfig)
+                .GetField(DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG))
+                .GetValue(null);
+            return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(config));
         }
         public static CONFIG_KEY StringToConfigKey(string ConfigKey, string Error = default)
         {
             Error ??= string.Empty;
-            switch(ConfigKey) {
-                case "AdminUserLoginConfig":
-                    return CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG;
-                case "SocialUserLoginConfig":
-                    return CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG;
-                case "SessionAdminUserConfig":
-                    return CONFIG_KEY.SESSION_ADMIN_USER_CONFIG;
-                case "SessionSocialUserConfig":
-                    return CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG;
-                case "EmailClientConfig":
-                    return CONFIG_KEY.EMAIL_CLIENT_CONFIG;
-                case "SocialUserConfirmConfig":
-                    return CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG;
-                case "UIConfig":
-                    return CONFIG_KEY.UI_CONFIG;
-                case "PublicConfig":
-                    return CONFIG_KEY.PUBLIC_CONFIG;
-                case "UploadFileConfig":
-                    return CONFIG_KEY.UPLOAD_FILE_CONFIG;
-                case "Notification":
-                    return CONFIG_KEY.NOTIFICATION;
-                default:
-                    Error ??= "Invalid config key.";
-                    return CONFIG_KEY.INVALID;
+            
+            foreach (CONFIG_KEY key in Enum.GetValues(typeof(CONFIG_KEY))) {
+                if (key == CONFIG_KEY.INVALID) {
+                    continue;
+                }
+                var keyName = string.Join(
+                    string.Empty,
+                    key.ToString().ToLower().Split('_')
+                        .Select(str => char.ToUpper(str[0]) + str.Substring(1))
+                        .ToArray()
+                );
+
+                if (ConfigKey == keyName) {
+                    return key;
+                }
             }
+            Error ??= "Invalid config key.";
+            return CONFIG_KEY.INVALID;
         }
         public static string ConfigKeyToString(CONFIG_KEY ConfigKey, string Error = default)
         {
             Error ??= string.Empty;
-            switch(ConfigKey) {
-                case CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG:
-                    return "AdminUserLoginConfig";
-                case CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG:
-                    return "SocialUserLoginConfig";
-                case CONFIG_KEY.SESSION_ADMIN_USER_CONFIG:
-                    return "SessionAdminUserConfig";
-                case CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG:
-                    return "SessionSocialUserConfig";
-                case CONFIG_KEY.EMAIL_CLIENT_CONFIG:
-                    return "EmailClientConfig";
-                case CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG:
-                    return "SocialUserConfirmConfig";
-                case CONFIG_KEY.UI_CONFIG:
-                    return "UIConfig";
-                case CONFIG_KEY.PUBLIC_CONFIG:
-                    return "PublicConfig";
-                case CONFIG_KEY.UPLOAD_FILE_CONFIG:
-                    return "UploadFileConfig";
-                case CONFIG_KEY.NOTIFICATION:
-                    return "Notification";
-                default:
-                    Error ??= "Invalid config key.";
-                    return "Invalid config key.";
+            foreach (CONFIG_KEY key in Enum.GetValues(typeof(CONFIG_KEY))) {
+                if (key == CONFIG_KEY.INVALID) {
+                    continue;
+                }
+                var keyName = string.Join(
+                    string.Empty,
+                    key.ToString().ToLower().Split('_')
+                        .Select(str => char.ToUpper(str[0]) + str.Substring(1))
+                        .ToArray()
+                );
+
+                if (ConfigKey == key) {
+                    return keyName;
+                }
             }
+            Error ??= "Invalid config key.";
+            return Error;
         }
         public static SUB_CONFIG_KEY StringToSubConfigKey(string SubConfigKey, string Error = default)
         {
             Error ??= string.Empty;
-            switch(SubConfigKey) {
-                case "all":
-                    return SUB_CONFIG_KEY.ALL;
-                case "number_of_times_allow_login_failure":
-                    return SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE;
-                case "lock_time":
-                    return SUB_CONFIG_KEY.LOCK_TIME;
-                case "expiry_time":
-                    return SUB_CONFIG_KEY.EXPIRY_TIME;
-                case "extension_time":
-                    return SUB_CONFIG_KEY.EXTENSION_TIME;
-                case "limit_sender":
-                    return SUB_CONFIG_KEY.EMAIL_LIMIT_SENDER;
-                case "template_user_signup":
-                    return SUB_CONFIG_KEY.EMAIL_TEMPLATE_USER_SIGNUP;
-                case "number_of_times_allow_confirm_failure":
-                    return SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_CONFIRM_FAILURE;
-                case "prefix_url":
-                    return SUB_CONFIG_KEY.PREFIX_URL;
-                case "host_name":
-                    return SUB_CONFIG_KEY.HOST_NAME;
-                case "max_len_of_single_file":
-                    return SUB_CONFIG_KEY.MAX_LENGTH_OF_SINGLE_FILE;
-                case "interval_time":
-                    return SUB_CONFIG_KEY.INTERVAL_TIME;
-                default:
-                    Error ??= "Invalid sub config key.";
-                    return SUB_CONFIG_KEY.INVALID;
+            foreach (SUB_CONFIG_KEY subKey in Enum.GetValues(typeof(SUB_CONFIG_KEY))) {
+                if (subKey == SUB_CONFIG_KEY.INVALID) {
+                    continue;
+                }
+                var keyName = subKey.ToString().ToLower();
+                if (keyName == SubConfigKey) {
+                    return subKey;
+                }
             }
+
+            Error ??= "Invalid sub config key.";
+            return SUB_CONFIG_KEY.INVALID;
         }
         public static string SubConfigKeyToString(SUB_CONFIG_KEY SubConfigKey, string Error = default)
         {
             Error ??= string.Empty;
-            switch(SubConfigKey) {
-                case SUB_CONFIG_KEY.ALL:
-                    return "all";
-                case SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE:
-                    return "number_of_times_allow_login_failure";
-                case SUB_CONFIG_KEY.LOCK_TIME:
-                    return "lock_time";
-                case SUB_CONFIG_KEY.EXPIRY_TIME:
-                    return "expiry_time";
-                case SUB_CONFIG_KEY.EXTENSION_TIME:
-                    return "extension_time";
-                case SUB_CONFIG_KEY.EMAIL_LIMIT_SENDER:
-                    return "limit_sender";
-                case SUB_CONFIG_KEY.EMAIL_TEMPLATE_USER_SIGNUP:
-                    return "template_user_signup";
-                case SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_CONFIRM_FAILURE:
-                    return "number_of_times_allow_confirm_failure";
-                case SUB_CONFIG_KEY.PREFIX_URL:
-                    return "prefix_url";
-                case SUB_CONFIG_KEY.HOST_NAME:
-                    return "host_name";
-                case SUB_CONFIG_KEY.MAX_LENGTH_OF_SINGLE_FILE:
-                    return "max_len_of_single_file";
-                case SUB_CONFIG_KEY.INTERVAL_TIME:
-                    return "interval_time";
-                default:
-                    Error ??= "Invalid sub config key.";
-                    return "Invalid sub config key.";
+            foreach (SUB_CONFIG_KEY subKey in Enum.GetValues(typeof(SUB_CONFIG_KEY))) {
+                if (subKey == SUB_CONFIG_KEY.INVALID) {
+                    continue;
+                }
+                var keyName = subKey.ToString().ToLower();
+                if (subKey == SubConfigKey) {
+                    return keyName;
+                }
             }
+
+            Error ??= "Invalid sub config key.";
+            return Error;
         }
     }
     [Table("admin_base_config")]
@@ -386,6 +372,42 @@ namespace DatabaseAccess.Context.Models
                     Id = 8,
                     ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.PUBLIC_CONFIG),
                     Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.PUBLIC_CONFIG),
+                    Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled)
+                },
+                new AdminBaseConfig() {
+                    Id = 9,
+                    ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.UPLOAD_FILE_CONFIG),
+                    Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.UPLOAD_FILE_CONFIG),
+                    Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled)
+                },
+                new AdminBaseConfig() {
+                    Id = 10,
+                    ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.NOTIFICATION),
+                    Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.NOTIFICATION),
+                    Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled)
+                },
+                new AdminBaseConfig() {
+                    Id = 11,
+                    ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.USER_IDLE),
+                    Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.USER_IDLE),
+                    Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled)
+                },
+                new AdminBaseConfig() {
+                    Id = 12,
+                    ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.ADMIN_USER_IDLE),
+                    Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.ADMIN_USER_IDLE),
+                    Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled)
+                },
+                new AdminBaseConfig() {
+                    Id = 13,
+                    ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.PASSWORD_POLICY),
+                    Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.PASSWORD_POLICY),
+                    Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled)
+                },
+                new AdminBaseConfig() {
+                    Id = 14,
+                    ConfigKey = DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.ADMIN_PASSWORD_POLICY),
+                    Value = DefaultBaseConfig.GetConfig(CONFIG_KEY.ADMIN_PASSWORD_POLICY),
                     Status = new EntityStatus(EntityStatusType.AdminBaseConfig, StatusType.Enabled)
                 },
             };

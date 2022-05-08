@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authentication;
 using Newtonsoft.Json;
+using Serilog;
+using System.Diagnostics;
 
 namespace CoreApi.Common
 {
@@ -57,6 +59,7 @@ namespace CoreApi.Common
                     await next.Invoke(context);
                 }
             } catch (Exception ex) {
+                Serilog.Log.Logger.Error(CreateLogMessage(context, ex.ToString()));
                 await HandleExceptionAsync(context, ex);
             }
         }
@@ -81,6 +84,14 @@ namespace CoreApi.Common
             // Check that username and password are correct
             return username.Equals(Program.SwaggerDocumentConfiguration.Username)
                 && password.Equals(Program.SwaggerDocumentConfiguration.Password);
+        }
+
+        protected virtual string CreateLogMessage(HttpContext context, string Msg)
+        {
+            var __TraceId = Activity.Current?.Id ?? context?.TraceIdentifier;
+            StringBuilder msg = new StringBuilder($"Path: { context.Request.Path }, TraceId: { __TraceId }");
+            msg.Append(", ").Append(Msg);
+            return msg.ToString();
         }
     }
     public static class SwaggerAuthorizeExtensions

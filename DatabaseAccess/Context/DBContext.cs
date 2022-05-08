@@ -543,7 +543,7 @@ namespace DatabaseAccess.Context
             {
                 entity.HasIndex(e => e.Slug, "IX_social_post_slug")
                     .IsUnique()
-                    .HasFilter($"((status = '{ EntityStatus.StatusTypeToString(StatusType.Approved) }' OR status = '{ EntityStatus.StatusTypeToString(StatusType.Private) }') AND (slug <> ''))");
+                    .HasFilter($"(slug <> '')");
 
                 entity.Property(e => e.Id)
                     .UseIdentityAlwaysColumn();

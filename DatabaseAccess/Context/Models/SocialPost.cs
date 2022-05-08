@@ -35,7 +35,7 @@ namespace DatabaseAccess.Context.Models
         public string Title { get; set; }
         [Required]
         [Column("slug")]
-        public string Slug { get; set; } // only != empty when status is approve or private
+        public string Slug { get; set; } // generate on create post and when modify post
         [Required]
         [Column("thumbnail")]
         public string Thumbnail { get; set; }
@@ -189,7 +189,7 @@ namespace DatabaseAccess.Context.Models
         public int CountDisLikes()
         {
             return SocialUserActionWithPosts.Count(p =>
-                p.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Like)) > 0
+                p.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Dislike)) > 0
             );
         }
 
@@ -311,6 +311,7 @@ namespace DatabaseAccess.Context.Models
                 { "content", Content },
                 { "content_type", ContenTypeStr },
                 { "short_content", ShortContent },
+                { "pending_content", PendingContent },
                 { "have_pending_content", PendingContent != default },
                 { "status", StatusStr },
                 { "created_timestamp", CreatedTimestamp },
@@ -334,9 +335,10 @@ namespace DatabaseAccess.Context.Models
                 { "categories", Categories },
                 { "short_content", ShortContent },
                 { "status", StatusStr },
+                { "pending_content", PendingContent },
+                { "have_pending_content", PendingContent != default },
                 { "approved_timestamp", CreatedTimestamp },
                 { "last_modified_timestamp", LastModifiedTimestamp },
-                { "have_pending_content", PendingContent != default },
             };
             return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
         }

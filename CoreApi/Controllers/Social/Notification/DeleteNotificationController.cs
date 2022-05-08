@@ -92,7 +92,7 @@ namespace CoreApi.Controllers.Social.Notification
         public async Task<IActionResult> DeleteNotification([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
                                                             [FromServices] SocialUserManagement __SocialUserManagement,
                                                             [FromServices] NotificationsManagement __NotificationsManagement,
-                                                            [FromServices] long notification_id,
+                                                            [FromRoute] long notification_id,
                                                             [FromHeader] string session_token)
         {
             if (!LoadConfigSuccess) {

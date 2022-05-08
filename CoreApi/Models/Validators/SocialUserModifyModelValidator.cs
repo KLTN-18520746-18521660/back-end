@@ -33,9 +33,10 @@ namespace CoreApi.Models.Validators
             "country",
             "ranks",
             "followers",
+            "following",
             "posts",
             "views",
-            "likes"
+            "likes",
         };
         public SocialUserModifyModelValidator()
         {

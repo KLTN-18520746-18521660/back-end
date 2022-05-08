@@ -221,36 +221,38 @@ namespace DatabaseAccess.Context.Models
         {
             __ObjectJson = new Dictionary<string, object>()
             {
-                { "id", Id },
-                { "first_name", FirstName },
-                { "last_name", LastName },
-                { "display_name", DisplayName },
-                { "user_name", UserName },
-                { "email", Email },
-                { "description", Description },
-                { "sex", Sex },
-                { "phone", Phone },
-                { "country", Country },
-                { "city", City },
-                { "province", Province },
-                { "verified_email", VerifiedEmail },
-                { "avatar", Avatar },
-                { "status", StatusStr },
-                { "roles", Roles },
-                { "rights", Rights },
-                { "settings", Settings },
-                { "publics", Publics },
-                { "ranks", Ranks },
-                { "followers", CountFollowers() },
-                { "posts", CountPosts() },
-                { "views", CountViews() },
-                { "likes", CountLikes() },
-                { "last_access_timestamp", LastAccessTimestamp },
-                { "created_timestamp", CreatedTimestamp },
+                { "id",                     Id },
+                { "first_name",             FirstName },
+                { "last_name",              LastName },
+                { "display_name",           DisplayName },
+                { "user_name",              UserName },
+                { "email",                  Email },
+                { "description",            Description },
+                { "sex",                    Sex },
+                { "phone",                  Phone },
+                { "country",                Country },
+                { "city",                   City },
+                { "province",               Province },
+                { "verified_email",         VerifiedEmail },
+                { "avatar",                 Avatar },
+                { "status",                 StatusStr },
+                { "roles",                  Roles },
+                { "rights",                 Rights },
+                { "settings",               Settings },
+                { "publics",                Publics },
+                { "ranks",                  Ranks },
+                { "followers",              CountFollowers() },
+                { "following",              CountFollowing() },
+                { "unread_notifications",   CountUnreadNotifications() },
+                { "posts",                  CountPosts() },
+                { "views",                  CountViews() },
+                { "likes",                  CountLikes() },
+                { "last_access_timestamp",  LastAccessTimestamp },
+                { "created_timestamp",      CreatedTimestamp },
 #if DEBUG
-                { "password", Password },
-                { "salt", Salt },
-                { "__ModelName", __ModelName }
+                { "password",               Password },
+                { "salt",                   Salt },
+                { "__ModelName",            __ModelName }
 #endif
             };
             return true;
@@ -284,11 +286,13 @@ namespace DatabaseAccess.Context.Models
         {
             return new JObject()
             {
-                { "ranks", Ranks },
-                { "followers", CountFollowers() },
-                { "posts", CountPosts() },
-                { "views", CountViews() },
-                { "likes", CountLikes() },
+                { "ranks",                      Ranks },
+                { "followers",                  CountFollowers() },
+                { "following",                  CountFollowing() },
+                { "posts",                      CountPosts() },
+                { "views",                      CountViews() },
+                { "likes",                      CountLikes() },
+                { "unread_notifications",       CountUnreadNotifications() },
             };
         }
 
@@ -306,6 +310,7 @@ namespace DatabaseAccess.Context.Models
                 "ranks",
                 "publics",
                 "followers",
+                "following",
                 "posts",
                 "views",
                 "likes",
@@ -330,7 +335,7 @@ namespace DatabaseAccess.Context.Models
                 { "avatar",                 Avatar },
                 { "status",                 StatusStr },
                 { "publics",                Publics },
-                { "password",               "*********" },
+                { "password",               Password },
                 { "created_timestamp",      CreatedTimestamp },
             };
             return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
@@ -374,6 +379,13 @@ namespace DatabaseAccess.Context.Models
                 .Count(e =>
                     e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0
                 );
+        }
+
+        public int CountUnreadNotifications()
+        {
+            return SocialNotifications.Count(p =>
+                p.StatusStr == EntityStatus.StatusTypeToString(StatusType.Sent)
+            );
         }
 
         public List<string> GetRoles()

@@ -87,9 +87,16 @@ namespace CoreApi.Controllers.Social.Config
                 #endregion
 
                 #region Get all public config
-                var (ret, errMsg) = __BaseConfig.GetAllPublicConfig();
+                var (rawRet, errMsg) = __BaseConfig.GetAllPublicConfig();
                 if (errMsg != string.Empty) {
                     throw new Exception($"GetAllConfig Failed. ErrorMsg: { errMsg }");
+                }
+                JObject ret = new JObject();
+                foreach (var it in rawRet) {
+                    if (it.Key.ToLower().Contains("admin")) {
+                        continue;
+                    }
+                    ret.Add(it.Key, it.Value);
                 }
                 #endregion
 
@@ -122,7 +129,11 @@ namespace CoreApi.Controllers.Social.Config
             #endregion
             try {
                 #region Validate config_key
-                if (config_key == default || config_key == string.Empty || DefaultBaseConfig.StringToConfigKey(config_key) == CONFIG_KEY.INVALID) {
+                if (config_key == default
+                    || config_key == string.Empty
+                    || DefaultBaseConfig.StringToConfigKey(config_key) == CONFIG_KEY.INVALID
+                    || config_key.ToLower().Contains("admin") == true
+                ) {
                     LogDebug($"Invalid config key.");
                     return Problem(400, "Invalid config_key.");
                 }

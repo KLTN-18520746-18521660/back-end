@@ -766,7 +766,7 @@ namespace CoreApi.Services
             var __SocialTagManagement = (SocialTagManagement)__ServiceProvider.GetService(typeof(SocialTagManagement));
             var __SocialCategoryManagement = (SocialCategoryManagement)__ServiceProvider.GetService(typeof(SocialCategoryManagement));
 
-            Post.Slug = string.Empty;
+            Post.Slug = Utils.GenerateSlug(Post.Title, true);
             await __DBContext.SocialPosts.AddAsync(Post);
             var ok = await __DBContext.SaveChangesAsync() > 0;
             var error = string.Empty;
@@ -916,6 +916,7 @@ namespace CoreApi.Services
             var error = string.Empty;
             if (model.title != default && post.Title != model.title) {
                 post.Title = model.title;
+                post.Slug = Utils.GenerateSlug(post.Title, true);
                 haveChange = true;
             }
             if (model.thumbnail != default && post.Thumbnail != model.thumbnail) {
@@ -1090,7 +1091,6 @@ namespace CoreApi.Services
                 || (post.Status.Type == StatusType.Private && post.PendingContent == default)
             ) {
                 post.Status.ChangeStatus(StatusType.Approved);
-                post.Slug = Utils.GenerateSlug(post.Title, true);
                 post.ApprovedTimestamp = DateTime.UtcNow;
                 foreach (var it in post.SocialPostTags) {
                     if (it.Tag.Status.Type == StatusType.Disabled) {
@@ -1132,14 +1132,25 @@ namespace CoreApi.Services
             return ErrorCodes.NO_ERROR;
         }
 
-        public async Task<ErrorCodes> RejectPost(long Id, Guid AdminUserId)
+        public async Task<ErrorCodes> RejectPost(long Id, Guid AdminUserId, bool rejectPendingContent)
         {
             var (post, error) = await FindPostById(Id);
             if (error != ErrorCodes.NO_ERROR) {
                 return error;
             }
+            if (rejectPendingContent == true
+                && (post.StatusStr != EntityStatus.StatusTypeToString(StatusType.Approved) || post.PendingContent == default)
+            ) {
+                return ErrorCodes.INVALID_PARAMS;
+            }
+
             var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
-            post.Status.ChangeStatus(StatusType.Rejected);
+            if (rejectPendingContent) {
+                post.PendingContent = default;
+            } else {
+                post.Status.ChangeStatus(StatusType.Rejected);
+            }
+
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [ADMIN] Write social audit log
                 (post, error) = await FindPostById(Id);

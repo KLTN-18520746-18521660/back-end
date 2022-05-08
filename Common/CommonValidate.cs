@@ -103,5 +103,21 @@ namespace Common
             }
             return true;
         }
+        public static bool PasswordValidator(string password,
+                                             int minLen,
+                                             int maxLen,
+                                             int minUpperChar,
+                                             int minLowerChar,
+                                             int minSpecialChar,
+                                             string errMsg = default)
+        {
+            errMsg ??= string.Empty;
+            if (password.Length < minLen || password.Length > maxLen) {
+                errMsg ??= $"Password must less than { maxLen } and greater than { minLen }";
+                return false;
+            }
+            // if (password)
+            return true;
+        }
     }
 }

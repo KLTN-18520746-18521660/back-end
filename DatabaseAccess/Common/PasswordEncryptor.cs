@@ -12,7 +12,7 @@ namespace DatabaseAccess.Common
         public static string GenerateSalt()
         {
             string uuid = Guid.NewGuid().ToString();
-            return string.Join("", uuid.Split("-")).Substring(0, 8);
+            return string.Join(string.Empty, uuid.Split("-")).Substring(0, 8);
         }
 
         public static string EncryptPassword(string Password, string Salt)

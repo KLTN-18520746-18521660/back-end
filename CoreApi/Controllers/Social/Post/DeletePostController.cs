@@ -183,14 +183,6 @@ namespace CoreApi.Controllers.Social.Post
                 if (error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"DeletedPost Failed, ErrorCode: { error }");
                 }
-                await __NotificationsManagement.SendNotification(
-                    NotificationType.ACTION_WITH_POST,
-                    new PostNotificationModel(NotificationSenderAction.DELETE_POST,
-                                              session.UserId,
-                                              default){
-                        PostId = post.Id,
-                    }
-                );
 
                 LogInformation($"DeletedPost success, post_id: { post_id }");
                 return Ok(200, "OK");

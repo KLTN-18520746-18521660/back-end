@@ -56,11 +56,13 @@ namespace CoreApi.Controllers.Admin.Post
         /// <param name="__NotificationsManagement"></param>
         /// <param name="post_id"></param>
         /// <param name="session_token"></param>
+        /// <param name="reject_pending_content"></param>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
         /// 
         /// - Need header 'session_token_admin'.
+        /// - Query param: 'reject_pending_content' set true when reject the pending content of post.
         /// 
         /// </remarks>
         ///
@@ -121,7 +123,8 @@ namespace CoreApi.Controllers.Admin.Post
                                                     [FromServices] AdminUserManagement __AdminUserManagement,
                                                     [FromServices] NotificationsManagement __NotificationsManagement,
                                                     [FromRoute] long post_id,
-                                                    [FromHeader(Name = "session_token_admin")] string session_token)
+                                                    [FromHeader(Name = "session_token_admin")] string session_token,
+                                                    [FromQuery] bool reject_pending_content = false)
         {
             if (!LoadConfigSuccess) {
                 return Problem(500, "Internal Server error.");
@@ -192,13 +195,21 @@ namespace CoreApi.Controllers.Admin.Post
                     }
                     throw new Exception($"FindPostById failed. Post_id: { post_id }, ErrorCode: { error} ");
                 }
-                if (__SocialPostManagement.ValidateChangeStatusAction(post.Status.Type, StatusType.Rejected) == ErrorCodes.INVALID_ACTION) {
+                if (reject_pending_content == true
+                    && (post.StatusStr != EntityStatus.StatusTypeToString(StatusType.Approved) || post.PendingContent == default)
+                ) {
+                    LogWarning($"Reject modify post but post haven't pending content, post_status: { post.StatusStr }");
+                    return Problem(400, "Not allow to reject modify post (post not have 'pending_content').");
+                }
+                if (!reject_pending_content
+                    && __SocialPostManagement.ValidateChangeStatusAction(post.Status.Type, StatusType.Rejected) == ErrorCodes.INVALID_ACTION
+                ) {
                     LogWarning($"Not allow change status post, old_status: { post.StatusStr }, new_status: Approved");
-                    return Problem(400, "Not alow to reject post.");
+                    return Problem(400, "Not allow to reject post.");
                 }
                 #endregion
 
-                error = await __SocialPostManagement.RejectPost(post.Id, user.Id);
+                error = await __SocialPostManagement.RejectPost(post.Id, user.Id, reject_pending_content);
                 if (error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"RejectPost Failed, ErrorCode: { error }");
                 }
@@ -206,7 +217,7 @@ namespace CoreApi.Controllers.Admin.Post
                 LogInformation($"RejectPost success, post_id: { post_id }");
                 await __NotificationsManagement.SendNotification(
                     NotificationType.ACTION_WITH_POST,
-                    new PostNotificationModel(NotificationSenderAction.REJECT_POST,
+                    new PostNotificationModel(reject_pending_content ? NotificationSenderAction.REJECT_MODIFY_POST : NotificationSenderAction.REJECT_POST,
                                               default,
                                               session.UserId){
                         PostId = post.Id,

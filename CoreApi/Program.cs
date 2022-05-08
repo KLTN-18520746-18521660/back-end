@@ -38,10 +38,10 @@ namespace CoreApi
 
         public static EmailClientConfiguration DefaultEmailClientConfiguration { get {
                 var ret = new EmailClientConfiguration();
-                ret.Host = "";
-                ret.Port = "";
-                ret.User = "";
-                ret.Password = "";
+                ret.Host = string.Empty;
+                ret.Port = string.Empty;
+                ret.User = string.Empty;
+                ret.Password = string.Empty;
                 ret.EnableSSL = false;
                 return ret;
             }

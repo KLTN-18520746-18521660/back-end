@@ -11,6 +11,8 @@ using System.Text;
 // using CoreApi;
 using System.Threading;
 using CoreApi.Models.ModifyModels;
+using DatabaseAccess.Context.Models;
+using System.Reflection;
 
 namespace MyConsole
 {
@@ -91,15 +93,11 @@ namespace MyConsole
         static void Main(string[] args)
         {
             // TestGenerateSlug();
-            SocialPostModifyModel a = new SocialPostModifyModel();
-
-            a.title = "asadasd";
-            var o = a.ToJsonObject();
-
-            Console.WriteLine(o.ToString());
-            var b = SocialPostModifyModel.FromJson(o);
-            Console.WriteLine(b.ToJsonObject().ToString());
-            Console.WriteLine(b.categories == default);
+            // var config = DefaultBaseConfig.GetType().GetProperties()
+            //     .SingleOrDefault(e => e.Name == DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG));
+            var config = typeof(DefaultBaseConfig).GetField(DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG));
+            var ret = JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(config.GetValue(null)));
+            Console.WriteLine(ret.ToString());
         }
     }
 }
