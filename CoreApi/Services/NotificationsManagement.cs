@@ -592,10 +592,10 @@ namespace CoreApi.Services
                             || e.Post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
                         )
                         && (e.CommentId == default || e.Comment.Owner == socialUserId
-                            || e.Comment.StatusStr == EntityStatus.StatusTypeToString(StatusType.Deleted)
+                            || e.Comment.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
                         )
                         && (e.UserId == default || e.UserId == socialUserId
-                            || e.UserIdDesNavigation.StatusStr == EntityStatus.StatusTypeToString(StatusType.Deleted)
+                            || e.UserIdDesNavigation.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
                         )
                     )
                     .OrderByDescending(e => e.CreatedTimestamp)
