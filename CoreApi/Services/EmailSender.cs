@@ -82,7 +82,7 @@ namespace CoreApi.Services
             var __BaseConfig = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
 
             #region limit_sender
-            var limitSenderRs = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.EMAIL_LIMIT_SENDER);
+            var limitSenderRs = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.LIMIT_SENDER);
 
             if (limitSenderRs.Error != string.Empty) {
                 LogWarning("Can not get config 'limit_sender' for email client, use default config.");
@@ -96,7 +96,7 @@ namespace CoreApi.Services
             #endregion
 
             #region email_templates
-            var templateUserSignupRs = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.EMAIL_TEMPLATE_USER_SIGNUP);
+            var templateUserSignupRs = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.TEMPLATE_USER_SIGNUP);
 
             if (templateUserSignupRs.Error != string.Empty) {
                 LogWarning("Can not get config 'template_user_signup' for email client, use default config.");
@@ -131,7 +131,7 @@ namespace CoreApi.Services
         {
             var __BaseConfig = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
             #region limit_sender
-            var (Value, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.EMAIL_LIMIT_SENDER);
+            var (Value, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.LIMIT_SENDER);
 
             if (Error != string.Empty) {
                 LogWarning("Can not get config for email client, use default config.");
@@ -146,7 +146,7 @@ namespace CoreApi.Services
             #endregion
 
             #region email_templates
-            var templateUserSignupRs = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.EMAIL_TEMPLATE_USER_SIGNUP);
+            var templateUserSignupRs = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.TEMPLATE_USER_SIGNUP);
 
             if (templateUserSignupRs.Error != string.Empty) {
                 LogWarning("Can not get config 'template_user_signup' for email client, use default config.");

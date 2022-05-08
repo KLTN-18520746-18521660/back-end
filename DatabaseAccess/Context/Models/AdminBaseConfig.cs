@@ -41,8 +41,8 @@ namespace DatabaseAccess.Context.Models
         LOCK_TIME                                   = 2,
         EXPIRY_TIME                                 = 3,
         EXTENSION_TIME                              = 4,
-        EMAIL_LIMIT_SENDER                          = 5,
-        EMAIL_TEMPLATE_USER_SIGNUP                  = 6,
+        LIMIT_SENDER                                = 5,
+        TEMPLATE_USER_SIGNUP                        = 6,
         NUMBER_OF_TIMES_ALLOW_CONFIRM_FAILURE       = 7,
         PREFIX_URL                                  = 8,
         HOST_NAME                                   = 9,
@@ -80,9 +80,9 @@ namespace DatabaseAccess.Context.Models
             { SubConfigKeyToString(SUB_CONFIG_KEY.EXTENSION_TIME),     5 },
         };
         public static readonly Dictionary<string, object> EmailClientConfig = new() {
-            { SubConfigKeyToString(SUB_CONFIG_KEY.EMAIL_LIMIT_SENDER),           5 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.LIMIT_SENDER),           5 },
             {
-                SubConfigKeyToString(SUB_CONFIG_KEY.EMAIL_TEMPLATE_USER_SIGNUP),
+                SubConfigKeyToString(SUB_CONFIG_KEY.TEMPLATE_USER_SIGNUP),
                 @"<p>Dear @Model.UserName,</p>"
                     + @"<p>Confirm link here: <a href='@Model.ConfirmLink'>@Model.ConfirmLink</a><br>"
                     + @"Send datetime: @Model.DateTimeSend</p>"
@@ -155,6 +155,8 @@ namespace DatabaseAccess.Context.Models
             ConfigKeyToString(CONFIG_KEY.NOTIFICATION),
             ConfigKeyToString(CONFIG_KEY.USER_IDLE),
             ConfigKeyToString(CONFIG_KEY.ADMIN_USER_IDLE),
+            ConfigKeyToString(CONFIG_KEY.PASSWORD_POLICY),
+            ConfigKeyToString(CONFIG_KEY.ADMIN_PASSWORD_POLICY),
         };
         #endregion
         public static JObject GetConfig(CONFIG_KEY ConfigKey, string Error = default)
@@ -165,7 +167,7 @@ namespace DatabaseAccess.Context.Models
                 return new JObject();
             }
             var config = typeof(DefaultBaseConfig)
-                .GetField(DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG))
+                .GetField(DefaultBaseConfig.ConfigKeyToString(ConfigKey))
                 .GetValue(null);
             return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(config));
         }
@@ -177,12 +179,17 @@ namespace DatabaseAccess.Context.Models
                 if (key == CONFIG_KEY.INVALID) {
                     continue;
                 }
-                var keyName = string.Join(
-                    string.Empty,
-                    key.ToString().ToLower().Split('_')
-                        .Select(str => char.ToUpper(str[0]) + str.Substring(1))
-                        .ToArray()
-                );
+                var keyName = string.Empty;
+                if (key == CONFIG_KEY.UI_CONFIG) {
+                    keyName = "UIConfig";
+                } else {
+                    keyName = string.Join(
+                        string.Empty,
+                        key.ToString().ToLower().Split('_')
+                            .Select(str => char.ToUpper(str[0]) + str.Substring(1))
+                            .ToArray()
+                    );
+                }
 
                 if (ConfigKey == keyName) {
                     return key;
@@ -198,12 +205,17 @@ namespace DatabaseAccess.Context.Models
                 if (key == CONFIG_KEY.INVALID) {
                     continue;
                 }
-                var keyName = string.Join(
-                    string.Empty,
-                    key.ToString().ToLower().Split('_')
-                        .Select(str => char.ToUpper(str[0]) + str.Substring(1))
-                        .ToArray()
-                );
+                var keyName = string.Empty;
+                if (key == CONFIG_KEY.UI_CONFIG) {
+                    keyName = "UIConfig";
+                } else {
+                    keyName = string.Join(
+                        string.Empty,
+                        key.ToString().ToLower().Split('_')
+                            .Select(str => char.ToUpper(str[0]) + str.Substring(1))
+                            .ToArray()
+                    );
+                }
 
                 if (ConfigKey == key) {
                     return keyName;
