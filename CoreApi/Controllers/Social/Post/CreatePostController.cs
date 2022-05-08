@@ -123,38 +123,16 @@ namespace CoreApi.Controllers.Social.Post
             __SocialTagManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Get session token
+                #region Get session
                 session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                if (session_token == default) {
-                    LogDebug($"Missing header authorization.");
-                    return Problem(401, "Missing header authorization.");
+                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
+                if (errRet != default) {
+                    return errRet;
                 }
-
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    return Problem(401, "Invalid header authorization.");
+                if (__session == default) {
+                    throw new Exception($"GetSessionToken failed.");
                 }
-                #endregion
-
-                #region Find session for use
-                SessionSocialUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
-
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session not found.");
-                    }
-                    if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session has expired.");
-                    }
-                    if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogWarning($"User has been locked, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(423, "You have been locked.");
-                    }
-                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
-                }
+                var session = __session as SessionSocialUser;
                 #endregion
 
                 #region Validate post permission
@@ -177,6 +155,7 @@ namespace CoreApi.Controllers.Social.Post
                     return Problem(400, $"Category not exist.");
                 }
                 var isValidTags = false;
+                var error = ErrorCodes.NO_ERROR;
                 (isValidTags, error) = await __SocialTagManagement.IsValidTags(Parser.tags);
                 if (!isValidTags) {
                     if (error == ErrorCodes.INVALID_PARAMS) {

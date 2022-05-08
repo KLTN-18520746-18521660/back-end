@@ -134,43 +134,20 @@ namespace CoreApi.Controllers.Social.AuditLog
                     return Problem(400, "Bad request params.");
                 }
                 #endregion
-                #region Get session token
+                #region Get session
                 session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                if (session_token == default) {
-                    LogDebug($"Missing header authorization.");
-                    return Problem(401, "Missing header authorization.");
+                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
+                if (errRet != default) {
+                    return errRet;
                 }
-
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    LogDebug($"Invalid header authorization.");
-                    return Problem(401, "Invalid header authorization.");
+                if (__session == default) {
+                    throw new Exception($"GetSessionToken failed.");
                 }
-                #endregion
-
-                #region Find session for use
-                SessionSocialUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session not found.");
-                    }
-                    if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogWarning($"Session has expired, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session has expired.");
-                    }
-                    if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogWarning($"User has been locked, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(423, "You have been locked.");
-                    }
-                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
-                }
+                var session = __session as SessionSocialUser;
                 #endregion
 
                 #region Get all audit logs
-                var user = session.User;
-                var (logs, totalSize)= await __SocialUserAuditLogManagement.GetAuditLogs(user.Id, type, start, size, search_term);
+                var (logs, totalSize)= await __SocialUserAuditLogManagement.GetAuditLogs(session.UserId, type, start, size, search_term);
 
                 List<JObject> rawReturn = new();
                 logs.ForEach(e => rawReturn.Add(e.GetJsonObject()));
@@ -184,7 +161,7 @@ namespace CoreApi.Controllers.Social.AuditLog
                 }
                 #endregion
 
-                LogInformation($"Get social user auditlogs success, user_name: { user.UserName }, start: { start }, size: { size }, search_term: { search_term }");
+                LogInformation($"Get social user auditlogs success, user_name: { session.User.UserName }, start: { start }, size: { size }, search_term: { search_term }");
                 return Ok(200, "OK", new JObject(){
                     { "logs", ret },
                     { "total_size", totalSize },

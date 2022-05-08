@@ -14,5 +14,6 @@ namespace CoreApi.Common
         INVALID_ACTION                                      = 9,
         INVALID_PARAMS                                      = 10,
         NO_CHANGE_DETECTED                                  = 11,
+        PASSWORD_IS_EXPIRED                                 = 12,
     }
 }

@@ -48,6 +48,13 @@ namespace CoreApi.Services
             return (default, ErrorCodes.NOT_FOUND);
         }
 
+        public async Task<ErrorCodes> IsExpiredPassword(SocialUser user)
+        {
+            #region Get password policy
+                return ErrorCodes.NO_ERROR;
+            #endregion
+        }
+
         public async Task<(SessionSocialUser, ErrorCodes)> FindSessionForUse(string SessionToken,
                                     int ExpiryTime,
                                     int ExtensionTime)

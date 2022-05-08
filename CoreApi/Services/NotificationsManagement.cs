@@ -547,6 +547,11 @@ namespace CoreApi.Services
                 if (notification == default) {
                     return ErrorCodes.NOT_FOUND;
                 }
+                if (notification.Status.Type == StatusType.Sent) {
+                    return ErrorCodes.NO_CHANGE_DETECTED;
+                } else if (notification.Status.Type == StatusType.Deleted) {
+                    return ErrorCodes.INVALID_ACTION;
+                }
                 notification.Status.ChangeStatus(StatusType.Sent);
                 if (await __DBContext.SaveChangesAsync() <= 0) {
                     return ErrorCodes.INTERNAL_SERVER_ERROR;
@@ -579,6 +584,11 @@ namespace CoreApi.Services
                     .FirstOrDefaultAsync();
                 if (notification == default) {
                     return ErrorCodes.NOT_FOUND;
+                }
+                if (notification.Status.Type == StatusType.Read) {
+                    return ErrorCodes.NO_CHANGE_DETECTED;
+                } else if (notification.Status.Type == StatusType.Deleted) {
+                    return ErrorCodes.INVALID_ACTION;
                 }
                 notification.Status.ChangeStatus(StatusType.Read);
                 if (await __DBContext.SaveChangesAsync() <= 0) {

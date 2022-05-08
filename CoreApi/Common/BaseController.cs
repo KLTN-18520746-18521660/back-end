@@ -1,4 +1,7 @@
+using Common;
 using CoreApi.Services;
+using DatabaseAccess.Common.Models;
+using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
@@ -6,6 +9,7 @@ using Serilog;
 using System;
 using System.Diagnostics;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace CoreApi.Common
 {
@@ -139,5 +143,55 @@ namespace CoreApi.Common
             obj.StatusCode = statusCode;
             return obj;
         }
+
+        #region Common function
+        [NonAction]
+        protected async Task<(BaseModel, IActionResult)> GetSessionToken<S>(S SessionManager,
+                                                                            int ExpiryTime,
+                                                                            int ExtensionTime,
+                                                                            string SessionToken)
+            where S : BaseTransientService
+        {
+            #region Get session token
+            if (SessionToken == default) {
+                LogDebug($"Missing header authorization.");
+                return (default, Problem(401, "Missing header authorization."));
+            }
+
+            if (!CommonValidate.IsValidSessionToken(SessionToken)) {
+                LogDebug($"Invalid header authorization.");
+                return (default, Problem(401, "Invalid header authorization."));
+            }
+            #endregion
+
+            #region Find session for use
+            BaseModel session = default;
+            ErrorCodes error = ErrorCodes.NO_ERROR;
+            if (IsAdminController) {
+                (session, error) = await (SessionManager as SessionAdminUserManagement).FindSessionForUse(SessionToken, ExpiryTime, ExtensionTime);
+            } else {
+                (session, error) = await (SessionManager as SessionSocialUserManagement).FindSessionForUse(SessionToken, ExpiryTime, ExtensionTime);
+            }
+
+            if (error != ErrorCodes.NO_ERROR) {
+                if (error == ErrorCodes.NOT_FOUND) {
+                    LogDebug($"Session not found, { SessionTokenHeaderKey }: { SessionToken.Substring(0, 15) }");
+                    return (default, Problem(401, "Session not found."));
+                }
+                if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
+                    LogInformation($"Session has expired, { SessionTokenHeaderKey }: { SessionToken.Substring(0, 15) }");
+                    return (default, Problem(401, "Session has expired."));
+                }
+                if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
+                    LogWarning($"User has been locked, { SessionTokenHeaderKey }: { SessionToken.Substring(0, 15) }");
+                    return (default, Problem(423, "You have been locked."));
+                }
+                throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
+            }
+            #endregion
+
+            return (session, default);
+        }
     }
+    #endregion
 }

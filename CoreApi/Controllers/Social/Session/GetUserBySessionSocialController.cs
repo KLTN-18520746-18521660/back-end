@@ -103,45 +103,22 @@ namespace CoreApi.Controllers.Social.Session
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Get session token
+                #region Get session
                 session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                if (session_token == default) {
-                    LogDebug($"Missing header authorization.");
-                    return Problem(401, "Missing header authorization.");
+                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
+                if (errRet != default) {
+                    return errRet;
                 }
-
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    return Problem(401, "Invalid header authorization.");
+                if (__session == default) {
+                    throw new Exception($"GetSessionToken failed.");
                 }
+                var session = __session as SessionSocialUser;
                 #endregion
 
-                #region Find session for use
-                SessionSocialUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
-
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session not found.");
-                    }
-                    if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogInformation($"Session has expired, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session has expired.");
-                    }
-                    if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogWarning($"User has been locked, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(423, "You have been locked.");
-                    }
-                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
-                }
-                #endregion
-
-                var user = session.User;
-                LogInformation($"Get info user by apikey success, user_name: { user.UserName }");
+                LogInformation($"Get info user by apikey success, user_name: { session.User.UserName }");
                 return Ok(200, "OK", new JObject(){
-                    { "user", user.GetJsonObject() },
-                    { "session", session.GetJsonObject() },
+                    { "user",       session.User.GetJsonObject() },
+                    { "session",    session.GetJsonObject() },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");

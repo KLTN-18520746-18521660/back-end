@@ -17,6 +17,7 @@ namespace CoreApi.Controllers.Admin
     {
         #region Config Values
         private int EXPIRY_TIME; // minute
+        private int EXTENSION_TIME; // minute
         #endregion
 
         public AdminUserLogoutController(BaseConfig _BaseConfig) : base(_BaseConfig)
@@ -31,6 +32,7 @@ namespace CoreApi.Controllers.Admin
         {
             string Error = string.Empty;
             try {
+                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
                 (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
                 __LoadConfigSuccess = true;
             } catch (Exception e) {
@@ -90,45 +92,33 @@ namespace CoreApi.Controllers.Admin
             __SessionAdminUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Get session token
+                #region Get session
                 session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                if (session_token == default) {
-                    LogDebug($"Missing header authorization.");
-                    return Problem(401, "Missing header authorization.");
+                var (__session, errRet) = await GetSessionToken(__SessionAdminUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
+                if (errRet != default) {
+                    return errRet;
                 }
-
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    LogDebug($"Invalid header authorization.");
-                    return Problem(401, "Invalid header authorization.");
+                if (__session == default) {
+                    throw new Exception($"GetSessionToken failed.");
                 }
-                #endregion
-
-                #region Find session token
-                SessionAdminUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionAdminUserManagement.FindSession(session_token);
-
-                if (error != ErrorCodes.NO_ERROR) {
-                    LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
-                    return Problem(401, "Session not found.");
-                }
+                var session = __session as SessionAdminUser;
                 #endregion
 
                 #region Remove session and clear expried session
-                var user = session.User;
+                var error = ErrorCodes.NO_ERROR;
                 error = await __SessionAdminUserManagement.RemoveSession(session.SessionToken);
                 if (error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"RemoveSessionAdminUser failed. ErrorCode: { error }");
                 }
-                error = await __SessionAdminUserManagement.ClearExpiredSession(user.GetExpiredSessions(EXPIRY_TIME));
+                error = await __SessionAdminUserManagement.ClearExpiredSession(session.User.GetExpiredSessions(EXPIRY_TIME));
                 if (error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"ClearExpiredSessionAdminUser failed. ErrorCode: { error }");
                 }
                 #endregion
 
-                LogInformation($"Logout success, user_name: { user.UserName }, session_token: { session_token.Substring(0, 15) }");
+                LogInformation($"Logout success, user_name: { session.User.UserName }, { SessionTokenHeaderKey }: { session_token.Substring(0, 15) }");
 
-                #region set cookie header to remove session_token
+                #region set cookie header to remove session_token_admin
                 CookieOptions option = new CookieOptions();
                 option.Expires = new DateTime(1970, 1, 1, 0, 0, 0);
                 option.Path = "/";
