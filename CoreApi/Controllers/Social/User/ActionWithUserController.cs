@@ -18,11 +18,6 @@ namespace CoreApi.Controllers.Social.User
     [Route("/api/user")]
     public class ActionWithUserController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         protected readonly string[] ValidActions = new string[]{
             "follow",
             "unfollow",
@@ -30,26 +25,7 @@ namespace CoreApi.Controllers.Social.User
 
         public ActionWithUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "ActionWithUser";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "ActionWithUser";
         }
 
         [HttpPost("{user_name}")]
@@ -59,92 +35,107 @@ namespace CoreApi.Controllers.Social.User
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> ActionWithUser([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                        [FromServices] SocialUserManagement __SocialUserManagement,
-                                                        [FromServices] NotificationsManagement __NotificationsManagement,
-                                                        [FromRoute] string user_name,
-                                                        [FromQuery] string action,
-                                                        [FromHeader] string session_token)
+        public async Task<IActionResult> ActionWithUser([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
+                                                        [FromServices] SocialUserManagement         __SocialUserManagement,
+                                                        [FromServices] NotificationsManagement      __NotificationsManagement,
+                                                        [FromRoute(Name = "user_name")] string      __UserName,
+                                                        [FromHeader(Name = "session_token")] string SessionToken,
+                                                        [FromQuery(Name = "action")] string         Action)
         {
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
             __SocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Get session
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
+                }
+                if (__Session == default) {
+                    throw new Exception($"GetSessionToken failed.");
+                }
+                var Session             = __Session as SessionSocialUser;
+                #endregion
+
                 #region Validate params
-                if (user_name == default || user_name.Trim() == string.Empty) {
+                if (__UserName == default || __UserName.Trim() == string.Empty) {
                     return Problem(400, "Invalid request.");
                 }
-                if (!ValidActions.Contains(action)) {
+                if (!ValidActions.Contains(Action)) {
                     return Problem(400, "Invalid params.");
                 }
                 #endregion
 
-                #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
-                }
-                if (__session == default) {
-                    throw new Exception($"GetSessionToken failed.");
-                }
-                var session = __session as SessionSocialUser;
-                #endregion
-
                 #region Get user-des info
-                SocialUser user_des     = default;
-                var error               = ErrorCodes.NO_ERROR;
-                (user_des, error) = await __SocialUserManagement.FindUser(user_name, false);
+                var (UseDes, Error) = await __SocialUserManagement.FindUser(__UserName, false);
 
-                if (error != ErrorCodes.NO_ERROR && error != ErrorCodes.USER_IS_NOT_OWNER) {
-                    if (error == ErrorCodes.NOT_FOUND) {
+                if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
+                    if (Error == ErrorCodes.NOT_FOUND) {
+                        LogWarning(
+                            $"Not user for request action with user, user_des: { __UserName }, "
+                            + $"action: { Action }, user_name { Session.User.UserName }"
+                        );
                         return Problem(404, "Not found user destination.");
                     }
 
-                    throw new Exception($"FindUser failed, ErrorCode: { error }, user_name: { user_name }");
+                    throw new Exception($"FindUser failed, ErrorCode: { Error }, user_name: { __UserName }");
                 }
-                if (user_des.Id == session.UserId) {
+                if (UseDes.Id == Session.UserId) {
+                    LogWarning(
+                        $"Not allow self-action for request action with user, user_des: { __UserName }, "
+                        + $"action: { Action }, user_name { Session.User.UserName }"
+                    );
                     return Problem(400, "Not allow.");
                 }
                 #endregion
 
-                if (await __SocialUserManagement.IsContainsAction(user_des.Id, session.UserId, action)) {
-                    return Problem(400, $"User already { action } this user.");
+                if (await __SocialUserManagement.IsContainsAction(UseDes.Id, Session.UserId, Action)) {
+                    LogWarning(
+                        $"User already { Action } this user, user_des: { __UserName }, "
+                        + $"action: { Action }, user_name { Session.User.UserName }"
+                    );
+                    return Problem(400, $"User already { Action } this user.");
                 }
                 NotificationSenderAction notificationAction = NotificationSenderAction.INVALID_ACTION;
-                switch (action) {
+                switch (Action) {
                     case "follow":
-                        error = await __SocialUserManagement.Follow(user_des.Id, session.UserId);
+                        Error = await __SocialUserManagement.Follow(UseDes.Id, Session.UserId);
                         notificationAction = NotificationSenderAction.FOLLOW_USER;
                         break;
                     case "unfollow":
-                        error = await __SocialUserManagement.UnFollow(user_des.Id, session.UserId);
+                        Error = await __SocialUserManagement.UnFollow(UseDes.Id, Session.UserId);
                         break;
                     default:
+                        LogWarning(
+                            $"Invalid action with user, user_des: { __UserName }, "
+                            + $"action: { Action }, user_name { Session.User.UserName }"
+                        );
                         return Problem(400, "Invalid action.");
                 }
 
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"{ action } post Failed, ErrorCode: { error }");
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"{ Action } post Failed, ErrorCode: { Error }");
                 }
 
-                LogDebug($"Action with post ok, action: { action }, user_id: { session.UserId }");
+                LogDebug($"Action with post ok, action: { Action }, user_id: { Session.UserId }");
                 if (notificationAction != NotificationSenderAction.INVALID_ACTION) {
                     await __NotificationsManagement.SendNotification(
                         NotificationType.ACTION_WITH_USER,
                         new UserNotificationModel(notificationAction,
-                                                  session.UserId,
+                                                  Session.UserId,
                                                   default){
-                            UserId = user_des.Id
+                            UserId = UseDes.Id
                         }
                     );
                 }
 
+                LogInformation($"Acion with user success, user_des: { __UserName }, action: { Action }, user_name: { Session.User.UserName }");
                 return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

@@ -6,6 +6,7 @@ using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Text;
@@ -17,33 +18,9 @@ namespace CoreApi.Controllers.Social.Post
     [Route("/api/post")]
     public class ModifyPostController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         public ModifyPostController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "ModifyPost";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "ModifyPost";
         }
 
         /// <summary>
@@ -54,9 +31,9 @@ namespace CoreApi.Controllers.Social.Post
         /// <param name="__SocialPostManagement"></param>
         /// <param name="__SocialCategoryManagement"></param>
         /// <param name="__SocialTagManagement"></param>
-        /// <param name="ModelModify"></param>
-        /// <param name="session_token"></param>
-        /// <param name="post_id"></param>
+        /// <param name="__PostId"></param>
+        /// <param name="__ModelData"></param>
+        /// <param name="SessionToken"></param>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
@@ -100,96 +77,94 @@ namespace CoreApi.Controllers.Social.Post
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> ModifyPost([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                    [FromServices] SocialPostManagement __SocialPostManagement,
-                                                    [FromServices] SocialCategoryManagement __SocialCategoryManagement,
-                                                    [FromServices] SocialTagManagement __SocialTagManagement,
-                                                    [FromBody] SocialPostModifyModel ModelModify,
-                                                    [FromHeader] string session_token,
-                                                    [FromRoute] long post_id)
+        public async Task<IActionResult> ModifyPost([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
+                                                    [FromServices] SocialPostManagement         __SocialPostManagement,
+                                                    [FromServices] SocialCategoryManagement     __SocialCategoryManagement,
+                                                    [FromServices] SocialTagManagement          __SocialTagManagement,
+                                                    [FromRoute(Name = "post_id")] long          __PostId,
+                                                    [FromBody] SocialPostModifyModel            __ModelData,
+                                                    [FromHeader(Name = "session_token")] string SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
+            __SocialCategoryManagement.SetTraceId(TraceId);
+            __SocialPostManagement.SetTraceId(TraceId);
+            __SocialTagManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region validate post id
-                if (post_id <= 0) {
+                #region Get session
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
+                }
+                if (__Session == default) {
+                    throw new Exception($"GetSessionToken failed.");
+                }
+                var Session             = __Session as SessionSocialUser;
+                #endregion
+
+                #region validate params
+                if (__PostId <= 0) {
                     return Problem(400, "Invalid request.");
                 }
                 #endregion
 
-                #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
-                }
-                if (__session == default) {
-                    throw new Exception($"GetSessionToken failed.");
-                }
-                var session = __session as SessionSocialUser;
-                #endregion
-
                 #region get post by id
-                SocialPost post         = default;
-                var error               = ErrorCodes.NO_ERROR;
-                (post, error) = await __SocialPostManagement.FindPostById(post_id);
-                if (error != ErrorCodes.NO_ERROR || post.Owner != session.UserId) {
+                var (Post, Error) = await __SocialPostManagement.FindPostById(__PostId);
+                if (Error != ErrorCodes.NO_ERROR || Post.Owner != Session.UserId) {
                     return Problem(404, "Not found post.");
                 }
                 #endregion
 
                 #region validate post modify nodel
-                if (ModelModify.categories != default && !await __SocialCategoryManagement.IsExistingCategories(ModelModify.categories)) {
+                if (__ModelData.categories != default && !await __SocialCategoryManagement.IsExistingCategories(__ModelData.categories)) {
                     return Problem(400, $"Category not exist.");
                 }
 
-                if (ModelModify.tags != default) {
-                    var isValidTags = false;
-                    (isValidTags, error) = await __SocialTagManagement.IsValidTags(ModelModify.tags);
-                    if (!isValidTags) {
-                        if (error == ErrorCodes.INVALID_PARAMS) {
+                if (__ModelData.tags != default) {
+                    var IsValidTags = false;
+                    (IsValidTags, Error) = await __SocialTagManagement.IsValidTags(__ModelData.tags);
+                    if (!IsValidTags) {
+                        if (Error == ErrorCodes.INVALID_PARAMS) {
                             return Problem(400, "Invalid tags.");
                         }
-                        throw new Exception($"IsValidTags Failed, ErrorCode: { error }");
+                        throw new Exception($"IsValidTags Failed, ErrorCode: { Error }");
                     }
                 }
                 #endregion
 
-                if (post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)) {
-                    error = await __SocialPostManagement.AddPendingContent(post.Id, ModelModify);
+                if (Post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)) {
+                    Error = await __SocialPostManagement.AddPendingContent(Post.Id, __ModelData);
                 } else if (
-                    post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Private)
-                    || post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Pending)
+                    Post.StatusStr      == EntityStatus.StatusTypeToString(StatusType.Private)
+                    || Post.StatusStr   == EntityStatus.StatusTypeToString(StatusType.Pending)
                 ) {
-                    error = await __SocialPostManagement.ModifyPostNotApproved(post.Id, ModelModify);
+                    Error = await __SocialPostManagement.ModifyPostNotApproved(Post.Id, __ModelData);
                 } else {
-                    return Problem(400, $"Not allow modify post has '{ post.StatusStr }'.");
+                    return Problem(400, $"Not allow modify post has '{ Post.StatusStr }'.");
                 }
 
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NO_CHANGE_DETECTED) {
+                if (Error != ErrorCodes.NO_ERROR) {
+                    if (Error == ErrorCodes.NO_CHANGE_DETECTED) {
                         return Problem(400, "No change detected.");
                     }
-                    if (post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)) {
-                        throw new Exception($"AddPendingContent Failed, ErrorCode: { error }");
+                    if (Post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)) {
+                        throw new Exception($"AddPendingContent Failed, ErrorCode: { Error }");
                     } else {
-                        throw new Exception($"ModifyPostNotApproved Failed, ErrorCode: { error }");
+                        throw new Exception($"ModifyPostNotApproved Failed, ErrorCode: { Error }");
                     }
                 }
 
-                var ret = post.GetJsonObject();
-                ret.Add("actions", Utils.ObjectToJsonToken(post.GetActionByUser(session.UserId)));
+                var Ret = Post.GetJsonObject();
+                Ret.Add("actions", Utils.ObjectToJsonToken(Post.GetActionByUser(Session.UserId)));
 
                 return Ok(200, "OK", new JObject(){
-                    { "post", ret },
+                    { "post", Ret },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

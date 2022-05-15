@@ -11,6 +11,7 @@ using DatabaseAccess.Common.Status;
 using DatabaseAccess.Common.Models;
 using CoreApi.Common;
 using System.Threading.Tasks;
+using Common;
 
 namespace CoreApi.Services
 {
@@ -62,8 +63,8 @@ namespace CoreApi.Services
             log.TableKey = TableKey;
             log.Action = Action;
             log.UserId = UserId;
-            log.OldValue = new LogValue(OldValue);
-            log.NewValue = new LogValue(NewValue);
+            log.OldValue = new LogValue(Utils.CensorSensitiveDate(OldValue));
+            log.NewValue = new LogValue(Utils.CensorSensitiveDate(NewValue));
 
             await __DBContext.AdminAuditLogs.AddAsync(log);
             await __DBContext.SaveChangesAsync();

@@ -12,99 +12,100 @@ using System.Collections.Generic;
 namespace CoreApi
 {
     struct DatabaseAccessConfiguration {
-        public string Host { get; set; }
-        public string Port { get; set; }
-        public string User { get; set; }
-        public string Password { get; set; }
-        public string DBName { get; set; }
+        public string Host      { get; set; }
+        public string Port      { get; set; }
+        public string User      { get; set; }
+        public string DBName    { get; set; }
+        public string Password  { get; set; }
         public static DatabaseAccessConfiguration DefaultDatabaseAccessConfiguration { get {
-                var ret = new DatabaseAccessConfiguration();
-                ret.Host = "localhost";
-                ret.Port = "5432";
-                ret.User = "postgres";
-                ret.Password = "a";
-                ret.DBName = "db_vip_pro";
-                return ret;
+                var Ret         = new DatabaseAccessConfiguration();
+                Ret.Host        = "localhost";
+                Ret.Port        = "5432";
+                Ret.User        = "postgres";
+                Ret.DBName      = "db_vip_pro";
+                Ret.Password    = "a";
+                return Ret;
             }
         }
     }
 
     public struct EmailClientConfiguration {
-        public string Host { get; set; }
-        public string Port { get; set; }
-        public string User { get; set; }
-        public string Password { get; set; }
-        public bool EnableSSL { get; set; }
+        public string Host      { get; set; }
+        public string Port      { get; set; }
+        public string User      { get; set; }
+        public string Password  { get; set; }
+        public bool EnableSSL   { get; set; }
 
         public static EmailClientConfiguration DefaultEmailClientConfiguration { get {
-                var ret = new EmailClientConfiguration();
-                ret.Host = string.Empty;
-                ret.Port = string.Empty;
-                ret.User = string.Empty;
-                ret.Password = string.Empty;
-                ret.EnableSSL = false;
-                return ret;
+                var Ret         = new EmailClientConfiguration();
+                Ret.Host        = string.Empty;
+                Ret.Port        = string.Empty;
+                Ret.User        = string.Empty;
+                Ret.Password    = string.Empty;
+                Ret.EnableSSL   = false;
+                return Ret;
             }
         }
     }
 
     public struct SwaggerDocumentConfiguration {
-        public bool Enable { get; set; }
-        public string Username { get; set; }
-        public string Password { get; set; }
-        public string Path { get; set; }
+        public bool Enable      { get; set; }
+        public string Path      { get; set; }
+        public string Username  { get; set; }
+        public string Password  { get; set; }
 
         public static SwaggerDocumentConfiguration DefaultSwaggerDocumentConfiguration { get {
-                var ret = new SwaggerDocumentConfiguration();
+                var Ret = new SwaggerDocumentConfiguration();
 #if DEBUG
-                ret.Enable = true;
+                Ret.Enable = true;
 #else
-                ret.Enable = false;
+                Ret.Enable = false;
 #endif
-                ret.Username = "admin";
-                ret.Password = "admin";
-                ret.Path = "/api/swagger";
-                return ret;
+                Ret.Username = "admin";
+                Ret.Password = "admin";
+                Ret.Path = "/api/swagger";
+                return Ret;
             }
         }
     }
 
     public struct ServerConfiguration {
-        public int Port { get; set; }
-        public string HostName  { get; set; }
-        public bool EnableSSL { get; set; }
-        public bool DisableCORS { get; set; }
-        public bool ShowSQLCommandInLog { get; set; }
-        public string TempPath { get; set; }
-        public string CertPath { get; set; }
-        public string LogFilePath { get; set; }
-        public string LogTemplate { get; set; }
-        public string PasswordCert { get; set; }
-        public string UploadFilePath { get; set; }
-        public string PrefixPathGetUploadFile { get; set; }
+        public int Port                         { get; set; }
+        public string HostName                  { get; set; }
+        public bool EnableSSL                   { get; set; }
+        public bool DisableCORS                 { get; set; }
+        public bool ShowSQLCommandInLog         { get; set; }
+        public string TempPath                  { get; set; }
+        public string CertPath                  { get; set; }
+        public string LogFilePath               { get; set; }
+        public string LogTemplate               { get; set; }
+        public string PasswordCert              { get; set; }
+        public string UploadFilePath            { get; set; }
+        public string PrefixPathGetUploadFile   { get; set; }
 
         public static ServerConfiguration DefaultServerConfiguration { get {
-                var ret = new ServerConfiguration();
-                ret.Port = 7005;
-                ret.HostName = "localhost";
-                ret.EnableSSL = false;
-                ret.DisableCORS = false;
-                ret.ShowSQLCommandInLog = false;
-                ret.TempPath = "./tmp";
-                ret.LogFilePath = "./tmp/logs/CoreApi-.log";
-                ret.LogTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss zzz} [{Level:u3}] ({ThreadId}) {EscapedMessage}{NewLine}{EscapedException}";
-                ret.PasswordCert = "Ndh90768";
-                ret.UploadFilePath = "./tmp/upload";
-                ret.PrefixPathGetUploadFile = "/upload/file";
-                return ret;
+                var Ret = new ServerConfiguration();
+                Ret.Port                    = 7005;
+                Ret.HostName                = "localhost";
+                Ret.EnableSSL               = false;
+                Ret.DisableCORS             = false;
+                Ret.ShowSQLCommandInLog     = false;
+                Ret.TempPath                = "./tmp";
+                Ret.LogFilePath             = "./tmp/logs/CoreApi-.log";
+                Ret.LogTemplate             = "{Timestamp:yyyy-MM-dd HH:mm:ss zzz} [{Level:u3}] ({ThreadId}) {EscapedMessage}{NewLine}{EscapedException}";
+                Ret.PasswordCert            = "Ndh90768";
+                Ret.UploadFilePath          = "./tmp/upload";
+                Ret.PrefixPathGetUploadFile = "/upload/file";
+                return Ret;
             }
         }
     }
 
     public class Program
     {
-        public static readonly string CONFIG_FILE_PATH = "./appsettings.json";
-        private static readonly List<string> __ValidParamsFromArgs = new List<string>();
+        public static readonly string APP_NAME                      = "APP-NAME";
+        public static readonly string CONFIG_FILE_PATH              = "./appsettings.json";
+        private static readonly List<string> __ValidParamsFromArgs  = new List<string>();
         #region Variables
         private static bool __DropDatabase = false;
         private static IHost __Host;
@@ -114,16 +115,16 @@ namespace CoreApi
         private static EmailClientConfiguration __EmailClientConfig = EmailClientConfiguration.DefaultEmailClientConfiguration;
         private static DatabaseAccessConfiguration __DBAccessConfig = DatabaseAccessConfiguration.DefaultDatabaseAccessConfiguration;
         private static SwaggerDocumentConfiguration __SwaggerDocumentConfiguration = SwaggerDocumentConfiguration.DefaultSwaggerDocumentConfiguration;
-        private static List<string> __ListeningAddress = new List<string>();
-        private static List<string> __AllowMethods = new List<string>() { "GET", "POST", "DELETE", "PUT" };
-        private static List<string> __AllowHeaders = new List<string>() { "session_token" };
+        private static List<string> __ListeningAddress  = new List<string>();
+        private static List<string> __AllowMethods      = new List<string>() { "GET", "POST", "DELETE", "PUT" };
+        private static List<string> __AllowHeaders      = new List<string>(Common.HEADER_KEYS.GetAllowHeaders());
         #endregion
 
         #region Public Get Property
-        public static List<string> AllowMethods { get => __AllowMethods; }
-        public static List<string> AllowHeaders { get => __AllowHeaders; }
-        public static List<string> ListeningAddress { get => __ListeningAddress; }
-        public static ServerConfiguration ServerConfiguration { get => __ServerConfiguration; }
+        public static List<string> AllowMethods         { get => __AllowMethods; }
+        public static List<string> AllowHeaders         { get => __AllowHeaders; }
+        public static List<string> ListeningAddress     { get => __ListeningAddress; }
+        public static ServerConfiguration ServerConfiguration   { get => __ServerConfiguration; }
         public static EmailClientConfiguration EmailClientConfig { get => __EmailClientConfig; }
         public static SwaggerDocumentConfiguration SwaggerDocumentConfiguration { get => __SwaggerDocumentConfiguration; }
         public static bool DropDatabase { get => __DropDatabase; }
@@ -238,6 +239,7 @@ namespace CoreApi
                 warnings.Add($"DatabaseAccess configuration not configured. Use default config.");
             }
             BaseConfigurationDB.Configure(
+                APP_NAME,
                 __DBAccessConfig.Host,
                 __DBAccessConfig.User,
                 __DBAccessConfig.Password,

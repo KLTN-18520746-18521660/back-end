@@ -29,7 +29,7 @@ namespace DatabaseAccess.Common.Models
         public JObject Data { get; set; }
 
         public override string ToString() {
-            return JsonConvert.SerializeObject(Data);
+            return Data.ToString(Formatting.None);
         }
     }
 }

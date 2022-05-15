@@ -17,34 +17,10 @@ namespace CoreApi.Controllers.Admin.AuditLog
     [Route("/api/admin/sociallog")]
     public class GetSocialAuditLogController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minutes
-        #endregion
-
         public GetSocialAuditLogController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetSocialAuditLog";
-            __IsAdminController = true;
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "GetSocialAuditLog";
+            IsAdminController = true;
         }
 
         /// <summary>
@@ -53,10 +29,10 @@ namespace CoreApi.Controllers.Admin.AuditLog
         /// <param name="__AdminUserManagement"></param>
         /// <param name="__SocialAuditLogManagement"></param>
         /// <param name="__SessionAdminUserManagement"></param>
-        /// <param name="session_token"></param>
-        /// <param name="start"></param>
-        /// <param name="size"></param>
-        /// <param name="search_term"></param>
+        /// <param name="SessionToken"></param>
+        /// <param name="Start"></param>
+        /// <param name="Size"></param>
+        /// <param name="SearchTerm"></param>
         /// <returns><b>List social auditlog</b></returns>
         ///
         /// <remarks>
@@ -110,90 +86,69 @@ namespace CoreApi.Controllers.Admin.AuditLog
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetAuditLogs([FromServices] AdminUserManagement __AdminUserManagement,
-                                                      [FromServices] SocialAuditLogManagement __SocialAuditLogManagement,
-                                                      [FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
-                                                      [FromHeader(Name = "session_token_admin")] string session_token,
-                                                      [FromQuery] int start = 0,
-                                                      [FromQuery] int size = 20,
-                                                      [FromQuery] string search_term = default)
+        public async Task<IActionResult> GetAuditLogs([FromServices] AdminUserManagement                __AdminUserManagement,
+                                                      [FromServices] SocialAuditLogManagement           __SocialAuditLogManagement,
+                                                      [FromServices] SessionAdminUserManagement         __SessionAdminUserManagement,
+                                                      [FromHeader(Name = "session_token_admin")] string SessionToken,
+                                                      [FromQuery(Name = "start")] int                   Start = 0,
+                                                      [FromQuery(Name = "size")] int                    Size = 20,
+                                                      [FromQuery(Name = "search_term")] string          SearchTerm = default)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __AdminUserManagement.SetTraceId(TraceId);
             __SocialAuditLogManagement.SetTraceId(TraceId);
             __SessionAdminUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Get session token
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                if (session_token == default) {
-                    LogDebug($"Missing header authorization.");
-                    return Problem(401, "Missing header authorization.");
+                #region Get session
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionAdminUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
                 }
-
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    LogDebug($"Invalid header authorization.");
-                    return Problem(401, "Invalid header authorization.");
+                if (__Session == default) {
+                    throw new Exception($"GetSessionToken failed.");
                 }
-                #endregion
-
-                #region Find session for use
-                SessionAdminUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
-
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session not found.");
-                    }
-                    if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogWarning($"Session has expired, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session has expired.");
-                    }
-                    if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogWarning($"User has been locked, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(423, "You have been locked.");
-                    }
-                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
-                }
+                var Session             = __Session as SessionAdminUser;
                 #endregion
 
                 #region Check Permission
-                var user = session.User;
-                error = __AdminUserManagement.HaveReadPermission(user.Rights, ADMIN_RIGHTS.LOG);
-                if (error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogWarning($"User doesn't have permission to see admin audit log, user_name: { user.UserName }");
+                var Error = __AdminUserManagement.HaveReadPermission(Session.User.Rights, ADMIN_RIGHTS.LOG);
+                if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
+                    LogWarning($"User doesn't have permission to see admin audit log, user_name: { Session.User.UserName }");
                     return Problem(403, "User doesn't have permission to see admin audit log.");
                 }
                 #endregion
 
                 #region Get all audit logs
-                var (logs, totalSize) = await __SocialAuditLogManagement.GetAuditLogs(start, size, search_term);
+                var (Logs, TotalSize) = await __SocialAuditLogManagement.GetAuditLogs(Start, Size, SearchTerm);
 
-                List<JObject> rawReturn = new();
-                logs.ForEach(e => rawReturn.Add(e.GetJsonObject()));
-                var ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(rawReturn));
+                List<JObject> RawRet = new();
+                Logs.ForEach(e => RawRet.Add(e.GetJsonObject()));
+                var Ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(RawRet));
                 #endregion
 
                 #region Validate params: start, size, total_size
-                if (totalSize != 0 && start >= totalSize) {
-                    LogWarning($"Invalid request params for get audit log, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
-                    return Problem(400, $"Invalid request params start: { start }. Total size is { totalSize }");
+                if (TotalSize != 0 && Start >= TotalSize) {
+                    LogWarning(
+                        $"Invalid request params for get audit log, start: { Start }, size: { Size }, "
+                        + $"search_term: { SearchTerm }, total_size: { TotalSize }"
+                    );
+                    return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
                 }
                 #endregion
 
-                LogInformation($"Get social auditlog success, user_name: { user.UserName }, start: { start }, size: { size }, search_term: { search_term }");
+                LogInformation(
+                    $"Get social auditlog success, user_name: { Session.User.UserName }, start: { Start }, "
+                    + $"size: { Size }, search_term: { SearchTerm }"
+                );
                 return Ok(200, "OK", new JObject(){
-                    { "logs", ret },
-                    { "total_size", totalSize },
+                    { "logs",       Ret },
+                    { "total_size", TotalSize },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

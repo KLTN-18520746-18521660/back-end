@@ -103,21 +103,51 @@ namespace Common
             }
             return true;
         }
-        public static bool PasswordValidator(string password,
-                                             int minLen,
-                                             int maxLen,
-                                             int minUpperChar,
-                                             int minLowerChar,
-                                             int minSpecialChar,
-                                             string errMsg = default)
+        public static string ValidatePassword(string Password,
+                                              int MinLen,
+                                              int MaxLen,
+                                              int MinUpperChar,
+                                              int MinLowerChar,
+                                              int MinNumberChar,
+                                              int MinSpecialChar)
         {
-            errMsg ??= string.Empty;
-            if (password.Length < minLen || password.Length > maxLen) {
-                errMsg ??= $"Password must less than { maxLen } and greater than { minLen }";
-                return false;
+            if (Password.Length < MinLen || Password.Length > MaxLen) {
+                return $"Password must less than { MaxLen } and greater than { MinLen }";
             }
-            // if (password)
-            return true;
+            var UpperChar   = 0;
+            var LowerChar   = 0;
+            var NumberChar  = 0;
+            var SpecialChar = 0;
+            foreach (var It in Password) {
+                if (Char.IsLetter(It)) {
+                    if (Char.IsLower(It)) {
+                        LowerChar++;
+                        continue;
+                    }
+                    if (Char.IsUpper(It)) {
+                        UpperChar++;
+                        continue;
+                    }
+                }
+                if (Char.IsNumber(It)) {
+                    NumberChar++;
+                    continue;
+                }
+                SpecialChar++;
+            }
+            if (UpperChar < MinUpperChar) {
+                return $"Password required { MinUpperChar } upper chracter";
+            }
+            if (LowerChar < MinLowerChar) {
+                return $"Password required { MinUpperChar } lower chracter";
+            }
+            if (NumberChar < MinNumberChar) {
+                return $"Password required { MinNumberChar } number";
+            }
+            if (SpecialChar < MinSpecialChar) {
+                return $"Password required { MinSpecialChar } special character";
+            }
+            return string.Empty;
         }
     }
 }

@@ -48,43 +48,86 @@ namespace CoreApi.Services
             return (default, ErrorCodes.NOT_FOUND);
         }
 
-        public async Task<ErrorCodes> IsExpiredPassword(SocialUser user)
+        public ErrorCodes IsNeedChangePassword(SocialUser User)
         {
             #region Get password policy
-                return ErrorCodes.NO_ERROR;
+            var __BaseConfig                    = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
+            var ExpiryTime                      = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.SOCIAL_PASSWORD_POLICY, SUB_CONFIG_KEY.EXPIRY_TIME)
+                .Value;
+            var RequiredChangeExpiredPassword   = __BaseConfig
+                .GetConfigValue<bool>(CONFIG_KEY.SOCIAL_PASSWORD_POLICY, SUB_CONFIG_KEY.REQUIRED_CHANGE_EXPIRED_PASSWORD)
+                .Value;
             #endregion
+
+            #region Get value from user settings
+            DateTime LastChangePassword = default;
+            bool IsExpired              = false;
+            var Now                     = DateTime.UtcNow;
+            var NeedChangePassword      = false;
+            var PasswordSetting         = User.Settings.ContainsKey("password")
+                                            ? User.Settings.SelectToken("password").ToObject<JObject>()
+                                            : new JObject();
+            LastChangePassword = PasswordSetting.ContainsKey("last_change_password")
+                                    ? PasswordSetting.Value<DateTime>("last_change_password")
+                                    : User.CreatedTimestamp;
+            IsExpired = PasswordSetting.ContainsKey("is_expired")
+                                    ? PasswordSetting.Value<bool>("is_expired")
+                                    : false;
+            #endregion
+
+            NeedChangePassword = IsExpired && RequiredChangeExpiredPassword;
+            IsExpired = (Now - LastChangePassword.ToUniversalTime()).TotalDays > ExpiryTime;
+
+            #region Update user value
+            if (PasswordSetting.ContainsKey("last_change_password")) {
+                PasswordSetting.SelectToken("last_change_password").Replace(LastChangePassword);
+            } else {
+                PasswordSetting.Add("last_change_password", LastChangePassword);
+            }
+            if (PasswordSetting.ContainsKey("is_expired")) {
+                PasswordSetting.SelectToken("is_expired").Replace(IsExpired);
+            } else {
+                PasswordSetting.Add("is_expired", IsExpired);
+            }
+            if (User.Settings.ContainsKey("password")) {
+                User.Settings.SelectToken("password").Replace(PasswordSetting);
+            } else {
+                User.Settings.Add("password", PasswordSetting);
+            }
+            #endregion
+            return NeedChangePassword ? ErrorCodes.PASSWORD_IS_EXPIRED : ErrorCodes.NO_ERROR;
         }
 
         public async Task<(SessionSocialUser, ErrorCodes)> FindSessionForUse(string SessionToken,
-                                    int ExpiryTime,
-                                    int ExtensionTime)
+                                                                             int ExpiryTime,
+                                                                             int ExtensionTime)
         {
-            ErrorCodes error = ErrorCodes.NO_ERROR;
-            SessionSocialUser session = default;
-            (session, error) = await FindSession(SessionToken);
-            if (error != ErrorCodes.NO_ERROR) {
-                return (session, error);
+            var (Session, Error) = await FindSession(SessionToken);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return (Session, Error);
             }
 
-            if (session.User.Status.Type == StatusType.Blocked) {
+            if (Session.User.Status.Type == StatusType.Blocked) {
                 return (default, ErrorCodes.USER_HAVE_BEEN_LOCKED);
             }
             // Clear expired session
-            error = await ClearExpiredSession(session.User.GetExpiredSessions(ExpiryTime));
-            if (error != ErrorCodes.NO_ERROR) {
+            Error = await ClearExpiredSession(Session.User.GetExpiredSessions(ExpiryTime));
+            if (Error != ErrorCodes.NO_ERROR) {
                 return (default, ErrorCodes.INTERNAL_SERVER_ERROR);
             }
             // Find session again if session if expired
-            (session, error) = await FindSession(SessionToken);
-            if (error == ErrorCodes.NO_ERROR) {
-                error = await ExtensionSession(SessionToken, ExtensionTime);
-                if (error == ErrorCodes.NO_ERROR) {
-                    session.User.LastAccessTimestamp = session.LastInteractionTime;
+            (Session, Error) = await FindSession(SessionToken);
+            if (Error == ErrorCodes.NO_ERROR) {
+                Error = await ExtensionSession(SessionToken, ExtensionTime);
+                if (Error == ErrorCodes.NO_ERROR) {
+                    Error = IsNeedChangePassword(Session.User);
+                    Session.User.LastAccessTimestamp = Session.LastInteractionTime;
                     if (await __DBContext.SaveChangesAsync() > 0) {
-                        return (session, ErrorCodes.NO_ERROR);
+                        return (Session, Error);
                     }
                 }
-            } else if (error == ErrorCodes.NOT_FOUND) {
+            } else if (Error == ErrorCodes.NOT_FOUND) {
                 return (default, ErrorCodes.SESSION_HAS_EXPIRED);
             }
             return (default, ErrorCodes.INTERNAL_SERVER_ERROR);
@@ -99,6 +142,21 @@ namespace CoreApi.Services
                 return error;
             }
             __DBContext.SessionSocialUsers.Remove(session);
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+
+        public async Task<ErrorCodes> RemoveAllSession(Guid UserId, string[] IgnoreSessions)
+        {
+            var Sessions = await __DBContext.SessionSocialUsers
+                .Where(e => e.UserId == UserId && !IgnoreSessions.Contains(e.SessionToken))
+                .ToArrayAsync();
+            if (Sessions.Length == 0) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+            __DBContext.SessionSocialUsers.RemoveRange(Sessions);
             if (await __DBContext.SaveChangesAsync() > 0) {
                 return ErrorCodes.NO_ERROR;
             }

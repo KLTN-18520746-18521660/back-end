@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Linq.Expressions;
 using DatabaseAccess.Common.Status;
+using Newtonsoft.Json;
 
 namespace CoreApi.Controllers.Social.Post
 {
@@ -19,33 +20,9 @@ namespace CoreApi.Controllers.Social.Post
     [Route("/api/post")]
     public class GetPostsByUserNameController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         public GetPostsByUserNameController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetPostsByUserName";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "GetPostsByUserName";
         }
 
         /// <summary>
@@ -57,15 +34,15 @@ namespace CoreApi.Controllers.Social.Post
         /// <param name="__SocialUserManagement"></param>
         /// <param name="__SocialPostManagement"></param>
         /// <param name="__SocialTagManagement"></param>
-        /// <param name="user_name"></param>
-        /// <param name="session_token"></param>
-        /// <param name="start"></param>
-        /// <param name="size"></param>
-        /// <param name="search_term"></param>
-        /// <param name="status"></param>
-        /// <param name="orders"></param>
-        /// <param name="tags"></param>
-        /// <param name="categories"></param>
+        /// <param name="__UserName"></param>
+        /// <param name="SessionToken"></param>
+        /// <param name="Start"></param>
+        /// <param name="Size"></param>
+        /// <param name="SearchTerm"></param>
+        /// <param name="Tags"></param>
+        /// <param name="Categories"></param>
+        /// <param name="Status"></param>
+        /// <param name="Orders"></param>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
@@ -98,24 +75,21 @@ namespace CoreApi.Controllers.Social.Post
         // [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         // [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetPostsByUserName([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                            [FromServices] SocialCategoryManagement __SocialCategoryManagement,
-                                                            [FromServices] SocialUserManagement __SocialUserManagement,
-                                                            [FromServices] SocialPostManagement __SocialPostManagement,
-                                                            [FromServices] SocialTagManagement __SocialTagManagement,
-                                                            [FromRoute] string user_name,
-                                                            [FromHeader] string session_token,
-                                                            [FromQuery] int start = 0,
-                                                            [FromQuery] int size = 20,
-                                                            [FromQuery] string search_term = default,
-                                                            [FromQuery] string status = default,
-                                                            [FromQuery] Models.OrderModel orders = default,
-                                                            [FromQuery] string tags = default,
-                                                            [FromQuery] string categories = default)
+        public async Task<IActionResult> GetPostsByUserName([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
+                                                            [FromServices] SocialCategoryManagement     __SocialCategoryManagement,
+                                                            [FromServices] SocialUserManagement         __SocialUserManagement,
+                                                            [FromServices] SocialPostManagement         __SocialPostManagement,
+                                                            [FromServices] SocialTagManagement          __SocialTagManagement,
+                                                            [FromRoute(Name = "user_name")] string      __UserName,
+                                                            [FromHeader(Name = "session_token")] string SessionToken,
+                                                            [FromQuery(Name = "start")] int             Start       = 0,
+                                                            [FromQuery(Name = "size")] int              Size        = 20,
+                                                            [FromQuery(Name = "search_term")] string    SearchTerm  = default,
+                                                            [FromQuery(Name = "tags")] string           Tags        = default,
+                                                            [FromQuery(Name = "categories")] string     Categories  = default,
+                                                            [FromQuery(Name = "status")] string         Status      = default,
+                                                            [FromQuery] Models.OrderModel               Orders      = default)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
             __SocialCategoryManagement.SetTraceId(TraceId);
@@ -124,107 +98,95 @@ namespace CoreApi.Controllers.Social.Post
             __SocialTagManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Get session (not required)
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, _)      = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                var IsValidSession      = __Session != default;
+                var Session             = __Session as SessionSocialUser;
+                #endregion
+
                 #region Validate params
-                if (user_name == default || user_name.Trim() == string.Empty || user_name.Length > 50) {
+                IActionResult ErrRetValidate    = default;
+                (string, bool)[] CombineOrders  = default;
+                string[] StatusArr              = default;
+                string[] AllowOrderParams       = __SocialPostManagement.GetAllowOrderFields(GetPostAction.GetPostsAttachedToUser);
+                string[] TagsArr                = Tags == default ? default : Tags.Split(',');
+                string[] CategoriesArr          = Categories == default ? default : Categories.Split(',');
+                (CombineOrders, ErrRetValidate) = ValidateOrderParams(Orders, AllowOrderParams);
+                if (ErrRetValidate != default) {
+                    return ErrRetValidate;
+                }
+                if (CombineOrders == default) {
+                    throw new Exception($"ValidateOrderParams failed.");
+                }
+                (StatusArr, ErrRetValidate) = ValidateStatusParams(Status, new StatusType[] { StatusType.Deleted });
+                if (ErrRetValidate != default) {
+                    return ErrRetValidate;
+                }
+                if (StatusArr == default) {
+                    throw new Exception($"ValidateStatusParams failed.");
+                }
+                if (__UserName == default || __UserName.Trim() == string.Empty || __UserName.Length > 50) {
                     return Problem(400, "Invalid user_name.");
                 }
-                if (!orders.IsValid()) {
-                    return Problem(400, "Invalid order fields.");
-                }
-                string[] categoriesArr = categories == default ? default : categories.Split(',');
-                if (categories != default && !await __SocialCategoryManagement.IsExistingCategories(categoriesArr)) {
+                if (Categories != default && !await __SocialCategoryManagement.IsExistingCategories(CategoriesArr)) {
                     return Problem(400, "Invalid categories not exists.");
                 }
-                string[] tagsArr = tags == default ? default : tags.Split(',');
-                if (tags != default && !await __SocialTagManagement.IsExistsTags(tagsArr)) {
+                if (Tags != default && !await __SocialTagManagement.IsExistsTags(TagsArr)) {
                     return Problem(400, "Invalid tags not exists.");
-                }
-                var combineOrders = orders.GetOrders();
-                var paramsAllowInOrder = __SocialPostManagement.GetAllowOrderFields(GetPostAction.GetPostsAttachedToUser);
-                foreach (var it in combineOrders) {
-                    if (!paramsAllowInOrder.Contains(it.Item1)) {
-                        return Problem(400, $"Not allow order field: { it.Item1 }.");
-                    }
-                }
-                string[] statusArr = status == default ? default : status.Split(',');
-                if (status != default) {
-                    foreach (var statusStr in statusArr) {
-                        var statusType = EntityStatus.StatusStringToType(statusStr);
-                        if (statusType == default || statusType == StatusType.Deleted) {
-                            return Problem(400, $"Invalid status: { statusStr }.");
-                        }
-                    }
-                }
-                #endregion
-
-                bool IsValidSession = false;
-                #region Get session token
-                if (session_token != default) {
-                    IsValidSession = CommonValidate.IsValidSessionToken(session_token);
-                }
-                #endregion
-
-                #region Find session for use
-                SessionSocialUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                if (IsValidSession) {
-                    (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
-
-                    if (error != ErrorCodes.NO_ERROR) {
-                        IsValidSession = false;
-                    }
                 }
                 #endregion
 
                 #region Get posts
-                SocialUser postUser = default;
-                (postUser, error) = await __SocialUserManagement.FindUserIgnoreStatus(user_name, false);
-                if (error != ErrorCodes.NO_ERROR) {
+                var (PostUser, Error) = await __SocialUserManagement.FindUserIgnoreStatus(__UserName, false);
+                if (Error != ErrorCodes.NO_ERROR) {
                     return Problem(404, "Not found user.");
                 }
-                var isOwner = IsValidSession ? session.UserId == postUser.Id : false;
-                List<SocialPost> posts = default;
-                int totalSize = default;
-                (posts, totalSize, error) = await __SocialPostManagement
+                List<SocialPost> Posts  = default;
+                int TotalSize           = default;
+                (Posts, TotalSize, Error) = await __SocialPostManagement
                     .GetPostsAttachedToUser(
-                        postUser.Id,
-                        isOwner,
-                        start,
-                        size,
-                        search_term,
-                        statusArr,
-                        combineOrders,
-                        tagsArr,
-                        categoriesArr
+                        PostUser.Id,
+                        IsValidSession ? Session.UserId == PostUser.Id : false,
+                        Start,
+                        Size,
+                        SearchTerm,
+                        StatusArr,
+                        CombineOrders,
+                        TagsArr,
+                        CategoriesArr
                     );
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"GetPostsAttachedToUser failed, ErrorCode: { error }");
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"GetPostsAttachedToUser failed, ErrorCode: { Error }");
                 }
                 #endregion
 
                 #region Validate params: start, size, total_size
-                if (totalSize != 0 && start >= totalSize) {
-                    LogWarning($"Invalid request params for get posts, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
-                    return Problem(400, $"Invalid request params start: { start }. Total size is { totalSize }");
+                if (TotalSize != 0 && Start >= TotalSize) {
+                    LogWarning(
+                        $"Invalid request params for get posts, start: { Start }, size: { Size }, "
+                        + $"search_term: { SearchTerm }, total_size: { TotalSize }"
+                    );
+                    return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
                 }
                 #endregion
 
-                var ret = new List<JObject>();
-                posts.ForEach(e => {
-                    var obj = e.GetPublicShortJsonObject(IsValidSession ? session.UserId : default);
+                var Ret = new List<JObject>();
+                Posts.ForEach(e => {
+                    var Obj = e.GetPublicShortJsonObject(IsValidSession ? Session.UserId : default);
                     if (IsValidSession) {
-                        obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionByUser(session.UserId)));
+                        Obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionByUser(Session.UserId)));
                     }
-                    ret.Add(obj);
+                    Ret.Add(Obj);
                 });
 
                 return Ok(200, "OK", new JObject(){
-                    { "posts", Utils.ObjectToJsonToken(ret) },
-                    { "total_size", totalSize },
+                    { "posts",      Utils.ObjectToJsonToken(Ret) },
+                    { "total_size", TotalSize },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

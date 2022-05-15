@@ -4,8 +4,10 @@ using CoreApi.Services;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -15,33 +17,20 @@ namespace CoreApi.Controllers.Social.Config
     [Route("/api/config")]
     public class GetPublicConfigController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         public GetPublicConfigController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetPublicConfig";
-            LoadConfig();
+            ControllerName = "GetPublicConfig";
         }
 
-        [NonAction]
-        public override void LoadConfig()
+        private string[] NotAllowConfigKeyContains = new string[]{
+            "admin",
+            "api"
+        };
+
+        private bool IsNotAllowConfigKey(string Key)
         {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            string KeyLower = Key.ToLower();
+            return NotAllowConfigKeyContains.Count(e => KeyLower.Contains(e)) > 0;
         }
 
         [HttpGet("")]
@@ -51,62 +40,41 @@ namespace CoreApi.Controllers.Social.Config
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetAllPublicConfig([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                            [FromHeader] string session_token)
+        public async Task<IActionResult> GetAllPublicConfig([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
+                                                            [FromHeader(Name = "session_token")] string SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                bool isSessionInvalid = true;
-                #region Get session token
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                if (session_token == default) {
-                    LogDebug($"Missing header authorization.");
-                    isSessionInvalid = false;
-                }
-
-                if (isSessionInvalid && !CommonValidate.IsValidSessionToken(session_token)) {
-                    LogDebug("Invalid header authorization.");
-                }
-                #endregion
-
-                #region Find session for use
-                SessionSocialUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                if (isSessionInvalid) {
-                    (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
-
-                    if (error != ErrorCodes.NO_ERROR) {
-                        isSessionInvalid = false;
-                    }
-                }
+                #region Get session (not required)
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, _)      = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                var IsValidSession      = __Session != default;
+                var Session             = __Session as SessionSocialUser;
                 #endregion
 
                 #region Get all public config
-                var (rawRet, errMsg) = __BaseConfig.GetAllPublicConfig();
-                if (errMsg != string.Empty) {
-                    throw new Exception($"GetAllConfig Failed. ErrorMsg: { errMsg }");
+                var (RawRet, ErrMsg) = __BaseConfig.GetAllPublicConfig();
+                if (ErrMsg != string.Empty) {
+                    throw new Exception($"GetAllConfig Failed. ErrorMsg: { ErrMsg }");
                 }
-                JObject ret = new JObject();
-                foreach (var it in rawRet) {
-                    if (it.Key.ToLower().Contains("admin")) {
+                JObject Ret = new JObject();
+                foreach (var it in RawRet) {
+                    if (IsNotAllowConfigKey(it.Key)) {
                         continue;
                     }
-                    ret.Add(it.Key, it.Value);
+                    Ret.Add(it.Key, it.Value);
                 }
                 #endregion
 
                 LogInformation($"Get all config success.");
                 return Ok(200, "OK", new JObject(){
-                    { "configs", ret },
+                    { "configs", Ret },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
 
@@ -117,71 +85,51 @@ namespace CoreApi.Controllers.Social.Config
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetPublicConfigByConfigKey([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                                    [FromHeader] string session_token,
-                                                                    [FromRoute] string config_key)
+        public async Task<IActionResult> GetPublicConfigByConfigKey([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
+                                                                    [FromRoute(Name = "config_key")] string     __ConfigKey,
+                                                                    [FromHeader(Name = "session_token")] string SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Get session (not required)
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, _)      = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                var IsValidSession      = __Session != default;
+                var Session             = __Session as SessionSocialUser;
+                #endregion
+
                 #region Validate config_key
-                if (config_key == default
-                    || config_key == string.Empty
-                    || DefaultBaseConfig.StringToConfigKey(config_key) == CONFIG_KEY.INVALID
-                    || config_key.ToLower().Contains("admin") == true
+                if (__ConfigKey == default
+                    || __ConfigKey == string.Empty
+                    || DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey) == CONFIG_KEY.INVALID
+                    || IsNotAllowConfigKey(__ConfigKey) == true
                 ) {
                     LogDebug($"Invalid config key.");
                     return Problem(400, "Invalid config_key.");
                 }
                 #endregion
 
-                bool isSessionInvalid = false;
-                #region Get session token
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                if (session_token == default) {
-                    LogDebug($"Missing header authorization.");
-                }
-
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    LogDebug("Invalid header authorization.");
-                }
-                #endregion
-
-                #region Find session for use
-                SessionSocialUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                if (isSessionInvalid) {
-                    (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
-
-                    if (error != ErrorCodes.NO_ERROR) {
-                        isSessionInvalid = false;
-                    }
-                }
-                #endregion
-
                 #region Get public config by key
-                if (DefaultBaseConfig.StringToConfigKey(config_key) == CONFIG_KEY.INVALID
-                    || __BaseConfig.IsPublicConfig(DefaultBaseConfig.StringToConfigKey(config_key))) {
+                if (DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey) == CONFIG_KEY.INVALID
+                    || __BaseConfig.IsPublicConfig(DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey))) {
                     return Problem(400, "Invalid config_key.");
                 }
-                var (ret, errMsg) = __BaseConfig.GetPublicConfig(DefaultBaseConfig.StringToConfigKey(config_key));
-                if (errMsg != string.Empty) {
-                    LogWarning($"GetPublicConfig failed, ErrorMessage: { errMsg }");
+                var (Ret, ErrMsg) = __BaseConfig.GetPublicConfig(DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey));
+                if (ErrMsg != string.Empty) {
+                    LogWarning($"GetPublicConfig failed, ErrorMessage: { ErrMsg }");
                     return Problem(400, "Invalid config_key or config_key not exist.");
                 }
                 #endregion
 
                 LogInformation($"Get public config by key success.");
                 return Ok(200, "OK", new JObject(){
-                    { "config", ret },
+                    { "config", Ret },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

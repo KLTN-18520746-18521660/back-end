@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Linq.Expressions;
 using DatabaseAccess.Common.Status;
+using Newtonsoft.Json;
 
 namespace CoreApi.Controllers.Social.Post
 {
@@ -19,33 +20,9 @@ namespace CoreApi.Controllers.Social.Post
     [Route("/api/post")]
     public class GetPostsByUserFollowingController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         public GetPostsByUserFollowingController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetPostsByUserFollowing";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "GetPostsByUserFollowing";
         }
 
         [HttpGet("following")]
@@ -53,22 +30,19 @@ namespace CoreApi.Controllers.Social.Post
         // [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         // [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetPostsByUserFollowing([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                                 [FromServices] SocialCategoryManagement __SocialCategoryManagement,
-                                                                 [FromServices] SocialUserManagement __SocialUserManagement,
-                                                                 [FromServices] SocialPostManagement __SocialPostManagement,
-                                                                 [FromServices] SocialTagManagement __SocialTagManagement,
-                                                                 [FromHeader] string session_token,
-                                                                 [FromQuery] int start = 0,
-                                                                 [FromQuery] int size = 20,
-                                                                 [FromQuery] string search_term = default,
-                                                                 [FromQuery] Models.OrderModel orders = default,
-                                                                 [FromQuery] string tags = default,
-                                                                 [FromQuery] string categories = default)
+        public async Task<IActionResult> GetPostsByUserFollowing([FromServices] SessionSocialUserManagement     __SessionSocialUserManagement,
+                                                                 [FromServices] SocialCategoryManagement        __SocialCategoryManagement,
+                                                                 [FromServices] SocialUserManagement            __SocialUserManagement,
+                                                                 [FromServices] SocialPostManagement            __SocialPostManagement,
+                                                                 [FromServices] SocialTagManagement             __SocialTagManagement,
+                                                                 [FromHeader(Name = "session_token")] string    SessionToken,
+                                                                 [FromQuery(Name = "start")] int                Start       = 0,
+                                                                 [FromQuery(Name = "size")] int                 Size        = 20,
+                                                                 [FromQuery(Name = "search_term")] string       SearchTerm  = default,
+                                                                 [FromQuery(Name = "tags")] string              Tags        = default,
+                                                                 [FromQuery(Name = "categories")] string        Categories  = default,
+                                                                 [FromQuery] Models.OrderModel                  Orders      = default)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
             __SocialCategoryManagement.SetTraceId(TraceId);
@@ -77,78 +51,78 @@ namespace CoreApi.Controllers.Social.Post
             __SocialTagManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Validate params
-                if (!orders.IsValid()) {
-                    return Problem(400, "Invalid order fields.");
-                }
-                string[] categoriesArr = categories == default ? default : categories.Split(',');
-                if (categories != default && !await __SocialCategoryManagement.IsExistingCategories(categoriesArr)) {
-                    return Problem(400, "Invalid categories not exists.");
-                }
-                string[] tagsArr = tags == default ? default : tags.Split(',');
-                if (tags != default && !await __SocialTagManagement.IsExistsTags(tagsArr)) {
-                    return Problem(400, "Invalid tags not exists.");
-                }
-                var combineOrders = orders.GetOrders();
-                var paramsAllowInOrder = __SocialPostManagement.GetAllowOrderFields(GetPostAction.GetPostsAttachedToUser);
-                foreach (var it in combineOrders) {
-                    if (!paramsAllowInOrder.Contains(it.Item1)) {
-                        return Problem(400, $"Not allow order field: { it.Item1 }.");
-                    }
-                }
-                #endregion
-
                 #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
                 }
-                if (__session == default) {
+                if (__Session == default) {
                     throw new Exception($"GetSessionToken failed.");
                 }
-                var session = __session as SessionSocialUser;
+                var Session             = __Session as SessionSocialUser;
+                #endregion
+
+                #region Validate params
+                IActionResult ErrRetValidate    = default;
+                (string, bool)[] CombineOrders  = default;
+                string[] AllowOrderParams       = __SocialPostManagement.GetAllowOrderFields(GetPostAction.GetPostsByUserFollowing);
+                string[] TagsArr                = Tags == default ? default : Tags.Split(',');
+                string[] CategoriesArr          = Categories == default ? default : Categories.Split(',');
+                (CombineOrders, ErrRetValidate) = ValidateOrderParams(Orders, AllowOrderParams);
+                if (ErrRetValidate != default) {
+                    return ErrRetValidate;
+                }
+                if (CombineOrders == default) {
+                    throw new Exception($"ValidateOrderParams failed.");
+                }
+                if (Categories != default && !await __SocialCategoryManagement.IsExistingCategories(CategoriesArr)) {
+                    return Problem(400, "Invalid categories not exists.");
+                }
+                if (Tags != default && !await __SocialTagManagement.IsExistsTags(TagsArr)) {
+                    return Problem(400, "Invalid tags not exists.");
+                }
                 #endregion
 
                 #region Get posts
-                List<SocialPost> posts      = default;
-                var error                   = ErrorCodes.NO_ERROR;
-                int totalSize = default;
-                (posts, totalSize, error) = await __SocialPostManagement
+                var (Posts, TotalSize, Error) = await __SocialPostManagement
                     .GetPostsByUserFollowing(
-                        session.UserId,
-                        start,
-                        size,
-                        combineOrders,
-                        tagsArr,
-                        categoriesArr
+                        Session.UserId,
+                        Start,
+                        Size,
+                        CombineOrders,
+                        TagsArr,
+                        CategoriesArr
                     );
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"GetPostsByUserFollowing failed, ErrorCode: { error }");
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"GetPostsByUserFollowing failed, ErrorCode: { Error }");
                 }
                 #endregion
 
                 #region Validate params: start, size, total_size
-                if (totalSize != 0 && start >= totalSize) {
-                    LogWarning($"Invalid request params for get posts, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
-                    return Problem(400, $"Invalid request params start: { start }. Total size is { totalSize }");
+                if (TotalSize != 0 && Start >= TotalSize) {
+                    LogWarning(
+                        $"Invalid request params for get posts, start: { Start }, size: { Size }, "
+                        + $"search_term: { SearchTerm }, total_size: { TotalSize }"
+                    );
+                    return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
                 }
                 #endregion
 
-                var ret = new List<JObject>();
-                posts.ForEach(e => {
-                    var obj = e.GetPublicShortJsonObject();
-                    obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionByUser(session.UserId)));
-                    ret.Add(obj);
+                var Ret = new List<JObject>();
+                Posts.ForEach(e => {
+                    var Obj = e.GetPublicShortJsonObject();
+                    Obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionByUser(Session.UserId)));
+                    Ret.Add(Obj);
                 });
 
                 return Ok(200, "OK", new JObject(){
-                    { "posts", Utils.ObjectToJsonToken(ret) },
-                    { "total_size", totalSize },
+                    { "posts",      Utils.ObjectToJsonToken(Ret) },
+                    { "total_size", TotalSize },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

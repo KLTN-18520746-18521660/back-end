@@ -16,34 +16,10 @@ namespace CoreApi.Controllers.Admin.Post
     [Route("/api/admin/post")]
     public class AdminRejectPostController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         public AdminRejectPostController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "AdminRejectPost";
-            __IsAdminController = true;
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "AdminRejectPost";
+            IsAdminController = true;
         }
 
         /// <summary>
@@ -54,9 +30,9 @@ namespace CoreApi.Controllers.Admin.Post
         /// <param name="__SocialPostManagement"></param>
         /// <param name="__AdminUserManagement"></param>
         /// <param name="__NotificationsManagement"></param>
-        /// <param name="post_id"></param>
-        /// <param name="session_token"></param>
-        /// <param name="reject_pending_content"></param>
+        /// <param name="__PostId"></param>
+        /// <param name="SessionToken"></param>
+        /// <param name="RejectPendingContent"></param>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
@@ -118,115 +94,87 @@ namespace CoreApi.Controllers.Admin.Post
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> RejectPost([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
-                                                    [FromServices] SocialPostManagement __SocialPostManagement,
-                                                    [FromServices] AdminUserManagement __AdminUserManagement,
-                                                    [FromServices] NotificationsManagement __NotificationsManagement,
-                                                    [FromRoute] long post_id,
-                                                    [FromHeader(Name = "session_token_admin")] string session_token,
-                                                    [FromQuery] bool reject_pending_content = false)
+        public async Task<IActionResult> RejectPost([FromServices] SessionAdminUserManagement           __SessionAdminUserManagement,
+                                                    [FromServices] SocialPostManagement                 __SocialPostManagement,
+                                                    [FromServices] AdminUserManagement                  __AdminUserManagement,
+                                                    [FromServices] NotificationsManagement              __NotificationsManagement,
+                                                    [FromRoute(Name = "post_id")] long                  __PostId,
+                                                    [FromHeader(Name = "session_token_admin")] string   SessionToken,
+                                                    [FromQuery(Name = "reject_pending_content")] bool   RejectPendingContent = false)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionAdminUserManagement.SetTraceId(TraceId);
             __SocialPostManagement.SetTraceId(TraceId);
             __AdminUserManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Get session
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionAdminUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
+                }
+                if (__Session == default) {
+                    throw new Exception($"GetSessionToken failed.");
+                }
+                var Session             = __Session as SessionAdminUser;
+                #endregion
+
                 #region Validate params
-                if (post_id <= 0) {
+                if (__PostId <= 0) {
                     return Problem(400, "Invalid params.");
                 }
                 #endregion
 
-                #region Get session token
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                if (session_token == default) {
-                    LogDebug($"Missing header authorization.");
-                    return Problem(401, "Missing header authorization.");
-                }
-
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    LogDebug($"Invalid header authorization.");
-                    return Problem(401, "Invalid header authorization.");
-                }
-                #endregion
-
-                #region Find session for use
-                SessionAdminUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
-
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session not found.");
-                    }
-                    if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogWarning($"Session has expired, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session has expired.");
-                    }
-                    if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogWarning($"User has been locked, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(423, "You have been locked.");
-                    }
-                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
-                }
-                #endregion
-
                 #region Check Permission
-                var user = session.User;
-                error = __AdminUserManagement.HaveFullPermission(user.Rights, ADMIN_RIGHTS.POST);
-                if (error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogWarning($"User doesn't have permission to approve social post, user_name: { user.UserName }");
+                var Error = __AdminUserManagement.HaveFullPermission(Session.User.Rights, ADMIN_RIGHTS.POST);
+                if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
+                    LogWarning($"User doesn't have permission to approve social post, user_name: { Session.User.UserName }");
                     return Problem(403, "User doesn't have permission to approve social post.");
                 }
                 #endregion
 
                 #region Get post info
-                SocialPost post = default;
-                (post, error) = await __SocialPostManagement.FindPostById(post_id);
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Not found social post, post_id: { post_id }");
+                SocialPost Post = default;
+                (Post, Error) = await __SocialPostManagement.FindPostById(__PostId);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    if (Error == ErrorCodes.NOT_FOUND) {
+                        LogWarning($"Not found social post, post_id: { __PostId }");
                         return Problem(404, "Not found post.");
                     }
-                    throw new Exception($"FindPostById failed. Post_id: { post_id }, ErrorCode: { error} ");
+                    throw new Exception($"FindPostById failed. Post_id: { __PostId }, ErrorCode: { Error} ");
                 }
-                if (reject_pending_content == true
-                    && (post.StatusStr != EntityStatus.StatusTypeToString(StatusType.Approved) || post.PendingContent == default)
-                ) {
-                    LogWarning($"Reject modify post but post haven't pending content, post_status: { post.StatusStr }");
+                if (RejectPendingContent == true && (Post.Status.Type != StatusType.Approved || Post.PendingContent == default)) {
+                    LogWarning($"Reject modify post but post haven't pending content, post_status: { Post.StatusStr }");
                     return Problem(400, "Not allow to reject modify post (post not have 'pending_content').");
                 }
-                if (!reject_pending_content
-                    && __SocialPostManagement.ValidateChangeStatusAction(post.Status.Type, StatusType.Rejected) == ErrorCodes.INVALID_ACTION
-                ) {
-                    LogWarning($"Not allow change status post, old_status: { post.StatusStr }, new_status: Approved");
+                if (__SocialPostManagement.ValidateChangeStatusAction(Post.Status.Type, StatusType.Rejected) != ErrorCodes.NO_ERROR) {
+                    LogWarning($"Not allow change status post, old_status: { Post.StatusStr }, new_status: Approved");
                     return Problem(400, "Not allow to reject post.");
                 }
                 #endregion
 
-                error = await __SocialPostManagement.RejectPost(post.Id, user.Id, reject_pending_content);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"RejectPost Failed, ErrorCode: { error }");
+                Error = await __SocialPostManagement.RejectPost(Post.Id, Session.UserId, RejectPendingContent);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"RejectPost Failed, ErrorCode: { Error }");
                 }
 
-                LogInformation($"RejectPost success, post_id: { post_id }");
                 await __NotificationsManagement.SendNotification(
                     NotificationType.ACTION_WITH_POST,
-                    new PostNotificationModel(reject_pending_content ? NotificationSenderAction.REJECT_MODIFY_POST : NotificationSenderAction.REJECT_POST,
+                    new PostNotificationModel(RejectPendingContent
+                                                ? NotificationSenderAction.REJECT_MODIFY_POST
+                                                : NotificationSenderAction.REJECT_POST,
                                               default,
-                                              session.UserId){
-                        PostId = post.Id,
+                                              Session.UserId){
+                        PostId = Post.Id,
                     }
                 );
+
+                LogInformation($"RejectPost success, post_id: { __PostId }, user_id: { Session.UserId }");
                 return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

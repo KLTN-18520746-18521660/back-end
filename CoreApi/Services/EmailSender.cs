@@ -13,6 +13,7 @@ using Common;
 using Newtonsoft.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
+using CoreApi.Services.Background;
 
 namespace CoreApi.Services
 {
@@ -28,7 +29,7 @@ namespace CoreApi.Services
         virtual public JArray GetAttributes()
         {
             JArray attrs = new JArray();
-            foreach(var prop in this.GetType().GetProperties()) {
+            foreach (var prop in this.GetType().GetProperties()) {
                 if (!prop.Name.Contains("ModelName", StringComparison.OrdinalIgnoreCase)) {
                     attrs.Add(prop.Name);
                 }
@@ -38,12 +39,25 @@ namespace CoreApi.Services
     }
     public class UserSignUpEmailModel : BaseEmailModel
     {
-        public string UserName { get; set; }
-        public string ConfirmLink { get; set; }
-        public DateTime DateTimeSend { get; }
+        public string UserName          { get; set; }
+        public string DisplayName       { get; set; }
+        public string ConfirmLink       { get; set; }
+        public DateTime DateTimeSend    { get; }
         public UserSignUpEmailModel()
         {
             __ModelName = "UserSignup";
+            DateTimeSend = DateTime.UtcNow;
+        }
+    }
+    public class ForgotPasswordEmailModel : BaseEmailModel
+    {
+        public string UserName              { get; set; }
+        public string DisplayName           { get; set; }
+        public string ResetPasswordLink     { get; set; }
+        public DateTime DateTimeSend        { get; }
+        public ForgotPasswordEmailModel()
+        {
+            __ModelName = "ForgotPassword";
             DateTimeSend = DateTime.UtcNow;
         }
     }
@@ -57,140 +71,136 @@ namespace CoreApi.Services
     }
     public class EmailSender : BaseSingletonService
     {
-        private Dictionary<string, string> __EmailTemplates = new Dictionary<string, string>()
-        {
-            { "UserSignup", @"<p>Dear @Model.UserName,</p>
-                            <p>Confirm link here: <a href='@Model.ConfirmLink'>@Model.ConfirmLink</a><br>
-                            Send datetime: @Model.DateTimeSend</p>
-                            <p>Thanks for your register.</p>" }
+        private Dictionary<string, string>  __DefaultEmailTemplates;
+        private Dictionary<string, string>  __EmailTemplates;
+        private IFluentEmail                __Email;
+        private SemaphoreSlim               __Gate;
+        private int                         __GateLimit;
+        private (RequestToSendEmailType EmailType, SUB_CONFIG_KEY SubKey)[] __TemplatePairKeys = new (RequestToSendEmailType, SUB_CONFIG_KEY)[]{
+            (RequestToSendEmailType.UserSignup,         SUB_CONFIG_KEY.TEMPLATE_USER_SIGNUP),
+            (RequestToSendEmailType.ForgotPassword,     SUB_CONFIG_KEY.TEMPLATE_FORGOT_PASSWORD),
         };
-        private SemaphoreSlim __Gate;
-        private int __GateLimit;
-        private IFluentEmail __Email;
         public EmailSender(IServiceProvider _IServiceProvider, IFluentEmail _Email)
             : base(_IServiceProvider)
         {
-            __Email = _Email;
-            __ServiceName = "EmailSender";
-            __GateLimit = 1;
-            __Gate = new SemaphoreSlim(__GateLimit);
+            __ServiceName           = "EmailSender";
+            __Email                 = _Email;
+            __GateLimit             = 1;
+            __Gate                  = new SemaphoreSlim(__GateLimit);
+            __EmailTemplates        = new Dictionary<string, string>();
+            __DefaultEmailTemplates = new Dictionary<string, string>();
+            LoadDefaultEmailTemplates();
             SetConfigForEmailClient();
         }
-
-        private void SetConfigForEmailClient()
+        private string LoadLimitSender()
         {
-            var __BaseConfig = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
+            var __BaseConfig        = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
+            var ErrorMsg            = string.Empty;
+            var LimitSenderConfig   = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.LIMIT_SENDER);
 
-            #region limit_sender
-            var limitSenderRs = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.LIMIT_SENDER);
-
-            if (limitSenderRs.Error != string.Empty) {
+            if (LimitSenderConfig.Error != string.Empty) {
                 LogWarning("Can not get config 'limit_sender' for email client, use default config.");
             } else {
-                if (!ChangeGateLimit(limitSenderRs.Value)) {
-                    LogWarning($"Can not set 'limit_sender': { limitSenderRs.Value } for email client, use default 'limit_sender': { __GateLimit }.");
+                if (!ChangeGateLimit(LimitSenderConfig.Value)) {
+                    ErrorMsg = $"Can not set 'limit_sender': { LimitSenderConfig.Value } for email client, "
+                                + "use default 'limit_sender': { __GateLimit }.";
+                    LogWarning(ErrorMsg);
                 } else {
-                    LogInformation($"Set 'limit_sender' for email client success, value: { limitSenderRs.Value }");
+                    LogInformation($"Set 'limit_sender' for email client success, value: { LimitSenderConfig.Value }");
                 }
             }
-            #endregion
-
-            #region email_templates
-            var templateUserSignupRs = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.TEMPLATE_USER_SIGNUP);
-
-            if (templateUserSignupRs.Error != string.Empty) {
-                LogWarning("Can not get config 'template_user_signup' for email client, use default config.");
-            } else {
-                __EmailTemplates.Remove("UserSignup");
-                __EmailTemplates.Add("UserSignup", templateUserSignupRs.Value);
-            }
-            #endregion
+            return ErrorMsg;
         }
-
-        private bool ChangeGateLimit(int value)
+        private void LoadDefaultEmailTemplates()
         {
-            if (value == __GateLimit) {
+            foreach (var It in __TemplatePairKeys) {
+                var TemplateData = DEFAULT_BASE_CONFIG.GetConfigValue<string>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, It.SubKey);
+                __EmailTemplates[It.EmailType.ToString()]          = TemplateData;
+                __DefaultEmailTemplates[It.EmailType.ToString()]   = TemplateData;
+            }
+        }
+        private string[] LoadEmailTemplates()
+        {
+            var __BaseConfig        = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
+            var Errors              = new List<string>();
+
+            foreach (var It in __TemplatePairKeys) {
+                var TemplateConfig = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, It.SubKey);
+                if (TemplateConfig.Error != string.Empty) {
+                    var ErrMsg = $"Can not get config { DEFAULT_BASE_CONFIG.SubConfigKeyToString(It.SubKey) } for email client, use default config.";
+                    LogWarning(ErrMsg);
+                    Errors.Add(ErrMsg);
+                } else {
+                    __EmailTemplates[It.EmailType.ToString()] = TemplateConfig.Value;
+                }
+            }
+            return Errors.ToArray();
+        }
+        private bool ChangeGateLimit(int Value)
+        {
+            if (Value == __GateLimit) {
                 return true;
             }
-            int diff = Math.Abs(value - __GateLimit);
-            if (diff == 0 || value < 1) {
+            int Diff = Math.Abs(Value - __GateLimit);
+            if (Diff == 0 || Value < 1) {
                 return false;
             }
-            for (int i = 0; i < diff; i++) {
-                if (value > __GateLimit) {
+            for (int i = 0; i < Diff; i++) {
+                if (Value > __GateLimit) {
                     __Gate.Release();
                 } else {
                     __Gate.WaitAsync();
                 }
             }
-            __GateLimit = value;
+            __GateLimit = Value;
             return true;
         }
-
-        public bool ReloadEmailConfig()
+        private void SetConfigForEmailClient()
         {
-            var __BaseConfig = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
-            #region limit_sender
-            var (Value, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.LIMIT_SENDER);
-
-            if (Error != string.Empty) {
-                LogWarning("Can not get config for email client, use default config.");
-                return false;
-            }
-
-            if (!ChangeGateLimit(Value)) {
-                LogWarning($"Can not set 'limit_sender': { Value } for email client, use default 'limit_sender': { __GateLimit }.");
-            } else {
-                LogDebug($"Set 'limit_sender' for email client success, value: { Value }");
-            }
-            #endregion
-
-            #region email_templates
-            var templateUserSignupRs = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.TEMPLATE_USER_SIGNUP);
-
-            if (templateUserSignupRs.Error != string.Empty) {
-                LogWarning("Can not get config 'template_user_signup' for email client, use default config.");
-            } else {
-                __EmailTemplates.Remove("UserSignup");
-                __EmailTemplates.Add("UserSignup", templateUserSignupRs.Value);
-                LogDebug($"Set 'template_user_signup' for email sender success, value: { templateUserSignupRs.Value }");
-            }
-            #endregion
-
-            return true;
+            LoadLimitSender();
+            LoadEmailTemplates();
+        }
+        public string[] ReloadEmailConfig()
+        {
+            var Errors = new List<string>();
+            Errors.Add(LoadLimitSender());
+            Errors.AddRange(LoadEmailTemplates());
+            return Errors.ToArray();
         }
 
-        protected async Task<bool> SendEmail<T>(EmailForm form) where T : BaseEmailModel
+        protected async Task<bool> SendEmail<T>(EmailForm Form) where T : BaseEmailModel
         {
-            bool isReleaseGate = false;
-            LogInformation($"TraceId: { form.TraceId }, Received new request email sender, modelname: { form.Model.ModelName }");
+            bool IsReleaseGate = false;
+            LogInformation($"TraceId: { Form.TraceId }, Received new request email sender, model_name: { Form.Model.ModelName }");
             try {
-                if (!__EmailTemplates.ContainsKey(form.Model.ModelName)) {
-                    LogWarning($"TraceId: { form.TraceId }, Invalid template for model, modelname: { form.Model.ModelName }");
+                if (!__EmailTemplates.ContainsKey(Form.Model.ModelName)) {
+                    LogError($"TraceId: { Form.TraceId }, Missing template for model { Form.Model.ModelName }");
                     return false;
                 }
-                var template = __EmailTemplates.Where(e => e.Key == form.Model.ModelName).FirstOrDefault().Value;
-
-                await __Gate.WaitAsync();
-                
-                var email = __Email
-                    .To(form.ToEmail)
-                    .Subject(form.Subject)
-                    .UsingTemplate(template, (T)form.Model);
-                var resp = await email.SendAsync();
-                __Gate.Release();
-                isReleaseGate = true;
-
-                if (!resp.Successful) {
-                    LogWarning($"TraceId: { form.TraceId }, Send email failed.");
-                } else {
-                    LogInformation($"TraceId: { form.TraceId }, Send email successfully.");
+                var Template = __EmailTemplates.Where(e => e.Key == Form.Model.ModelName).FirstOrDefault().Value;
+                if (Utils.BindModelToString<T>(Template, Form.Model as T) == string.Empty) {
+                    LogWarning($"TraceId: { Form.TraceId }, Invalid template for model { Form.Model.ModelName }. Using default instead.");
+                    Template = __DefaultEmailTemplates.Where(e => e.Key == Form.Model.ModelName).FirstOrDefault().Value;
                 }
 
-                return resp.Successful;
+                await __Gate.WaitAsync();
+                var Email = __Email
+                    .To(Form.ToEmail)
+                    .Subject(Form.Subject)
+                    .UsingTemplate(Template, (T)Form.Model);
+                var Resp = await Email.SendAsync();
+                __Gate.Release();
+                IsReleaseGate = true;
+
+                if (!Resp.Successful) {
+                    LogWarning($"TraceId: { Form.TraceId }, Send email failed.");
+                } else {
+                    LogInformation($"TraceId: { Form.TraceId }, Send email successfully.");
+                }
+                return Resp.Successful;
             } catch(Exception e) {
-                LogError($"TraceId: { form.TraceId }, Unhandle Exception, { e }");
-                if (!isReleaseGate) {
+                LogError($"TraceId: { Form.TraceId }, Unhandle Exception, { e }");
+                if (!IsReleaseGate) {
                     __Gate.Release();
                 }
                 return false;
@@ -200,67 +210,164 @@ namespace CoreApi.Services
         #region Function handler
         public async Task SendEmailUserSignUp(Guid UserId, string TraceId)
         {
-            SocialUser user = default;
-            var sendSuccess = false;
-            var requestState = string.Empty;
-            var hostName = string.Empty;
-            var prefixUrl = string.Empty;
-            var errMsg = string.Empty;
+            SocialUser User     = default;
+            var SendSuccess     = false;
+            var RequestState    = string.Empty;
+            var PrefixUrl       = string.Empty;
+            var HostName        = string.Empty;
+            var Subject         = string.Empty;
+            var ErrMsg          = string.Empty;
 
             #region Load config value
-            var __BaseConfig = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
-            (hostName, errMsg) = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG, SUB_CONFIG_KEY.HOST_NAME);
-            (prefixUrl, errMsg) = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG, SUB_CONFIG_KEY.PREFIX_URL);
+            var __BaseConfig    = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
+            (Subject, ErrMsg)   = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG, SUB_CONFIG_KEY.SUBJECT);
+            (HostName, ErrMsg)  = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG, SUB_CONFIG_KEY.HOST_NAME);
+            (PrefixUrl, ErrMsg) = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_USER_CONFIRM_CONFIG, SUB_CONFIG_KEY.PREFIX_URL);
             #endregion
 
             using (var scope = __ServiceProvider.CreateScope())
             {
                 var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
-
-                user = await __DBContext.SocialUsers
+                User = await __DBContext.SocialUsers
                         .Where(e => e.Id == UserId)
                         .FirstOrDefaultAsync();
-                if (user == default) {
+                if (User == default) {
                     LogWarning($"TraceId: { TraceId }, 'SendEmailUserSignUp', Not found user, user_id: { UserId }");
                     return;
                 }
-                if (user.VerifiedEmail) {
-                    LogInformation($"TraceId: { TraceId }, User has verified email, user_id: { user.Id }");
+                if (User.VerifiedEmail) {
+                    LogInformation($"TraceId: { TraceId }, User has verified email, user_id: { User.Id }");
                     return;
                 }
-                user.Settings.Remove("confirm_email");
-                user.Settings.Add("confirm_email", new JObject(){
+                User.Settings.Remove("confirm_email");
+                User.Settings.Add("confirm_email", new JObject(){
                     { "is_sending", true },
+                    { "send_date",  DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT) },
                 });
                 if (await __DBContext.SaveChangesAsync() <= 0) {
-                    LogError($"TraceId: { TraceId }, 'SendEmailUserSignUp', Can't save changes before send email, user_id: { user.Id }");
+                    LogError($"TraceId: { TraceId }, 'SendEmailUserSignUp', Can't save changes before send email, user_id: { User.Id }");
                     return;
                 }
                 #region Send Email
-                var urlConfirm = string.Empty;
-                (urlConfirm, requestState) = Utils.GenerateUrlConfirm(user.Id, hostName, prefixUrl);
-                var model = new UserSignUpEmailModel() {
-                    UserName = user.UserName,
-                    ConfirmLink = urlConfirm,
+                var UrlConfirm = string.Empty;
+                (UrlConfirm, RequestState) = Utils.GenerateUrlConfirm(User.Id, HostName, PrefixUrl);
+                var Model = new UserSignUpEmailModel() {
+                    UserName    = User.UserName,
+                    DisplayName = User.DisplayName,
+                    ConfirmLink = UrlConfirm,
                 };
-                sendSuccess = await SendEmail<UserSignUpEmailModel>(new EmailForm() {
-                    ToEmail = user.Email,
-                    Subject = "[APP-NAME] Confirm signup.",
+                SendSuccess = await SendEmail<UserSignUpEmailModel>(new EmailForm() {
+                    ToEmail = User.Email,
+                    Subject = Subject,
                     TraceId = TraceId,
-                    Model = model,
+                    Model   = Model,
                 });
                 #endregion
 
-                user.Settings.Remove("confirm_email");
-                user.Settings.Add("confirm_email", new JObject(){
-                    { "is_sending", false },
-                    { "send_success", sendSuccess },
-                    { "send_date", DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT) },
-                    { "confirm_date", default },
-                    { "state", requestState },
+                User.Settings.Remove("confirm_email");
+                User.Settings.Add("confirm_email", new JObject(){
+                    { "is_sending",     false },
+                    { "send_success",   SendSuccess },
+                    { "send_date",      Model.DateTimeSend.ToString(CommonDefine.DATE_TIME_FORMAT) },
+                    { "confirm_date",   default },
+                    { "state",          RequestState },
                 });
                 if (await __DBContext.SaveChangesAsync() <= 0) {
-                    LogError($"TraceId: { TraceId }, 'SendEmailUserSignUp', Can't save changes after send email, user_id: { user.Id }");
+                    LogError($"TraceId: { TraceId }, 'SendEmailUserSignUp', Can't save changes after send email, user_id: { User.Id }");
+                    return;
+                }
+            }
+        }
+        public async Task SendEmailUserForgotPassword(Guid UserId, string TraceId, bool IsAdminUser = false)
+        {
+            SocialUser User         = default;
+            AdminUser AdminUser     = default;
+            var SendSuccess         = false;
+            var RequestState        = string.Empty;
+            var PrefixUrl           = string.Empty;
+            var HostName            = string.Empty;
+            var Subject             = string.Empty;
+            var ErrMsg              = string.Empty;
+
+            #region Load config value
+            var __BaseConfig    = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
+            (Subject, ErrMsg)   = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.SUBJECT);
+            (HostName, ErrMsg)  = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.HOST_NAME);
+            (PrefixUrl, ErrMsg) = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.PREFIX_URL);
+            #endregion
+
+            using (var scope = __ServiceProvider.CreateScope())
+            {
+                var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
+                if (!IsAdminUser) {
+                    User = await __DBContext.SocialUsers
+                            .Where(e => e.Id == UserId)
+                            .FirstOrDefaultAsync();
+                    if (User == default) {
+                        LogWarning($"TraceId: { TraceId }, 'SendEmailSocialUserForgotPassword', Not found user, user_id: { UserId }");
+                        return;
+                    }
+                    User.Settings.Remove("forgot_password");
+                    User.Settings.Add("forgot_password", new JObject(){
+                        { "is_sending", true },
+                        { "send_date",  DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT) },
+                    });
+                } else {
+                    AdminUser = await __DBContext.AdminUsers
+                            .Where(e => e.Id == UserId)
+                            .FirstOrDefaultAsync();
+                    if (AdminUser == default) {
+                        LogWarning($"TraceId: { TraceId }, 'SendEmailSocialUserForgotPassword', Not found admin user, user_id: { UserId }");
+                        return;
+                    }
+                    AdminUser.Settings.Remove("forgot_password");
+                    AdminUser.Settings.Add("forgot_password", new JObject(){
+                        { "is_sending", true },
+                        { "send_date",  DateTime.UtcNow },
+                    });
+                }
+                if (await __DBContext.SaveChangesAsync() < 0) {
+                    LogError(
+                        $"TraceId: { TraceId }, 'SendEmailSocialUserForgotPassword', "
+                        + $"Can't save changes before send email, user_id: { User.Id }, is_admin: { IsAdminUser }"
+                    );
+                    return;
+                }
+                #region Send Email
+                var UrlForgot = string.Empty;
+                (UrlForgot, RequestState) = Utils.GenerateUrlConfirm(IsAdminUser ? AdminUser.Id : User.Id, HostName, PrefixUrl);
+                var Model = new ForgotPasswordEmailModel() {
+                    UserName            = IsAdminUser ? AdminUser.UserName : User.UserName,
+                    DisplayName         = IsAdminUser ? AdminUser.DisplayName : User.DisplayName,
+                    ResetPasswordLink   = UrlForgot,
+                };
+                SendSuccess = await SendEmail<ForgotPasswordEmailModel>(new EmailForm() {
+                    ToEmail = User.Email,
+                    Subject = Subject,
+                    TraceId = TraceId,
+                    Model   = Model,
+                });
+                #endregion
+
+                if (!IsAdminUser) {
+                    User.Settings.Remove("forgot_password");
+                    User.Settings.Add("forgot_password", new JObject(){
+                        { "is_sending",     false },
+                        { "send_success",   SendSuccess },
+                        { "send_date",      Model.DateTimeSend.ToString(CommonDefine.DATE_TIME_FORMAT) },
+                        { "state",          RequestState },
+                    });
+                } else {
+                    AdminUser.Settings.Remove("forgot_password");
+                    AdminUser.Settings.Add("forgot_password", new JObject(){
+                        { "is_sending",     false },
+                        { "send_success",   SendSuccess },
+                        { "send_date",      DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT) },
+                        { "state",          RequestState },
+                    });
+                }
+                if (await __DBContext.SaveChangesAsync() <= 0) {
+                    LogError($"TraceId: { TraceId }, 'SendEmailSocialUserForgotPassword', Can't save changes after send email, user_id: { User.Id }, is_admin: { IsAdminUser }");
                     return;
                 }
             }

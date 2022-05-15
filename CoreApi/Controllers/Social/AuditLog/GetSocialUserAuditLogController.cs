@@ -15,42 +15,18 @@ namespace CoreApi.Controllers.Social.AuditLog
 {
     [ApiController]
     [Route("/api/auditlog")]
-    public class GetSocialAuditLogController : BaseController
+    public class GetSocialUserAuditLogController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minutes
-        #endregion
         protected string[] AllowActions = new string[]{
             "comment",
             "post",
             "user",
         };
 
-        public GetSocialAuditLogController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public GetSocialUserAuditLogController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetSocialAuditLog";
-            LoadConfig();
+            ControllerName = "GetSocialUserAuditLog";
         }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
-        }
-
 
         /// <summary>
         /// Get social user auditlog
@@ -58,12 +34,12 @@ namespace CoreApi.Controllers.Social.AuditLog
         /// <param name="__SocialUserManagement"></param>
         /// <param name="__SocialUserAuditLogManagement"></param>
         /// <param name="__SessionSocialUserManagement"></param>
-        /// <param name="session_token"></param>
-        /// <param name="type"></param>
-        /// <param name="key"></param>
-        /// <param name="start"></param>
-        /// <param name="size"></param>
-        /// <param name="search_term"></param>
+        /// <param name="SessionToken"></param>
+        /// <param name="Type"></param>
+        /// <param name="Key"></param>
+        /// <param name="Start"></param>
+        /// <param name="Size"></param>
+        /// <param name="SearchTerm"></param>
         /// <returns><b>List social user auditlog</b></returns>
         ///
         /// <remarks>
@@ -109,66 +85,72 @@ namespace CoreApi.Controllers.Social.AuditLog
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetAuditLogs([FromServices] SocialUserManagement __SocialUserManagement,
-                                                      [FromServices] SocialUserAuditLogManagement __SocialUserAuditLogManagement,
-                                                      [FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                      [FromHeader] string session_token,
-                                                      [FromQuery] string type,
-                                                      [FromQuery] string key = default,       // post_id | comment_id
-                                                      [FromQuery] int start = 0,
-                                                      [FromQuery] int size = 20,
-                                                      [FromQuery] string search_term = default)
+        public async Task<IActionResult> GetAuditLogs([FromServices] SessionSocialUserManagement    __SessionSocialUserManagement,
+                                                      [FromServices] SocialUserAuditLogManagement   __SocialUserAuditLogManagement,
+                                                      [FromServices] SocialUserManagement           __SocialUserManagement,
+                                                      [FromHeader(Name = "session_token")] string   SessionToken,
+                                                      [FromQuery(Name = "type")] string             Type,
+                                                      [FromQuery(Name = "key")] string              Key         = default,  // post_id | comment_id
+                                                      [FromQuery(Name = "start")] int               Start       = 0,
+                                                      [FromQuery(Name = "size")] int                Size        = 20,
+                                                      [FromQuery(Name = "search_term")] string      SearchTerm  = default)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SocialUserManagement.SetTraceId(TraceId);
             __SocialUserAuditLogManagement.SetTraceId(TraceId);
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Get session
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
+                }
+                if (__Session == default) {
+                    throw new Exception($"GetSessionToken failed.");
+                }
+                var Session             = __Session as SessionSocialUser;
+                #endregion
+
                 #region Validate params
-                if (start < 0 || size < 1) {
-                    LogDebug($"Bad request params.");
+                if (Start < 0 || Size < 1) {
+                    LogDebug($"Bad request params, start: { Start }, size: { Size }");
                     return Problem(400, "Bad request params.");
                 }
                 #endregion
-                #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
-                }
-                if (__session == default) {
-                    throw new Exception($"GetSessionToken failed.");
-                }
-                var session = __session as SessionSocialUser;
-                #endregion
 
                 #region Get all audit logs
-                var (logs, totalSize)= await __SocialUserAuditLogManagement.GetAuditLogs(session.UserId, type, start, size, search_term);
+                var (Logs, TotalSize)= await __SocialUserAuditLogManagement.GetAuditLogs(Session.UserId,
+                                                                                         Type,
+                                                                                         Key,
+                                                                                         Start,
+                                                                                         Size,
+                                                                                         SearchTerm);
 
-                List<JObject> rawReturn = new();
-                logs.ForEach(e => rawReturn.Add(e.GetJsonObject()));
-                var ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(rawReturn));
+                List<JObject> RawRet = new();
+                Logs.ForEach(e => RawRet.Add(e.GetJsonObject()));
+                var Ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(RawRet));
                 #endregion
 
                 #region Validate params: start, size, total_size
-                if (totalSize != 0 && start >= totalSize) {
-                    LogWarning($"Invalid request params for get audit log, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
-                    return Problem(400, $"Invalid request params start: { start }. Total size is { totalSize }");
+                if (TotalSize != 0 && Start >= TotalSize) {
+                    LogWarning(
+                        $"Invalid request params for get audit log, start: { Start }, size: { Size }, "
+                        + $"search_term: { SearchTerm }, total_size: { TotalSize }"
+                    );
+                    return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
                 }
                 #endregion
 
-                LogInformation($"Get social user auditlogs success, user_name: { session.User.UserName }, start: { start }, size: { size }, search_term: { search_term }");
+                LogInformation($"Get social user auditlogs success, user_name: { Session.User.UserName }");
                 return Ok(200, "OK", new JObject(){
-                    { "logs", ret },
-                    { "total_size", totalSize },
+                    { "logs",       Ret },
+                    { "total_size", TotalSize },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

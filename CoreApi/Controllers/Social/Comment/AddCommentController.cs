@@ -5,6 +5,7 @@ using DatabaseAccess.Context.Models;
 using DatabaseAccess.Context.ParserModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -17,33 +18,9 @@ namespace CoreApi.Controllers.Social.Comment
     [Route("/api/comment")]
     public class AddCommentController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         public AddCommentController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "AddComment";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "AddComment";
         }
 
         [HttpPost("post/{post_slug}")]
@@ -51,71 +28,78 @@ namespace CoreApi.Controllers.Social.Comment
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetPostBySlug([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                       [FromServices] SocialCommentManagement __SocialCommentManagement,
-                                                       [FromServices] SocialPostManagement __SocialPostManagement,
-                                                       [FromServices] NotificationsManagement __NotificationsManagement,
-                                                       [FromRoute] string post_slug,
-                                                       [FromHeader] string session_token,
-                                                       [FromBody] ParserSocialComment Parser)
+        public async Task<IActionResult> GetPostBySlug([FromServices] SessionSocialUserManagement   __SessionSocialUserManagement,
+                                                       [FromServices] SocialCommentManagement       __SocialCommentManagement,
+                                                       [FromServices] SocialPostManagement          __SocialPostManagement,
+                                                       [FromServices] NotificationsManagement       __NotificationsManagement,
+                                                       [FromBody] ParserSocialComment               __ParserModel,
+                                                       [FromRoute(Name = "post_slug")] string       __PostSlug,
+                                                       [FromHeader(Name = "session_token")] string  SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Get session
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
+                }
+                if (__Session == default) {
+                    throw new Exception($"GetSessionToken failed.");
+                }
+                var Session             = __Session as SessionSocialUser;
+                #endregion
+
                 #region Validate slug
-                if (post_slug == default || post_slug.Trim() == string.Empty) {
+                if (__PostSlug == default || __PostSlug.Trim() == string.Empty) {
                     return Problem(400, "Invalid request.");
                 }
                 #endregion
 
-                #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
-                }
-                if (__session == default) {
-                    throw new Exception($"GetSessionToken failed.");
-                }
-                var session = __session as SessionSocialUser;
-                #endregion
-
                 #region Get post info
-                var (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim());
+                var (Post, Error) = await __SocialPostManagement.FindPostBySlug(__PostSlug.Trim());
 
-                if (error != ErrorCodes.NO_ERROR && error != ErrorCodes.USER_IS_NOT_OWNER) {
-                    if (error == ErrorCodes.NOT_FOUND) {
+                if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
+                    if (Error == ErrorCodes.NOT_FOUND) {
+                        LogWarning($"Not found post, post_slug: { __PostSlug }");
                         return Problem(404, "Not found post.");
                     }
 
-                    throw new Exception($"FindPostBySlug failed, ErrorCode: { error }");
+                    throw new Exception($"FindPostBySlug failed, ErrorCode: { Error }");
                 }
                 #endregion
 
-                var comment = new SocialComment();
-                comment.Parse(Parser, out var errMsg);
-                comment.Owner = session.UserId;
-                comment.PostId = post.Id;
+                var Comment = new SocialComment();
+                Comment.Parse(__ParserModel, out var ErrParser);
+                Comment.Owner = Session.UserId;
+                Comment.PostId = Post.Id;
 
-                if (errMsg != string.Empty) {
-                    throw new Exception($"Parse social comment model failed, error: { errMsg }");
+                if (ErrParser != string.Empty) {
+                    throw new Exception($"Parse social comment model failed, error: { ErrParser }");
                 }
 
-                if (comment.ParentId != default) {
-                    SocialComment parentComment = default;
-                    (parentComment, error) = await __SocialCommentManagement.FindCommentById((long) comment.ParentId);
-                    if (error != ErrorCodes.NO_ERROR || parentComment.PostId != post.Id) {
-                        return Problem(400, "Invalid parent_id.");
+                if (Comment.ParentId != default) {
+                    SocialComment ParentComment = default;
+                    (ParentComment, Error) = await __SocialCommentManagement.FindCommentById((long) Comment.ParentId);
+                    if (Error != ErrorCodes.NO_ERROR) {
+                        LogWarning($"Not found parent comment, parent_comment_id: { ParentComment.Id }");
+                        return Problem(404, "Not found parent comment.");
+                    }
+                    if (ParentComment.PostId != Post.Id) {
+                        LogWarning(
+                            $"Invalid parent comment, parent_comment_id: { ParentComment.Id }, "
+                            + $"parent_comment_belog_to_post_id: { ParentComment.PostId }"
+                            + $"post_id: { Post.Id }"
+                        );
+                        return Problem(400, "Invalid parent comment.");
                     }
                 }
 
-                error = await __SocialCommentManagement.AddComment(comment);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"AddComment failed, ErrorCode: { error }");
+                Error = await __SocialCommentManagement.AddComment(Comment);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"AddComment failed, ErrorCode: { Error }");
                 }
 
                 #region Handle notification
@@ -123,20 +107,20 @@ namespace CoreApi.Controllers.Social.Comment
                     (
                         NotificationType.ACTION_WITH_COMMENT,
                         new CommentNotificationModel(NotificationSenderAction.NEW_COMMENT,
-                                                     session.UserId,
+                                                     Session.UserId,
                                                      default){
-                            CommentId = comment.Id
+                            CommentId = Comment.Id
                         }
                     )
                 };
-                if (comment.ParentId != default) {
+                if (Comment.ParentId != default) {
                     notifications.Add(
                         (
                             NotificationType.ACTION_WITH_COMMENT,
                             new CommentNotificationModel(NotificationSenderAction.REPLY_COMMENT,
-                                                         session.UserId,
+                                                         Session.UserId,
                                                          default){
-                                CommentId = comment.Id
+                                CommentId = Comment.Id
                             }
                         )
                     );
@@ -144,23 +128,18 @@ namespace CoreApi.Controllers.Social.Comment
                 await __NotificationsManagement.SendNotifications(notifications.ToArray());
                 #endregion
 
-                // SocialComment r_comment = default;
-                // (r_comment, error) =  await (__SocialCommentManagement.FindCommentById(comment.Id));
-                // if (error != ErrorCodes.NO_ERROR) {
-                //     throw new Exception($"FindCommentById failed, ErrorCode: { error }");
-                // }
-                comment.OwnerNavigation = session.User;
-                comment.Post = post;
+                Comment.OwnerNavigation = Session.User;
+                Comment.Post = Post;
 
-                var ret = comment.GetPublicJsonObject();
-                ret.Add("actions", Utils.ObjectToJsonToken(comment.GetActionByUser(session.UserId)));
+                var Ret = Comment.GetPublicJsonObject();
+                Ret.Add("actions", Utils.ObjectToJsonToken(Comment.GetActionByUser(Session.UserId)));
 
                 return Ok(201, "OK", new JObject(){
-                    { "comment", ret },
+                    { "comment", Ret },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

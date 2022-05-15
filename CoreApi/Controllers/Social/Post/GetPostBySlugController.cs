@@ -4,6 +4,7 @@ using CoreApi.Services;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Text;
@@ -15,33 +16,9 @@ namespace CoreApi.Controllers.Social.Post
     [Route("/api/post")]
     public class GetPostBySlugController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         public GetPostBySlugController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetPostBySlug";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "GetPostBySlug";
         }
 
         /// <summary>
@@ -50,8 +27,8 @@ namespace CoreApi.Controllers.Social.Post
         /// <returns><b>Social user of session_token</b></returns>
         /// <param name="__SessionSocialUserManagement"></param>
         /// <param name="__SocialPostManagement"></param>
-        /// <param name="post_slug"></param>
-        /// <param name="session_token"></param>
+        /// <param name="__PostSlug"></param>
+        /// <param name="SessionToken"></param>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
@@ -79,65 +56,44 @@ namespace CoreApi.Controllers.Social.Post
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetPostBySlug([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                       [FromServices] SocialPostManagement __SocialPostManagement,
-                                                       [FromRoute] string post_slug,
-                                                       [FromHeader] string session_token)
+        public async Task<IActionResult> GetPostBySlug([FromServices] SessionSocialUserManagement   __SessionSocialUserManagement,
+                                                       [FromServices] SocialPostManagement          __SocialPostManagement,
+                                                       [FromRoute(Name = "post_slug")] string       __PostSlug,
+                                                       [FromHeader(Name = "session_token")] string  SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
+            __SocialPostManagement.SetTraceId(TraceId);
             #endregion
             try {
-                bool IsValidSession = false;
-                #region Validate slug
-                if (post_slug == default || post_slug.Trim() == string.Empty) {
-                    return Problem(400, "Invalid request.");
-                }
+                #region Get session (not required)
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, _)      = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                var IsValidSession      = __Session != default;
+                var Session             = __Session as SessionSocialUser;
                 #endregion
 
-                #region Get session token
-                if (session_token != default) {
-                    IsValidSession = CommonValidate.IsValidSessionToken(session_token);
-                }
-                #endregion
+                var (Post, Error) = await __SocialPostManagement.FindPostBySlug(__PostSlug.Trim(), IsValidSession ? Session.UserId : default);
 
-                #region Find session for use
-                SessionSocialUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                if (IsValidSession) {
-                    (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
-
-                    if (error != ErrorCodes.NO_ERROR) {
-                        IsValidSession = false;
-                    }
-                }
-                #endregion
-
-                SocialPost post = default;
-                (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim(), IsValidSession ? session.UserId : default);
-
-                if (error != ErrorCodes.NO_ERROR && error != ErrorCodes.USER_IS_NOT_OWNER) {
-                    if (error == ErrorCodes.NOT_FOUND) {
+                if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
+                    if (Error == ErrorCodes.NOT_FOUND) {
                         return Problem(404, "Not found post.");
                     }
 
-                    throw new Exception($"FindPostBySlug failed, ErrorCode: { error }");
+                    throw new Exception($"FindPostBySlug failed, ErrorCode: { Error }");
                 }
-                var ret = (error == ErrorCodes.USER_IS_NOT_OWNER) ? post.GetPublicJsonObject() : post.GetJsonObject();
+                var Ret = (Error == ErrorCodes.USER_IS_NOT_OWNER) ? Post.GetPublicJsonObject() : Post.GetJsonObject();
 
                 // Add action if user is valid
                 if (IsValidSession) {
-                    ret.Add("actions", Utils.ObjectToJsonToken(post.GetActionByUser(session.UserId)));
+                    Ret.Add("actions", Utils.ObjectToJsonToken(Post.GetActionByUser(Session.UserId)));
                 }
                 return Ok(200, "OK", new JObject(){
-                    { "post", ret },
+                    { "post",   Ret },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
 
@@ -146,64 +102,48 @@ namespace CoreApi.Controllers.Social.Post
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetStatisticPostBySlug([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                                [FromServices] SocialPostManagement __SocialPostManagement,
-                                                                [FromRoute] string post_slug,
-                                                                [FromHeader] string session_token)
+        public async Task<IActionResult> GetStatisticPostBySlug([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
+                                                                [FromServices] SocialPostManagement         __SocialPostManagement,
+                                                                [FromRoute(Name = "post_slug")] string      __PostSlug,
+                                                                [FromHeader(Name = "session_token")] string SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                bool IsValidSession = false;
-                #region Validate slug
-                if (post_slug == default || post_slug.Trim() == string.Empty) {
+                #region Get session (not required)
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, _)      = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                var IsValidSession      = __Session != default;
+                var Session             = __Session as SessionSocialUser;
+                #endregion
+
+                #region Validate params
+                if (__PostSlug == default || __PostSlug.Trim() == string.Empty) {
                     return Problem(400, "Invalid request.");
                 }
                 #endregion
 
-                #region Get session token
-                if (session_token != default) {
-                    IsValidSession = CommonValidate.IsValidSessionToken(session_token);
-                }
-                #endregion
+                var (Post, Error) = await __SocialPostManagement.FindPostBySlug(__PostSlug.Trim());
 
-                #region Find session for use
-                SessionSocialUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                if (IsValidSession) {
-                    (session, error) = await __SessionSocialUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
-
-                    if (error != ErrorCodes.NO_ERROR) {
-                        IsValidSession = false;
-                    }
-                }
-                #endregion
-
-                SocialPost post = default;
-                (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim());
-
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
+                if (Error != ErrorCodes.NO_ERROR) {
+                    if (Error == ErrorCodes.NOT_FOUND) {
                         return Problem(404, "Not found post.");
                     }
 
-                    throw new Exception($"FindPostBySlug failed, ErrorCode: { error }");
+                    throw new Exception($"FindPostBySlug failed, ErrorCode: { Error }");
                 }
-                var ret = post.GetPublicStatisticJsonObject();
+                var Ret = Post.GetPublicStatisticJsonObject();
                 if (IsValidSession) {
-                    ret.Add("actions", Utils.ObjectToJsonToken(post.GetActionByUser(session.UserId)));
+                    Ret.Add("actions", Utils.ObjectToJsonToken(Post.GetActionByUser(Session.UserId)));
                 }
 
                 return Ok(200, "OK", new JObject(){
-                    { "post", ret },
+                    { "post", Ret },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

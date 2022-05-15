@@ -30,7 +30,7 @@ namespace DatabaseAccess.Context.Models
         [Required]
         [Column("actions", TypeName = "jsonb")]
         public string ActionsStr {
-            get { return Actions.ToString(); }
+            get { return Actions.ToString(Formatting.None); }
             set { Actions = JsonConvert.DeserializeObject<JObject>(value); }
         }
 
@@ -89,7 +89,7 @@ namespace DatabaseAccess.Context.Models
                 ListData.Add(new SocialUserRoleDetail() {
                     RoleId = DefaultRoleId,
                     RightId = e.Id,
-                    ActionsStr = DefaultActions.ToString()
+                    ActionsStr = DefaultActions.ToString(Formatting.None)
                 });
             });
             return ListData;

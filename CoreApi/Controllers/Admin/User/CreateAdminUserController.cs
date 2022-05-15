@@ -17,34 +17,10 @@ namespace CoreApi.Controllers.Admin.User
     [Route("/api/admin/user")]
     public class CreateAdminUserController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minutes
-        #endregion
-
         public CreateAdminUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "CreateAdminUser";
-            __IsAdminController = true;
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "CreateAdminUser";
+            IsAdminController = true;
         }
 
         /// <summary>
@@ -52,8 +28,8 @@ namespace CoreApi.Controllers.Admin.User
         /// </summary>
         /// <param name="__AdminUserManagement"></param>
         /// <param name="__SessionAdminUserManagement"></param>
-        /// <param name="session_token"></param>
-        /// <param name="parser"></param>
+        /// <param name="__ParserModel"></param>
+        /// <param name="SessionToken"></param>
         /// <returns><b>New admin user info</b></returns>
         ///
         /// <remarks>
@@ -108,99 +84,80 @@ namespace CoreApi.Controllers.Admin.User
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> CreateAdminUser([FromServices] AdminUserManagement __AdminUserManagement,
-                                                         [FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
-                                                         [FromHeader(Name = "session_token_admin")] string session_token,
-                                                         [FromBody] ParserAdminUser parser)
+        public async Task<IActionResult> CreateAdminUser([FromServices] AdminUserManagement                 __AdminUserManagement,
+                                                         [FromServices] SessionAdminUserManagement          __SessionAdminUserManagement,
+                                                         [FromBody] ParserAdminUser                         __ParserModel,
+                                                         [FromHeader(Name = "session_token_admin")] string  SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __AdminUserManagement.SetTraceId(TraceId);
             __SessionAdminUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Get session token
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                if (session_token == default) {
-                    LogDebug($"Missing header authorization.");
-                    return Problem(401, "Missing header authorization.");
+                #region Get session
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionAdminUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
                 }
-
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    LogDebug($"Invalid header authorization.");
-                    return Problem(401, "Invalid header authorization.");
+                if (__Session == default) {
+                    throw new Exception($"GetSessionToken failed.");
                 }
+                var Session             = __Session as SessionAdminUser;
                 #endregion
 
                 #region Parse Admin User
-                AdminUser newUser = new AdminUser();
-                string Error = string.Empty;
-                if (!newUser.Parse(parser, out Error)) {
-                    LogWarning(Error);
+                AdminUser NewUser = new AdminUser();
+                if (!NewUser.Parse(__ParserModel, out var ErrorPaser)) {
+                    LogWarning(ErrorPaser);
                     return Problem(400, "Bad request body.");
                 }
                 #endregion
 
-                #region Find session for use
-                SessionAdminUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
-
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session not found.");
-                    }
-                    if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogWarning($"Session has expired, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session has expired.");
-                    }
-                    if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogWarning($"User has been locked, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(423, "You have been locked.");
-                    }
-                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
-                }
-                #endregion
-
                 #region Check Permission
-                var user = session.User;
-                if (__AdminUserManagement.HaveFullPermission(user.Rights, ADMIN_RIGHTS.ADMIN_USER) == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogWarning($"User doesn't have permission to create admin user, user_name: { user.UserName }");
+                var Error = __AdminUserManagement.HaveFullPermission(Session.User.Rights, ADMIN_RIGHTS.ADMIN_USER);
+                if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
+                    LogWarning($"User doesn't have permission to create admin user, user_name: { Session.User.UserName }");
                     return Problem(403, "User doesn't have permission to create admin user.");
                 }
                 #endregion
 
                 #region Check unique user_name, email
-                bool username_existed = false, email_existed = false;
-                (username_existed, email_existed, error) = await __AdminUserManagement.IsUserExsiting(newUser.UserName, newUser.Email);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"IsUserExsiting Failed. ErrorCode: { error }");
-                } else if (username_existed) {
-                    LogWarning($"UserName have been used, user_name: { newUser.UserName }");
+                bool UsernameExisted = false, EmailExisted = false;
+                (UsernameExisted, EmailExisted, Error) = await __AdminUserManagement.IsUserExsiting(NewUser.UserName, NewUser.Email);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"IsUserExsiting Failed. ErrorCode: { Error }");
+                } else if (UsernameExisted) {
+                    LogWarning($"UserName have been used, user_name: { NewUser.UserName }");
                     return Problem(400, "UserName have been used.");
-                } else if (email_existed) {
-                    LogWarning($"Email have been used, email: { newUser.Email }");
+                } else if (EmailExisted) {
+                    LogWarning($"Email have been used, email: { NewUser.Email }");
                     return Problem(400, "Email have been used.");
                 }
                 #endregion
 
-                #region Add new admin user
-                error = await __AdminUserManagement.AddNewUser(user.Id, newUser);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"AddNewAdminUser Failed. ErrorCode: { error }");
+                #region Check password policy
+                var ErroMsg = __AdminUserManagement.ValidatePasswordWithPolicy(__ParserModel.password);
+                if (ErroMsg != string.Empty) {
+                    LogWarning($"New user not match password policy, error: { ErroMsg }");
+                    return Problem(400, ErroMsg);
                 }
                 #endregion
 
-                LogInformation($"Create new admin user success, user_name: { newUser.UserName }");
+                #region Add new admin user
+                Error = await __AdminUserManagement.AddNewUser(Session.UserId, NewUser);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"AddNewAdminUser Failed. ErrorCode: { Error }");
+                }
+                #endregion
+
+                LogInformation($"Create new admin user success, user_name: { NewUser.UserName }");
                 return Ok(201, "OK", new JObject(){
-                    { "user_id", newUser.Id },
+                    { "user_id", NewUser.Id },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

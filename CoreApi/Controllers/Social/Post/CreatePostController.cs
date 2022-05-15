@@ -16,33 +16,9 @@ namespace CoreApi.Controllers.Social.Post
     [Route("/api/post")]
     public class CreatePostController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         public CreatePostController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "CreatePost";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "CreatePost";
         }
 
         /// <summary>
@@ -55,8 +31,8 @@ namespace CoreApi.Controllers.Social.Post
         /// <param name="__SocialCategoryManagement"></param>
         /// <param name="__SocialTagManagement"></param>
         /// <param name="__NotificationsManagement"></param>
-        /// <param name="Parser"></param>
-        /// <param name="session_token"></param>
+        /// <param name="__ParserModel"></param>
+        /// <param name="SessionToken"></param>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
@@ -103,88 +79,84 @@ namespace CoreApi.Controllers.Social.Post
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> CreatePost([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                    [FromServices] SocialPostManagement __SocialPostManagement,
-                                                    [FromServices] SocialUserManagement __SocialUserManagement,
-                                                    [FromServices] SocialCategoryManagement __SocialCategoryManagement,
-                                                    [FromServices] SocialTagManagement __SocialTagManagement,
-                                                    [FromServices] NotificationsManagement __NotificationsManagement,
-                                                    [FromBody] ParserSocialPost Parser,
-                                                    [FromHeader] string session_token)
+        public async Task<IActionResult> CreatePost([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
+                                                    [FromServices] SocialPostManagement         __SocialPostManagement,
+                                                    [FromServices] SocialUserManagement         __SocialUserManagement,
+                                                    [FromServices] SocialCategoryManagement     __SocialCategoryManagement,
+                                                    [FromServices] SocialTagManagement          __SocialTagManagement,
+                                                    [FromServices] NotificationsManagement      __NotificationsManagement,
+                                                    [FromBody] ParserSocialPost                 __ParserModel,
+                                                    [FromHeader(Name = "session_token")] string SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
+            __SocialCategoryManagement.SetTraceId(TraceId);
             __SocialPostManagement.SetTraceId(TraceId);
             __SocialUserManagement.SetTraceId(TraceId);
-            __SocialCategoryManagement.SetTraceId(TraceId);
             __SocialTagManagement.SetTraceId(TraceId);
             #endregion
             try {
                 #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
                 }
-                if (__session == default) {
+                if (__Session == default) {
                     throw new Exception($"GetSessionToken failed.");
                 }
-                var session = __session as SessionSocialUser;
+                var Session             = __Session as SessionSocialUser;
                 #endregion
 
-                #region Validate post permission
-                if (await __SocialUserManagement.HaveFullPermission(session.UserId, SOCIAL_RIGHTS.POST) == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogWarning($"User doesn't have permission for create new post, user_name: { session.User.UserName }");
+                #region Validate permission
+                if (await __SocialUserManagement.HaveFullPermission(Session.UserId, SOCIAL_RIGHTS.POST) == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
+                    LogWarning($"User doesn't have permission for create new post, user_name: { Session.User.UserName }");
                     return Problem(403, "User doesn't have permission for create new post. Contact admin for more detail.");
                 }
                 #endregion
 
-                var post = new SocialPost();
-                post.Parse(Parser, out var errMsg);
-                post.Owner = session.UserId;
+                var Post = new SocialPost();
+                Post.Parse(__ParserModel, out var ErrParser);
+                Post.Owner = Session.UserId;
                 // post.OwnerNavigation = session.User;
-                if (errMsg != string.Empty) {
-                    throw new Exception($"Parse social post model failed, error: { errMsg }");
+                if (ErrParser != string.Empty) {
+                    throw new Exception($"Parse social post model failed, error: { ErrParser }");
                 }
 
-                #region validate post
-                if (!await __SocialCategoryManagement.IsExistingCategories(Parser.categories)) {
+                #region validate params
+                if (!await __SocialCategoryManagement.IsExistingCategories(__ParserModel.categories)) {
                     return Problem(400, $"Category not exist.");
                 }
-                var isValidTags = false;
-                var error = ErrorCodes.NO_ERROR;
-                (isValidTags, error) = await __SocialTagManagement.IsValidTags(Parser.tags);
-                if (!isValidTags) {
-                    if (error == ErrorCodes.INVALID_PARAMS) {
+                var (IsValidTags, Error) = await __SocialTagManagement.IsValidTags(__ParserModel.tags);
+                if (!IsValidTags) {
+                    if (Error == ErrorCodes.INVALID_PARAMS) {
                         return Problem(400, "Invalid tags.");
                     }
-                    throw new Exception($"IsValidTags Failed, ErrorCode: { error }");
+                    throw new Exception($"IsValidTags Failed, ErrorCode: { Error }");
                 }
                 #endregion
 
-                error = await __SocialPostManagement.AddNewPost(Parser, post, session.UserId);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"AddNewPost failed, ErrorCode: { error }");
+                Error = await __SocialPostManagement.AddNewPost(__ParserModel, Post, Session.UserId);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"AddNewPost failed, ErrorCode: { Error }");
                 }
 
-                LogInformation($"Add new post successfully, user_name: { session.User.UserName }, post_id: { post.Id }");
                 await __NotificationsManagement.SendNotification(
                     NotificationType.ACTION_WITH_POST,
                     new PostNotificationModel(NotificationSenderAction.NEW_POST,
-                                              session.UserId,
+                                              Session.UserId,
                                               default){
-                        PostId = post.Id,
+                        PostId = Post.Id,
                     }
                 );
+
+                LogInformation($"Add new post successfully, user_name: { Session.User.UserName }, post_id: { Post.Id }");
                 return Ok(201, "OK", new JObject(){
-                    { "post_id", post.Id },
+                    { "post_id", Post.Id },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

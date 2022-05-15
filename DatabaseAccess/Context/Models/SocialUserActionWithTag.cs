@@ -30,7 +30,7 @@ namespace DatabaseAccess.Context.Models
         [Required]
         [Column("actions", TypeName = "jsonb")]
         public string ActionsStr {
-            get { return JArray.FromObject(Actions).ToString(); }
+            get { return JArray.FromObject(Actions).ToString(Formatting.None); }
             set {
                 Actions = new List<EntityAction>();
                 foreach (var v in JsonConvert.DeserializeObject<JArray>(value)) {

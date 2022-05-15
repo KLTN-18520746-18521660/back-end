@@ -30,9 +30,9 @@ namespace Common
 
             return JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(source), deserializeSettings);
         }
-        public static JToken ObjectToJsonToken(object source)
+        public static JToken ObjectToJsonToken(object Source)
         {
-            return JsonConvert.DeserializeObject<JToken>(JsonConvert.SerializeObject(source));
+            return JsonConvert.DeserializeObject<JToken>(JsonConvert.SerializeObject(Source));
         }
         public static (JObject, JObject) GetDataChanges(JObject oldObj, JObject newObj) {
             var oldKeys = oldObj.Properties().Select(e => e.Name).ToArray();
@@ -95,35 +95,34 @@ namespace Common
             }
             return string.Join(", ", orderStrs).Trim();
         }
-        public string BindModelToString<T>(string template, T model) where T : class
+        public static string BindModelToString<T>(string Template, T Model) where T : class
         {
-            var ret = template;
-            var findProperties = new Regex(@"@Model.([a-zA-Z]+[0-9]*)");
-            var res = findProperties.Matches(template)
+            var Ret = Template;
+            var FindProperties = new Regex(@"@Model.([a-zA-Z]+[a-zA-Z-0-9]*)");
+            var Res = FindProperties.Matches(Template)
                 .Cast<Match>()
                 .OrderByDescending(i => i.Index);
-            foreach (Match item in res) {
-                var allGroup = item.Groups[0];
+            foreach (Match Item in Res) {
+                var AllGroup = Item.Groups[0];
 
-                var foundPropGrRoup = item.Groups[1];
-                var propName = foundPropGrRoup.Value;
+                var FoundPropGroup = Item.Groups[1];
+                var PropName = FoundPropGroup.Value;
 
-                object value = string.Empty;
-
+                object Value = string.Empty;
                 try {
-                    var prop = typeof(T).GetProperty(propName);
+                    var Prop = typeof(T).GetProperty(PropName);
 
-                    if (prop != null) {
-                        value = prop.GetValue(model, null);
+                    if (Prop != null) {
+                        Value = Prop.GetValue(Model, null);
                     }
                 } catch (Exception) {
-                    throw new Exception("Missing value for binding model.");
+                    return string.Empty;
                 }
 
-                ret = ret.Remove(allGroup.Index, allGroup.Length)
-                    .Insert(allGroup.Index, value.ToString());
+                Ret = Ret.Remove(AllGroup.Index, AllGroup.Length)
+                    .Insert(AllGroup.Index, Value.ToString());
             }
-            return ret;
+            return Ret;
         }
         #endregion
         #region Session
@@ -172,7 +171,7 @@ namespace Common
             var raw = StringDecryptor.Encrypt(Guid.NewGuid().ToString()).Take(5);
             var raw2 = RandomString(5);
             var ret = new StringBuilder();
-            foreach(var chr in raw) {
+            foreach (var chr in raw) {
                 if (possibleChar.Contains(chr)){
                     ret.Append(chr);
                 }
@@ -187,6 +186,25 @@ namespace Common
             path.Append($"&d={ Uri.EscapeDataString(StringDecryptor.Encrypt(DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT))) }");
             path.Append($"&s={ state }");
             return (Uri.EscapeUriString($"{ host }{ path.ToString() }"), state);
+        }
+        #endregion
+        #region Log
+        public static JObject CensorSensitiveDate(JObject Obj)
+        {
+            var RetObj          = Obj;
+            var SensitiveKey    = new string[]{
+                "password",
+                "salt",
+            };
+            foreach (var Key in SensitiveKey) {
+                if (RetObj.ContainsKey(Key)) {
+                    // All value of sensitive key is string
+                    var SensitiveDataLength = RetObj.Value<string>(Key).Length;
+                    SensitiveDataLength     = SensitiveDataLength == 0 ? 3 : SensitiveDataLength;
+                    RetObj.SelectToken(Key).Replace(new string('*', SensitiveDataLength));
+                }
+            }
+            return RetObj;
         }
         #endregion
     }

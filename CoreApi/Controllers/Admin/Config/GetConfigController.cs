@@ -4,6 +4,7 @@ using CoreApi.Services;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Text;
@@ -15,34 +16,10 @@ namespace CoreApi.Controllers.Admin.Config
     [Route("/api/admin/config")]
     public class GetConfigController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         public GetConfigController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetConfig";
-            __IsAdminController = true;
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "GetConfig";
+            IsAdminController = true;
         }
 
         /// <summary>
@@ -50,7 +27,7 @@ namespace CoreApi.Controllers.Admin.Config
         /// </summary>
         /// <param name="__AdminUserManagement"></param>
         /// <param name="__SessionAdminUserManagement"></param>
-        /// <param name="session_token"></param>
+        /// <param name="SessionToken"></param>
         /// <returns><b>List admin auditlog</b></returns>
         ///
         /// <remarks>
@@ -98,74 +75,48 @@ namespace CoreApi.Controllers.Admin.Config
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> GetAllConfig([FromServices] AdminUserManagement __AdminUserManagement,
                                                       [FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
-                                                      [FromHeader(Name = "session_token_admin")] string session_token)
+                                                      [FromHeader(Name = "session_token_admin")] string SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __AdminUserManagement.SetTraceId(TraceId);
             __SessionAdminUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Get session token
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                if (session_token == default) {
-                    LogDebug($"Missing header authorization.");
-                    return Problem(401, "Missing header authorization.");
+                #region Get session
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionAdminUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
                 }
-
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    LogDebug($"Invalid header authorization.");
-                    return Problem(401, "Invalid header authorization.");
+                if (__Session == default) {
+                    throw new Exception($"GetSessionToken failed.");
                 }
-                #endregion
-
-                #region Find session for use
-                SessionAdminUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
-
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session not found.");
-                    }
-                    if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogWarning($"Session has expired, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session has expired.");
-                    }
-                    if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogWarning($"User has been locked, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(423, "You have been locked.");
-                    }
-                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
-                }
+                var Session             = __Session as SessionAdminUser;
                 #endregion
 
                 #region Check Permission
-                var user = session.User;
-                var isHaveReadPermission = true;
-                if (__AdminUserManagement.HaveReadPermission(user.Rights, ADMIN_RIGHTS.CONFIG) == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogDebug($"User doesn't have permission for get admin config, user_name: { user.UserName }");
-                    isHaveReadPermission = false;
+                var IsHaveReadPermission = true;
+                var Error = __AdminUserManagement.HaveReadPermission(Session.User.Rights, ADMIN_RIGHTS.CONFIG);
+                if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
+                    LogDebug($"User doesn't have permission for get admin config, user_name: { Session.User.UserName }");
+                    IsHaveReadPermission = false;
                 }
                 #endregion
 
                 #region Get all config
-                var (ret, errMsg) = isHaveReadPermission ? __BaseConfig.GetAllConfig() : __BaseConfig.GetAllPublicConfig();
-                if (errMsg != string.Empty) {
-                    throw new Exception($"GetAllConfig Failed. ErrorMsg: { errMsg }");
+                var (Ret, ErrMsg) = IsHaveReadPermission ? __BaseConfig.GetAllConfig() : __BaseConfig.GetAllPublicConfig();
+                if (ErrMsg != string.Empty) {
+                    throw new Exception($"GetAllConfig Failed. ErrorMsg: { ErrMsg }");
                 }
                 #endregion
 
-                LogInformation($"Get all config success, user_name: { user.UserName }");
+                LogInformation($"Get all config success, user_name: { Session.User.UserName }");
                 return Ok(200, "OK", new JObject(){
-                    { "configs", ret },
+                    { "configs", Ret },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
 
@@ -174,8 +125,8 @@ namespace CoreApi.Controllers.Admin.Config
         /// </summary>
         /// <param name="__AdminUserManagement"></param>
         /// <param name="__SessionAdminUserManagement"></param>
-        /// <param name="session_token"></param>
-        /// <param name="config_key"></param>
+        /// <param name="__ConfigKey"></param>
+        /// <param name="SessionToken"></param>
         /// <returns><b>config value</b></returns>
         ///
         /// <remarks>
@@ -230,93 +181,70 @@ namespace CoreApi.Controllers.Admin.Config
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetConfigByConfigKey([FromServices] AdminUserManagement __AdminUserManagement,
-                                                              [FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
-                                                              [FromHeader] string session_token,
-                                                              [FromRoute] string config_key)
+        public async Task<IActionResult> GetConfigByConfigKey([FromServices] AdminUserManagement            __AdminUserManagement,
+                                                              [FromServices] SessionAdminUserManagement     __SessionAdminUserManagement,
+                                                              [FromRoute(Name = "config_key")] string       __ConfigKey,
+                                                              [FromHeader(Name = "session_token")] string   SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __AdminUserManagement.SetTraceId(TraceId);
             __SessionAdminUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Get session token
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                if (session_token == default) {
-                    LogDebug($"Missing header authorization.");
-                    return Problem(401, "Missing header authorization.");
+                #region Get session
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionAdminUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
                 }
-
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    LogDebug($"Invalid header authorization.");
-                    return Problem(401, "Invalid header authorization.");
+                if (__Session == default) {
+                    throw new Exception($"GetSessionToken failed.");
                 }
+                var Session             = __Session as SessionAdminUser;
                 #endregion
 
-                #region Validate config_key
-                if (config_key == default || config_key == string.Empty) {
+                #region Validate params
+                if (__ConfigKey == default || __ConfigKey == string.Empty) {
                     LogWarning($"Invalid config key.");
                     return Problem(400, "Invalid config_key.");
                 }
                 #endregion
 
-                #region Find session for use
-                SessionAdminUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
-
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session not found.");
-                    }
-                    if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogWarning($"Session has expired, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session has expired.");
-                    }
-                    if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogWarning($"User has been locked, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(423, "You have been locked.");
-                    }
-                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
-                }
-                #endregion
-
                 #region Check Permission
-                var user = session.User;
-                var isHaveReadPermission = true;
-                if (__AdminUserManagement.HaveReadPermission(user.Rights, ADMIN_RIGHTS.CONFIG) == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogDebug($"User doesn't have permission for get admin config, user_name: { user.UserName }");
-                    isHaveReadPermission = false;
+                var IsHaveReadPermission = true;
+                var Error = __AdminUserManagement.HaveReadPermission(Session.User.Rights, ADMIN_RIGHTS.CONFIG);
+                if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
+                    LogDebug($"User doesn't have permission for get admin config, user_name: { Session.User.UserName }");
+                    IsHaveReadPermission = false;
                 }
                 #endregion
 
                 #region Get config by key
-                if (!isHaveReadPermission && !__BaseConfig.IsPublicConfig(DefaultBaseConfig.StringToConfigKey(config_key))) {
-                    LogWarning($"User doesn't have permission for get admin config, user_name: { user.UserName }, config_key: { config_key }");
+                if (!IsHaveReadPermission && !__BaseConfig.IsPublicConfig(DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey))) {
+                    LogWarning(
+                        $"User doesn't have permission for get admin config, "
+                        + $"user_name: { Session.User.UserName }, config_key: { __ConfigKey }"
+                    );
                     return Problem(404, "Not found config_key.");
                 }
-                if (DefaultBaseConfig.StringToConfigKey(config_key) == CONFIG_KEY.INVALID) {
-                    LogWarning($"Not valid config_key, config_key: { config_key }");
+                if (DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey) == CONFIG_KEY.INVALID) {
+                    LogWarning($"Not valid config_key, config_key: { __ConfigKey }");
                     return Problem(404, "Not found config_key.");
                 }
 
-                var (ret, errMsg) = __BaseConfig.GetConfigValue(DefaultBaseConfig.StringToConfigKey(config_key));
-                if (errMsg != string.Empty) {
-                    throw new Exception($"GetConfigValue Failed. ErrorMsg: { errMsg }");
+                var (Ret, ErrMsg) = __BaseConfig.GetConfigValue(DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey));
+                if (ErrMsg != string.Empty) {
+                    throw new Exception($"GetConfigValue Failed. ErrorMsg: { ErrMsg }");
                 }
                 #endregion
 
-                LogInformation($"Get config by key success, user_name: { user.UserName }, config_key: { config_key }");
+                LogInformation($"Get config by key success, user_name: { Session.User.UserName }, config_key: { __ConfigKey }");
                 return Ok(200, "OK", new JObject(){
-                    { "config", ret },
+                    { "config", Ret },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

@@ -17,33 +17,9 @@ namespace CoreApi.Controllers.Social.Session
     [Route("/api/session")]
     public class GetSessionSocialUserController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minutes
-        #endregion
-
         public GetSessionSocialUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetSessionSocialUser";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "GetSessionSocialUser";
         }
 
         /// <summary>
@@ -51,7 +27,7 @@ namespace CoreApi.Controllers.Social.Session
         /// </summary>
         /// <returns><b>All social session of user</b></returns>
         /// <param name="__SessionSocialUserManagement"></param>
-        /// <param name="session_token"></param>
+        /// <param name="SessionToken"></param>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
@@ -95,48 +71,43 @@ namespace CoreApi.Controllers.Social.Session
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetSessions([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                     [FromHeader] string session_token)
+        public async Task<IActionResult> GetSessions([FromServices] SessionSocialUserManagement     __SessionSocialUserManagement,
+                                                     [FromHeader(Name = "session_token")] string    SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
                 #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
                 }
-                if (__session == default) {
+                if (__Session == default) {
                     throw new Exception($"GetSessionToken failed.");
                 }
-                var session = __session as SessionSocialUser;
+                var Session             = __Session as SessionSocialUser;
                 #endregion
 
                 #region Get all sessions
-                List<SessionSocialUser> allSessionOfUser        = default;
-                var error                                       = ErrorCodes.NO_ERROR;
-                (allSessionOfUser, error) = await __SessionSocialUserManagement.GetAllSessionOfUser(session.UserId);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"GetAllSocialUserSessions Failed. ErrorCode: { error }");
+                var (AllSessionOfUser, Error) = await __SessionSocialUserManagement.GetAllSessionOfUser(Session.UserId);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"GetAllSocialUserSessions Failed. ErrorCode: { Error }");
                 }
 
-                List<JObject> rawReturn = new();
-                allSessionOfUser.ForEach(e => rawReturn.Add(e.GetJsonObject()));
-                var ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(rawReturn));
+                var RawRet = new List<JObject>();
+                AllSessionOfUser.ForEach(e => RawRet.Add(e.GetJsonObject()));
+                var Ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(RawRet));
                 #endregion
 
-                LogDebug($"Get all session success, user_name: { session.User.UserName }");
+                LogDebug($"Get all session success, user_name: { Session.User.UserName }");
                 return Ok(200, "OK", new JObject(){
-                    { "sessions", ret },
+                    { "sessions", Ret },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
 
@@ -144,8 +115,8 @@ namespace CoreApi.Controllers.Social.Session
         /// Get admin session of user by id
         /// </summary>
         /// <param name="__SessionSocialUserManagement"></param>
-        /// <param name="session_token"></param>
-        /// <param name="get_session_token"></param>
+        /// <param name="__GetSessionToken"></param>
+        /// <param name="SessionToken"></param>
         /// <returns><b>Social session of user</b></returns>
         ///
         /// <remarks>
@@ -198,43 +169,41 @@ namespace CoreApi.Controllers.Social.Session
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetSessionById([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                        [FromHeader] string session_token,
-                                                        [FromRoute] string get_session_token)
+        public async Task<IActionResult> GetSessionById([FromServices] SessionSocialUserManagement      __SessionSocialUserManagement,
+                                                        [FromRoute(Name = "get_session_token")] string  __GetSessionToken,
+                                                        [FromHeader(Name = "session_token")] string     SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             try {
                 #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
                 }
-                if (__session == default) {
+                if (__Session == default) {
                     throw new Exception($"GetSessionToken failed.");
                 }
-                var session = __session as SessionSocialUser;
+                var Session             = __Session as SessionSocialUser;
                 #endregion
 
-                #region Get session
-                SessionSocialUser ret       = default;
-                var error                   = ErrorCodes.NO_ERROR;
-                (ret, error) = await __SessionSocialUserManagement.FindSession(get_session_token);
-                if (error != ErrorCodes.NO_ERROR || ret.UserId != session.UserId) {
-                    LogDebug($"Session not found, { SessionTokenHeaderKey }: { get_session_token.Substring(0, 15) }");
+                #region Get session for return
+                var (Ret, Error) = await __SessionSocialUserManagement.FindSession(__GetSessionToken);
+                if (Error != ErrorCodes.NO_ERROR || Ret.UserId != Session.UserId) {
+                    LogDebug($"Session not found, { SessionTokenHeaderKey }: { __GetSessionToken.Substring(0, 15) }");
                     return Problem(404, "Session not found.");
                 }
                 #endregion
 
-                LogInformation($"Get session success, user_name: { session.User.UserName }, { SessionTokenHeaderKey }: { get_session_token.Substring(0, 15) }");
+                LogInformation(
+                    $"Get session success, user_name: { Session.User.UserName }, "
+                    + $"{ SessionTokenHeaderKey }: { __GetSessionToken.Substring(0, 15) }"
+                );
                 return Ok(200, "OK", new JObject(){
-                    { "session", ret.GetJsonObject() },
+                    { "session", Ret.GetJsonObject() },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

@@ -18,11 +18,6 @@ namespace CoreApi.Controllers.Social.Post
     [Route("/api/post")]
     public class ActionWithPostController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         protected readonly string[] ValidActions = new string[]{
             "like",
             "unlike",
@@ -36,26 +31,7 @@ namespace CoreApi.Controllers.Social.Post
 
         public ActionWithPostController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "ActionWithPost";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "ActionWithPost";
         }
 
         [HttpPost("{post_slug}")]
@@ -65,107 +41,108 @@ namespace CoreApi.Controllers.Social.Post
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> ActionPost([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                    [FromServices] SocialPostManagement __SocialPostManagement,
-                                                    [FromServices] NotificationsManagement __NotificationsManagement,
-                                                    [FromRoute] string post_slug,
-                                                    [FromQuery] string action,
-                                                    [FromHeader] string session_token)
+        public async Task<IActionResult> ActionPost([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
+                                                    [FromServices] SocialPostManagement         __SocialPostManagement,
+                                                    [FromServices] NotificationsManagement      __NotificationsManagement,
+                                                    [FromRoute(Name = "post_slug")] string      __PostSlug,
+                                                    [FromQuery(Name = "action")] string         Action,
+                                                    [FromHeader(Name = "session_token")] string SessionToken)
         {
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
             __SocialPostManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Get session
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
+                }
+                if (__Session == default) {
+                    throw new Exception($"GetSessionToken failed.");
+                }
+                var Session             = __Session as SessionSocialUser;
+                #endregion
+
                 #region Validate params
-                if (post_slug == default || post_slug.Trim() == string.Empty) {
+                if (__PostSlug == default || __PostSlug.Trim() == string.Empty) {
                     return Problem(400, "Invalid request.");
                 }
-                if (!ValidActions.Contains(action)) {
+                if (!ValidActions.Contains(Action)) {
                     return Problem(400, "Invalid params.");
                 }
                 #endregion
 
-                #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
-                }
-                if (__session == default) {
-                    throw new Exception($"GetSessionToken failed.");
-                }
-                var session = __session as SessionSocialUser;
-                #endregion
 
                 #region Get post info
-                SocialPost post = default;
-                var error = ErrorCodes.NO_ERROR;
-                (post, error) = await __SocialPostManagement.FindPostBySlug(post_slug.Trim());
+                var (Post, Error) = await __SocialPostManagement.FindPostBySlug(__PostSlug.Trim());
 
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
+                if (Error != ErrorCodes.NO_ERROR) {
+                    if (Error == ErrorCodes.NOT_FOUND) {
+                        LogWarning($"Not found post, post_slug: { __PostSlug }");
                         return Problem(404, "Not found post.");
                     }
 
-                    throw new Exception($"FindPostBySlug failed, ErrorCode: { error }");
+                    throw new Exception($"FindPostBySlug failed, ErrorCode: { Error }");
                 }
                 #endregion
 
-                if (await __SocialPostManagement.IsContainsAction(post.Id, session.UserId, action)) {
-                    return Problem(400, $"User already { action } this post.");
+                if (await __SocialPostManagement.IsContainsAction(Post.Id, Session.UserId, Action)) {
+                    LogWarning($"Action is already exists, action: { Action }, category: { __PostSlug }, user_id: { Session.UserId }");
+                    return Problem(400, $"User already { Action } this post.");
                 }
                 NotificationSenderAction notificationAction = NotificationSenderAction.INVALID_ACTION;
-                switch (action) {
+                switch (Action) {
                     case "like":
-                        error = await __SocialPostManagement.Like(post.Id, session.UserId);
+                        Error = await __SocialPostManagement.Like(Post.Id, Session.UserId);
                         notificationAction = NotificationSenderAction.LIKE_POST;
                         break;
                     case "unlike":
-                        error = await __SocialPostManagement.UnLike(post.Id, session.UserId);
+                        Error = await __SocialPostManagement.UnLike(Post.Id, Session.UserId);
                         break;
                     case "dislike":
-                        error = await __SocialPostManagement.DisLike(post.Id, session.UserId);
+                        Error = await __SocialPostManagement.DisLike(Post.Id, Session.UserId);
                         break;
                     case "undislike":
-                        error = await __SocialPostManagement.UnDisLike(post.Id, session.UserId);
+                        Error = await __SocialPostManagement.UnDisLike(Post.Id, Session.UserId);
                         break;
                     case "save":
-                        error = await __SocialPostManagement.Save(post.Id, session.UserId);
+                        Error = await __SocialPostManagement.Save(Post.Id, Session.UserId);
                         break;
                     case "unsave":
-                        error = await __SocialPostManagement.UnSave(post.Id, session.UserId);
+                        Error = await __SocialPostManagement.UnSave(Post.Id, Session.UserId);
                         break;
                     case "follow":
-                        error = await __SocialPostManagement.Follow(post.Id, session.UserId);
+                        Error = await __SocialPostManagement.Follow(Post.Id, Session.UserId);
                         break;
                     case "unfollow":
-                        error = await __SocialPostManagement.UnFollow(post.Id, session.UserId);
+                        Error = await __SocialPostManagement.UnFollow(Post.Id, Session.UserId);
                         break;
                     default:
                         return Problem(400, "Invalid action.");
                 }
 
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"{ action } post Failed, ErrorCode: { error }");
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"{ Action } post Failed, ErrorCode: { Error }");
                 }
 
-                LogDebug($"Action with post ok, action: { action }, user_id: { session.UserId }");
                 if (notificationAction != NotificationSenderAction.INVALID_ACTION) {
                     await __NotificationsManagement.SendNotification(
                         NotificationType.ACTION_WITH_POST,
                         new PostNotificationModel(notificationAction,
-                                                  session.UserId,
+                                                  Session.UserId,
                                                   default){
-                            PostId = post.Id,
+                            PostId = Post.Id,
                         }
                     );
                 }
 
+                LogDebug($"Action with post ok, action: { Action }, user_id: { Session.UserId }");
                 return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

@@ -11,6 +11,7 @@ using DatabaseAccess.Common.Status;
 using DatabaseAccess.Common.Models;
 using CoreApi.Common;
 using System.Threading.Tasks;
+using Common;
 
 namespace CoreApi.Services
 {
@@ -25,6 +26,7 @@ namespace CoreApi.Services
 
         public async Task<(List<SocialUserAuditLog> AuditLogs, int TotalSize)> GetAuditLogs(Guid UserId,
                                                                                             string Action,
+                                                                                            string Key,
                                                                                             int Start,
                                                                                             int Size,
                                                                                             string SearchTerm = default)
@@ -39,6 +41,7 @@ namespace CoreApi.Services
                     break;
                 case "user":
                     ActionStr = "SocialUser";
+                    Key = default;
                     break;
             }
 
@@ -49,6 +52,7 @@ namespace CoreApi.Services
                         e => e.UserId == UserId
                         && e.Table == ActionStr
                         && (SearchTerm == default) || e.SearchVector.Matches(SearchTerm)
+                        && (Key == default) || e.TableKey == Key
                     )
                     .OrderBy(e => e.Id)
                     .Skip(Start)
@@ -57,7 +61,9 @@ namespace CoreApi.Services
                 await __DBContext.SocialUserAuditLogs
                     .CountAsync(
                         e => e.UserId == UserId
+                        && e.Table == ActionStr
                         && (SearchTerm == default) || e.SearchVector.Matches(SearchTerm)
+                        && (Key == default) || e.TableKey == Key
                     )
             );
         }
@@ -79,8 +85,8 @@ namespace CoreApi.Services
             if (AdminUserId != default) {
                 log.AdminUserId = AdminUserId;
             }
-            log.OldValue = new LogValue(OldValue);
-            log.NewValue = new LogValue(NewValue);
+            log.OldValue = new LogValue(Utils.CensorSensitiveDate(OldValue));
+            log.NewValue = new LogValue(Utils.CensorSensitiveDate(NewValue));
 
             await __DBContext.SocialUserAuditLogs.AddAsync(log);
             await __DBContext.SaveChangesAsync();

@@ -15,32 +15,9 @@ namespace CoreApi.Controllers.Social.Session
     [Route("/api/session")]
     public class ExtensionSessionSocialUserController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minute
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         public ExtensionSessionSocialUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "ExtensionSessionSocialUser";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "ExtensionSessionSocialUser";
         }
 
         /// <summary>
@@ -48,7 +25,7 @@ namespace CoreApi.Controllers.Social.Session
         /// </summary>
         /// <returns><b>Extension social session</b></returns>
         /// <param name="__SessionSocialUserManagement"></param>
-        /// <param name="session_token"></param>
+        /// <param name="SessionToken"></param>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
@@ -93,43 +70,40 @@ namespace CoreApi.Controllers.Social.Session
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> ExtensionSession([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                          [FromHeader] string session_token)
+        public async Task<IActionResult> ExtensionSession([FromServices] SessionSocialUserManagement    __SessionSocialUserManagement,
+                                                          [FromHeader(Name = "session_token")] string   SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Get config values
+                var ExpiryTime          = GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
+                #endregion
+
                 #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
                 }
-                if (__session == default) {
+                if (__Session == default) {
                     throw new Exception($"GetSessionToken failed.");
                 }
-                var session = __session as SessionSocialUser;
+                var Session             = __Session as SessionSocialUser;
                 #endregion
 
-                LogDebug($"Session extension success, session_token: { session_token.Substring(0, 15) }");
-
-                #region cookie header
-                CookieOptions option = new CookieOptions();
-                option.Expires = session.Saved ? DateTime.UtcNow.AddDays(365) : DateTime.UtcNow.AddMinutes(EXPIRY_TIME);
-                option.Path = "/";
-                option.SameSite = SameSiteMode.Strict;
-
-                Response.Cookies.Append("session_token", session.SessionToken, option);
+                #region Set cookie header
+                Response.Cookies.Append(SessionTokenHeaderKey,
+                                        Session.SessionToken,
+                                        GetCookieOptions(Session.Saved ? default : DateTime.UtcNow.AddMinutes(ExpiryTime)));
                 #endregion
 
+                LogDebug($"Session extension success, session_token: { SessionToken.Substring(0, 15) }");
                 return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

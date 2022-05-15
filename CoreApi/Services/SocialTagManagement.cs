@@ -219,7 +219,7 @@ namespace CoreApi.Services
         }
         public async Task<(bool, ErrorCodes)> IsValidTags(string[] tags, bool isEnableTag = false)
         {
-            foreach(var tag in tags) {
+            foreach (var tag in tags) {
                 if (!IsValidTag(tag)) {
                     return (false, ErrorCodes.INVALID_PARAMS);
                 } else {

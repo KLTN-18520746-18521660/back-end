@@ -98,7 +98,7 @@ namespace DatabaseAccess.Context.Models
         [Required]
         [Column("settings", TypeName = "jsonb")]
         public string SettingsStr {
-            get { return Settings.ToString(); }
+            get { return Settings.ToString(Formatting.None); }
             set { Settings = JsonConvert.DeserializeObject<JObject>(value); }
         }
         [NotMapped]
@@ -106,7 +106,7 @@ namespace DatabaseAccess.Context.Models
         [Required]
         [Column("ranks", TypeName = "jsonb")]
         public string RanksStr {
-            get { return Ranks.ToString(); }
+            get { return Ranks.ToString(Formatting.None); }
             set { Ranks = JsonConvert.DeserializeObject<JObject>(value); }
         }
         [NotMapped]
@@ -114,7 +114,7 @@ namespace DatabaseAccess.Context.Models
         [Required]
         [Column("publics", TypeName = "jsonb")]
         public string PublicsStr {
-            get { return Publics.ToString(); }
+            get { return Publics.ToString(Formatting.None); }
             set { Publics = JsonConvert.DeserializeObject<JArray>(value); }
         }
         [Column("search_vector")]
@@ -407,8 +407,8 @@ namespace DatabaseAccess.Context.Models
                 .Select(e => e.Role.SocialUserRoleDetails)
                 .ToList();
 
-            foreach(var roleDetails in notPriorityRoleDetails) {
-                foreach(var detail in roleDetails) {
+            foreach (var roleDetails in notPriorityRoleDetails) {
+                foreach (var detail in roleDetails) {
                     var _obj = rights.GetValueOrDefault(detail.Right.RightName, new JObject());
                     var obj = detail.Actions;
                     JObject action;
@@ -432,8 +432,8 @@ namespace DatabaseAccess.Context.Models
                 }
             }
 
-            foreach(var roleDetails in priorityRoleDetails) {
-                foreach(var detail in roleDetails) {
+            foreach (var roleDetails in priorityRoleDetails) {
+                foreach (var detail in roleDetails) {
                     var _obj = rightsPriority.GetValueOrDefault(detail.Right.RightName, new JObject());var obj = detail.Actions;
                     JObject action;
                     if (_obj.Count != 0) {

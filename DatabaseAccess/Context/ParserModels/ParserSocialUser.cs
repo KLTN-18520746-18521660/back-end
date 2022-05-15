@@ -14,8 +14,14 @@ namespace DatabaseAccess.Context.ParserModels
 {
     public class ParserSocialUser : IBaseParserModel
     {
+        private string __FirstName;
         [DefaultValue("first_name")]
-        public string first_name { get; set; }
+        public string first_name {
+            get => __FirstName;
+            set {
+                __FirstName = value.Trim();
+            }
+        }
         [DefaultValue("last_name")]
         public string last_name { get; set; }
         [DefaultValue("display_name")]

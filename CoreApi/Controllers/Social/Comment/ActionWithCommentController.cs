@@ -18,11 +18,6 @@ namespace CoreApi.Controllers.Social.Comment
     [Route("/api/comment")]
     public class ActionWithCommentController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         protected readonly string[] ValidActions = new string[]{
             "like",
             "unlike",
@@ -32,26 +27,7 @@ namespace CoreApi.Controllers.Social.Comment
 
         public ActionWithCommentController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "ActionWithComment";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "ActionWithComment";
         }
 
         [HttpPost("{comment_id}")]
@@ -61,13 +37,13 @@ namespace CoreApi.Controllers.Social.Comment
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> ActionComment([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                       [FromServices] SocialCommentManagement __SocialCommentManagement,
-                                                       [FromServices] SocialPostManagement __SocialPostManagement,
-                                                       [FromServices] NotificationsManagement __NotificationsManagement,
-                                                       [FromRoute] long comment_id,
-                                                       [FromQuery] string action,
-                                                       [FromHeader] string session_token)
+        public async Task<IActionResult> ActionComment([FromServices] SessionSocialUserManagement   __SessionSocialUserManagement,
+                                                       [FromServices] SocialCommentManagement       __SocialCommentManagement,
+                                                       [FromServices] SocialPostManagement          __SocialPostManagement,
+                                                       [FromServices] NotificationsManagement       __NotificationsManagement,
+                                                       [FromRoute(Name = "commment_id")] long       __CommentId,
+                                                       [FromQuery(Name = "action")] string          Action,
+                                                       [FromHeader(Name = "session_token")] string  SessionToken)
         {
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
@@ -75,80 +51,84 @@ namespace CoreApi.Controllers.Social.Comment
             __SocialPostManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Get session
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
+                }
+                if (__Session == default) {
+                    throw new Exception($"GetSessionToken failed.");
+                }
+                var Session             = __Session as SessionSocialUser;
+                #endregion
+
                 #region Validate params
-                if (comment_id == default || comment_id <= 0) {
+                if (__CommentId == default || __CommentId <= 0) {
                     return Problem(400, "Invalid request.");
                 }
-                if (!ValidActions.Contains(action)) {
+                if (!ValidActions.Contains(Action)) {
                     return Problem(400, "Invalid params.");
                 }
                 #endregion
 
-                #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
-                }
-                if (__session == default) {
-                    throw new Exception($"GetSessionToken failed.");
-                }
-                var session = __session as SessionSocialUser;
-                #endregion
-
                 #region Get comment info
-                var (comment, error) = await __SocialCommentManagement.FindCommentById(comment_id);
+                var (Comment, Error) = await __SocialCommentManagement.FindCommentById(__CommentId);
 
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
+                if (Error != ErrorCodes.NO_ERROR) {
+                    if (Error == ErrorCodes.NOT_FOUND) {
+                        LogWarning($"Not found comment, comment_id: { __CommentId }");
                         return Problem(404, "Not found comment.");
                     }
 
-                    throw new Exception($"FindCommentById failed, ErrorCode: { error }");
+                    throw new Exception($"FindCommentById failed, ErrorCode: { Error }");
                 }
                 #endregion
 
-                if (await __SocialCommentManagement.IsContainsAction(comment_id, session.UserId, action)) {
-                    return Problem(400, $"User already { action } this comment.");
+                if (await __SocialCommentManagement.IsContainsAction(__CommentId, Session.UserId, Action)) {
+                    LogWarning($"Action is already exists, action: { Action }, comment_id: { __CommentId }, user_id: { Session.UserId }");
+                    return Problem(400, $"User already { Action } this comment.");
                 }
-                NotificationSenderAction notificationAction = NotificationSenderAction.INVALID_ACTION;
-                switch (action) {
+
+                NotificationSenderAction NotificationAction = NotificationSenderAction.INVALID_ACTION;
+                switch (Action) {
                     case "like":
-                        error = await __SocialCommentManagement.Like(comment_id, session.UserId);
-                        notificationAction = NotificationSenderAction.LIKE_COMMENT;
+                        Error = await __SocialCommentManagement.Like(__CommentId, Session.UserId);
+                        NotificationAction = NotificationSenderAction.LIKE_COMMENT;
                         break;
                     case "unlike":
-                        error = await __SocialCommentManagement.UnLike(comment_id, session.UserId);
+                        Error = await __SocialCommentManagement.UnLike(__CommentId, Session.UserId);
                         break;
                     case "dislike":
-                        error = await __SocialCommentManagement.DisLike(comment_id, session.UserId);
+                        Error = await __SocialCommentManagement.DisLike(__CommentId, Session.UserId);
                         break;
                     case "undislike":
-                        error = await __SocialCommentManagement.UnDisLike(comment_id, session.UserId);
+                        Error = await __SocialCommentManagement.UnDisLike(__CommentId, Session.UserId);
                         break;
                     default:
                         return Problem(400, "Invalid action.");
                 }
 
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"{ action } comment Failed, ErrorCode: { error }");
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"{ Action } comment Failed, ErrorCode: { Error }");
                 }
 
-                if (notificationAction != NotificationSenderAction.INVALID_ACTION) {
+                if (NotificationAction != NotificationSenderAction.INVALID_ACTION) {
                     await __NotificationsManagement.SendNotification(
                         NotificationType.ACTION_WITH_COMMENT,
-                        new CommentNotificationModel(notificationAction,
-                                                     session.UserId,
+                        new CommentNotificationModel(NotificationAction,
+                                                     Session.UserId,
                                                      default){
-                            CommentId = comment.Id
+                            CommentId = Comment.Id
                         }
                     );
                 }
 
+                LogDebug($"Action with comment success, action: { Action }, comment_id: { __CommentId }");
                 return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

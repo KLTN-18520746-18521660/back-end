@@ -13,7 +13,8 @@ using Newtonsoft.Json.Linq;
 namespace CoreApi.Services.Background
 {
     public enum RequestToSendEmailType {
-        UserSignup = 0,
+        UserSignup          = 0,
+        ForgotPassword      = 1,
     }
 
     public class EmailChannel
@@ -49,7 +50,10 @@ namespace CoreApi.Services.Background
                         var emailSender = scope.ServiceProvider.GetRequiredService<EmailSender>();
                         switch(reqToSendEmail.Type) {
                             case RequestToSendEmailType.UserSignup:
-                                _ = emailSender.SendEmailUserSignUp((Guid)input, reqToSendEmail.TraceId);
+                                _ = emailSender.SendEmailUserSignUp(input.UserId, reqToSendEmail.TraceId);
+                                break;
+                            case RequestToSendEmailType.ForgotPassword:
+                                _ = emailSender.SendEmailUserForgotPassword(input.UserId, reqToSendEmail.TraceId, input.IsAdminUser);
                                 break;
                             default:
                                 throw new Exception($"TraceId: { reqToSendEmail.TraceId }, Invalid Type { reqToSendEmail.Type }");
@@ -61,11 +65,12 @@ namespace CoreApi.Services.Background
             }
         }
 
-        protected object GetValueFromReq(JObject Data, RequestToSendEmailType Type)
+        protected (Guid UserId, bool IsAdminUser) GetValueFromReq(JObject Data, RequestToSendEmailType Type)
         {
             switch(Type) {
                 case RequestToSendEmailType.UserSignup:
-                    return Data.Value<Guid>("UserId");
+                case RequestToSendEmailType.ForgotPassword:
+                    return (Data.Value<Guid>("UserId"), Data.Value<bool>("IsAdminUser"));
                 default:
                     return default;
             }

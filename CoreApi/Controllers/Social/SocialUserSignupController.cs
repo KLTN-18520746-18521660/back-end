@@ -18,8 +18,7 @@ namespace CoreApi.Controllers.Social
     {
         public SocialUserSignupController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "SocialUserSignup";
-            LoadConfig();
+            ControllerName = "SocialUserSignup";
         }
 
         /// <summary>
@@ -28,7 +27,7 @@ namespace CoreApi.Controllers.Social
         /// <returns><b>Return message ok</b></returns>
         /// <param name="__SocialUserManagement"></param>
         /// <param name="__EmailChannel"></param>
-        /// <param name="parser"></param>
+        /// <param name="__ParserModel"></param>
         ///
         /// <remarks>
         /// </remarks>
@@ -52,63 +51,67 @@ namespace CoreApi.Controllers.Social
         [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(SocialUserSignupSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> SocialUserSignup([FromServices] SocialUserManagement __SocialUserManagement,
-                                                          [FromServices] Channel<EmailChannel> __EmailChannel,
-                                                          [FromBody] ParserSocialUser parser)
+        public async Task<IActionResult> SocialUserSignup([FromServices] SocialUserManagement   __SocialUserManagement,
+                                                          [FromServices] Channel<EmailChannel>  __EmailChannel,
+                                                          [FromBody] ParserSocialUser           __ParserModel)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
                 #region Parse Social User
-                SocialUser newUser = new SocialUser();
-                string Error = string.Empty;
-                if (!newUser.Parse(parser, out Error)) {
-                    LogInformation(Error);
+                SocialUser NewUser = new SocialUser();
+                string ErrorParser = string.Empty;
+                if (!NewUser.Parse(__ParserModel, out ErrorParser)) {
+                    LogWarning(ErrorParser);
                     return Problem(400, "Bad request body.");
                 }
                 #endregion
 
                 #region Check unique user_name, email
-                bool username_existed = false, email_existed = false;
-                var error = ErrorCodes.NO_ERROR;
-                (username_existed, email_existed, error) = await __SocialUserManagement.IsUserExsiting(newUser.UserName, newUser.Email);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"IsUserExsiting Failed. ErrorCode: { error }");
-                } else if (username_existed) {
-                    LogDebug($"UserName have been used, user_name: { newUser.UserName }");
+                var (UserNameExisted, EmailExisted, Error) = await __SocialUserManagement.IsUserExsiting(NewUser.UserName, NewUser.Email);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"IsUserExsiting Failed. ErrorCode: { Error }");
+                } else if (UserNameExisted) {
+                    LogWarning($"UserName have been used, user_name: { NewUser.UserName }");
                     return Problem(400, "UserName have been used.");
-                } else if (email_existed) {
-                    LogDebug($"Email have been used, email: { newUser.Email }");
+                } else if (EmailExisted) {
+                    LogWarning($"Email have been used, email: { NewUser.Email }");
                     return Problem(400, "Email have been used.");
                 }
                 #endregion
 
-                #region Add new social user
-                error = await __SocialUserManagement.AddNewUser(newUser);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"AddNewSocialUser Failed. ErrorCode: { error }");
+                #region Check password policy
+                var ErroMsg = __SocialUserManagement.ValidatePasswordWithPolicy(__ParserModel.password);
+                if (ErroMsg != string.Empty) {
+                    LogWarning($"New user not match password policy, error: { ErroMsg }");
+                    return Problem(400, ErroMsg);
                 }
                 #endregion
 
-                LogInformation($"Signup social user success, user_name: { newUser.UserName }");
-                // var _ = __EmailSender.SendEmailUserSignUp(newUser.Id, __TraceId);
+                #region Add new social user
+                Error = await __SocialUserManagement.AddNewUser(NewUser);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"AddNewSocialUser Failed. ErrorCode: { Error }");
+                }
+                #endregion
+
                 await __EmailChannel.Writer.WriteAsync(new EmailChannel() {
-                    TraceId = __TraceId,
-                    Type = RequestToSendEmailType.UserSignup,
-                    Data = new JObject() {
-                        { "UserId", newUser.Id },
+                    TraceId     = TraceId,
+                    Type        = RequestToSendEmailType.UserSignup,
+                    Data        = new JObject() {
+                        { "UserId",         NewUser.Id },
+                        { "IsAdminUser",    false },
                     }
                 });
+
+                LogInformation($"Signup social user success, user_name: { NewUser.UserName }");
                 return Ok(201, "OK", new JObject(){
-                    { "user_id", newUser.Id },
+                    { "user_id", NewUser.Id },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

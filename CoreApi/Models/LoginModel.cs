@@ -12,7 +12,7 @@ namespace CoreApi.Models
         public string user_name { get; set; }
         [DefaultValue("password")]
         public string password { get; set; }
-        [DefaultValue(false)]
+        [DefaultValue(true)]
         public bool remember { get; set; }
         [DefaultValue("{}")]
         public JObject data { get; set; }

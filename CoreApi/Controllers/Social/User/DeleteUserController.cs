@@ -17,33 +17,9 @@ namespace CoreApi.Controllers.Social.User
     [Route("/api/user")]
     public class DeleteUserController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         public DeleteUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "DeleteUser";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "DeleteUser";
         }
 
         [HttpDelete("")]
@@ -51,41 +27,40 @@ namespace CoreApi.Controllers.Social.User
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> DeleteUser([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                    [FromServices] SocialCommentManagement __SocialCommentManagement,
-                                                    [FromServices] SocialUserManagement __SocialUserManagement,
-                                                    [FromHeader] string session_token,
-                                                    [FromBody] SocialCommentModifyModel modelData)
+        public async Task<IActionResult> DeleteUser([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
+                                                    [FromServices] SocialCommentManagement      __SocialCommentManagement,
+                                                    [FromServices] SocialUserManagement         __SocialUserManagement,
+                                                    [FromBody] SocialCommentModifyModel         __ModelData,
+                                                    [FromHeader(Name = "session_token")] string SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
+            __SocialCommentManagement.SetTraceId(TraceId);
+            __SocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
                 #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
                 }
-                if (__session == default) {
+                if (__Session == default) {
                     throw new Exception($"GetSessionToken failed.");
                 }
-                var session = __session as SessionSocialUser;
+                var Session             = __Session as SessionSocialUser;
                 #endregion
 
-                var error = await __SocialUserManagement.DeleteUser(session.User);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"ModifyComment failed, ErrorCode: { error }");
+                var Error = await __SocialUserManagement.DeleteUser(Session.User);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"DeleteUser failed, ErrorCode: { Error }");
                 }
 
-                LogInformation($"Delete User successfully, UserId: { session.UserId }");
+                LogInformation($"Delete User successfully, UserId: { Session.UserId }");
                 return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

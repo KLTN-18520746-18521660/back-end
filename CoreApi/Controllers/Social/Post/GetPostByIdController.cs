@@ -4,6 +4,7 @@ using CoreApi.Services;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Text;
@@ -15,33 +16,9 @@ namespace CoreApi.Controllers.Social.Post
     [Route("/api/post")]
     public class GetPostByIdController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         public GetPostByIdController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetPostById";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "GetPostById";
         }
 
         [HttpGet("id/{post_id}")]
@@ -49,60 +26,51 @@ namespace CoreApi.Controllers.Social.Post
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetPostById([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                     [FromServices] SocialPostManagement __SocialPostManagement,
-                                                     [FromRoute] long post_id,
-                                                     [FromHeader] string session_token)
+        public async Task<IActionResult> GetPostById([FromServices] SessionSocialUserManagement     __SessionSocialUserManagement,
+                                                     [FromServices] SocialPostManagement            __SocialPostManagement,
+                                                     [FromRoute(Name = "post_id")] long             __PostId,
+                                                     [FromHeader(Name = "session_token")] string    SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
+            __SocialPostManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Validate slug
-                if (post_id <= 0) {
+                #region Get session (not required)
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, _)      = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                var IsValidSession      = __Session != default;
+                var Session             = __Session as SessionSocialUser;
+                #endregion
+
+                #region Validate params
+                if (__PostId <= 0) {
                     return Problem(400, "Invalid params.");
                 }
                 #endregion
 
-                #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
-                }
-                if (__session == default) {
-                    throw new Exception($"GetSessionToken failed.");
-                }
-                var session = __session as SessionSocialUser;
-                #endregion
-
                 #region Get post info
-                SocialPost post     = default;
-                var error           = ErrorCodes.NO_ERROR;
-                (post, error) = await __SocialPostManagement.FindPostById(post_id);
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
+                var (Post, Error) = await __SocialPostManagement.FindPostById(__PostId);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    if (Error == ErrorCodes.NOT_FOUND) {
                         return Problem(404, "Not found post.");
                     }
-                    throw new Exception($"FindPostById failed. Post_id: { post_id }, ErrorCode: { error} ");
+                    throw new Exception($"FindPostById failed. Post_id: { __PostId }, ErrorCode: { Error} ");
                 }
 
-                if (post.Owner != session.UserId) {
+                if (Post.Owner != Session.UserId) {
                     return Problem(404, "Not found post.");
                 };
                 #endregion
 
-                var ret = post.GetJsonObject();
-                ret.Add("actions", Utils.ObjectToJsonToken(post.GetActionByUser(session.UserId)));
+                var Ret = Post.GetJsonObject();
+                Ret.Add("actions", Utils.ObjectToJsonToken(Post.GetActionByUser(Session.UserId)));
                 return Ok(200, "OK", new JObject(){
-                    { "post", ret },
+                    { "post", Ret },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

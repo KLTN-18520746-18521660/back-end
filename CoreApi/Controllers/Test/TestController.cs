@@ -20,7 +20,7 @@ namespace CoreApi.Controllers.Test
         public TestController(
             BaseConfig _BaseConfig
         ) : base(_BaseConfig) {
-            __ControllerName = "TestController";
+            ControllerName = "TestController";
         }
 
         [HttpGet]

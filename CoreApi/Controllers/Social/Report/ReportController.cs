@@ -16,35 +16,11 @@ namespace CoreApi.Controllers.Social.Report
 {
     [ApiController]
     [Route("/api/report")]
-    public class ReportCommentController : BaseController
+    public class ReportController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
-        public ReportCommentController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public ReportController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "ReportComment";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "Report";
         }
 
         [HttpPost("{type}")]
@@ -52,114 +28,122 @@ namespace CoreApi.Controllers.Social.Report
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> Report([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                [FromServices] SocialCommentManagement __SocialCommentManagement,
-                                                [FromServices] SocialUserManagement __SocialUserManagement,
-                                                [FromServices] SocialPostManagement __SocialPostManagement,
-                                                [FromServices] SocialReportManagement __SocialReportManagement,
-                                                [FromHeader] string session_token,
-                                                [FromRoute] string type,
-                                                [FromBody] ParserSocialReport Parser)
+        public async Task<IActionResult> Report([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
+                                                [FromServices] SocialCommentManagement      __SocialCommentManagement,
+                                                [FromServices] SocialUserManagement         __SocialUserManagement,
+                                                [FromServices] SocialPostManagement         __SocialPostManagement,
+                                                [FromServices] SocialReportManagement       __SocialReportManagement,
+                                                [FromRoute(Name = "type")] string           __Type,
+                                                [FromBody] ParserSocialReport               __ParserModel,
+                                                [FromHeader(Name = "session_token")] string SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
+            __SocialCommentManagement.SetTraceId(TraceId);
+            __SocialUserManagement.SetTraceId(TraceId);
+            __SocialPostManagement.SetTraceId(TraceId);
+            __SocialReportManagement.SetTraceId(TraceId);
             #endregion
             try {
                 #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
                 }
-                if (__session == default) {
+                if (__Session == default) {
                     throw new Exception($"GetSessionToken failed.");
                 }
-                var session = __session as SessionSocialUser;
+                var Session             = __Session as SessionSocialUser;
                 #endregion
 
-                if (Parser.report_type.ToLower() == "other" && (Parser.content == default || Parser.content == string.Empty)) {
+                if (__ParserModel.report_type.ToLower() == "other" && (__ParserModel.content == default || __ParserModel.content == string.Empty)) {
                     return Problem(400, "Not accept empty content when type is 'other'");
                 }
 
-                SocialReport report = new SocialReport(){
-                    Type            = type,
-                    ReportType      = Parser.report_type,
-                    Content         = Parser.content,
-                    ReporterId      = session.UserId,
+                SocialReport Report = new SocialReport(){
+                    Type            = __Type,
+                    ReportType      = __ParserModel.report_type,
+                    Content         = __ParserModel.content,
+                    ReporterId      = Session.UserId,
                 };
-                var error           = ErrorCodes.NO_ERROR;
-                switch (type) {
+                switch (__Type) {
                     case "user":
                         {
-                            if (Parser.user_name == default) {
+                            if (__ParserModel.user_name == default) {
+                                LogWarning($"Missing user_name to report, user_name: { Session.User.UserName }");
                                 return Problem(400, "Invaid request body.");
                             }
-                            SocialUser reportUser = default;
-                            (reportUser, error) = await __SocialUserManagement.FindUserIgnoreStatus(Parser.user_name, false);
-                            if (error != ErrorCodes.NO_ERROR) {
+                            var (ReportUser, Error) = await __SocialUserManagement.FindUserIgnoreStatus(__ParserModel.user_name, false);
+                            if (Error != ErrorCodes.NO_ERROR) {
+                                LogWarning($"Not found user to report, user_name: { Session.User.UserName }");
                                 return Problem(404, "Not found report user.");
                             }
-                            if (session.UserId != reportUser.Id) {
+                            if (Session.UserId != ReportUser.Id) {
+                                LogWarning($"Not allow report yourself, user_name: { Session.User.UserName }");
                                 return Problem(400, "Not allow.");
                             }
-                            report.UserId = reportUser.Id;
+                            Report.UserId = ReportUser.Id;
                             break;
                         }
                     case "post":
                         {
-                            if (Parser.post_slug == default) {
+                            if (__ParserModel.post_slug == default) {
+                                LogWarning($"Missing post_slug to report, user_name: { Session.User.UserName }");
                                 return Problem(400, "Invaid request body.");
                             }
-                            SocialPost reportPost = default;
-                            (reportPost, error) = await __SocialPostManagement.FindPostBySlug(Parser.post_slug);
-                            if (error != ErrorCodes.NO_ERROR) {
+                            var (ReportPost, Error) = await __SocialPostManagement.FindPostBySlug(__ParserModel.post_slug);
+                            if (Error != ErrorCodes.NO_ERROR) {
+                                LogWarning($"Not found post to report, user_name: { Session.User.UserName }");
                                 return Problem(404, "Not found report post.");
                             }
-                            if (session.UserId != reportPost.Owner) {
+                            if (Session.UserId != ReportPost.Owner) {
+                                LogWarning($"Not allow report own post, user_name: { Session.User.UserName }");
                                 return Problem(400, "Not allow.");
                             }
-                            report.PostId = reportPost.Id;
+                            Report.PostId = ReportPost.Id;
                             break;
                         }
                     case "comment":
                         {
-                            if (Parser.comment_id == default) {
+                            if (__ParserModel.comment_id == default) {
+                                LogWarning($"Missing comment_id to report, user_name: { Session.User.UserName }");
                                 return Problem(400, "Invaid request body.");
                             }
-                            SocialComment reportComment = default;
-                            (reportComment, error) = await __SocialCommentManagement.FindCommentById(Parser.comment_id);
-                            if (error != ErrorCodes.NO_ERROR) {
+                            var (ReportComment, Error) = await __SocialCommentManagement.FindCommentById(__ParserModel.comment_id);
+                            if (Error != ErrorCodes.NO_ERROR) {
+                                LogWarning($"Not found comment to report, user_name: { Session.User.UserName }");
                                 return Problem(404, "Not found report comment.");
                             }
-                            if (session.UserId != reportComment.Owner) {
+                            if (Session.UserId != ReportComment.Owner) {
+                                LogWarning($"Not allow report own comment, user_name: { Session.User.UserName }");
                                 return Problem(400, "Not allow.");
                             }
-                            report.CommentId = reportComment.Id;
+                            Report.CommentId = ReportComment.Id;
                             break;
                         }
                     case "feedback":
                         {
-                            if (Parser.content == default) {
+                            if (__ParserModel.content == default) {
+                                LogWarning($"Invalid request, type: { __Type }, content: { __ParserModel.content }");
                                 return Problem(400, "Invaid request body.");
                             }
                             break;
                         }
                     default:
+                        LogWarning($"Invalid request, type: { __Type }");
                         return Problem(400, "Invalid request.");
                 }
 
-                error = await __SocialReportManagement.AddNewReport(report);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"AddNewReport failed, ErrorCode: { error }");
+                var ErrorNewReport = await __SocialReportManagement.AddNewReport(Report);
+                if (ErrorNewReport != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"AddNewReport failed, ErrorCode: { ErrorNewReport }");
                 }
 
                 return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

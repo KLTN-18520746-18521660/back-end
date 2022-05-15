@@ -18,11 +18,6 @@ namespace CoreApi.Controllers.Social.Category
     [Route("/api/category")]
     public class ActionWithCategoryController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         protected readonly string[] ValidActions = new string[]{
             "follow",
             "unfollow",
@@ -30,26 +25,7 @@ namespace CoreApi.Controllers.Social.Category
 
         public ActionWithCategoryController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "ActionWithCategory";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "ActionWithCategory";
         }
 
         [HttpPost("{category}")]
@@ -59,70 +35,74 @@ namespace CoreApi.Controllers.Social.Category
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> ActionWithCategory([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                            [FromServices] SocialCategoryManagement __SocialCategoryManagement,
-                                                            [FromRoute] string category,
-                                                            [FromQuery] string action,
-                                                            [FromHeader] string session_token)
+        public async Task<IActionResult> ActionWithCategory([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
+                                                            [FromServices] SocialCategoryManagement     __SocialCategoryManagement,
+                                                            [FromRoute(Name = "category")] string       __Category,
+                                                            [FromQuery(Name = "action")] string         Action,
+                                                            [FromHeader(Name = "session_token")] string SessionToken)
         {
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
             __SocialCategoryManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Get session
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
+                }
+                if (__Session == default) {
+                    throw new Exception($"GetSessionToken failed.");
+                }
+                var Session             = __Session as SessionSocialUser;
+                #endregion
+
                 #region Validate params
-                if (!__SocialCategoryManagement.IsValidCategory(category)) {
+                if (!__SocialCategoryManagement.IsValidCategory(__Category)) {
                     return Problem(400, "Invalid request.");
                 }
-                if (!ValidActions.Contains(action)) {
+                if (!ValidActions.Contains(Action)) {
                     return Problem(400, "Invalid params.");
                 }
                 #endregion
 
-                #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
-                }
-                if (__session == default) {
-                    throw new Exception($"GetSessionToken failed.");
-                }
-                var session = __session as SessionSocialUser;
-                #endregion
+                var (FindCategory, Error) = await __SocialCategoryManagement.FindCategoryByName(__Category);
 
-                var (findCategory, error) = await __SocialCategoryManagement.FindCategoryByName(category);
-
-                if (error != ErrorCodes.NO_ERROR && error != ErrorCodes.USER_IS_NOT_OWNER) {
-                    if (error == ErrorCodes.NOT_FOUND) {
+                if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
+                    if (Error == ErrorCodes.NOT_FOUND) {
+                        LogWarning($"Not found category, category: { __Category }");
                         return Problem(404, "Not found category.");
                     }
 
-                    throw new Exception($"FindCategoryByName failed, ErrorCode: { error }");
+                    throw new Exception($"FindCategoryByName failed, ErrorCode: { Error }");
                 }
 
-                if (await __SocialCategoryManagement.IsContainsAction(findCategory.Id, session.UserId, action)) {
-                    return Problem(400, $"User already { action } this category.");
+                if (await __SocialCategoryManagement.IsContainsAction(FindCategory.Id, Session.UserId, Action)) {
+                    LogWarning($"Action is already exists, action: { Action }, category: { __Category }, user_id: { Session.UserId }");
+                    return Problem(400, $"User already { Action } this category.");
                 }
-                switch (action) {
+
+                switch (Action) {
                     case "follow":
-                        error = await __SocialCategoryManagement.Follow(findCategory.Id, session.UserId);
+                        Error = await __SocialCategoryManagement.Follow(FindCategory.Id, Session.UserId);
                         break;
                     case "unfollow":
-                        error = await __SocialCategoryManagement.UnFollow(findCategory.Id, session.UserId);
+                        Error = await __SocialCategoryManagement.UnFollow(FindCategory.Id, Session.UserId);
                         break;
                     default:
                         return Problem(400, "Invalid action.");
                 }
 
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"{ action } category Failed, ErrorCode: { error }");
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"{ Action } category Failed, ErrorCode: { Error }");
                 }
 
+                LogDebug($"Action with category ok, action: { Action }, user_id: { Session.UserId }");
                 return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

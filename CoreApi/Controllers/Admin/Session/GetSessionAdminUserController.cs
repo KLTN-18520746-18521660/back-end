@@ -17,34 +17,10 @@ namespace CoreApi.Controllers.Admin.Session
     [Route("/api/admin/session")]
     public class GetSessionAdminUserController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minutes
-        #endregion
-
         public GetSessionAdminUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetSessionAdminUser";
-            __IsAdminController = true;
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "GetSessionAdminUser";
+            IsAdminController = true;
         }
 
         /// <summary>
@@ -52,7 +28,7 @@ namespace CoreApi.Controllers.Admin.Session
         /// </summary>
         /// <returns><b>All admin session of user</b></returns>
         /// <param name="__SessionAdminUserManagement"></param>
-        /// <param name="session_token"></param>
+        /// <param name="SessionToken"></param>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
@@ -96,70 +72,43 @@ namespace CoreApi.Controllers.Admin.Session
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetSessions([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
-                                                     [FromHeader] string session_token)
+        public async Task<IActionResult> GetSessions([FromServices] SessionAdminUserManagement      __SessionAdminUserManagement,
+                                                     [FromHeader(Name = "session_token")] string    SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionAdminUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Get session token
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                if (session_token == default) {
-                    LogDebug($"Missing header authorization.");
-                    return Problem(401, "Missing header authorization.");
+                #region Get session
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionAdminUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
                 }
-
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    LogDebug($"Invalid header authorization.");
-                    return Problem(401, "Invalid header authorization.");
+                if (__Session == default) {
+                    throw new Exception($"GetSessionToken failed.");
                 }
-                #endregion
-
-                #region Find session for use
-                SessionAdminUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
-
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session not found.");
-                    }
-                    if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogWarning($"Session has expired, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session has expired.");
-                    }
-                    if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogWarning($"User has been locked, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(423, "You have been locked.");
-                    }
-                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
-                }
+                var Session             = __Session as SessionAdminUser;
                 #endregion
 
                 #region Get all sessions
-                List<SessionAdminUser> allSessionOfUser = default;
-                (allSessionOfUser, error) = await __SessionAdminUserManagement.GetAllSessionOfUser(session.UserId);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"GetAllAdminUserSessions Failed. ErrorCode: { error }");
+                var (AllSessionOfUser, Error) = await __SessionAdminUserManagement.GetAllSessionOfUser(Session.UserId);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"GetAllAdminUserSessions Failed. ErrorCode: { Error }");
                 }
 
-                List<JObject> rawReturn = new();
-                allSessionOfUser.ForEach(e => rawReturn.Add(e.GetJsonObject()));
-                var ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(rawReturn));
+                List<JObject> RawRet = new();
+                AllSessionOfUser.ForEach(e => RawRet.Add(e.GetJsonObject()));
+                var Ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(RawRet));
                 #endregion
 
-                LogInformation($"Get all session success, user_name: { session.User.UserName }");
+                LogDebug($"Get all session success, user_name: { Session.User.UserName }");
                 return Ok(200, "OK", new JObject(){
-                    { "sessions", ret },
+                    { "sessions", Ret.ToString() },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
 
@@ -167,8 +116,8 @@ namespace CoreApi.Controllers.Admin.Session
         /// Get admin session of user by id
         /// </summary>
         /// <param name="__SessionAdminUserManagement"></param>
-        /// <param name="session_token"></param>
-        /// <param name="get_session_token"></param>
+        /// <param name="__GetSessionToken"></param>
+        /// <param name="SessionToken"></param>
         /// <returns><b>Admin session of user</b></returns>
         ///
         /// <remarks>
@@ -221,75 +170,44 @@ namespace CoreApi.Controllers.Admin.Session
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetSessionById([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
-                                                        [FromHeader(Name = "session_token_admin")] string session_token,
-                                                        [FromRoute] string get_session_token)
+        public async Task<IActionResult> GetSessionById([FromServices] SessionAdminUserManagement           __SessionAdminUserManagement,
+                                                        [FromRoute(Name = "get_session_token")] string      __GetSessionToken,
+                                                        [FromHeader(Name = "session_token_admin")] string   SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionAdminUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Get session token
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                if (session_token == default) {
-                    LogDebug($"Missing header authorization.");
-                    return Problem(401, "Missing header authorization.");
-                }
-
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
-                    LogDebug($"Invalid header authorization.");
-                    return Problem(401, "Invalid header authorization.");
-                }
-                #endregion
-
-                #region Check param get_session_token
-                if (!CommonValidate.IsValidSessionToken(get_session_token)) {
-                    LogWarning($"Invalid session_token fore get.");
-                    return Problem(400, "Invalid header authorization.");
-                }
-                #endregion
-
-                #region Find session for use
-                SessionAdminUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionAdminUserManagement.FindSessionForUse(session_token, EXPIRY_TIME, EXTENSION_TIME);
-
-                if (error != ErrorCodes.NO_ERROR) {
-                    if (error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session not found.");
-                    }
-                    if (error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                        LogWarning($"Session has expired, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(401, "Session has expired.");
-                    }
-                    if (error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogWarning($"User has been locked, session_token: { session_token.Substring(0, 15) }");
-                        return Problem(423, "You have been locked.");
-                    }
-                    throw new Exception($"FindSessionForUse Failed. ErrorCode: { error }");
-                }
-                #endregion
-
                 #region Get session
-                SessionAdminUser ret = default;
-                (ret, error) = await __SessionAdminUserManagement.FindSession(get_session_token);
-                if (error != ErrorCodes.NO_ERROR || ret.UserId != session.UserId) {
-                    LogWarning($"Session not found, session_token: { session_token.Substring(0, 15) }");
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionAdminUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
+                }
+                if (__Session == default) {
+                    throw new Exception($"GetSessionToken failed.");
+                }
+                var Session             = __Session as SessionAdminUser;
+                #endregion
+
+                #region Get session for return
+                var (Ret, Error) = await __SessionAdminUserManagement.FindSession(__GetSessionToken);
+                if (Error != ErrorCodes.NO_ERROR || Ret.UserId != Session.UserId) {
+                    LogWarning($"Session not found, session_token: { SessionToken.Substring(0, 15) }");
                     return Problem(404, "Session not found.");
                 }
                 #endregion
 
-                LogInformation($"Get session success, user_name: { session.User.UserName }, session_token: { get_session_token.Substring(0, 15) }");
+                LogInformation(
+                    $"Get session success, user_name: { Session.User.UserName }, "
+                    + $"session_token: { __GetSessionToken.Substring(0, 15) }"
+                );
                 return Ok(200, "OK", new JObject(){
-                    { "session", ret.GetJsonObject() },
+                    { "session", Ret.GetJsonObject() },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

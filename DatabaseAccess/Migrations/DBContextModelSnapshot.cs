@@ -129,42 +129,42 @@ namespace DatabaseAccess.Migrations
                             Id = 1,
                             ConfigKey = "AdminUserLoginConfig",
                             StatusStr = "Enabled",
-                            ValueStr = "{\r\n  \"number_of_times_allow_login_failure\": 5,\r\n  \"lock_time\": 360\r\n}"
+                            ValueStr = "{\"number_of_times_allow_failure\":5,\"lock_time\":360}"
                         },
                         new
                         {
                             Id = 2,
                             ConfigKey = "SocialUserLoginConfig",
                             StatusStr = "Enabled",
-                            ValueStr = "{\r\n  \"number_of_times_allow_login_failure\": 5,\r\n  \"lock_time\": 360\r\n}"
+                            ValueStr = "{\"number_of_times_allow_failure\":5,\"lock_time\":360}"
                         },
                         new
                         {
                             Id = 3,
                             ConfigKey = "SessionAdminUserConfig",
                             StatusStr = "Enabled",
-                            ValueStr = "{\r\n  \"expiry_time\": 5,\r\n  \"extension_time\": 5\r\n}"
+                            ValueStr = "{\"expiry_time\":5,\"extension_time\":5}"
                         },
                         new
                         {
                             Id = 4,
                             ConfigKey = "SessionSocialUserConfig",
                             StatusStr = "Enabled",
-                            ValueStr = "{\r\n  \"expiry_time\": 5,\r\n  \"extension_time\": 5\r\n}"
+                            ValueStr = "{\"expiry_time\":5,\"extension_time\":5}"
                         },
                         new
                         {
                             Id = 5,
                             ConfigKey = "EmailClientConfig",
                             StatusStr = "Enabled",
-                            ValueStr = "{\r\n  \"limit_sender\": 5,\r\n  \"template_user_signup\": \"<p>Dear @Model.UserName,</p>\\r\\n                                        <p>Confirm link here: <a href='@Model.ConfirmLink'>@Model.ConfirmLink</a><br>\\r\\n                                        Send datetime: @Model.DateTimeSend</p>\\r\\n                                        <p>Thanks for your register.</p>\"\r\n}"
+                            ValueStr = "{\"limit_sender\":5,\"template_user_signup\":\"<p>Dear @Model.DisplayName,</p><p>Confirm link <a href='@Model.ConfirmLink'>here</a><br>Send datetime: @Model.DateTimeSend</p><p>Thanks for your register.</p>\",\"template_forgot_password\":\"<p>Dear @Model.DisplayName,</p><p>Confirm link <a href='@Model.ResetPasswordLink'>here</a><br>Send datetime: @Model.DateTimeSend.</p>\"}"
                         },
                         new
                         {
                             Id = 6,
                             ConfigKey = "SocialUserConfirmConfig",
                             StatusStr = "Enabled",
-                            ValueStr = "{\r\n  \"expiry_time\": 2880,\r\n  \"number_of_times_allow_confirm_failure\": 3,\r\n  \"prefix_url\": \"/auth/confirm-account\",\r\n  \"host_name\": \"http://localhost:4200\"\r\n}"
+                            ValueStr = "{\"expiry_time\":2880,\"timeout\":720,\"number_of_times_allow_failure\":3,\"prefix_url\":\"/auth/confirm-account\",\"host_name\":\"http://localhost:7005\",\"subject\":\"[oOwlet Blog] Confirm signup.\"}"
                         },
                         new
                         {
@@ -178,7 +178,63 @@ namespace DatabaseAccess.Migrations
                             Id = 8,
                             ConfigKey = "PublicConfig",
                             StatusStr = "Enabled",
-                            ValueStr = "{\r\n  \"UIConfig\": \"all\",\r\n  \"SessionAdminUserConfig\": \"all\",\r\n  \"SessionSocialUserConfig\": \"all\",\r\n  \"UploadFileConfig\": \"all\"\r\n}"
+                            ValueStr = "{\"UIConfig\":\"all\",\"SessionAdminUserConfig\":\"all\",\"SessionSocialUserConfig\":\"all\",\"UploadFileConfig\":\"all\",\"SocialUserIdle\":\"all\",\"AdminUserIdle\":\"all\"}"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            ConfigKey = "UploadFileConfig",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\"max_length_of_single_file\":5242880}"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            ConfigKey = "Notification",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\"interval_time\":120}"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            ConfigKey = "SocialUserIdle",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\"idle\":300,\"timeout\":10,\"ping\":10}"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            ConfigKey = "AdminUserIdle",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\"idle\":300,\"timeout\":10,\"ping\":10}"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            ConfigKey = "SocialPasswordPolicy",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\"min_len\":5,\"max_len\":25,\"min_upper_char\":0,\"min_lower_char\":0,\"min_number_char\":0,\"min_special_char\":0,\"expiry_time\":30,\"required_change_expired_password\":true}"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            ConfigKey = "AdminPasswordPolicy",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\"min_len\":5,\"max_len\":25,\"min_upper_char\":0,\"min_lower_char\":0,\"min_number_char\":0,\"min_special_char\":0,\"expiry_time\":30,\"required_change_expired_password\":true}"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            ConfigKey = "APIGetCommentConfig",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\"limit_size_get_reply_comment\":2}"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            ConfigKey = "ForgotPasswordConfig",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\"expiry_time\":2880,\"timeout\":720,\"number_of_times_allow_failure\":1,\"prefix_url\":\"/auth/new-password\",\"host_name\":\"http://localhost:7005\",\"subject\":\"[oOwlet Blog] Forgot password.\"}"
                         });
                 });
 
@@ -266,10 +322,10 @@ namespace DatabaseAccess.Migrations
                             CreatedTimestamp = new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc),
                             DisplayName = "Administrator",
                             Email = "admin@admin",
-                            Salt = "5b8f88a6",
+                            Salt = "82b82727",
                             SettingsStr = "{}",
                             StatusStr = "Readonly",
-                            StorePassword = "E6D2B26A29B297BC60A28C891ABAC464",
+                            StorePassword = "730B79CA0F3C34D5FF7ABEB11A8F3B28",
                             UserName = "admin"
                         });
                 });
@@ -492,7 +548,7 @@ namespace DatabaseAccess.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("jsonb")
                         .HasColumnName("actions")
-                        .HasDefaultValueSql("'{\r\n  \"read\": false,\r\n  \"write\": false\r\n}'");
+                        .HasDefaultValueSql("'{\"read\":false,\"write\":false}'");
 
                     b.HasKey("RoleId", "RightId");
 
@@ -505,73 +561,73 @@ namespace DatabaseAccess.Migrations
                         {
                             RoleId = 1,
                             RightId = 1,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         },
                         new
                         {
                             RoleId = 1,
                             RightId = 2,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         },
                         new
                         {
                             RoleId = 1,
                             RightId = 3,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         },
                         new
                         {
                             RoleId = 1,
                             RightId = 4,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         },
                         new
                         {
                             RoleId = 1,
                             RightId = 5,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         },
                         new
                         {
                             RoleId = 1,
                             RightId = 6,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         },
                         new
                         {
                             RoleId = 1,
                             RightId = 7,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         },
                         new
                         {
                             RoleId = 1,
                             RightId = 8,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         },
                         new
                         {
                             RoleId = 1,
                             RightId = 9,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         },
                         new
                         {
                             RoleId = 1,
                             RightId = 10,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         },
                         new
                         {
                             RoleId = 1,
                             RightId = 11,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         },
                         new
                         {
                             RoleId = 1,
                             RightId = 12,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         });
                 });
 
@@ -1143,7 +1199,7 @@ namespace DatabaseAccess.Migrations
 
                     b.HasIndex(new[] { "Slug" }, "IX_social_post_slug")
                         .IsUnique()
-                        .HasFilter("((status = 'Approved' OR status = 'Private') AND (slug <> ''))");
+                        .HasFilter("(slug <> '')");
 
                     b.ToTable("social_post");
 
@@ -2064,7 +2120,7 @@ namespace DatabaseAccess.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("jsonb")
                         .HasColumnName("actions")
-                        .HasDefaultValueSql("'{\r\n  \"read\": false,\r\n  \"write\": false\r\n}'");
+                        .HasDefaultValueSql("'{\"read\":false,\"write\":false}'");
 
                     b.HasKey("RoleId", "RightId");
 
@@ -2077,25 +2133,25 @@ namespace DatabaseAccess.Migrations
                         {
                             RoleId = 1,
                             RightId = 1,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         },
                         new
                         {
                             RoleId = 1,
                             RightId = 2,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         },
                         new
                         {
                             RoleId = 1,
                             RightId = 3,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         },
                         new
                         {
                             RoleId = 1,
                             RightId = 4,
-                            ActionsStr = "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}"
+                            ActionsStr = "{\"read\":true,\"write\":true}"
                         });
                 });
 

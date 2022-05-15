@@ -13,6 +13,7 @@ using System.Threading;
 using CoreApi.Models.ModifyModels;
 using DatabaseAccess.Context.Models;
 using System.Reflection;
+using System.Diagnostics;
 
 namespace MyConsole
 {
@@ -90,14 +91,35 @@ namespace MyConsole
                 date = d;
             }
         }
+        static void Way01(int loop)
+        {
+            var var1 = "hi";
+            var var2 = "hi_1";
+            var _t = new StringBuilder();
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            for (int i = 0; i < loop; i++) {
+                _t.Append($"heelo{ var1 }, { var2 }");
+            }
+            stopwatch.Stop();
+            Console.WriteLine("Elapsed Time is {0} ms", stopwatch.ElapsedMilliseconds);
+        }
+        static void Way02(int loop)
+        {
+            var var1 = "hi";
+            var var2 = "hi_1";
+            var _t = new StringBuilder();
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            for (int i = 0; i < loop; i++) {
+                _t.Append($"heelo{ var1 }" + $" { var2 }");
+            }
+            stopwatch.Stop();
+            Console.WriteLine("Elapsed Time is {0} ms", stopwatch.ElapsedMilliseconds);
+        }
         static void Main(string[] args)
         {
-            // TestGenerateSlug();
-            // var config = DefaultBaseConfig.GetType().GetProperties()
-            //     .SingleOrDefault(e => e.Name == DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG));
-            var config = typeof(DefaultBaseConfig).GetField(DefaultBaseConfig.ConfigKeyToString(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG));
-            var ret = JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(config.GetValue(null)));
-            Console.WriteLine(ret.ToString());
+            DEFAULT_BASE_CONFIG.ConfigKeyToString(CONFIG_KEY.API_GET_COMMENT_CONFIG);
         }
     }
 }

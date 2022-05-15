@@ -16,15 +16,8 @@ namespace CoreApi.Controllers.Upload
 {
     [ApiController]
     [Route("/api/upload")]
-    // [Produces("multipart/form-data")]
     public class UploadFileController : BaseController
     {
-        #region Config Values
-        private int MAX_LENGTH_OF_SINGLE_FILE;
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         // https://developer.mozilla.org/en-US/docs/Web/Media/Formats/Image_types
         private string[] AllowExtensions = new string[]{
             ".apng",
@@ -40,234 +33,247 @@ namespace CoreApi.Controllers.Upload
             ".webp",
         };
 
-        private string[] SocialPath = new string[]{
+        private string[] AllowSocialPaths = new string[]{
             "post",
             "user",
         };
 
-        private string[] AdminPath = new string[]{
+        private string[] AllowAdminPaths = new string[]{
             "common",
         };
 
         public UploadFileController(BaseConfig _BaseConfig)
             : base(_BaseConfig)
         {
-            __ControllerName = "SocialUserLogin";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (MAX_LENGTH_OF_SINGLE_FILE, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.UPLOAD_FILE_CONFIG, SUB_CONFIG_KEY.MAX_LENGTH_OF_SINGLE_FILE);
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "SocialUserLogin";
         }
 
 #if DEBUG
         [HttpPost("public/file/{path}")]
-        public async Task<IActionResult> PublicUploadFile([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                          [FromServices] SocialUserManagement __SocialUserManagement,
-                                                          IFormFile formFile,
-                                                          [FromRoute] string path,
-                                                          [FromHeader] string session_token)
+        public async Task<IActionResult> PublicUploadFile([FromServices] SocialUserManagement           __SocialUserManagement,
+                                                          [FromRoute(Name = "path")] string             __PrefixPath,
+                                                          IFormFile                                     __FormFile)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
+            __SocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
+                #region Get config values
+                var MaxLengthOfSingleFile  = GetConfigValue<int>(CONFIG_KEY.UPLOAD_FILE_CONFIG, SUB_CONFIG_KEY.MAX_LENGTH_OF_SINGLE_FILE);
+                #endregion
+
                 #region Validate params
                 if (HttpContext.Request.Form.Files.Count != 1) {
+                    LogWarning($"Exceed max size of file to upload file.");
                     return Problem(400, "Invalid Request.");
                 }
 
-                formFile = HttpContext.Request.Form.Files[0];
-                if (formFile == default || formFile.FileName == default || formFile.Length == default) {
+                __FormFile = HttpContext.Request.Form.Files[0];
+                if (__FormFile == default || __FormFile.FileName == default || __FormFile.Length == default) {
+                    LogDebug($"Invalid request upload file.");
                     return Problem(400, "Invalid file.");
                 }
                 #endregion
 
-                if (formFile.Length > MAX_LENGTH_OF_SINGLE_FILE) {
+                if (__FormFile.Length > MaxLengthOfSingleFile) {
+                    LogWarning($"Exceed max size of file to upload file.");
                     return Problem(400, "Exceed max size of file.");
                 }
 
-                var ext = Path.GetExtension(formFile.FileName);
-
-                var fileName = Utils.GenerateSlug(formFile.FileName.Replace(ext, string.Empty));
-                fileName = fileName.Length > 30 ? fileName.Substring(0, 30) : fileName;
-                fileName = $"{ fileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }-public{ ext }";
-                CommonValidate.ValidateDirectoryPath($"{ Program.ServerConfiguration.UploadFilePath }/{ path }", true);
-                var filePath = Path.Combine($"{ Program.ServerConfiguration.UploadFilePath }/{ path }", fileName);
-                using (var stream = System.IO.File.Create(filePath))
+                var ExtFile     = Path.GetExtension(__FormFile.FileName);
+                var FileName    = Utils.GenerateSlug(__FormFile.FileName.Replace(ExtFile, string.Empty));
+                FileName        = FileName.Length > 30 ? FileName.Substring(0, 30) : FileName;
+                FileName        = $"{ FileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }-public{ ExtFile }";
+                CommonValidate.ValidateDirectoryPath($"{ Program.ServerConfiguration.UploadFilePath }/{ __PrefixPath }", true);
+                var FilePath    = Path.Combine($"{ Program.ServerConfiguration.UploadFilePath }/{ __PrefixPath }", FileName);
+                using (var stream = System.IO.File.Create(FilePath))
                 {
-                    await formFile.CopyToAsync(stream);
+                    await __FormFile.CopyToAsync(stream);
                 }
 
+                var RetUrl = $"{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ __PrefixPath }/{ FileName }";
+                LogInformation($"Upload public file success: { RetUrl }");
                 return Ok(200, "OK", new JObject(){
-                    { "url", $"{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ path }/{ fileName }" }
+                    { "url", RetUrl }
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
 #endif
 
         [HttpPost("file/{path}")]
-        public async Task<IActionResult> SocialUploadFile([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                          [FromServices] SocialUserManagement __SocialUserManagement,
-                                                          IFormFile formFile,
-                                                          [FromRoute] string path,
-                                                          [FromHeader] string session_token)
+        public async Task<IActionResult> SocialUploadFile([FromServices] SessionSocialUserManagement    __SessionSocialUserManagement,
+                                                          [FromServices] SocialUserManagement           __SocialUserManagement,
+                                                          [FromRoute(Name = "path")] string             __PrefixPath,
+                                                          IFormFile                                     __FormFile,
+                                                          [FromHeader(Name = "session_token")] string   SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
+            __SessionSocialUserManagement.SetTraceId(TraceId);
+            __SocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Validate params
-                if (HttpContext.Request.Form.Files.Count != 1) {
-                    return Problem(400, "Invalid Request.");
-                }
-
-                formFile = HttpContext.Request.Form.Files[0];
-                if (formFile == default || formFile.FileName == default || formFile.Length == default) {
-                    return Problem(400, "Invalid files.");
-                }
+                #region Get config values
+                var MaxLengthOfSingleFile  = GetConfigValue<int>(CONFIG_KEY.UPLOAD_FILE_CONFIG, SUB_CONFIG_KEY.MAX_LENGTH_OF_SINGLE_FILE);
                 #endregion
 
                 #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
+                SessionToken = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
                 }
-                if (__session == default) {
+                if (__Session == default) {
                     throw new Exception($"GetSessionToken failed.");
                 }
-                var session = __session as SessionSocialUser;
+                var Session = __Session as SessionSocialUser;
+                #endregion
+
+                #region Validate params
+                if (HttpContext.Request.Form.Files.Count != 1) {
+                    LogDebug($"Invalid request upload file, user_name: { Session.User.UserName }");
+                    return Problem(400, "Invalid Request.");
+                }
+
+                __FormFile = HttpContext.Request.Form.Files[0];
+                if (__FormFile == default || __FormFile.FileName == default || __FormFile.Length == default) {
+                    LogDebug($"Invalid body request upload file, user_name: { Session.User.UserName }");
+                    return Problem(400, "Invalid files.");
+                }
+
+                if (!AllowSocialPaths.Contains(__PrefixPath)) {
+                    LogWarning($"Not allow upload social file to path '{ __PrefixPath }', user_name: { Session.User.UserName }");
+                    return Problem(400, "Not allow upload file with path '{ __PrefixPath }.");
+                }
+
+                if (__FormFile.Length > MaxLengthOfSingleFile) {
+                    LogWarning($"Exceed max size of file to upload file, user_name: { Session.User.UserName }");
+                    return Problem(400, "Exceed max size of file.");
+                }
+
+                var ExtFile = Path.GetExtension(__FormFile.FileName);
+                if (!AllowExtensions.Contains(ExtFile)) {
+                    LogWarning($"Not allow file type: { ExtFile } to upload file, user_name: { Session.User.UserName }");
+                    return Problem(400, $"Not allow file type: { ExtFile }");
+                }
                 #endregion
 
                 #region Check Upload Permission
-                var error = __SocialUserManagement.HaveFullPermission(session.User.Rights, SOCIAL_RIGHTS.UPLOAD);
-                if (error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogInformation($"User doesn't have permission to upload file, user_name: { session.User.UserName }");
+                var Error = __SocialUserManagement.HaveFullPermission(Session.User.Rights, SOCIAL_RIGHTS.UPLOAD);
+                if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
+                    LogWarning($"User doesn't have permission to upload file, user_name: { Session.User.UserName }");
                     return Problem(403, "User doesn't have permission to upload file.");
                 }
                 #endregion
 
-                if (formFile.Length > MAX_LENGTH_OF_SINGLE_FILE) {
-                    return Problem(400, "Exceed max size of file.");
-                }
-
-                var ext = Path.GetExtension(formFile.FileName);
-                if (!AllowExtensions.Contains(ext)) {
-                    return Problem(400, $"Not allow file type: { ext }");
-                }
-
-                var fileName = Utils.GenerateSlug(formFile.FileName.Replace(ext, string.Empty));
-                fileName = fileName.Length > 30 ? fileName.Substring(0, 30) : fileName;
-                fileName = $"{ fileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ext }";
-                CommonValidate.ValidateDirectoryPath($"{ Program.ServerConfiguration.UploadFilePath }/{ path }", true);
-                var filePath = Path.Combine($"{ Program.ServerConfiguration.UploadFilePath }/{ path }", fileName);
-                using (var stream = System.IO.File.Create(filePath))
+                var FileName    = Utils.GenerateSlug(__FormFile.FileName.Replace(ExtFile, string.Empty));
+                FileName        = FileName.Length > 30 ? FileName.Substring(0, 30) : FileName;
+                FileName        = $"{ FileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ExtFile }";
+                CommonValidate.ValidateDirectoryPath($"{ Program.ServerConfiguration.UploadFilePath }/{ __PrefixPath }", true);
+                var FilePath = Path.Combine($"{ Program.ServerConfiguration.UploadFilePath }/{ __PrefixPath }", FileName);
+                using (var stream = System.IO.File.Create(FilePath))
                 {
-                    await formFile.CopyToAsync(stream);
+                    await __FormFile.CopyToAsync(stream);
                 }
 
+                var RetUrl = $"{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ __PrefixPath }/{ FileName }";
+                LogInformation($"Upload social file success: { RetUrl }, user_name: { Session.User.UserName }");
                 return Ok(200, "OK", new JObject(){
-                    { "url", $"{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ path }/{ fileName }" }
+                    { "url", RetUrl }
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
 
         
         [HttpPost("file/admin/{path}")]
-        public async Task<IActionResult> AdminUploadFile([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
-                                                         [FromServices] AdminUserManagement __AdminUserManagement,
-                                                         IFormFile formFile,
-                                                         [FromRoute] string path,
-                                                         [FromHeader(Name = "session_token_admin")] string session_token)
+        public async Task<IActionResult> AdminUploadFile([FromServices] SessionAdminUserManagement          __SessionAdminUserManagement,
+                                                         [FromServices] AdminUserManagement                 __AdminUserManagement,
+                                                         [FromRoute(Name = "path")] string                  __PrefixPath,
+                                                         IFormFile                                          __FormFile,
+                                                         [FromHeader(Name = "session_token_admin")] string  SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
+            IsAdminController = true; // Special case
             #region Set TraceId for services
+            __SessionAdminUserManagement.SetTraceId(TraceId);
+            __AdminUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Validate params
-                if (HttpContext.Request.Form.Files.Count != 1) {
-                    return Problem(400, "Invalid Request.");
-                }
-
-                formFile = HttpContext.Request.Form.Files[0];
-                if (formFile == default || formFile.FileName == default || formFile.Length == default) {
-                    return Problem(400, "Invalid files.");
-                }
+                #region Get config values
+                var MaxLengthOfSingleFile  = GetConfigValue<int>(CONFIG_KEY.UPLOAD_FILE_CONFIG, SUB_CONFIG_KEY.MAX_LENGTH_OF_SINGLE_FILE);
                 #endregion
 
                 #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionAdminUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
+                SessionToken = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionAdminUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
                 }
-                if (__session == default) {
+                if (__Session == default) {
                     throw new Exception($"GetSessionToken failed.");
                 }
-                var session = __session as SessionAdminUser;
+                var Session = __Session as SessionSocialUser;
+                #endregion
+
+                #region Validate params
+                if (HttpContext.Request.Form.Files.Count != 1) {
+                    LogDebug($"Invalid request upload file, user_name: { Session.User.UserName }");
+                    return Problem(400, "Invalid Request.");
+                }
+
+                __FormFile = HttpContext.Request.Form.Files[0];
+                if (__FormFile == default || __FormFile.FileName == default || __FormFile.Length == default) {
+                    LogDebug($"Invalid body request upload file, user_name: { Session.User.UserName }");
+                    return Problem(400, "Invalid files.");
+                }
+
+                if (!AllowAdminPaths.Contains(__PrefixPath)) {
+                    LogWarning($"Not allow upload admin file to path '{ __PrefixPath }', user_name: { Session.User.UserName }");
+                    return Problem(400, "Not allow upload file with path '{ __PrefixPath }.");
+                }
+
+                if (__FormFile.Length > MaxLengthOfSingleFile) {
+                    LogWarning($"Exceed max size of file to upload file, user_name: { Session.User.UserName }");
+                    return Problem(400, "Exceed max size of file.");
+                }
+
+                var ExtFile = Path.GetExtension(__FormFile.FileName);
+                if (!AllowExtensions.Contains(ExtFile)) {
+                    LogWarning($"Not allow file type: { ExtFile } to upload file, user_name: { Session.User.UserName }");
+                    return Problem(400, $"Not allow file type: { ExtFile }");
+                }
                 #endregion
 
                 #region Check Upload Permission
-                var error = __AdminUserManagement.HaveFullPermission(session.User.Rights, ADMIN_RIGHTS.UPLOAD);
+                var error = __AdminUserManagement.HaveFullPermission(Session.User.Rights, ADMIN_RIGHTS.UPLOAD);
                 if (error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogInformation($"User doesn't have permission to upload file, user_name: { session.User.UserName }");
+                    LogWarning($"User doesn't have permission to upload file, user_name: { Session.User.UserName }");
                     return Problem(403, "User doesn't have permission to upload file.");
                 }
                 #endregion
 
-                if (formFile.Length > MAX_LENGTH_OF_SINGLE_FILE) {
-                    return Problem(400, "Exceed max size of file.");
-                }
-
-                var ext = Path.GetExtension(formFile.FileName);
-                if (!AllowExtensions.Contains(ext)) {
-                    return Problem(400, $"Not allow file type: { ext }");
-                }
-
-                var fileName = Utils.GenerateSlug(formFile.FileName.Replace(ext, string.Empty));
-                fileName = fileName.Length > 30 ? fileName.Substring(0, 30) : fileName;
-                fileName = $"{ fileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ext }";
-                CommonValidate.ValidateDirectoryPath($"{ Program.ServerConfiguration.UploadFilePath }/{ path }", true);
-                var filePath = Path.Combine($"{ Program.ServerConfiguration.UploadFilePath }/{ path }", fileName);
-                using (var stream = System.IO.File.Create(filePath))
+                var FileName    = Utils.GenerateSlug(__FormFile.FileName.Replace(ExtFile, string.Empty));
+                FileName        = FileName.Length > 30 ? FileName.Substring(0, 30) : FileName;
+                FileName        = $"{ FileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ExtFile }";
+                CommonValidate.ValidateDirectoryPath($"{ Program.ServerConfiguration.UploadFilePath }/{ __PrefixPath }", true);
+                var FilePath    = Path.Combine($"{ Program.ServerConfiguration.UploadFilePath }/{ __PrefixPath }", FileName);
+                using (var stream = System.IO.File.Create(FilePath))
                 {
-                    await formFile.CopyToAsync(stream);
+                    await __FormFile.CopyToAsync(stream);
                 }
 
+                var RetUrl = $"{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ __PrefixPath }/{ FileName }";
+                LogInformation($"Upload admin file success: { RetUrl }, user_name: { Session.User.UserName }");
                 return Ok(200, "OK", new JObject(){
-                    { "url", $"{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ path }/{ fileName }" }
+                    { "url", RetUrl }
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

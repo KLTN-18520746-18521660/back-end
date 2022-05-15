@@ -4,6 +4,7 @@ using DatabaseAccess.Context.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
@@ -261,7 +262,7 @@ namespace DatabaseAccess.Context
                 };
                 entity.HasKey(e => new { e.RoleId, e.RightId });
                 entity.Property(e => e.ActionsStr)
-                    .HasDefaultValueSql($"'{ DefaultActions.ToString() }'");
+                    .HasDefaultValueSql($"'{ DefaultActions.ToString(Formatting.None) }'");
 
                 entity.HasOne(d => d.Right)
                     .WithMany(p => p.AdminUserRoleDetails)
@@ -962,7 +963,7 @@ namespace DatabaseAccess.Context
                 };
                 entity.HasKey(e => new { e.RoleId, e.RightId });
                 entity.Property(e => e.ActionsStr)
-                    .HasDefaultValueSql($"'{ DefaultActions.ToString() }'");
+                    .HasDefaultValueSql($"'{ DefaultActions.ToString(Formatting.None) }'");
 
                 entity.HasOne(d => d.Right)
                     .WithMany(p => p.SocialUserRoleDetails)

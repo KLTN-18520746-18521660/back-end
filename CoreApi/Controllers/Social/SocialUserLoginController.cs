@@ -17,35 +17,9 @@ namespace CoreApi.Controllers.Social
     [Route("/api/login")]
     public class SocialUserLoginController : BaseController
     {
-        #region Config Values
-        private int NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE;
-        private int LOCK_TIME; // minute
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         public SocialUserLoginController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "SocialUserLogin";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG, SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE);
-                (LOCK_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG, SUB_CONFIG_KEY.LOCK_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "SocialUserLogin";
         }
 
         /// <summary>
@@ -53,7 +27,7 @@ namespace CoreApi.Controllers.Social
         /// </summary>
         /// <param name="__SocialUserManagement"></param>
         /// <param name="__SessionSocialUserManagement"></param>
-        /// <param name="model"></param>
+        /// <param name="__ModelData"></param>
         /// <returns><b>Return session_id</b></returns>
         ///
         /// <remarks>
@@ -86,81 +60,79 @@ namespace CoreApi.Controllers.Social
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> SocialUserLogin([FromServices] SocialUserManagement __SocialUserManagement,
+        public async Task<IActionResult> SocialUserLogin([FromServices] SocialUserManagement        __SocialUserManagement,
                                                          [FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                         [FromBody] Models.LoginModel model)
+                                                         [FromBody] Models.LoginModel               __ModelData)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SocialUserManagement.SetTraceId(TraceId);
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Find User
-                bool isEmail = CommonValidate.IsEmail(model.user_name);
-                LogDebug($"Find user user_name: { model.user_name }, isEmail: { isEmail }");
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                SocialUser user = default;
-                (user, error) = await __SocialUserManagement.FindUser(model.user_name, isEmail);
+                #region Get config values
+                var LockTime                        = GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG,
+                                                                          SUB_CONFIG_KEY.LOCK_TIME);
+                var ExpiryTime                      = GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG,
+                                                                          SUB_CONFIG_KEY.EXPIRY_TIME);
+                var NumberOfTimesAllowLoginFailure  = GetConfigValue<int>(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG,
+                                                                          SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_FAILURE);
+                #endregion
 
-                if (error != ErrorCodes.NO_ERROR) {
-                    LogDebug($"Not found user_name: { model.user_name }, isEmail: { isEmail }");
+                #region Find User
+                var IsEmail         = CommonValidate.IsEmail(__ModelData.user_name);
+                var (User, Error)   = await __SocialUserManagement.FindUser(__ModelData.user_name, IsEmail);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    LogDebug($"Not found user_name: { __ModelData.user_name }, is_email: { IsEmail }");
                     return Problem(400, "User not found or incorrect password.");
                 }
                 #endregion
 
                 #region Check user is lock or not
-                if (user.Status.Type == StatusType.Blocked) {
-                    LogWarning($"User has been locked user_name: { model.user_name }, isEmail: { isEmail }");
+                if (User.Status.Type == StatusType.Blocked) {
+                    LogWarning($"User has been locked user_name: { __ModelData.user_name }, is_email: { IsEmail }");
                     return Problem(423, "You have been locked.");
                 }
                 #endregion
 
                 #region Compare password
-                if (PasswordEncryptor.EncryptPassword(model.password, user.Salt) != user.Password) {
-                    LogInformation($"Incorrect password user_name: { model.user_name }, isEmail: { isEmail }");
-                    error = await __SocialUserManagement.HandleLoginFail(user.Id, LOCK_TIME, NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE);
-                    if (error != ErrorCodes.NO_ERROR) {
-                        throw new Exception($"Handle SocialUseLoginFail failed. ErrorCode: { error }");
+                if (PasswordEncryptor.EncryptPassword(__ModelData.password, User.Salt) != User.Password) {
+                    Error = await __SocialUserManagement.HandleLoginFail(User.Id, LockTime, NumberOfTimesAllowLoginFailure);
+                    if (Error != ErrorCodes.NO_ERROR) {
+                        throw new Exception($"Handle SocialUseLoginFail failed. ErrorCode: { Error }");
                     }
+                    LogWarning($"Incorrect password user_name: { __ModelData.user_name }, is_email: { IsEmail }");
                     return Problem(400, "User not found or incorrect password.");
                 }
                 #endregion
 
                 #region Create session
-                SessionSocialUser session = default;
-                var data = model.data == default ? new JObject() : model.data;
-                (session, error) = await __SessionSocialUserManagement.NewSession(user.Id, model.remember, data);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"CreateNewSocialSession Failed. ErrorCode: { error }");
+                var Data                    = __ModelData.data == default ? new JObject() : __ModelData.data;
+                SessionSocialUser Session   = default;
+                (Session, Error) = await __SessionSocialUserManagement.NewSession(User.Id, __ModelData.remember, Data);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"CreateNewSocialSession Failed. ErrorCode: { Error }");
                 }
 
-                error = await __SocialUserManagement.HandleLoginSuccess(user.Id);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"Handle SocialUserLoginSuccess failed. ErrorCode: { error }");
+                Error = await __SocialUserManagement.HandleLoginSuccess(User.Id);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"Handle SocialUserLoginSuccess failed. ErrorCode: { Error }");
                 }
                 #endregion
 
-                LogInformation($"User login success user_name: { model.user_name }, isEmail: { isEmail }");
-
-                #region cookie header
-                CookieOptions option = new CookieOptions();
-                option.Expires = model.remember ? DateTime.UtcNow.AddDays(365) : DateTime.UtcNow.AddMinutes(EXPIRY_TIME);
-                option.Path = "/";
-                option.SameSite = SameSiteMode.Strict;
-
-                Response.Cookies.Append("session_token", session.SessionToken, option);
+                #region Set cookie header
+                Response.Cookies.Append(SessionTokenHeaderKey,
+                                        Session.SessionToken,
+                                        GetCookieOptions(__ModelData.remember ? default : DateTime.UtcNow.AddMinutes(ExpiryTime)));
                 #endregion
 
+                LogInformation($"User login success user_name: { __ModelData.user_name }, is_email: { IsEmail }");
                 return Ok(200, "OK", new JObject(){
-                    { "session_id", session.SessionToken },
-                    { "user_id", user.Id },
+                    { "session_id",     Session.SessionToken },
+                    { "user_id",        User.Id },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

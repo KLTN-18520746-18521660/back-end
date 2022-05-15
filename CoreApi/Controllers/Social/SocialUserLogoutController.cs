@@ -15,30 +15,9 @@ namespace CoreApi.Controllers.Social
     [Route("/api/logout")]
     public class SocialUserLogoutController : BaseController
     {
-        #region Config Values
-        private int EXPIRY_TIME; // minute
-        #endregion
         public SocialUserLogoutController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "SocialUserLogout";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "SocialUserLogout";
         }
 
         /// <summary>
@@ -46,7 +25,7 @@ namespace CoreApi.Controllers.Social
         /// </summary>
         /// <returns><b>Return message ok</b></returns>
         /// <param name="__SessionSocialUserManagement"></param>
-        /// <param name="session_token"></param>
+        /// <param name="SessionToken"></param>
         ///
         /// <remarks>
         /// </remarks>
@@ -78,66 +57,58 @@ namespace CoreApi.Controllers.Social
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> SocialUserLogout([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                          [FromHeader] string session_token)
+        public async Task<IActionResult> SocialUserLogout([FromServices] SessionSocialUserManagement    __SessionSocialUserManagement,
+                                                          [FromHeader(Name = "session_token")] string   SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Get session token
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                if (session_token == default) {
+                #region Get config values
+                var ExpiryTime      = GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
+                #endregion
+
+                #region Validate session token
+                SessionToken = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                if (SessionToken == default) {
                     LogDebug($"Missing header authorization.");
                     return Problem(401, "Missing header authorization.");
                 }
 
-                if (!CommonValidate.IsValidSessionToken(session_token)) {
+                if (!CommonValidate.IsValidSessionToken(SessionToken)) {
                     return Problem(401, "Invalid header authorization.");
                 }
                 #endregion
 
                 #region Find session token
-                SessionSocialUser session = default;
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                (session, error) = await __SessionSocialUserManagement.FindSession(session_token);
+                var (Session, Error) = await __SessionSocialUserManagement.FindSession(SessionToken);
 
-                if (error != ErrorCodes.NO_ERROR) {
-                    LogDebug($"Session not found, session_token: { session_token.Substring(0, 15) }");
+                if (Error != ErrorCodes.NO_ERROR) {
+                    LogDebug($"Session not found, session_token: { SessionToken.Substring(0, 15) }");
                     return Problem(401, "Session not found.");
                 }
                 #endregion
 
                 #region Remove session and clear expried session
-                var user = session.User;
-                error = await __SessionSocialUserManagement.RemoveSession(session.SessionToken);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"RemoveSessionSocialUser failed. ErrorCode: { error }");
+                Error = await __SessionSocialUserManagement.RemoveSession(Session.SessionToken);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"RemoveSessionSocialUser failed. ErrorCode: { Error }");
                 }
-                error = await __SessionSocialUserManagement.ClearExpiredSession(user.GetExpiredSessions(EXPIRY_TIME));
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"ClearExpiredSessionSocialUser failed. ErrorCode: { error }");
+                Error = await __SessionSocialUserManagement.ClearExpiredSession(Session.User.GetExpiredSessions(ExpiryTime));
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"ClearExpiredSessionSocialUser failed. ErrorCode: { Error }");
                 }
                 #endregion
 
-                LogInformation($"Logout success, user_name: { user.UserName }, session_token: { session_token.Substring(0, 15) }");
-
-                #region set cookie header to remove session token
-                CookieOptions option = new CookieOptions();
-                option.Expires = new DateTime(1970, 1, 1, 0, 0, 0);
-                option.Path = "/";
-                option.SameSite = SameSiteMode.Strict;
-
-                Response.Cookies.Append("session_token", string.Empty, option);
+                #region Set cookie header to remove session token
+                Response.Cookies.Append(SessionTokenHeaderKey, string.Empty, GetCookieOptionsForDelete());
                 #endregion
 
+                LogInformation($"Logout success, user_name: { Session.User.UserName }, session_token: { SessionToken.Substring(0, 15) }");
                 return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

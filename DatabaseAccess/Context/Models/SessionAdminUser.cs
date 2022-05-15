@@ -31,7 +31,7 @@ namespace DatabaseAccess.Context.Models
         [Required]
         [Column("data", TypeName = "jsonb")]
         public string DataStr {
-            get { return Data.ToString(); }
+            get { return Data.ToString(Formatting.None); }
             set { Data = JsonConvert.DeserializeObject<JObject>(value); }
         }
         [Column("created_timestamp", TypeName = "timestamp with time zone")]

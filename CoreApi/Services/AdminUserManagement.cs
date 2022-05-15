@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 
 using CoreApi.Common;
 using System.Linq.Expressions;
+using Common;
 
 namespace CoreApi.Services
 {
@@ -272,7 +273,92 @@ namespace CoreApi.Services
         }
         #endregion
 
-        #region Add user
+        #region CURD user
+        public string ValidatePasswordWithPolicy(string Password)
+        {
+            #region Get password policy
+            var __BaseConfig                    = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
+            var MinLen                          = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.ADMIN_PASSWORD_POLICY, SUB_CONFIG_KEY.MIN_LEN)
+                .Value;
+            var MaxLen                          = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.ADMIN_PASSWORD_POLICY, SUB_CONFIG_KEY.MAX_LEN)
+                .Value;
+            var MinUpperChar                    = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.ADMIN_PASSWORD_POLICY, SUB_CONFIG_KEY.MIN_UPPER_CHAR)
+                .Value;
+            var MinLowerChar                    = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.ADMIN_PASSWORD_POLICY, SUB_CONFIG_KEY.MIN_LOWER_CHAR)
+                .Value;
+            var MinNumberChar                   = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.ADMIN_PASSWORD_POLICY, SUB_CONFIG_KEY.MIN_NUMBER_CHAR)
+                .Value;
+            var MinSpecialChar                  = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.ADMIN_PASSWORD_POLICY, SUB_CONFIG_KEY.MIN_SPECIAL_CHAR)
+                .Value;
+            #endregion
+
+            return CommonValidate.ValidatePassword(Password, MinLen, MaxLen, MinUpperChar, MinLowerChar, MinNumberChar, MinSpecialChar);
+        }
+        public async Task<ErrorCodes> ChangePassword(Guid AdminUserId, string NewPassword, Guid AdminUserIdAction)
+        {
+            var (User, Error) = await FindUserById(AdminUserId);
+            var (UserAction, TmpError) = await FindUserById(AdminUserIdAction);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            if (TmpError != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            var OldUser = Utils.DeepClone(User.GetJsonObjectForLog());
+
+            if (User.Password == PasswordEncryptor.EncryptPassword(NewPassword, User.Salt)) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+            #region Modify password
+            User.Password = NewPassword;
+            if (!User.Settings.ContainsKey("password")) {
+                User.Settings.Add("password", new JObject(){
+                    "last_change_password", DateTime.UtcNow
+                });
+            } else {
+                var PasswordSetting = User.Settings.ContainsKey("password")
+                                        ? User.Settings.SelectToken("password").ToObject<JObject>()
+                                        : new JObject();
+                if (PasswordSetting.ContainsKey("last_change_password")) {
+                    PasswordSetting.SelectToken("last_change_password").Replace(DateTime.UtcNow);
+                } else {
+                    PasswordSetting.Add("last_change_password", DateTime.UtcNow);
+                }
+                if (User.Settings.ContainsKey("password")) {
+                    User.Settings.SelectToken("password").Replace(PasswordSetting);
+                } else {
+                    User.Settings.Add("password", PasswordSetting);
+                }
+            }
+            #endregion
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [SOCIAL] Write admin audit log
+                (User, Error) = await FindUserById(User.Id);
+                var (OldVal, NewVal) = Utils.GetDataChanges(OldUser, User.GetJsonObjectForLog());
+                if (Error == ErrorCodes.NO_ERROR) {
+                    await __AdminAuditLogManagement.AddNewAuditLog(
+                        User.GetModelName(),
+                        User.Id.ToString(),
+                        LOG_ACTIONS.MODIFY,
+                        AdminUserIdAction,
+                        OldVal,
+                        NewVal
+                    );
+                } else {
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
         public async Task<ErrorCodes> AddNewUser(Guid UserId, AdminUser NewUser)
         {
             await __DBContext.AdminUsers.AddAsync(NewUser);
@@ -292,6 +378,87 @@ namespace CoreApi.Services
                     return ErrorCodes.INTERNAL_SERVER_ERROR;
                 }
                 #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        #endregion
+
+        #region Forgot password
+        public async Task<ErrorCodes> HandleNewPasswordSuccessfully(Guid Id)
+        {
+            #region Find user info
+            var (User, Error) = await FindUserById(Id);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
+            var OldUser = Utils.DeepClone(User.GetJsonObjectForLog());
+            if (User.Status.Type == StatusType.Deleted) {
+                return ErrorCodes.DELETED;
+            } else if (User.Status.Type == StatusType.Blocked) {
+                return ErrorCodes.USER_HAVE_BEEN_LOCKED;
+            }
+
+            #region Update user info
+            if (!User.Settings.ContainsKey("forgot_password")) {
+                return ErrorCodes.INTERNAL_SERVER_ERROR;
+            }
+            User.Settings.Remove("forgot_password");
+            #endregion
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [SOCIAL] Write user audit log
+                (User, Error) = await FindUserById(Id);
+                var (OldVal, NewVal) = Utils.GetDataChanges(OldUser, User.GetJsonObjectForLog());
+                if (Error == ErrorCodes.NO_ERROR) {
+                    await __AdminAuditLogManagement.AddNewAuditLog(
+                        User.GetModelName(),
+                        User.Id.ToString(),
+                        LOG_ACTIONS.MODIFY,
+                        User.Id,
+                        OldVal,
+                        NewVal
+                    );
+                } else {
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        public async Task<ErrorCodes> HandleNewPasswordFailed(Guid Id)
+        {
+            #region Find user info
+            var (User, Error) = await FindUserById(Id);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
+            if (User.Status.Type == StatusType.Deleted) {
+                return ErrorCodes.DELETED;
+            } else if (User.Status.Type == StatusType.Blocked) {
+                return ErrorCodes.USER_HAVE_BEEN_LOCKED;
+            }
+
+            #region Update user info
+            var ForgotPassword = User.Settings.Value<JObject>("forgot_password");
+            if (ForgotPassword == default) {
+                return ErrorCodes.INTERNAL_SERVER_ERROR;
+            }
+            var FailedTimes = ForgotPassword.Value<int>("failed_times") + 1;
+            if (ForgotPassword.ContainsKey("failed_times")) {
+                ForgotPassword.SelectToken("failed_times").Replace(FailedTimes);
+            } else {
+                ForgotPassword.Add("failed_times", FailedTimes);
+            }
+            User.Settings.SelectToken("forgot_password").Replace(ForgotPassword);
+            #endregion
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
                 return ErrorCodes.NO_ERROR;
             }
             return ErrorCodes.INTERNAL_SERVER_ERROR;

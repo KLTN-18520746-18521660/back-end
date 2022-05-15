@@ -14,6 +14,8 @@ using CoreApi.Common;
 using Common;
 using DatabaseAccess.Common.Actions;
 using CoreApi.Models.ModifyModels;
+using Newtonsoft.Json;
+using CoreApi.Models;
 
 namespace CoreApi.Services
 {
@@ -271,7 +273,89 @@ namespace CoreApi.Services
         }
         #endregion
 
-        #region Add user
+        #region CURD user
+        public string ValidatePasswordWithPolicy(string Password)
+        {
+            #region Get password policy
+            var __BaseConfig                    = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
+            var MinLen                          = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.SOCIAL_PASSWORD_POLICY, SUB_CONFIG_KEY.MIN_LEN)
+                .Value;
+            var MaxLen                          = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.SOCIAL_PASSWORD_POLICY, SUB_CONFIG_KEY.MAX_LEN)
+                .Value;
+            var MinUpperChar                    = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.SOCIAL_PASSWORD_POLICY, SUB_CONFIG_KEY.MIN_UPPER_CHAR)
+                .Value;
+            var MinLowerChar                    = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.SOCIAL_PASSWORD_POLICY, SUB_CONFIG_KEY.MIN_LOWER_CHAR)
+                .Value;
+            var MinNumberChar                   = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.SOCIAL_PASSWORD_POLICY, SUB_CONFIG_KEY.MIN_NUMBER_CHAR)
+                .Value;
+            var MinSpecialChar                  = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.SOCIAL_PASSWORD_POLICY, SUB_CONFIG_KEY.MIN_SPECIAL_CHAR)
+                .Value;
+            #endregion
+
+            return CommonValidate.ValidatePassword(Password, MinLen, MaxLen, MinUpperChar, MinLowerChar, MinNumberChar, MinSpecialChar);
+        }
+        public async Task<ErrorCodes> ChangePassword(Guid UserId, string NewPassword)
+        {
+            var (User, Error) = await FindUserById(UserId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            var OldUser = Utils.DeepClone(User.GetJsonObjectForLog());
+
+            if (User.Password == PasswordEncryptor.EncryptPassword(NewPassword, User.Salt)) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+
+            #region Modify password
+            User.Password = NewPassword;
+            if (!User.Settings.ContainsKey("password")) {
+                User.Settings.Add("password", new JObject(){
+                    "last_change_password", DateTime.UtcNow
+                });
+            } else {
+                var PasswordSetting = User.Settings.ContainsKey("password")
+                                        ? User.Settings.SelectToken("password").ToObject<JObject>()
+                                        : new JObject();
+                if (PasswordSetting.ContainsKey("last_change_password")) {
+                    PasswordSetting.SelectToken("last_change_password").Replace(DateTime.UtcNow);
+                } else {
+                    PasswordSetting.Add("last_change_password", DateTime.UtcNow);
+                }
+                if (User.Settings.ContainsKey("password")) {
+                    User.Settings.SelectToken("password").Replace(PasswordSetting);
+                } else {
+                    User.Settings.Add("password", PasswordSetting);
+                }
+            }
+            #endregion
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [SOCIAL] Write user audit log
+                (User, Error) = await FindUserById(User.Id);
+                var (OldVal, NewVal) = Utils.GetDataChanges(OldUser, User.GetJsonObjectForLog());
+                if (Error == ErrorCodes.NO_ERROR) {
+                    await __SocialUserAuditLogManagement.AddNewUserAuditLog(
+                        User.GetModelName(),
+                        User.Id.ToString(),
+                        LOG_ACTIONS.MODIFY,
+                        User.Id,
+                        OldVal,
+                        NewVal
+                    );
+                } else {
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
         public async Task<ErrorCodes> AddNewUser(SocialUser NewUser)
         {
             await __DBContext.SocialUsers.AddAsync(NewUser);
@@ -428,6 +512,87 @@ namespace CoreApi.Services
         }
         #endregion
 
+        #region Forgot password
+        public async Task<ErrorCodes> HandleNewPasswordSuccessfully(Guid Id)
+        {
+            #region Find user info
+            var (User, Error) = await FindUserById(Id);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
+            var OldUser = Utils.DeepClone(User.GetJsonObjectForLog());
+            if (User.Status.Type == StatusType.Deleted) {
+                return ErrorCodes.DELETED;
+            } else if (User.Status.Type == StatusType.Blocked) {
+                return ErrorCodes.USER_HAVE_BEEN_LOCKED;
+            }
+
+            #region Update user info
+            if (!User.Settings.ContainsKey("forgot_password")) {
+                return ErrorCodes.INTERNAL_SERVER_ERROR;
+            }
+            User.Settings.Remove("forgot_password");
+            #endregion
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [SOCIAL] Write user audit log
+                (User, Error) = await FindUserById(Id);
+                var (OldVal, NewVal) = Utils.GetDataChanges(OldUser, User.GetJsonObjectForLog());
+                if (Error == ErrorCodes.NO_ERROR) {
+                    await __SocialUserAuditLogManagement.AddNewUserAuditLog(
+                        User.GetModelName(),
+                        User.Id.ToString(),
+                        LOG_ACTIONS.MODIFY,
+                        User.Id,
+                        OldVal,
+                        NewVal
+                    );
+                } else {
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        public async Task<ErrorCodes> HandleNewPasswordFailed(Guid Id)
+        {
+            #region Find user info
+            var (User, Error) = await FindUserById(Id);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
+            if (User.Status.Type == StatusType.Deleted) {
+                return ErrorCodes.DELETED;
+            } else if (User.Status.Type == StatusType.Blocked) {
+                return ErrorCodes.USER_HAVE_BEEN_LOCKED;
+            }
+
+            #region Update user info
+            var ForgotPassword = User.Settings.Value<JObject>("forgot_password");
+            if (ForgotPassword == default) {
+                return ErrorCodes.INTERNAL_SERVER_ERROR;
+            }
+            var FailedTimes = ForgotPassword.Value<int>("failed_times") + 1;
+            if (ForgotPassword.ContainsKey("failed_times")) {
+                ForgotPassword.SelectToken("failed_times").Replace(FailedTimes);
+            } else {
+                ForgotPassword.Add("failed_times", FailedTimes);
+            }
+            User.Settings.SelectToken("forgot_password").Replace(ForgotPassword);
+            #endregion
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        #endregion
+
         #region Confirm Email
         public async Task<ErrorCodes> HandleConfirmEmailSuccessfully(Guid Id)
         {
@@ -437,38 +602,43 @@ namespace CoreApi.Services
                 return Error;
             }
             #endregion
-            var oldUser = Utils.DeepClone(User.GetJsonObjectForLog());
 
+            var OldUser = Utils.DeepClone(User.GetJsonObjectForLog());
             if (User.Status.Type == StatusType.Deleted) {
                 return ErrorCodes.DELETED;
             } else if (User.Status.Type == StatusType.Blocked) {
                 return ErrorCodes.USER_HAVE_BEEN_LOCKED;
             }
 
-            var confirm_email = User.Settings.Value<JObject>("confirm_email");
-            if (confirm_email == default) {
+            #region Update user info
+            var ConfirmEmail = User.Settings.Value<JObject>("confirm_email");
+            if (ConfirmEmail == default) {
                 return ErrorCodes.INTERNAL_SERVER_ERROR;
             }
-            confirm_email.Remove("confirm_date");
-            confirm_email.Add("confirm_date", DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT));
-
-            User.Settings.Remove("confirm_email");
-            User.Settings.Add("confirm_email", confirm_email);
-
+            if (ConfirmEmail.ContainsKey("confirm_date")) {
+                ConfirmEmail.SelectToken("confirm_date").Replace(DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT));
+            } else {
+                ConfirmEmail.Add("confirm_date", DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT));
+            }
+            if (ConfirmEmail.ContainsKey("failed_times")) {
+                ConfirmEmail.Remove("failed_times");
+            }
+            User.Settings.SelectToken("confirm_email").Replace(ConfirmEmail);
             User.VerifiedEmail = true;
+            #endregion
 
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [SOCIAL] Write user audit log
                 (User, Error) = await FindUserById(Id);
-                var (oldVal, newVal) = Utils.GetDataChanges(oldUser, User.GetJsonObjectForLog());
+                var (OldVal, NewVal) = Utils.GetDataChanges(OldUser, User.GetJsonObjectForLog());
                 if (Error == ErrorCodes.NO_ERROR) {
                     await __SocialUserAuditLogManagement.AddNewUserAuditLog(
                         User.GetModelName(),
                         User.Id.ToString(),
                         LOG_ACTIONS.MODIFY,
                         User.Id,
-                        oldVal,
-                        newVal
+                        OldVal,
+                        NewVal
                     );
                 } else {
                     return ErrorCodes.INTERNAL_SERVER_ERROR;
@@ -493,16 +663,19 @@ namespace CoreApi.Services
                 return ErrorCodes.USER_HAVE_BEEN_LOCKED;
             }
 
-            var confirm_email = User.Settings.Value<JObject>("confirm_email");
-            if (confirm_email == default) {
+            #region Update user info
+            var ConfirmEmail = User.Settings.Value<JObject>("confirm_email");
+            if (ConfirmEmail == default) {
                 return ErrorCodes.INTERNAL_SERVER_ERROR;
             }
-            var numberConfirmFailure = confirm_email.Value<int>("confirm_failure") + 1;
-            confirm_email.Remove("confirm_failure");
-            confirm_email.Add("confirm_failure", numberConfirmFailure);
-
-            User.Settings.Remove("confirm_email");
-            User.Settings.Add("confirm_email", confirm_email);
+            var FailedTimes = ConfirmEmail.Value<int>("failed_times") + 1;
+            if (ConfirmEmail.ContainsKey("failed_times")) {
+                ConfirmEmail.SelectToken("failed_times").Replace(FailedTimes);
+            } else {
+                ConfirmEmail.Add("failed_times", FailedTimes);
+            }
+            User.Settings.SelectToken("confirm_email").Replace(ConfirmEmail);
+            #endregion
 
             if (await __DBContext.SaveChangesAsync() > 0) {
                 return ErrorCodes.NO_ERROR;

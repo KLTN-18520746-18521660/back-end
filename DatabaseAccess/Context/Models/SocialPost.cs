@@ -99,7 +99,7 @@ namespace DatabaseAccess.Context.Models
         public JObject PendingContent { get; set; }
         [Column("pending_content", TypeName = "jsonb")]
         public string PendingContentStr {
-            get { return PendingContent != default ? PendingContent.ToString() : default; }
+            get { return PendingContent != default ? PendingContent.ToString(Formatting.None) : default; }
             set { PendingContent = value != default ? JsonConvert.DeserializeObject<JObject>(value) : default; }
         }
         [Required]

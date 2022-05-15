@@ -38,12 +38,12 @@ namespace CoreApi.Services
             using (var scope = __ServiceProvider.CreateScope())
             {
                 var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
-                foreach (var key in DefaultBaseConfig.DEFAULT_CONFIG_KEYS) {
+                foreach (var key in DEFAULT_BASE_CONFIG.DEFAULT_CONFIG_KEYS) {
                     if (__DBContext.AdminBaseConfigs.Count(e => e.ConfigKey == key) == 0) {
                         __DBContext.AdminBaseConfigs.Add(
                             new AdminBaseConfig() {
                                 ConfigKey = key,
-                                Value = DefaultBaseConfig.GetConfig(DefaultBaseConfig.StringToConfigKey(key)),
+                                Value = DEFAULT_BASE_CONFIG.GetConfig(DEFAULT_BASE_CONFIG.StringToConfigKey(key)),
                             }
                         );
                         if (__DBContext.SaveChanges() <= 0) {
@@ -60,12 +60,12 @@ namespace CoreApi.Services
             using (var scope = __ServiceProvider.CreateScope())
             {
                 var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
-                foreach (var key in DefaultBaseConfig.DEFAULT_CONFIG_KEYS) {
+                foreach (var key in DEFAULT_BASE_CONFIG.DEFAULT_CONFIG_KEYS) {
                     if (await __DBContext.AdminBaseConfigs.CountAsync(e => e.ConfigKey == key) == 0) {
                         await __DBContext.AdminBaseConfigs.AddAsync(
                             new AdminBaseConfig() {
                                 ConfigKey = key,
-                                Value = DefaultBaseConfig.GetConfig(DefaultBaseConfig.StringToConfigKey(key)),
+                                Value = DEFAULT_BASE_CONFIG.GetConfig(DEFAULT_BASE_CONFIG.StringToConfigKey(key)),
                             }
                         );
                         if (await __DBContext.SaveChangesAsync() <= 0) {
@@ -77,7 +77,7 @@ namespace CoreApi.Services
             }
         }
 
-        public async Task<ErrorCodes> ReLoadConfig()
+        public async Task<(ErrorCodes ErrorCode, string[] Errors)> ReLoadConfig()
         {
             await Gate.WaitAsync();
             isReloadConfig = true;
@@ -87,14 +87,18 @@ namespace CoreApi.Services
             LogInformation("Reload all base config successfully.");
 
             #region Read other service
-            var __EmailSender = (EmailSender)__ServiceProvider.GetService(typeof(EmailSender));
-            if (!__EmailSender.ReloadEmailConfig()) {
-                LogInformation("Reload EmailSender config Failed.");
-            } else {
-                LogInformation("Reload EmailSender config successfully.");
-            }
+            var Errors          = new List<string>();
+            var __EmailSender   = (EmailSender)__ServiceProvider.GetService(typeof(EmailSender));
+
+            Errors.AddRange(__EmailSender.ReloadEmailConfig());
             #endregion
-            return ErrorCodes.NO_ERROR;
+            if (Errors.Count != 0) {
+                LogError("Reload other services failed.");
+                return (ErrorCodes.INTERNAL_SERVER_ERROR, Errors.ToArray());
+            } else {
+                LogInformation("Reload other services successfully.");
+                return (ErrorCodes.NO_ERROR, default);
+            }
         }
 
         public (JObject Value, string Error) GetAllConfig()
@@ -117,8 +121,8 @@ namespace CoreApi.Services
 
             Dictionary<string, JObject> ret = new Dictionary<string, JObject>();
             foreach (var it in publicConfig) {
-                if (DefaultBaseConfig.StringToConfigKey(it.Key) == CONFIG_KEY.INVALID
-                    || DefaultBaseConfig.StringToSubConfigKey(it.Value.ToString()) == SUB_CONFIG_KEY.INVALID
+                if (DEFAULT_BASE_CONFIG.StringToConfigKey(it.Key) == CONFIG_KEY.INVALID
+                    || DEFAULT_BASE_CONFIG.StringToSubConfigKey(it.Value.ToString()) == SUB_CONFIG_KEY.INVALID
                     || ret.ContainsKey(it.Key)) {
                     continue;
                 }
@@ -128,7 +132,7 @@ namespace CoreApi.Services
                     continue;
                 }
 
-                if (DefaultBaseConfig.StringToSubConfigKey(it.Value.ToString()) == SUB_CONFIG_KEY.ALL) {
+                if (DEFAULT_BASE_CONFIG.StringToSubConfigKey(it.Value.ToString()) == SUB_CONFIG_KEY.ALL) {
                     ret.Remove(it.Key);
                     ret.Add(it.Key, found.Value);
                 } else {
@@ -146,7 +150,7 @@ namespace CoreApi.Services
         {
             var (publicConfig, error) = GetConfigValue(CONFIG_KEY.PUBLIC_CONFIG);
             foreach (var it in publicConfig) {
-                if (it.Key == DefaultBaseConfig.ConfigKeyToString(ConfigKey)) {
+                if (it.Key == DEFAULT_BASE_CONFIG.ConfigKeyToString(ConfigKey)) {
                     return true;
                 }
             }
@@ -164,8 +168,8 @@ namespace CoreApi.Services
                 if (found == default) {
                     return (default, $"Not found config. But key exist on public configs, key: { ConfigKey }");
                 }
-                if (it.Key == DefaultBaseConfig.ConfigKeyToString(ConfigKey)) {
-                    if (DefaultBaseConfig.StringToSubConfigKey(it.Value.ToString()) == SUB_CONFIG_KEY.ALL) {
+                if (it.Key == DEFAULT_BASE_CONFIG.ConfigKeyToString(ConfigKey)) {
+                    if (DEFAULT_BASE_CONFIG.StringToSubConfigKey(it.Value.ToString()) == SUB_CONFIG_KEY.ALL) {
                         return (found.Value, string.Empty);
                     }
                 } else {
@@ -182,7 +186,7 @@ namespace CoreApi.Services
         public (JObject Value, string Error) GetConfigValue(CONFIG_KEY ConfigKey)
         {
             while(isReloadConfig);
-            string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
+            string configKeyStr = DEFAULT_BASE_CONFIG.ConfigKeyToString(ConfigKey);
             var config = Configs
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
                             .Select(e => e.Value)
@@ -195,7 +199,7 @@ namespace CoreApi.Services
             string Error = string.Empty;
             Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }.";
             LogWarning(Error);
-            return (DefaultBaseConfig.GetConfig(ConfigKey), Error);
+            return (DEFAULT_BASE_CONFIG.GetConfig(ConfigKey), Error);
         }
 
         public (T Value, string Error) GetConfigValue<T>(CONFIG_KEY ConfigKey, SUB_CONFIG_KEY SubConfigKey)
@@ -206,12 +210,12 @@ namespace CoreApi.Services
                 throw new Exception(Error);
             }
             while(isReloadConfig);
-            if (typeof(T) != typeof(string) && typeof(T) != typeof(int)) {
+            if (typeof(T) != typeof(string) && typeof(T) != typeof(int) && typeof(T) != typeof(bool)) {
                 Error = $"GetConfigValue. Unsupport convert type: { typeof(T) }";
                 throw new Exception(Error);
             }
-            string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
-            string subConfigKeyStr = DefaultBaseConfig.SubConfigKeyToString(SubConfigKey);
+            string configKeyStr = DEFAULT_BASE_CONFIG.ConfigKeyToString(ConfigKey);
+            string subConfigKeyStr = DEFAULT_BASE_CONFIG.SubConfigKeyToString(SubConfigKey);
             var config = Configs
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
                             .Select(e => e.Value)
@@ -221,7 +225,7 @@ namespace CoreApi.Services
             if (config != default && config[subConfigKeyStr] != default) {
                 return ((T) System.Convert.ChangeType(config[subConfigKeyStr], typeof(T)), Error);
             } else {
-                var defaultConfig = DefaultBaseConfig.GetConfig(ConfigKey, Error);
+                var defaultConfig = DEFAULT_BASE_CONFIG.GetConfig(ConfigKey, Error);
                 if (Error != default && Error != string.Empty) {
                     throw new Exception(Error);
                 }
@@ -237,7 +241,7 @@ namespace CoreApi.Services
         public async Task<(JObject Value, string Error)> GetConfigValueFromDB(CONFIG_KEY ConfigKey)
         {
             string Error = string.Empty;
-            string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
+            string configKeyStr = DEFAULT_BASE_CONFIG.ConfigKeyToString(ConfigKey);
             JObject config = default;
             using (var scope = __ServiceProvider.CreateScope())
             {
@@ -252,7 +256,7 @@ namespace CoreApi.Services
 
             Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }.";
             LogWarning(Error);
-            return (DefaultBaseConfig.GetConfig(ConfigKey), Error);
+            return (DEFAULT_BASE_CONFIG.GetConfig(ConfigKey), Error);
         }
 
         public async Task<(T Value, string Error)> GetConfigValueFromDB<T>(CONFIG_KEY ConfigKey, SUB_CONFIG_KEY SubConfigKey)
@@ -266,8 +270,8 @@ namespace CoreApi.Services
                 Error = $"GetConfigValue. Unsupport convert type: { typeof(T) }";
                 throw new Exception(Error);
             }
-            string configKeyStr = DefaultBaseConfig.ConfigKeyToString(ConfigKey);
-            string subConfigKeyStr = DefaultBaseConfig.SubConfigKeyToString(SubConfigKey);
+            string configKeyStr = DEFAULT_BASE_CONFIG.ConfigKeyToString(ConfigKey);
+            string subConfigKeyStr = DEFAULT_BASE_CONFIG.SubConfigKeyToString(SubConfigKey);
             JObject config = default;
             using (var scope = __ServiceProvider.CreateScope())
             {
@@ -280,7 +284,7 @@ namespace CoreApi.Services
             if (config != default && config[subConfigKeyStr] != default) {
                 return ((T) System.Convert.ChangeType(config[subConfigKeyStr], typeof(T)), Error);
             } else {
-                var defaultConfig = DefaultBaseConfig.GetConfig(ConfigKey, Error);
+                var defaultConfig = DEFAULT_BASE_CONFIG.GetConfig(ConfigKey, Error);
                 if (Error != default && Error != string.Empty) {
                     throw new Exception(Error);
                 }

@@ -19,33 +19,9 @@ namespace CoreApi.Controllers.Social.Notification
     [Route("/api/notification")]
     public class GetNotificationsByUserController : BaseController
     {
-        #region Config Values
-        private int EXTENSION_TIME; // minutes
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         public GetNotificationsByUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "GetNotificationsByUser";
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_SOCIAL_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "GetNotificationsByUser";
         }
 
         /// <summary>
@@ -55,10 +31,10 @@ namespace CoreApi.Controllers.Social.Notification
         /// <param name="__SessionSocialUserManagement"></param>
         /// <param name="__SocialUserManagement"></param>
         /// <param name="__NotificationsManagement"></param>
-        /// <param name="session_token"></param>
-        /// <param name="start"></param>
-        /// <param name="size"></param>
-        /// <param name="status"></param>
+        /// <param name="SessionToken"></param>
+        /// <param name="Start"></param>
+        /// <param name="Size"></param>
+        /// <param name="Status"></param>
         ///
         /// <remarks>
         /// <b>Using endpoint need:</b>
@@ -91,78 +67,74 @@ namespace CoreApi.Controllers.Social.Notification
         // [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         // [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetNotificationsByUser([FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
-                                                                [FromServices] SocialUserManagement __SocialUserManagement,
-                                                                [FromServices] NotificationsManagement __NotificationsManagement,
-                                                                [FromHeader] string session_token,
-                                                                [FromQuery] int start = 0,
-                                                                [FromQuery] int size = 20,
-                                                                [FromQuery] string status = default)
+        public async Task<IActionResult> GetNotificationsByUser([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
+                                                                [FromServices] SocialUserManagement         __SocialUserManagement,
+                                                                [FromServices] NotificationsManagement      __NotificationsManagement,
+                                                                [FromHeader(Name = "session_token")] string SessionToken,
+                                                                [FromQuery(Name = "start")] int             Start   = 0,
+                                                                [FromQuery(Name = "size")] int              Size    = 20,
+                                                                [FromQuery(Name = "status")] string         Status  = default)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionSocialUserManagement.SetTraceId(TraceId);
             __SocialUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Validate params
-                string[] statusArr = status == default ? default : status.Split(',');
-                if (status != default) {
-                    foreach (var statusStr in statusArr) {
-                        var statusType = EntityStatus.StatusStringToType(statusStr);
-                        if (statusType == default || statusType == StatusType.Deleted) {
-                            return Problem(400, $"Invalid status: { statusStr }.");
-                        }
-                    }
-                }
-                #endregion
-
                 #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionSocialUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
+                SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                var (__Session, ErrRet) = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
                 }
-                if (__session == default) {
+                if (__Session == default) {
                     throw new Exception($"GetSessionToken failed.");
                 }
-                var session = __session as SessionSocialUser;
+                var Session             = __Session as SessionSocialUser;
+                #endregion
+
+                #region Validate params
+                var (StatusArr, ErrRetValidate) = ValidateStatusParams(Status, new StatusType[] { StatusType.Deleted });
+                if (ErrRetValidate != default) {
+                    return ErrRetValidate;
+                }
+                if (StatusArr == default) {
+                    throw new Exception($"ValidateStatusParams failed.");
+                }
                 #endregion
 
                 #region Get notifications
-                List<SocialNotification> notifications = default;
-                int totalSize = default;
-                (notifications, totalSize) = await __NotificationsManagement
+                var (Notifications, TotalSize) = await __NotificationsManagement
                     .GetNotifications(
-                        (session as SessionSocialUser).UserId,
-                        start,
-                        size,
-                        statusArr
+                        Session.UserId,
+                        Start,
+                        Size,
+                        StatusArr
                     );
                 #endregion
 
                 #region Validate params: start, size, total_size
-                if (totalSize != 0 && start >= totalSize) {
-                    LogWarning($"Invalid request params for get posts, start: { start }, size: { size }, total_size: { totalSize }");
-                    return Problem(400, $"Invalid request params start: { start }. Total size is { totalSize }");
+                if (TotalSize != 0 && Start >= TotalSize) {
+                    LogWarning(
+                        $"Invalid request params for get audit log, start: { Start }, size: { Size }, total_size: { TotalSize }"
+                    );
+                    return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
                 }
                 #endregion
 
-                var ret = new List<JObject>();
-                notifications.ForEach(e => {
-                    var obj = e.GetPublicJsonObject();
-                    ret.Add(obj);
+                var Ret = new List<JObject>();
+                Notifications.ForEach(e => {
+                    var Obj = e.GetPublicJsonObject();
+                    Ret.Add(Obj);
                 });
 
+                LogInformation($"Get notification belog to user ok, user_id: { Session.UserId }");
                 return Ok(200, "OK", new JObject(){
-                    { "notifications", Utils.ObjectToJsonToken(ret) },
-                    { "total_size", totalSize },
+                    { "notifications", Utils.ObjectToJsonToken(Ret) },
+                    { "total_size", TotalSize },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

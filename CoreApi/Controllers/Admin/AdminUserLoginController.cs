@@ -17,36 +17,10 @@ namespace CoreApi.Controllers.Admin
     [Route("/api/admin/login")]
     public class AdminUserLoginController : BaseController
     {
-        #region Config Values
-        private int NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE;
-        private int LOCK_TIME; // minute
-        private int EXPIRY_TIME; // minute
-        #endregion
-
         public AdminUserLoginController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "AdminUserLogin";
-            __IsAdminController = true;
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG, SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE);
-                (LOCK_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG, SUB_CONFIG_KEY.LOCK_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "AdminUserLogin";
+            IsAdminController = true;
         }
 
         /// <summary>
@@ -54,7 +28,7 @@ namespace CoreApi.Controllers.Admin
         /// </summary>
         /// <param name="__AdminUserManagement"></param>
         /// <param name="__SessionAdminUserManagement"></param>
-        /// <param name="model"></param>
+        /// <param name="__ModelData"></param>
         /// <returns><b>Return session_id</b></returns>
         ///
         /// <remarks>
@@ -87,81 +61,80 @@ namespace CoreApi.Controllers.Admin
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> AdminUserLogin([FromServices] AdminUserManagement __AdminUserManagement,
-                                                        [FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
-                                                        [FromBody] Models.LoginModel model)
+        public async Task<IActionResult> AdminUserLogin([FromServices] AdminUserManagement          __AdminUserManagement,
+                                                        [FromServices] SessionAdminUserManagement   __SessionAdminUserManagement,
+                                                        [FromBody] Models.LoginModel                __ModelData)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __AdminUserManagement.SetTraceId(TraceId);
             __SessionAdminUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Find User
-                bool isEmail = CommonValidate.IsEmail(model.user_name);
-                LogDebug($"Find user user_name: { model.user_name }, isEmail: { isEmail }");
-                ErrorCodes error = ErrorCodes.NO_ERROR;
-                AdminUser user = default;
-                (user, error) = await __AdminUserManagement.FindUser(model.user_name, isEmail);
+                #region Get config values
+                var LockTime                        = GetConfigValue<int>(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG,
+                                                                          SUB_CONFIG_KEY.LOCK_TIME);
+                var ExpiryTime                      = GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG,
+                                                                          SUB_CONFIG_KEY.EXPIRY_TIME);
+                var NumberOfTimesAllowLoginFailure  = GetConfigValue<int>(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG,
+                                                                          SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_FAILURE);
+                #endregion
 
-                if (error != ErrorCodes.NO_ERROR) {
-                    LogDebug($"Not found user_name: { model.user_name }, isEmail: { isEmail }");
+                #region Find User
+                var IsEmail         = CommonValidate.IsEmail(__ModelData.user_name);
+                var (User, Error)   = await __AdminUserManagement.FindUser(__ModelData.user_name, IsEmail);
+
+                if (Error != ErrorCodes.NO_ERROR) {
+                    LogDebug($"Not found user_name: { __ModelData.user_name }, is_email: { IsEmail }");
                     return Problem(400, "User not found or incorrect password.");
                 }
                 #endregion
 
                 #region Check user is lock or not
-                if (user.Status.Type == StatusType.Blocked) {
-                    LogWarning($"User has been locked user_name: { model.user_name }, isEmail: { isEmail }");
+                if (User.Status.Type == StatusType.Blocked) {
+                    LogWarning($"User has been locked user_name: { __ModelData.user_name }, is_email: { IsEmail }");
                     return Problem(423, "You have been locked.");
                 }
                 #endregion
 
                 #region Compare password
-                if (PasswordEncryptor.EncryptPassword(model.password, user.Salt) != user.Password) {
-                    LogWarning($"Incorrect password user_name: { model.user_name }, isEmail: { isEmail }");
-                    error = await __AdminUserManagement.HandleLoginFail(user.Id, LOCK_TIME, NUMBER_OF_TIMES_ALLOW_LOGIN_FAILURE);
-                    if (error != ErrorCodes.NO_ERROR) {
-                        throw new Exception($"Handle AdminUseLoginFail failed. ErrorCode: { error }");
+                if (PasswordEncryptor.EncryptPassword(__ModelData.password, User.Salt) != User.Password) {
+                    Error = await __AdminUserManagement.HandleLoginFail(User.Id, LockTime, NumberOfTimesAllowLoginFailure);
+                    if (Error != ErrorCodes.NO_ERROR) {
+                        throw new Exception($"Handle AdminUseLoginFail failed. ErrorCode: { Error }");
                     }
+                    LogWarning($"Incorrect password user_name: { __ModelData.user_name }, is_email: { IsEmail }");
                     return Problem(400, "User not found or incorrect password.");
                 }
                 #endregion
 
                 #region Create session
-                SessionAdminUser session = default;
-                var data = model.data == default ? new JObject() : model.data;
-                (session, error) = await __SessionAdminUserManagement.NewSession(user.Id, model.remember, data);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"CreateNewAdminSession Failed. ErrorCode: { error }");
+                var Data                    = __ModelData.data == default ? new JObject() : __ModelData.data;
+                SessionAdminUser Session    = default;
+                (Session, Error) = await __SessionAdminUserManagement.NewSession(User.Id, __ModelData.remember, Data);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"CreateNewAdminSession Failed. ErrorCode: { Error }");
                 }
 
-                error = await __AdminUserManagement.HandleLoginSuccess(user.Id);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"Handle AdminUserLoginSuccess failed. ErrorCode: { error }");
+                Error = await __AdminUserManagement.HandleLoginSuccess(User.Id);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"Handle AdminUserLoginSuccess failed. ErrorCode: { Error }");
                 }
                 #endregion
 
-                LogInformation($"User login success user_name: { model.user_name }, isEmail: { isEmail }");
-
-                #region cookie header
-                CookieOptions option = new CookieOptions();
-                option.Expires = model.remember ? DateTime.UtcNow.AddDays(365) : DateTime.UtcNow.AddMinutes(EXPIRY_TIME);
-                option.Path = "/";
-                option.SameSite = SameSiteMode.Strict;
-
-                Response.Cookies.Append(SessionTokenHeaderKey, session.SessionToken, option);
+                #region Set cookie header
+                Response.Cookies.Append(SessionTokenHeaderKey,
+                                        Session.SessionToken,
+                                        GetCookieOptions(__ModelData.remember ? default : DateTime.UtcNow.AddMinutes(ExpiryTime)));
                 #endregion
 
+                LogInformation($"User login success user_name: { __ModelData.user_name }, is_email: { IsEmail }");
                 return Ok(200, "OK", new JObject(){
-                    { "session_id", session.SessionToken },
-                    { "user_id", user.Id },
+                    { "session_id", Session.SessionToken },
+                    { "user_id",    User.Id },
                 });
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }

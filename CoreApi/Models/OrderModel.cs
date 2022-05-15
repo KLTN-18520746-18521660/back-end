@@ -10,16 +10,16 @@ namespace CoreApi.Models
 {
     public class OrderModel
     {
-        [DefaultValue("views,created_timestamp")]
-        public string sort_by { get; set; }
-        [DefaultValue("desc,asc")]
-        public string order { get; set; }
+        [FromQuery(Name = "sort_by")]
+        public string SortBy { get; set; }
+        [FromQuery(Name = "order")]
+        public string Order { get; set; }
 
         public bool IsValid()
         {
-            if (order != default) {
-                foreach (var o in order.Split(',')) {
-                    if (o != "asc" && o != "desc") {
+            if (Order != default) {
+                foreach (var _Order in Order.Split(',')) {
+                    if (_Order != "asc" && _Order != "desc") {
                         return false;
                     }
                 }
@@ -29,20 +29,23 @@ namespace CoreApi.Models
 
         public (string, bool)[] GetOrders()
         {
-            var ret = new List<(string, bool)>();
-            var _orders = sort_by != default ? sort_by.Split(',') : new string[]{};
-            var _descs = order != default ? order.Split(',') : new string[]{};
-            if (_orders != default) {
-                for (int i = 0; i < _orders.Length; i++) {
-                    ret.Add(new (
-                        _orders[i],
-                        _descs != default && _descs.Length > i
-                            ? (_descs[i] == "desc" ? true : false)
+            if (!IsValid()) {
+                return default;
+            }
+            var Ret     = new List<(string, bool)>();
+            var _Orders = SortBy != default ? SortBy.Split(',') : new string[]{};
+            var _Descs  = Order != default ? Order.Split(',') : new string[]{};
+            if (_Orders != default) {
+                for (int i = 0; i < _Orders.Length; i++) {
+                    Ret.Add(new (
+                        _Orders[i],
+                        _Descs != default && _Descs.Length > i
+                            ? (_Descs[i] == "desc" ? true : false)
                             : false
                     ));
                 }
             }
-            return ret.ToArray();
+            return Ret.ToArray();
         }
     }
 }

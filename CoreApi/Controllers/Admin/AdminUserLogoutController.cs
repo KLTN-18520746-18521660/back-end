@@ -15,34 +15,10 @@ namespace CoreApi.Controllers.Admin
     [Route("/api/admin/logout")]
     public class AdminUserLogoutController : BaseController
     {
-        #region Config Values
-        private int EXPIRY_TIME; // minute
-        private int EXTENSION_TIME; // minute
-        #endregion
-
         public AdminUserLogoutController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            __ControllerName = "AdminUserLogout";
-            __IsAdminController = true;
-            LoadConfig();
-        }
-
-        [NonAction]
-        public override void LoadConfig()
-        {
-            string Error = string.Empty;
-            try {
-                (EXTENSION_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXTENSION_TIME);
-                (EXPIRY_TIME, Error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                __LoadConfigSuccess = true;
-            } catch (Exception e) {
-                __LoadConfigSuccess = false;
-                StringBuilder msg = new StringBuilder(e.ToString());
-                if (Error != e.Message && Error != string.Empty) {
-                    msg.Append($" && Error: { Error }");
-                }
-                LogError($"Load config value failed, message: { msg }");
-            }
+            ControllerName = "AdminUserLogout";
+            IsAdminController = true;
         }
 
         /// <summary>
@@ -50,7 +26,7 @@ namespace CoreApi.Controllers.Admin
         /// </summary>
         /// <returns><b>Return message ok</b></returns>
         /// <param name="__SessionAdminUserManagement"></param>
-        /// <param name="session_token"></param>
+        /// <param name="SessionToken"></param>
         ///
         /// <remarks>
         /// </remarks>
@@ -82,55 +58,62 @@ namespace CoreApi.Controllers.Admin
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> AdminUserLogout([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
-                                                         [FromHeader(Name = "session_token_admin")] string session_token)
+        public async Task<IActionResult> AdminUserLogout([FromServices] SessionAdminUserManagement          __SessionAdminUserManagement,
+                                                         [FromHeader(Name = "session_token_admin")] string  SessionToken)
         {
-            if (!LoadConfigSuccess) {
-                return Problem(500, "Internal Server error.");
-            }
             #region Set TraceId for services
             __SessionAdminUserManagement.SetTraceId(TraceId);
             #endregion
             try {
-                #region Get session
-                session_token = session_token != default ? session_token : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__session, errRet) = await GetSessionToken(__SessionAdminUserManagement, EXPIRY_TIME, EXTENSION_TIME, session_token);
-                if (errRet != default) {
-                    return errRet;
+                #region Get config values
+                var ExpiryTime      = GetConfigValue<int>(CONFIG_KEY.SESSION_ADMIN_USER_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
+                #endregion
+
+                #region Validate session token
+                SessionToken = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
+                if (SessionToken == default) {
+                    LogDebug($"Missing header authorization.");
+                    return Problem(401, "Missing header authorization.");
                 }
-                if (__session == default) {
-                    throw new Exception($"GetSessionToken failed.");
+
+                if (!CommonValidate.IsValidSessionToken(SessionToken)) {
+                    LogDebug($"Invalid header authorization.");
+                    return Problem(401, "Invalid header authorization.");
                 }
-                var session = __session as SessionAdminUser;
+                #endregion
+
+                #region Find session token
+                var (Session, Error) = await __SessionAdminUserManagement.FindSession(SessionToken);
+
+                if (Error != ErrorCodes.NO_ERROR) {
+                    LogDebug($"Session not found, session_token: { SessionToken.Substring(0, 15) }");
+                    return Problem(401, "Session not found.");
+                }
                 #endregion
 
                 #region Remove session and clear expried session
-                var error = ErrorCodes.NO_ERROR;
-                error = await __SessionAdminUserManagement.RemoveSession(session.SessionToken);
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"RemoveSessionAdminUser failed. ErrorCode: { error }");
+                Error = await __SessionAdminUserManagement.RemoveSession(Session.SessionToken);
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"RemoveSessionAdminUser failed. ErrorCode: { Error }");
                 }
-                error = await __SessionAdminUserManagement.ClearExpiredSession(session.User.GetExpiredSessions(EXPIRY_TIME));
-                if (error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"ClearExpiredSessionAdminUser failed. ErrorCode: { error }");
+                Error = await __SessionAdminUserManagement.ClearExpiredSession(Session.User.GetExpiredSessions(ExpiryTime));
+                if (Error != ErrorCodes.NO_ERROR) {
+                    throw new Exception($"ClearExpiredSessionAdminUser failed. ErrorCode: { Error }");
                 }
                 #endregion
 
-                LogInformation($"Logout success, user_name: { session.User.UserName }, { SessionTokenHeaderKey }: { session_token.Substring(0, 15) }");
-
-                #region set cookie header to remove session_token_admin
-                CookieOptions option = new CookieOptions();
-                option.Expires = new DateTime(1970, 1, 1, 0, 0, 0);
-                option.Path = "/";
-                option.SameSite = SameSiteMode.Strict;
-
-                Response.Cookies.Append("session_token_admin", string.Empty, option);
+                #region Set cookie header to remove session_token_admin
+                Response.Cookies.Append(SessionTokenHeaderKey, string.Empty, GetCookieOptionsForDelete());
                 #endregion
 
+                LogInformation(
+                    $"Logout success, user_name: { Session.User.UserName }, "
+                    + $"{ SessionTokenHeaderKey }: { SessionToken.Substring(0, 15) }"
+                );
                 return Ok(200, "OK");
             } catch (Exception e) {
                 LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server error.");
+                return Problem(500, "Internal Server Error.");
             }
         }
     }
