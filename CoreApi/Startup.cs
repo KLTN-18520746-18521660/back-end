@@ -187,6 +187,7 @@ namespace CoreApi
                 app.UseAuthentication(); //Ensure this like is above the swagger stuff
 
                 app.UseSwaggerAuthorized();
+                app.UseHandleTrimBodyRequest();
                 app.UseSwagger(c => {
                     c.SerializeAsV2 = true;
                 });

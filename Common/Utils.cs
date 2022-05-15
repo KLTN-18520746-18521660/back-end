@@ -17,6 +17,56 @@ namespace Common
     public class Utils
     {
         #region Common functions
+        public static bool IsJsonArray(string Data)
+        {
+            try {
+                return JToken.Parse(Data).Type == JTokenType.Array;
+            } catch (JsonReaderException) {
+                return false;
+            }
+        }
+        public static bool IsJsonObject(string Data)
+        {
+            try {
+                return JToken.Parse(Data).Type == JTokenType.Object;
+            } catch (JsonReaderException) {
+                return false;
+            }
+        }
+        public static JToken TrimJsonBodyRequest(string OriginBody)
+        {
+            if (Utils.IsJsonArray(OriginBody)) {
+                var RetRaw = new JArray();
+                JArray Array = JArray.Parse(OriginBody);
+                foreach (var Val in Array) {
+                    if (Val.Type == JTokenType.Array || Val.Type == JTokenType.Object) {
+                        RetRaw.Add(TrimJsonBodyRequest(Val.ToString()));
+                    } else if (Val.Type == JTokenType.String) {
+                        RetRaw.Add(JToken.FromObject(Val.ToString().Trim()));
+                    } else {
+                        RetRaw.Add(Val);
+                    }
+                }
+                return RetRaw;
+            } else {
+                var RetRaw = new JObject();
+                JObject Object = JObject.Parse(OriginBody);
+                foreach (var Val in Object) {
+                    if (Val.Value.Type == JTokenType.Array || Val.Value.Type == JTokenType.Object) {
+                        RetRaw.Add(Val.Key, TrimJsonBodyRequest(Val.Value.ToString()));
+                    } else if (Val.Value.Type == JTokenType.String) {
+                        if (CommonDefine.NOT_TRIM_KEYS.Contains(Val.Key.ToLower())) {
+                            RetRaw.Add(Val.Key, Val.Value);
+                        } else {
+                            RetRaw.Add(Val.Key, Val.Value.ToString().Trim());
+                        }
+                    } else {
+                        RetRaw.Add(Val.Key, Val.Value);
+                    }
+                }
+                return RetRaw;
+            }
+        }
         public static T DeepClone<T>(T source)
         {
             // Don't serialize a null object, simply return the default for that object

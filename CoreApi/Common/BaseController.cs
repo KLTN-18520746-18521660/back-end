@@ -33,6 +33,22 @@ namespace CoreApi.Common
         }
     }
 
+    public static class HTTP_METHODS {
+        public static readonly string GET       = "GET";
+        public static readonly string PUT       = "PUT";
+        public static readonly string POST      = "POST";
+        public static readonly string DELETE    = "DELETE";
+
+        public static string[] GetAllowMethods()
+        {
+            return typeof(HTTP_METHODS)
+                .GetFields(BindingFlags.Public | BindingFlags.Static)
+                .Where(e => e.FieldType == typeof(string))
+                .Select(e => (string) e.GetValue(null))
+                .ToArray();
+        }
+    }
+
     [Controller]
     [Produces("application/json")]
     public class BaseController : ControllerBase
@@ -195,11 +211,18 @@ namespace CoreApi.Common
             };
         }
         [NonAction]
+        protected string MessageToCode(string Message)
+        {
+            return Message;
+            // Message contains("not found") --> "NOT_FOUND{ $entity }", "NOT_FOUND{ $entity }"
+        }
+        [NonAction]
         protected ObjectResult Problem(int StatusCode, string Message, JObject Data = default)
         {
             var RespBody = new JObject(){
                 { "status",     StatusCode },
                 { "message",    Message },
+                { "code",       MessageToCode(Message) },
                 { "data",       Data },
             };
             if (Data == default) {
@@ -218,6 +241,7 @@ namespace CoreApi.Common
             var RespBody = new JObject(){
                 { "status",     StatusCode },
                 { "message",    Message },
+                { "code",       MessageToCode(Message) },
                 { "data",       Data },
             };
             if (Data == default) {

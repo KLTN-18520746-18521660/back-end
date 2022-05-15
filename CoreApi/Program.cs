@@ -116,7 +116,7 @@ namespace CoreApi
         private static DatabaseAccessConfiguration __DBAccessConfig = DatabaseAccessConfiguration.DefaultDatabaseAccessConfiguration;
         private static SwaggerDocumentConfiguration __SwaggerDocumentConfiguration = SwaggerDocumentConfiguration.DefaultSwaggerDocumentConfiguration;
         private static List<string> __ListeningAddress  = new List<string>();
-        private static List<string> __AllowMethods      = new List<string>() { "GET", "POST", "DELETE", "PUT" };
+        private static List<string> __AllowMethods      = new List<string>(Common.HTTP_METHODS.GetAllowMethods());
         private static List<string> __AllowHeaders      = new List<string>(Common.HEADER_KEYS.GetAllowHeaders());
         #endregion
 

@@ -11,15 +11,14 @@ using CoreApi.Common;
 using System.Diagnostics;
 using CoreApi.Services;
 
+#if DEBUG
 namespace CoreApi.Controllers.Test
 {
     [ApiController]
     [Route("/api/test")]
     public class TestController : BaseController
     {
-        public TestController(
-            BaseConfig _BaseConfig
-        ) : base(_BaseConfig) {
+        public TestController(BaseConfig _BaseConfig) : base(_BaseConfig) {
             ControllerName = "TestController";
         }
 
@@ -36,9 +35,9 @@ namespace CoreApi.Controllers.Test
         }
 
         [HttpPost]
-        public IActionResult POST()
+        public IActionResult POST(TestModel __ModelData)
         {
-            return Ok(200, "OK");
+            return Ok(200, "OK", JObject.FromObject(__ModelData));
         }
 
         [HttpDelete]
@@ -48,3 +47,4 @@ namespace CoreApi.Controllers.Test
         }
     }
 }
+#endif
