@@ -140,38 +140,41 @@ namespace CoreApi.Common
             }
         }
         [NonAction]
-        protected virtual string CreateLogMessage(string Msg)
+        protected virtual string CreateLogMessage(string Msg, params string[] Params)
         {
             StringBuilder _Msg = new StringBuilder($"Controller: { ControllerName }, TraceId: { __TraceId }");
             _Msg.Append(", ").Append(Msg);
+            foreach(var Param in Params) {
+                _Msg.Append(", ").Append(Param);
+            }
             return _Msg.ToString();
         }
         [NonAction]
-        protected virtual void LogDebug(string Msg)
+        protected virtual void LogDebug(string Msg, params string[] Params)
         {
             if (Msg != string.Empty) {
-                __Logger.Debug(CreateLogMessage(Msg));
+                __Logger.Debug(CreateLogMessage(Msg, Params));
             }
         }
         [NonAction]
-        protected virtual void LogInformation(string Msg)
+        protected virtual void LogInformation(string Msg, params string[] Params)
         {
             if (Msg != string.Empty) {
-                __Logger.Information(CreateLogMessage(Msg));
+                __Logger.Information(CreateLogMessage(Msg, Params));
             }
         }
         [NonAction]
-        protected virtual void LogWarning(string Msg)
+        protected virtual void LogWarning(string Msg, params string[] Params)
         {
             if (Msg != string.Empty) {
-                __Logger.Warning(CreateLogMessage(Msg));
+                __Logger.Warning(CreateLogMessage(Msg, Params));
             }
         }
         [NonAction]
-        protected virtual void LogError(string Msg)
+        protected virtual void LogError(string Msg, params string[] Params)
         {
             if (Msg != string.Empty) {
-                __Logger.Error(CreateLogMessage(Msg));
+                __Logger.Error(CreateLogMessage(Msg, Params));
             }
         }
         [NonAction]
@@ -220,10 +223,10 @@ namespace CoreApi.Common
         protected ObjectResult Problem(int StatusCode, string Message, JObject Data = default)
         {
             var RespBody = new JObject(){
-                { "status",     StatusCode },
-                { "message",    Message },
-                { "code",       MessageToCode(Message) },
-                { "data",       Data },
+                { "status",         StatusCode },
+                { "message",        Message },
+                { "message_code",   MessageToCode(Message) },
+                { "data",           Data },
             };
             if (Data == default) {
                 RespBody.Remove("data");
@@ -239,10 +242,10 @@ namespace CoreApi.Common
         protected ObjectResult Ok(int StatusCode, string Message, JObject Data = default)
         {
             var RespBody = new JObject(){
-                { "status",     StatusCode },
-                { "message",    Message },
-                { "code",       MessageToCode(Message) },
-                { "data",       Data },
+                { "status",         StatusCode },
+                { "message",        Message },
+                { "message_code",   MessageToCode(Message) },
+                { "data",           Data },
             };
             if (Data == default) {
                 RespBody.Remove("data");
