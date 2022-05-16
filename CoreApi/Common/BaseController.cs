@@ -329,7 +329,7 @@ namespace CoreApi.Common
         [NonAction]
         protected (string[], IActionResult) ValidateStatusParams(string Status, StatusType[] NotAllowStatus)
         {
-            string[] StatusArr = Status == default ? default : Status.Split(',');
+            string[] StatusArr = Status == default ? new string[]{} : Status.Split(',');
             if (Status != default) {
                 foreach (var StatusStr in StatusArr) {
                     var _StatusType = EntityStatus.StatusStringToType(StatusStr);
