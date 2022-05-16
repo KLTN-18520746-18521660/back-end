@@ -29,31 +29,31 @@ namespace CoreApi.Common
 
         public async Task InvokeAsync(HttpContext Context)
         {
-            var Stream      = Context.Request.Body;// currently holds the original stream
-            var OriginBody  = await (new StreamReader(Stream).ReadToEndAsync());
-            var NotModified = true;
-            try {
-                if (Context.Request.Path.StartsWithSegments("/api")
-                    && (Context.Request.Method == Common.HTTP_METHODS.POST || Context.Request.Method == Common.HTTP_METHODS.PUT)
-                    && !Context.Request.Path.StartsWithSegments("/api/upload")
-                ) {
+            if (Context.Request.Path.StartsWithSegments("/api")
+                && (Context.Request.Method == Common.HTTP_METHODS.POST || Context.Request.Method == Common.HTTP_METHODS.PUT)
+                && !Context.Request.Path.StartsWithSegments("/api/upload")
+            ) {
+                var Stream      = Context.Request.Body;// currently holds the original stream
+                var OriginBody  = await (new StreamReader(Stream).ReadToEndAsync());
+                var NotModified = true;
+                try {
                     if (Utils.IsJsonArray(OriginBody) || Utils.IsJsonObject(OriginBody)) {
                         var ModifiedBody    = Utils.TrimJsonBodyRequest(OriginBody).ToString(Formatting.None);
                         var RequestContent  = new StringContent(ModifiedBody, Encoding.UTF8, "application/json");
                         Stream = await RequestContent.ReadAsStreamAsync();  //modified stream
                         NotModified = false;
                     }
+                } catch (System.Exception Ex) {
+                    Serilog.Log.Logger.Error(CreateLogMessage(Context, Ex.ToString()));
                 }
-            } catch (System.Exception Ex) {
-                Serilog.Log.Logger.Error(CreateLogMessage(Context, Ex.ToString()));
-            }
 
-            if (NotModified) {
-                //put original data back for the downstream to read
-                var requestData = Encoding.UTF8.GetBytes(OriginBody);
-                Stream = new MemoryStream(requestData);
+                if (NotModified) {
+                    //put original data back for the downstream to read
+                    var requestData = Encoding.UTF8.GetBytes(OriginBody);
+                    Stream = new MemoryStream(requestData);
+                }
+                Context.Request.Body = Stream;
             }
-            Context.Request.Body = Stream;
             await Next.Invoke(Context);
         }
 
