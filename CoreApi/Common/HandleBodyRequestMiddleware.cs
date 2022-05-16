@@ -35,6 +35,7 @@ namespace CoreApi.Common
             try {
                 if (Context.Request.Path.StartsWithSegments("/api")
                     && (Context.Request.Method == Common.HTTP_METHODS.POST || Context.Request.Method == Common.HTTP_METHODS.PUT)
+                    && !Context.Request.Path.StartsWithSegments("/api/upload")
                 ) {
                     if (Utils.IsJsonArray(OriginBody) || Utils.IsJsonObject(OriginBody)) {
                         var ModifiedBody    = Utils.TrimJsonBodyRequest(OriginBody).ToString(Formatting.None);
