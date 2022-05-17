@@ -104,6 +104,7 @@ namespace CoreApi.Controllers.Upload
                 using (var Stream = System.IO.File.Create(FilePath))
                 {
                     await __FormFile.CopyToAsync(Stream);
+                    Stream.Close();
                 }
 
                 var RetUrl = $"{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ __PrefixPath }/{ FileName }";
@@ -267,6 +268,7 @@ namespace CoreApi.Controllers.Upload
                 using (var Stream = System.IO.File.Create(FilePath))
                 {
                     await __FormFile.CopyToAsync(Stream);
+                    Stream.Close();
                 }
 
                 var RetUrl = $"{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ __PrefixPath }/{ FileName }";
