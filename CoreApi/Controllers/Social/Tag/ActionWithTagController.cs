@@ -59,12 +59,12 @@ namespace CoreApi.Controllers.Social.Tag
                 #endregion
 
                 #region Validate params
+                AddLogParam("tag", __Tag);
+                AddLogParam("action", Action);
                 if (!__SocialTagManagement.IsValidTag(__Tag)) {
-                    LogDebug($"Invalid request action with tag, tag: {__Tag}, user_name { Session.User.UserName }");
                     return Problem(400, "Invalid request.");
                 }
                 if (!ValidActions.Contains(Action)) {
-                    LogDebug($"Invalid request action with tag, action: { Action }, user_name { Session.User.UserName }");
                     return Problem(400, "Invalid params.");
                 }
                 #endregion
@@ -73,10 +73,6 @@ namespace CoreApi.Controllers.Social.Tag
                 var (FindTag, Error) = await __SocialTagManagement.FindTagByName(__Tag);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        LogWarning(
-                            $"Not found tag for request action with tag, tag: { __Tag }, "
-                            + $"action: { Action }, user_name { Session.User.UserName }"
-                        );
                         return Problem(404, "Not found tag");
                     }
 
@@ -85,10 +81,6 @@ namespace CoreApi.Controllers.Social.Tag
                 #endregion
 
                 if (await __SocialTagManagement.IsContainsAction(FindTag.Id, Session.UserId, Action)) {
-                    LogWarning(
-                        $"User already { Action } this tag, "
-                        + $"action: { Action }, user_name { Session.User.UserName }"
-                    );
                     return Problem(400, $"User already { Action } this tag.");
                 }
                 switch (Action) {
@@ -99,10 +91,6 @@ namespace CoreApi.Controllers.Social.Tag
                         Error = await __SocialTagManagement.UnFollow(FindTag.Id, Session.UserId);
                         break;
                     default:
-                        LogWarning(
-                            $"Invalid action with tag, tag: { __Tag }, "
-                            + $"action: { Action }, user_name { Session.User.UserName }"
-                        );
                         return Problem(400, "Invalid action.");
                 }
 
@@ -110,11 +98,10 @@ namespace CoreApi.Controllers.Social.Tag
                     throw new Exception($"{ Action } tag Failed, ErrorCode: { Error }, user_name { Session.User.UserName }");
                 }
 
-                LogInformation($"Acion with tag success, tag: { __Tag }, action: { Action }, user_name: { Session.User.UserName }");
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

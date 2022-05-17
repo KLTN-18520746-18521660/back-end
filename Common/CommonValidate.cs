@@ -59,7 +59,7 @@ namespace Common
         }
         public static bool IsEmail(string Input)
         {
-            return Regex.IsMatch(Input, CommonDefine.EMAIL_REGEX);
+            return Regex.IsMatch(Input, COMMON_DEFINE.EMAIL_REGEX);
         }
         public static Guid IsValidUUID(string id)
         {
@@ -97,8 +97,8 @@ namespace Common
         }
         public static bool IsValidSessionToken(string session_token)
         {
-            if (session_token.Length != CommonDefine.SESSION_TOKEN_LENGTH ||
-                !Regex.IsMatch(session_token, CommonDefine.SESSION_TOKEN_REGEX)) {
+            if (session_token.Length != COMMON_DEFINE.SESSION_TOKEN_LENGTH ||
+                !Regex.IsMatch(session_token, COMMON_DEFINE.SESSION_TOKEN_REGEX)) {
                 return false;
             }
             return true;

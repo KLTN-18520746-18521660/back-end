@@ -98,9 +98,9 @@ namespace CoreApi.Controllers.Admin.Config
                 var IsHaveReadPermission = true;
                 var Error = __AdminUserManagement.HaveReadPermission(Session.User.Rights, ADMIN_RIGHTS.CONFIG);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogDebug($"User doesn't have permission for get admin config, user_name: { Session.User.UserName }");
                     IsHaveReadPermission = false;
                 }
+                AddLogParam("have_read_permission", IsHaveReadPermission);
                 #endregion
 
                 #region Get all config
@@ -110,13 +110,12 @@ namespace CoreApi.Controllers.Admin.Config
                 }
                 #endregion
 
-                LogInformation($"Get all config success, user_name: { Session.User.UserName }");
                 return Ok(200, "OK", new JObject(){
                     { "configs", Ret },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -204,8 +203,8 @@ namespace CoreApi.Controllers.Admin.Config
                 #endregion
 
                 #region Validate params
+                AddLogParam("raw_config_key", __ConfigKey);
                 if (__ConfigKey == default || __ConfigKey == string.Empty) {
-                    LogWarning($"Invalid config key.");
                     return Problem(400, "Invalid config_key.");
                 }
                 #endregion
@@ -214,37 +213,33 @@ namespace CoreApi.Controllers.Admin.Config
                 var IsHaveReadPermission = true;
                 var Error = __AdminUserManagement.HaveReadPermission(Session.User.Rights, ADMIN_RIGHTS.CONFIG);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogDebug($"User doesn't have permission for get admin config, user_name: { Session.User.UserName }");
                     IsHaveReadPermission = false;
                 }
+                AddLogParam("have_read_permission", IsHaveReadPermission);
                 #endregion
 
                 #region Get config by key
-                if (!IsHaveReadPermission && !__BaseConfig.IsPublicConfig(DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey))) {
-                    LogWarning(
-                        $"User doesn't have permission for get admin config, "
-                        + $"user_name: { Session.User.UserName }, config_key: { __ConfigKey }"
-                    );
+                var ConfigKey = DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey);
+                AddLogParam("config_key", ConfigKey);
+                if (ConfigKey == CONFIG_KEY.INVALID) {
                     return Problem(404, "Not found config_key.");
                 }
-                if (DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey) == CONFIG_KEY.INVALID) {
-                    LogWarning($"Not valid config_key, config_key: { __ConfigKey }");
+                if (!IsHaveReadPermission && !__BaseConfig.IsPublicConfig(ConfigKey)) {
                     return Problem(404, "Not found config_key.");
                 }
 
-                var (Ret, ErrMsg) = __BaseConfig.GetConfigValue(DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey));
+                var (Ret, ErrMsg) = __BaseConfig.GetConfigValue(ConfigKey);
                 if (ErrMsg != string.Empty) {
                     throw new Exception($"GetConfigValue Failed. ErrorMsg: { ErrMsg }");
                 }
                 #endregion
 
-                LogInformation($"Get config by key success, user_name: { Session.User.UserName }, config_key: { __ConfigKey }");
                 return Ok(200, "OK", new JObject(){
                     { "config", Ret },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

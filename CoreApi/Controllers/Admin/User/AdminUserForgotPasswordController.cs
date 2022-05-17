@@ -7,6 +7,7 @@ using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -48,10 +49,10 @@ namespace CoreApi.Controllers.Admin.User
                 #endregion
 
                 #region Find User
-                var IsEmail        = CommonValidate.IsEmail(__ModelData.user_name);
+                AddLogParam("user_name", __ModelData.user_name);
+                var IsEmail         = CommonValidate.IsEmail(__ModelData.user_name);
                 var (User, Error)   = await __AdminUserManagement.FindUser(__ModelData.user_name, IsEmail);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    LogDebug($"Not found user_name: { __ModelData.user_name }, is_email: { IsEmail }");
                     return Problem(400, "User not found.");
                 }
                 #endregion
@@ -64,13 +65,12 @@ namespace CoreApi.Controllers.Admin.User
                 var SendSuccess             = FogotPasswordSetting != default ? FogotPasswordSetting.Value<bool>("send_success") : default;
                 var Now                     = DateTime.UtcNow;
 
+                AddLogParam("forgot_password", FogotPasswordSetting != default ? FogotPasswordSetting.ToString(Formatting.None) : default);
                 if (FogotPasswordSetting != default && (FailedTimes == default || FailedTimes < NumberOfTimesAllowFailure)) {
                     if (IsSending == true && (Now - SendDate.ToUniversalTime()).TotalMinutes <= RequestTimeout) {
-                        LogWarning($"Email is sending, user_id: { User.Id }");
                         return Problem(400, "Email is sending.");
                     }
                     if (SendSuccess == true && (Now - SendDate.ToUniversalTime()).TotalMinutes <= RequestExpiryTime) {
-                        LogWarning($"Email is sent successfully, user_id: { User.Id }");
                         return Problem(400, "Email is sent successfully.");
                     }
                 }
@@ -85,11 +85,10 @@ namespace CoreApi.Controllers.Admin.User
                     }
                 });
 
-                LogInformation($"Make request send email forgot password successfully, user_name: { User.UserName }");
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -115,31 +114,25 @@ namespace CoreApi.Controllers.Admin.User
                 #endregion
 
                 #region Validate params
+                AddLogParam("request_sate", State);
                 if (StringDecryptor.Decrypt(Uri.UnescapeDataString(RawUserId))  == default
                     || StringDecryptor.Decrypt(Uri.UnescapeDataString(RawDate)) == default
                 ) {
-                    LogWarning(
-                        "Invalid request forgot password, "
-                        + $"raw_user_id:, { RawUserId }, "
-                        + $"raw_date: { RawDate }"
-                    );
+                    AddLogParam("raw_user_id", RawUserId);
+                    AddLogParam("raw_date", RawDate);
                     return Problem(400, "Invalid params.");
                 }
 
                 var Now     = DateTime.UtcNow;
                 var UserId  = CommonValidate.IsValidUUID(StringDecryptor.Decrypt(Uri.UnescapeDataString(RawUserId)));
                 var Date    = CommonValidate.IsValidDateTime(StringDecryptor.Decrypt(Uri.UnescapeDataString(RawDate)),
-                                                             CommonDefine.DATE_TIME_FORMAT);
+                                                             COMMON_DEFINE.DATE_TIME_FORMAT);
+                AddLogParam("user_id", UserId);
+                AddLogParam("date", Date);
                 if (UserId == default || Date == default || State == string.Empty || State.Length != 8) {
-                    LogWarning(
-                        "Invalid request forgot password, "
-                        + $"raw_user_id:, { RawUserId }, "
-                        + $"raw_date: { RawDate }, state: { State }"
-                    );
                     return Problem(400, "Invalid params.");
                 }
                 if ((Now - Date.ToUniversalTime()).TotalMinutes > RequestExpiryTime) {
-                    LogWarning($"Request has expired, date: { Date.ToString() } ");
                     return Problem(410, "Request have expired.");
                 }
                 #endregion
@@ -148,13 +141,10 @@ namespace CoreApi.Controllers.Admin.User
                 var (User, Error) = await __AdminUserManagement.FindUserById(UserId);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Not found any user, id: { UserId } ");
                         return Problem(400, "Invalid params.");
                     } else if (Error == ErrorCodes.DELETED) {
-                        LogWarning($"User has been deleted, id: { UserId }");
                         return Problem(400, "User has been deleted.");
                     } else if (Error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        LogWarning($"User has been locked, id: { UserId }");
                         return Problem(400, "User has been blocked.");
                     }
                     throw new Exception($"FindUserById failed, ErrorCode: { Error }");
@@ -166,42 +156,33 @@ namespace CoreApi.Controllers.Admin.User
                 var RequestState            = FogotPasswordSetting != default ? FogotPasswordSetting.Value<string>("state") : default;
                 var FailedTimes             = FogotPasswordSetting != default ? FogotPasswordSetting.Value<int>("failed_times") : default;
                 var SendDate                = FogotPasswordSetting != default ? FogotPasswordSetting.Value<DateTime>("send_date") : default;
+                var IsSending               = FogotPasswordSetting != default ? FogotPasswordSetting.Value<bool>("is_sending") : default;
+                var SendSuccess             = FogotPasswordSetting != default ? FogotPasswordSetting.Value<bool>("send_success") : default;
 
+                AddLogParam("forgot_password", FogotPasswordSetting != default ? FogotPasswordSetting.ToString(Formatting.None) : default);
                 if (SendDate != Date) {
-                    LogWarning(
-                        $"Invalid send date from request, user_id: { UserId }, "
-                        + $"send_date: { SendDate.ToString() }, date_from_request: { SendDate.ToString() } "
-                    );
                     return Problem(410, "Request have expired.");
                 }
-                if (FogotPasswordSetting == default
-                    || FogotPasswordSetting.Value<bool>("is_sending") == true
-                    || FogotPasswordSetting.Value<bool>("send_success") == false
-                ) {
-                    LogWarning($"Email has not been sent, user_id: { UserId } ");
+                if (FogotPasswordSetting == default || IsSending == true || SendSuccess == false) {
                     return Problem(410, "Request have expired.");
                 }
                 if (RequestState == default || RequestState == string.Empty || RequestState.Length != 8) {
-                    LogWarning($"Invalid request state from DB, user_id: { UserId } ");
                     return Problem(410, "Request have expired.");
                 }
                 if (RequestState != State) {
-                    LogWarning($"Invalid request state from request, user_id: { UserId } ");
                     return Problem(410, "Request have expired.");
                 }
                 if (FailedTimes != default && FailedTimes >= NumberOfTimesAllowFailure) {
-                    LogWarning($"The request has expired because the times of failed exceeded max times allowed, max: { NumberOfTimesAllowFailure }");
                     return Problem(410, "Request have expired.");
                 }
                 #endregion
 
-                LogInformation($"Get user info forgot password successfully, user_name: { User.UserName }");
                 return Ok(200, "OK", new JObject(){
                     { "user", User.GetPublicJsonObject() },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

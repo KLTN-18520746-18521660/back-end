@@ -51,6 +51,7 @@ namespace CoreApi.Controllers.Social.Comment
                 #endregion
 
                 #region Validate params
+                AddLogParam("comment_id", __CommentId);
                 if (__CommentId == default || __CommentId <= 0) {
                     return Problem(400, "Invalid request.");
                 }
@@ -61,7 +62,6 @@ namespace CoreApi.Controllers.Social.Comment
 
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Not found comment, comment_id: { __CommentId }");
                         return Problem(404, "Not found comment.");
                     }
 
@@ -70,10 +70,7 @@ namespace CoreApi.Controllers.Social.Comment
                 #endregion
 
                 if (Comment.Owner != Session.UserId) {
-                    LogWarning(
-                        $"Not allow user to delete comment, comment_id: { __CommentId }, "
-                        + $"comment_owner: { Comment.Owner }, user_id: { Session.UserId }"
-                    );
+                    AddLogParam("comment_owner", Comment.Owner);
                     return Problem(403, "Not allow.");
                 }
 
@@ -86,8 +83,8 @@ namespace CoreApi.Controllers.Social.Comment
                     { "comment_id", Comment.Id },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

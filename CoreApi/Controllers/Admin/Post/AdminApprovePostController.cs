@@ -118,6 +118,7 @@ namespace CoreApi.Controllers.Admin.Post
                 #endregion
 
                 #region Validate params
+                AddLogParam("post_id", __PostId);
                 if (__PostId <= 0) {
                     return Problem(400, "Invalid params.");
                 }
@@ -126,7 +127,6 @@ namespace CoreApi.Controllers.Admin.Post
                 #region Check Permission
                 var Error = __AdminUserManagement.HaveFullPermission(Session.User.Rights, ADMIN_RIGHTS.POST);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogWarning($"User doesn't have permission to approve social post, user_name: { Session.User.UserName }");
                     return Problem(403, "User doesn't have permission to approve social post.");
                 }
                 #endregion
@@ -136,13 +136,13 @@ namespace CoreApi.Controllers.Admin.Post
                 (Post, Error) = await __SocialPostManagement.FindPostById(__PostId);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Not found social post, post_id: { __PostId }");
                         return Problem(404, "Not found post.");
                     }
                     throw new Exception($"FindPostById failed. Post_id: { __PostId }, ErrorCode: { Error} ");
                 }
+                AddLogParam("post_status", Post.StatusStr);
+                AddLogParam("have_pending_content", Post.PendingContentStr != default);
                 if (__SocialPostManagement.ValidateChangeStatusAction(Post.Status.Type, StatusType.Approved) != ErrorCodes.NO_ERROR) {
-                    LogWarning($"Not allow change status post, old_status: { Post.StatusStr }, new_status: Approved");
                     return Problem(400, "Not allow to approve post.");
                 }
                 #endregion
@@ -162,11 +162,10 @@ namespace CoreApi.Controllers.Admin.Post
                         PostId = Post.Id,
                     }
                 );
-                LogInformation($"ApprovePost success, post_id: { __PostId }, user_id: { Session.UserId }");
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

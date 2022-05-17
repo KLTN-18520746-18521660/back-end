@@ -70,15 +70,14 @@ namespace CoreApi.Controllers.Admin
                 #endregion
 
                 #region Validate session token
+                AddLogParam(SessionTokenHeaderKey, SessionToken);
                 SessionToken = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
                 if (SessionToken == default) {
-                    LogDebug($"Missing header authorization.");
-                    return Problem(401, "Missing header authorization.");
+                    return Problem(401, "Missing header authorization.", default, LOG_LEVEL.DEBUG);
                 }
 
                 if (!CommonValidate.IsValidSessionToken(SessionToken)) {
-                    LogDebug($"Invalid header authorization.");
-                    return Problem(401, "Invalid header authorization.");
+                    return Problem(401, "Invalid header authorization.", default, LOG_LEVEL.DEBUG);
                 }
                 #endregion
 
@@ -86,8 +85,7 @@ namespace CoreApi.Controllers.Admin
                 var (Session, Error) = await __SessionAdminUserManagement.FindSession(SessionToken);
 
                 if (Error != ErrorCodes.NO_ERROR) {
-                    LogDebug($"Session not found, session_token: { SessionToken.Substring(0, 15) }");
-                    return Problem(401, "Session not found.");
+                    return Problem(401, "Session not found.", default, LOG_LEVEL.DEBUG);
                 }
                 #endregion
 
@@ -106,14 +104,10 @@ namespace CoreApi.Controllers.Admin
                 Response.Cookies.Append(SessionTokenHeaderKey, string.Empty, GetCookieOptionsForDelete());
                 #endregion
 
-                LogInformation(
-                    $"Logout success, user_name: { Session.User.UserName }, "
-                    + $"{ SessionTokenHeaderKey }: { SessionToken.Substring(0, 15) }"
-                );
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

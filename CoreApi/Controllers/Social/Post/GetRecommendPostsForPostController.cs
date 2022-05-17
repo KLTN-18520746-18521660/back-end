@@ -72,7 +72,7 @@
 //             return Problem(500, "Not implement.");
 //             //////////////////////
 //             if (!LoadConfigSuccess) {
-//                 return Problem(500, "Internal Server Error.");
+//                 return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
 //             }
 //             #region Set TraceId for services
 //             __SessionSocialUserManagement.SetTraceId(TraceId);
@@ -156,7 +156,7 @@
 
 //                 #region Validate params: start, size, total_size
 //                 if (totalSize != 0 && start >= totalSize) {
-//                     LogWarning($"Invalid request params for get posts, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
+//                     // LogWarning($"Invalid request params for get posts, start: { start }, size: { size }, search_term: { search_term }, total_size: { totalSize }");
 //                     return Problem(400, $"Invalid request params start: { start }. Total size is { totalSize }");
 //                 }
 //                 #endregion
@@ -175,8 +175,8 @@
 //                     { "total_size", totalSize },
 //                 });
 //             } catch (Exception e) {
-//                 LogError($"Unexpected exception, message: { e.ToString() }");
-//                 return Problem(500, "Internal Server Error.");
+//                 AddLogParam("exception_message", e.ToString());
+//                 return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
 //             }
 //         }
 //     }

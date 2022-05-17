@@ -68,13 +68,12 @@ namespace CoreApi.Controllers.Social.Config
                 }
                 #endregion
 
-                LogInformation($"Get all config success.");
                 return Ok(200, "OK", new JObject(){
                     { "configs", Ret },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -101,12 +100,13 @@ namespace CoreApi.Controllers.Social.Config
                 #endregion
 
                 #region Validate config_key
-                if (__ConfigKey == default
-                    || __ConfigKey == string.Empty
-                    || DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey) == CONFIG_KEY.INVALID
-                    || IsNotAllowConfigKey(__ConfigKey) == true
+                var ConfigKey = DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey);
+                var KeyNotAllow = IsNotAllowConfigKey(__ConfigKey);
+                AddLogParam("raw_config_key", __ConfigKey);
+                AddLogParam("config_key", ConfigKey);
+                AddLogParam("key_not_allow", KeyNotAllow);
+                if (__ConfigKey == default || ConfigKey == CONFIG_KEY.INVALID || KeyNotAllow == true
                 ) {
-                    LogDebug($"Invalid config key.");
                     return Problem(400, "Invalid config_key.");
                 }
                 #endregion
@@ -118,18 +118,16 @@ namespace CoreApi.Controllers.Social.Config
                 }
                 var (Ret, ErrMsg) = __BaseConfig.GetPublicConfig(DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey));
                 if (ErrMsg != string.Empty) {
-                    LogWarning($"GetPublicConfig failed, ErrorMessage: { ErrMsg }");
                     return Problem(400, "Invalid config_key or config_key not exist.");
                 }
                 #endregion
 
-                LogInformation($"Get public config by key success.");
                 return Ok(200, "OK", new JObject(){
                     { "config", Ret },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

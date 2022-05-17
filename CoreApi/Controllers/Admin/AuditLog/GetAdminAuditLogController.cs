@@ -17,10 +17,9 @@ namespace CoreApi.Controllers.Admin.AuditLog
     [Route("/api/admin/adminlog")]
     public class GetAdminAuditLogController : BaseController
     {
-        public GetAdminAuditLogController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public GetAdminAuditLogController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
-            ControllerName = "GetAdminAuditLog";
-            IsAdminController = true;
+            // ControllerName = "GetAdminAuditLog";
         }
 
         /// <summary>
@@ -94,10 +93,13 @@ namespace CoreApi.Controllers.Admin.AuditLog
                                                       [FromQuery(Name = "size")] int                    Size = 20,
                                                       [FromQuery(Name = "search_term")] string          SearchTerm = default)
         {
-            #region Set TraceId for services
-            __AdminUserManagement.SetTraceId(TraceId);
-            __AdminAuditLogManagement.SetTraceId(TraceId);
-            __SessionAdminUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(
+                __AdminUserManagement,
+                __AdminAuditLogManagement,
+                __SessionAdminUserManagement
+            );
             #endregion
             try {
                 #region Get session
@@ -113,48 +115,42 @@ namespace CoreApi.Controllers.Admin.AuditLog
                 #endregion
 
                 #region Validate params
+                AddLogParam("start",       Start);
+                AddLogParam("size",        Size);
+                AddLogParam("search_term", SearchTerm);
                 if (Start < 0 || Size < 1) {
-                    return Problem(400, "Bad request params.");
+                    return Problem(400, "Bad request params.", default, LOG_LEVEL.DEBUG);
                 }
                 #endregion
 
                 #region Check Permission
                 var Error = __AdminUserManagement.HaveReadPermission(Session.User.Rights, ADMIN_RIGHTS.LOG);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogWarning($"User doesn't have permission to see admin audit log, user_name: { Session.User.UserName }");
                     return Problem(403, "User doesn't have permission to see admin audit log.");
                 }
                 #endregion
 
                 #region Get all audit logs
-                var (Logs, TotalSize) = await __AdminAuditLogManagement.GetAuditLogs(Start, Size, SearchTerm);
-
-                var RawRet = new List<JObject>();
+                var (Logs, TotalSize)   = await __AdminAuditLogManagement.GetAuditLogs(Start, Size, SearchTerm);
+                var RawRet              = new List<JObject>();
                 Logs.ForEach(e => RawRet.Add(e.GetJsonObject()));
+                AddLogParam("total_size", TotalSize);
                 var Ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(RawRet));
                 #endregion
 
                 #region Validate params: start, size, total_size
                 if (TotalSize != 0 && Start >= TotalSize) {
-                    LogWarning(
-                        $"Invalid request params for get audit log, start: { Start }, size: { Size }, "
-                        + $"search_term: { SearchTerm }, total_size: { TotalSize }"
-                    );
                     return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
                 }
                 #endregion
 
-                LogInformation(
-                    $"Get admin auditlog success, user_name: { Session.User.UserName }, "
-                    + $"start: { Start }, size: { Size }, search_term: { SearchTerm }"
-                );
                 return Ok(200, "OK", new JObject(){
                     { "logs",       Ret },
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

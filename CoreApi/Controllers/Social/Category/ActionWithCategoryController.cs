@@ -59,6 +59,8 @@ namespace CoreApi.Controllers.Social.Category
                 #endregion
 
                 #region Validate params
+                AddLogParam("category", __Category);
+                AddLogParam("action",   Action);
                 if (!__SocialCategoryManagement.IsValidCategory(__Category)) {
                     return Problem(400, "Invalid request.");
                 }
@@ -71,7 +73,6 @@ namespace CoreApi.Controllers.Social.Category
 
                 if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Not found category, category: { __Category }");
                         return Problem(404, "Not found category.");
                     }
 
@@ -79,7 +80,6 @@ namespace CoreApi.Controllers.Social.Category
                 }
 
                 if (await __SocialCategoryManagement.IsContainsAction(FindCategory.Id, Session.UserId, Action)) {
-                    LogWarning($"Action is already exists, action: { Action }, category: { __Category }, user_id: { Session.UserId }");
                     return Problem(400, $"User already { Action } this category.");
                 }
 
@@ -98,11 +98,10 @@ namespace CoreApi.Controllers.Social.Category
                     throw new Exception($"{ Action } category Failed, ErrorCode: { Error }");
                 }
 
-                LogDebug($"Action with category ok, action: { Action }, user_id: { Session.UserId }");
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

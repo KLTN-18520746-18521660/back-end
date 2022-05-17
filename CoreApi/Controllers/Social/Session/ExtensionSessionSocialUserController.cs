@@ -99,11 +99,11 @@ namespace CoreApi.Controllers.Social.Session
                                         GetCookieOptions(Session.Saved ? default : DateTime.UtcNow.AddMinutes(ExpiryTime)));
                 #endregion
 
-                LogDebug($"Session extension success, session_token: { SessionToken.Substring(0, 15) }");
+                // LogInformation($"Session extension success, session_token: { SessionToken.Substring(0, 15) }");
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

@@ -101,13 +101,13 @@ namespace CoreApi.Controllers.Social.Session
                 var Ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(RawRet));
                 #endregion
 
-                LogDebug($"Get all session success, user_name: { Session.User.UserName }");
+                // LogInformation($"Get all session success, user_name: { Session.User.UserName }");
                 return Ok(200, "OK", new JObject(){
                     { "sessions", Ret },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -187,23 +187,19 @@ namespace CoreApi.Controllers.Social.Session
                 #endregion
 
                 #region Get session for return
+                AddLogParam("get_session_token", __GetSessionToken);
                 var (Ret, Error) = await __SessionSocialUserManagement.FindSession(__GetSessionToken);
                 if (Error != ErrorCodes.NO_ERROR || Ret.UserId != Session.UserId) {
-                    LogDebug($"Session not found, { SessionTokenHeaderKey }: { __GetSessionToken.Substring(0, 15) }");
                     return Problem(404, "Session not found.");
                 }
                 #endregion
 
-                LogInformation(
-                    $"Get session success, user_name: { Session.User.UserName }, "
-                    + $"{ SessionTokenHeaderKey }: { __GetSessionToken.Substring(0, 15) }"
-                );
                 return Ok(200, "OK", new JObject(){
                     { "session", Ret.GetJsonObject() },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

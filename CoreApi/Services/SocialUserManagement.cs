@@ -616,9 +616,9 @@ namespace CoreApi.Services
                 return ErrorCodes.INTERNAL_SERVER_ERROR;
             }
             if (ConfirmEmail.ContainsKey("confirm_date")) {
-                ConfirmEmail.SelectToken("confirm_date").Replace(DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT));
+                ConfirmEmail.SelectToken("confirm_date").Replace(DateTime.UtcNow.ToString(COMMON_DEFINE.DATE_TIME_FORMAT));
             } else {
-                ConfirmEmail.Add("confirm_date", DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT));
+                ConfirmEmail.Add("confirm_date", DateTime.UtcNow.ToString(COMMON_DEFINE.DATE_TIME_FORMAT));
             }
             if (ConfirmEmail.ContainsKey("failed_times")) {
                 ConfirmEmail.Remove("failed_times");

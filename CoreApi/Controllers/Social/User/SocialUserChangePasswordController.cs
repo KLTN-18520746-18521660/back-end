@@ -59,7 +59,7 @@ namespace CoreApi.Controllers.Social.User
                 #region Check new password policy
                 var ErroMsg = __SocialUserManagement.ValidatePasswordWithPolicy(__ModelData.new_password);
                 if (ErroMsg != string.Empty) {
-                    LogWarning($"New user not match password policy, error: { ErroMsg }");
+                    AddLogParam("error_valiate", ErroMsg);
                     return Problem(400, ErroMsg);
                 }
                 #endregion
@@ -73,17 +73,15 @@ namespace CoreApi.Controllers.Social.User
                 var Error = await __SocialUserManagement.ChangePassword(Session.UserId, __ModelData.new_password);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NO_CHANGE_DETECTED) {
-                        LogWarning($"No change detected when change password, user_name: { Session.User.UserName }");
                         return Problem(400, "No change detected.");
                     }
                     throw new Exception($"ChangePassword Failed, ErrorCode: { Error }");
                 }
 
-                LogInformation($"ChangePassword successfully, user_name: { Session.User.UserName }");
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

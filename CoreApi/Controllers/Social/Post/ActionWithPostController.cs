@@ -66,6 +66,8 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 #region Validate params
+                AddLogParam("post_slug", __PostSlug);
+                AddLogParam("action", Action);
                 if (__PostSlug == default || __PostSlug.Trim() == string.Empty) {
                     return Problem(400, "Invalid request.");
                 }
@@ -80,7 +82,6 @@ namespace CoreApi.Controllers.Social.Post
 
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Not found post, post_slug: { __PostSlug }");
                         return Problem(404, "Not found post.");
                     }
 
@@ -89,7 +90,6 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 if (await __SocialPostManagement.IsContainsAction(Post.Id, Session.UserId, Action)) {
-                    LogWarning($"Action is already exists, action: { Action }, category: { __PostSlug }, user_id: { Session.UserId }");
                     return Problem(400, $"User already { Action } this post.");
                 }
                 NotificationSenderAction notificationAction = NotificationSenderAction.INVALID_ACTION;
@@ -138,11 +138,10 @@ namespace CoreApi.Controllers.Social.Post
                     );
                 }
 
-                LogDebug($"Action with post ok, action: { Action }, user_id: { Session.UserId }");
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

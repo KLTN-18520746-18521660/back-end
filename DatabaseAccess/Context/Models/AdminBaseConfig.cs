@@ -161,6 +161,8 @@ namespace DatabaseAccess.Context.Models
             { ConfigKeyToString(CONFIG_KEY.UPLOAD_FILE_CONFIG),             SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
             { ConfigKeyToString(CONFIG_KEY.SOCIAL_USER_IDLE),               SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
             { ConfigKeyToString(CONFIG_KEY.ADMIN_USER_IDLE),                SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
+            { ConfigKeyToString(CONFIG_KEY.SOCIAL_PASSWORD_POLICY),         SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
+            { ConfigKeyToString(CONFIG_KEY.ADMIN_PASSWORD_POLICY),          SubConfigKeyToString(SUB_CONFIG_KEY.ALL) },
         };
         public static readonly Dictionary<string, object> APIGetCommentConfig = new() {
             { SubConfigKeyToString(SUB_CONFIG_KEY.LIMIT_SIZE_GET_REPLY_COMMENT),                                    2 },

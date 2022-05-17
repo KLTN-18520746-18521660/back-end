@@ -1,3 +1,4 @@
+using Common;
 using CoreApi.Common;
 using CoreApi.Services;
 using CoreApi.Services.Background;
@@ -63,7 +64,7 @@ namespace CoreApi.Controllers.Social
                 SocialUser NewUser = new SocialUser();
                 string ErrorParser = string.Empty;
                 if (!NewUser.Parse(__ParserModel, out ErrorParser)) {
-                    LogWarning(ErrorParser);
+                    AddLogParam("error_parser", ErrorParser);
                     return Problem(400, "Bad request body.");
                 }
                 #endregion
@@ -73,10 +74,8 @@ namespace CoreApi.Controllers.Social
                 if (Error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"IsUserExsiting Failed. ErrorCode: { Error }");
                 } else if (UserNameExisted) {
-                    LogWarning($"UserName have been used, user_name: { NewUser.UserName }");
                     return Problem(400, "UserName have been used.");
                 } else if (EmailExisted) {
-                    LogWarning($"Email have been used, email: { NewUser.Email }");
                     return Problem(400, "Email have been used.");
                 }
                 #endregion
@@ -84,7 +83,7 @@ namespace CoreApi.Controllers.Social
                 #region Check password policy
                 var ErroMsg = __SocialUserManagement.ValidatePasswordWithPolicy(__ParserModel.password);
                 if (ErroMsg != string.Empty) {
-                    LogWarning($"New user not match password policy, error: { ErroMsg }");
+                    AddLogParam("error_valiate", ErroMsg);
                     return Problem(400, ErroMsg);
                 }
                 #endregion
@@ -105,13 +104,12 @@ namespace CoreApi.Controllers.Social
                     }
                 });
 
-                LogInformation($"Signup social user success, user_name: { NewUser.UserName }");
                 return Ok(201, "OK", new JObject(){
                     { "user_id", NewUser.Id },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

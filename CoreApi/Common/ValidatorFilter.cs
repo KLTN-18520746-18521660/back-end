@@ -3,34 +3,35 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.Threading.Tasks;
+using Common;
 
 namespace CoreApi.Common
 {
     public class ValidatorFilter : IAsyncActionFilter
     {
-        public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+        public async Task OnActionExecutionAsync(ActionExecutingContext Context, ActionExecutionDelegate Next)
         {
-            if (!context.ModelState.IsValid) {
-                var errorsInModelState = context.ModelState
+            if (!Context.ModelState.IsValid) {
+                var ErrorsInModelState = Context.ModelState
                     .Where(e => e.Value.Errors.Count > 0)
                     .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Errors.Select(p => p.ErrorMessage)).ToArray();
                 
-                var errResp = new JObject();
-                foreach (var error in errorsInModelState) {
-                    errResp.Add(error.Key, error.Value.First());
+                var ErrResp = new JObject();
+                foreach (var Error in ErrorsInModelState) {
+                    ErrResp.Add(Error.Key, Error.Value.First());
                 }
 
-                var resp = new BadRequestObjectResult(new JObject() {
+                var Resp = new BadRequestObjectResult(new JObject() {
                     { "status",         400 },
-                    { "message",        "Bad request." },
-                    { "message_code",   "BAD_REQUEST" },
-                    { "data",           JToken.FromObject(errResp) },
+                    { "message",        RESPONSE_MESSAGES.INVALID_REQUEST_BODY.GetMessage() },
+                    { "message_code",   RESPONSE_MESSAGES.INVALID_REQUEST_BODY.CODE },
+                    { "data",           JToken.FromObject(ErrResp) },
                 });
-                resp.StatusCode = 400;
-                context.Result = resp;
+                Resp.StatusCode = 400;
+                Context.Result = Resp;
                 return;
             }
-            await next();
+            await Next();
         }
     }
 }

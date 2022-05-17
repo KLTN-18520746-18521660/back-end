@@ -66,8 +66,13 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 #region Validate params
-                string[] CategoriesArr = Categories == default ? default : Categories.Split(',');
-                string[] TagsArr = Tags == default ? default : Tags.Split(',');
+                AddLogParam("start", Start);
+                AddLogParam("size", Size);
+                AddLogParam("search_term", SearchTerm);
+                AddLogParam("categories", Categories);
+                AddLogParam("tags", Tags);
+                var CategoriesArr   = Categories == default ? default : Categories.Split(',');
+                var TagsArr         = Tags == default ? default : Tags.Split(',');
                 if (!AllowTimeTrending.Contains(Time)) {
                     return Problem(400, "Invalid trending time");
                 }
@@ -97,10 +102,7 @@ namespace CoreApi.Controllers.Social.Post
 
                 #region Validate params: start, size, total_size
                 if (TotalSize != 0 && Start >= TotalSize) {
-                    LogWarning(
-                        $"Invalid request params for get posts, start: { Start }, size: { Size }, "
-                        + $"search_term: { SearchTerm }, total_size: { TotalSize }"
-                    );
+                    AddLogParam("total_size", TotalSize);
                     return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
                 }
                 #endregion
@@ -119,8 +121,8 @@ namespace CoreApi.Controllers.Social.Post
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

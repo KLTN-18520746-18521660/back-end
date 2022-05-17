@@ -105,6 +105,7 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 #region validate params
+                AddLogParam("post_id", __PostId);
                 if (__PostId <= 0) {
                     return Problem(400, "Invalid request.");
                 }
@@ -163,8 +164,8 @@ namespace CoreApi.Controllers.Social.Post
                     { "post", Ret },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

@@ -17,6 +17,43 @@ namespace Common
     public class Utils
     {
         #region Common functions
+        public static string CensorString(string Value)
+        {
+            return Value.Length > 3
+                    ? $"{ Value.Substring(0, 3) }{ new string('*', Value.Length - 3) }"
+                    : new string('*', Value.Length);
+        }
+        public static string HideString(string Value)
+        {
+            return new string('*', 5);
+        }
+        public static string GetHandlerNameFromClassName(string ClassName)
+        {
+            var RemoveStrs  = new string[]{ "service", "controller" };
+            var Ret         = ClassName;
+            foreach (var Str in RemoveStrs) {
+                Ret = Regex.Replace(Ret, Str, "", RegexOptions.IgnoreCase);
+            }
+            return Ret;
+        }
+        public static string ParamsToLog<T>(string PName, T PValue)
+        {
+            var Value = "null";
+            if (PValue != null) {
+                Value = JsonConvert.DeserializeObject<JToken>(JsonConvert.SerializeObject(PValue)).ToString(Formatting.None);
+                if (COMMON_DEFINE.SENSITIVE_KEY.Contains(PName)) {
+                    Value = new string('*', 5);
+                } else if (COMMON_DEFINE.CENSOR_KEY.Contains(PName)) {
+                    Value = Value.Length > 3
+                        ? $"{ Value.Substring(0, 3) }{ new string('*', Value.Length - 3) }"
+                        : new string('*', Value.Length);
+                }
+            }
+            return string.Format(COMMON_DEFINE.PARAM_LOG_TEMPLATE,
+                                 PName,
+                                 Value
+            );
+        }
         public static bool IsJsonArray(string Data)
         {
             try {
@@ -33,39 +70,42 @@ namespace Common
                 return false;
             }
         }
+        public static JToken TrimJsonBodyRequest(JArray Array)
+        {
+            for (int i = 0; i < Array.Count; i++) {
+                if (Array[i].Type == JTokenType.Object) {
+                    Array[i] = TrimJsonBodyRequest((JObject) Array[i]);
+                } else if (Array[i].Type == JTokenType.Array) {
+                    Array[i] = TrimJsonBodyRequest((JArray) Array[i]);
+                } else if (Array[i].Type == JTokenType.String) {
+                    Array[i] = JToken.FromObject(Array[i].ToString().Trim());
+                }
+            }
+            return Array;
+        }
+        public static JToken TrimJsonBodyRequest(JObject Object)
+        {
+            foreach (var It in Object) {
+                if (It.Value.Type == JTokenType.Object) {
+                    Object[It.Key] = TrimJsonBodyRequest((JObject) It.Value);
+                } else if (It.Value.Type == JTokenType.Array) {
+                    Object[It.Key] = TrimJsonBodyRequest((JArray) It.Value);
+                } else if (It.Value.Type == JTokenType.String) {
+                    if (!COMMON_DEFINE.NOT_TRIM_KEYS.Contains(It.Key.ToLower())) {
+                        Object[It.Key] = JToken.FromObject(It.Value.ToString().Trim());
+                    }
+                }
+            }
+            return Object;
+        }
         public static JToken TrimJsonBodyRequest(string OriginBody)
         {
             if (Utils.IsJsonArray(OriginBody)) {
-                var RetRaw = new JArray();
-                JArray Array = JArray.Parse(OriginBody);
-                foreach (var Val in Array) {
-                    if (Val.Type == JTokenType.Array || Val.Type == JTokenType.Object) {
-                        RetRaw.Add(TrimJsonBodyRequest(Val.ToString()));
-                    } else if (Val.Type == JTokenType.String) {
-                        RetRaw.Add(JToken.FromObject(Val.ToString().Trim()));
-                    } else {
-                        RetRaw.Add(Val);
-                    }
-                }
-                return RetRaw;
-            } else {
-                var RetRaw = new JObject();
-                JObject Object = JObject.Parse(OriginBody);
-                foreach (var Val in Object) {
-                    if (Val.Value.Type == JTokenType.Array || Val.Value.Type == JTokenType.Object) {
-                        RetRaw.Add(Val.Key, TrimJsonBodyRequest(Val.Value.ToString()));
-                    } else if (Val.Value.Type == JTokenType.String) {
-                        if (CommonDefine.NOT_TRIM_KEYS.Contains(Val.Key.ToLower())) {
-                            RetRaw.Add(Val.Key, Val.Value);
-                        } else {
-                            RetRaw.Add(Val.Key, Val.Value.ToString().Trim());
-                        }
-                    } else {
-                        RetRaw.Add(Val.Key, Val.Value);
-                    }
-                }
-                return RetRaw;
+                return TrimJsonBodyRequest(JArray.Parse(OriginBody));
+            } else if (Utils.IsJsonObject(OriginBody)) {
+                return TrimJsonBodyRequest(JObject.Parse(OriginBody));
             }
+            return default;
         }
         public static T DeepClone<T>(T source)
         {
@@ -84,15 +124,15 @@ namespace Common
         {
             return JsonConvert.DeserializeObject<JToken>(JsonConvert.SerializeObject(Source));
         }
-        public static (JObject, JObject) GetDataChanges(JObject oldObj, JObject newObj) {
-            var oldKeys = oldObj.Properties().Select(e => e.Name).ToArray();
-            foreach (var key in oldKeys) {
-                if (newObj.ContainsKey(key) && oldObj.GetValue(key).ToString() == newObj.GetValue(key).ToString()) {
-                    oldObj.Remove(key);
-                    newObj.Remove(key);
+        public static (JObject, JObject) GetDataChanges(JObject OldObj, JObject NewObj) {
+            var OldKeys = OldObj.Properties().Select(e => e.Name).ToArray();
+            foreach (var Key in OldKeys) {
+                if (NewObj.ContainsKey(Key) && OldObj.GetValue(Key).ToString() == NewObj.GetValue(Key).ToString()) {
+                    OldObj.Remove(Key);
+                    NewObj.Remove(Key);
                 }
             }
-            return (oldObj, newObj);
+            return (OldObj, NewObj);
         }
         // public static EncryptUserId
         public static (List<T> items, string errMsg) LoadListJsonFromFile<T>(string filePath) where T : class
@@ -132,18 +172,18 @@ namespace Common
             }
             return Ip.Count > 0;
         }
-        public static string GenerateOrderString((string, bool)[] orders)
+        public static string GenerateOrderString((string, bool)[] Orders)
         {
             /* Example
             * orders = [{"views", false}, {"created_timestamp", true}]
             * ==>
             * views asc, created_timestamp desc
             */
-            var orderStrs = new List<string>();
-            foreach (var order in orders) {
-                orderStrs.Add($"{ order.Item1 } {( order.Item2 ? "desc" : "asc" )}");
+            var OrderStatements = new List<string>();
+            foreach (var Order in Orders) {
+                OrderStatements.Add($"{ Order.Item1 } {( Order.Item2 ? "desc" : "asc" )}");
             }
-            return string.Join(", ", orderStrs).Trim();
+            return string.Join(", ", OrderStatements).Trim();
         }
         public static string BindModelToString<T>(string Template, T Model) where T : class
         {
@@ -178,7 +218,7 @@ namespace Common
         #region Session
         public static string GenerateSessionToken()
         {
-            return RandomString(CommonDefine.SESSION_TOKEN_LENGTH);
+            return RandomString(COMMON_DEFINE.SESSION_TOKEN_LENGTH);
         }
         #endregion
         #region Slug
@@ -233,28 +273,41 @@ namespace Common
             string state = RandomString(8);
             StringBuilder path = new StringBuilder(prefixUrl);
             path.Append($"?i={ Uri.EscapeDataString(StringDecryptor.Encrypt(id.ToString())) }");
-            path.Append($"&d={ Uri.EscapeDataString(StringDecryptor.Encrypt(DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT))) }");
+            path.Append($"&d={ Uri.EscapeDataString(StringDecryptor.Encrypt(DateTime.UtcNow.ToString(COMMON_DEFINE.DATE_TIME_FORMAT))) }");
             path.Append($"&s={ state }");
             return (Uri.EscapeUriString($"{ host }{ path.ToString() }"), state);
         }
         #endregion
         #region Log
-        public static JObject CensorSensitiveDate(JObject Obj)
+        public static JArray CensorSensitiveDate(JArray Array)
         {
-            var RetObj          = Obj;
-            var SensitiveKey    = new string[]{
-                "password",
-                "salt",
-            };
-            foreach (var Key in SensitiveKey) {
-                if (RetObj.ContainsKey(Key)) {
-                    // All value of sensitive key is string
-                    var SensitiveDataLength = RetObj.Value<string>(Key).Length;
-                    SensitiveDataLength     = SensitiveDataLength == 0 ? 3 : SensitiveDataLength;
-                    RetObj.SelectToken(Key).Replace(new string('*', SensitiveDataLength));
+            for (int i = 0; i < Array.Count; i++) {
+                if (Array[i].Type == JTokenType.Object) {
+                    Array[i] = CensorSensitiveDate((JObject) Array[i]);
+                } else if (Array[i].Type == JTokenType.Array) {
+                    Array[i] = CensorSensitiveDate((JArray) Array[i]);
                 }
             }
-            return RetObj;
+            return Array;
+        }
+        public static JObject CensorSensitiveDate(JObject Obj)
+        {
+            foreach (var It in Obj) {
+                if (It.Value.Type == JTokenType.Object) {
+                    Obj[It.Key] = CensorSensitiveDate((JObject) Obj[It.Key]);
+                } else if (It.Value.Type == JTokenType.Array) {
+                    Obj[It.Key] = CensorSensitiveDate((JArray) Obj[It.Key]);
+                } else if (It.Value.Type == JTokenType.String) {
+                    Obj[It.Key] = JToken.FromObject(It.Value.ToString().Trim());
+                    if (COMMON_DEFINE.SENSITIVE_KEY.Contains(It.Key)) {
+                        Obj[It.Key] = HideString(Obj[It.Key].ToString());
+                    }
+                    if (COMMON_DEFINE.CENSOR_KEY.Contains(It.Key)) {
+                        Obj[It.Key] = CensorString(Obj[It.Key].ToString());
+                    }
+                }
+            }
+            return Obj;
         }
         #endregion
     }

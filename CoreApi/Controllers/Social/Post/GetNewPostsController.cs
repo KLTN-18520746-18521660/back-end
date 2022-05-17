@@ -59,16 +59,22 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 #region Validate params
+                AddLogParam("start", Start);
+                AddLogParam("size", Size);
+                AddLogParam("search_term", SearchTerm);
+                AddLogParam("categories", Categories);
+                AddLogParam("tags", Tags);
+                AddLogParam("orders", Orders);
                 var AllowOrderParams    = __SocialPostManagement.GetAllowOrderFields(GetPostAction.GetNewPosts);
-                string[] CategoriesArr  = Categories == default ? default : Categories.Split(',');
-                string[] TagsArr        = Tags == default ? default : Tags.Split(',');
+                var CategoriesArr       = Categories == default ? default : Categories.Split(',');
+                var TagsArr             = Tags == default ? default : Tags.Split(',');
+                var (CombineOrders, ErrRetValidate) = ValidateOrderParams(Orders, AllowOrderParams);
                 if (Categories != default && !await __SocialCategoryManagement.IsExistingCategories(CategoriesArr)) {
                     return Problem(400, "Invalid categories not exists.");
                 }
                 if (Tags != default && !await __SocialTagManagement.IsExistsTags(TagsArr)) {
                     return Problem(400, "Invalid tags not exists.");
                 }
-                var (CombineOrders, ErrRetValidate) = ValidateOrderParams(Orders, AllowOrderParams);
                 if (ErrRetValidate != default) {
                     return ErrRetValidate;
                 }
@@ -95,10 +101,7 @@ namespace CoreApi.Controllers.Social.Post
 
                 #region Validate params: start, size, total_size
                 if (TotalSize != 0 && Start >= TotalSize) {
-                    LogWarning(
-                        $"Invalid request params for get new posts, start: { Start }, size: { Size }, "
-                        + $"search_term: { SearchTerm }, total_size: { TotalSize }"
-                    );
+                    AddLogParam("total_size", TotalSize);
                     return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
                 }
                 #endregion
@@ -117,8 +120,8 @@ namespace CoreApi.Controllers.Social.Post
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

@@ -116,6 +116,7 @@ namespace CoreApi.Controllers.Admin.Post
                 #endregion
 
                 #region Validate params
+                AddLogParam("post_id", __PostId);
                 if (__PostId <= 0) {
                     return Problem(400, "Invalid params.");
                 }
@@ -124,7 +125,6 @@ namespace CoreApi.Controllers.Admin.Post
                 #region Check Permission
                 var Error = __AdminUserManagement.HaveReadPermission(Session.User.Rights, ADMIN_RIGHTS.POST);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogWarning($"User doesn't have permission to see social post, user_name: { Session.User.UserName }");
                     return Problem(403, "User doesn't have permission to see social post.");
                 }
                 #endregion
@@ -134,24 +134,22 @@ namespace CoreApi.Controllers.Admin.Post
                 (Post, Error) = await __SocialPostManagement.FindPostById(__PostId);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Not found post, post_id: { __PostId }");
                         return Problem(404, "Not found post.");
                     }
                     throw new Exception($"FindPostById failed, post_id: { __PostId }, ErrorCode: { Error} ");
                 }
                 if (Post.Status.Type != StatusType.Approved && Post.Status.Type != StatusType.Rejected && Post.Status.Type != StatusType.Pending) {
-                    LogWarning($"Can not show post with status: { Post.StatusStr }, post_id: { __PostId }");
+                    AddLogParam("post_status", Post.StatusStr);
                     return Problem(404, "Not found post.");
                 }
                 #endregion
 
-                LogInformation($"FindPostById success, post_id: { __PostId }, user_id: { Session.UserId }");
                 return Ok(200, "OK", new JObject(){
                     { "post", Post.GetJsonObject() }
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

@@ -60,6 +60,8 @@ namespace CoreApi.Controllers.Social.User
                 #endregion
 
                 #region Validate params
+                AddLogParam("des_user_name", __UserName);
+                AddLogParam("action", Action);
                 if (__UserName == default || __UserName.Trim() == string.Empty) {
                     return Problem(400, "Invalid request.");
                 }
@@ -73,29 +75,17 @@ namespace CoreApi.Controllers.Social.User
 
                 if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        LogWarning(
-                            $"Not user for request action with user, user_des: { __UserName }, "
-                            + $"action: { Action }, user_name { Session.User.UserName }"
-                        );
                         return Problem(404, "Not found user destination.");
                     }
 
                     throw new Exception($"FindUser failed, ErrorCode: { Error }, user_name: { __UserName }");
                 }
                 if (UseDes.Id == Session.UserId) {
-                    LogWarning(
-                        $"Not allow self-action for request action with user, user_des: { __UserName }, "
-                        + $"action: { Action }, user_name { Session.User.UserName }"
-                    );
                     return Problem(400, "Not allow.");
                 }
                 #endregion
 
                 if (await __SocialUserManagement.IsContainsAction(UseDes.Id, Session.UserId, Action)) {
-                    LogWarning(
-                        $"User already { Action } this user, user_des: { __UserName }, "
-                        + $"action: { Action }, user_name { Session.User.UserName }"
-                    );
                     return Problem(400, $"User already { Action } this user.");
                 }
                 NotificationSenderAction notificationAction = NotificationSenderAction.INVALID_ACTION;
@@ -108,10 +98,6 @@ namespace CoreApi.Controllers.Social.User
                         Error = await __SocialUserManagement.UnFollow(UseDes.Id, Session.UserId);
                         break;
                     default:
-                        LogWarning(
-                            $"Invalid action with user, user_des: { __UserName }, "
-                            + $"action: { Action }, user_name { Session.User.UserName }"
-                        );
                         return Problem(400, "Invalid action.");
                 }
 
@@ -119,7 +105,6 @@ namespace CoreApi.Controllers.Social.User
                     throw new Exception($"{ Action } post Failed, ErrorCode: { Error }");
                 }
 
-                LogDebug($"Action with post ok, action: { Action }, user_id: { Session.UserId }");
                 if (notificationAction != NotificationSenderAction.INVALID_ACTION) {
                     await __NotificationsManagement.SendNotification(
                         NotificationType.ACTION_WITH_USER,
@@ -131,11 +116,10 @@ namespace CoreApi.Controllers.Social.User
                     );
                 }
 
-                LogInformation($"Acion with user success, user_des: { __UserName }, action: { Action }, user_name: { Session.User.UserName }");
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

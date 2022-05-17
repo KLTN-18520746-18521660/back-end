@@ -17,10 +17,9 @@ namespace CoreApi.Controllers.Admin.AuditLog
     [Route("/api/admin/sociallog")]
     public class GetSocialAuditLogController : BaseController
     {
-        public GetSocialAuditLogController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public GetSocialAuditLogController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
-            ControllerName = "GetSocialAuditLog";
-            IsAdminController = true;
+            // ControllerName = "GetSocialAuditLog";
         }
 
         /// <summary>
@@ -94,10 +93,13 @@ namespace CoreApi.Controllers.Admin.AuditLog
                                                       [FromQuery(Name = "size")] int                    Size = 20,
                                                       [FromQuery(Name = "search_term")] string          SearchTerm = default)
         {
-            #region Set TraceId for services
-            __AdminUserManagement.SetTraceId(TraceId);
-            __SocialAuditLogManagement.SetTraceId(TraceId);
-            __SessionAdminUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(
+                __AdminUserManagement,
+                __SocialAuditLogManagement,
+                __SessionAdminUserManagement
+            );
             #endregion
             try {
                 #region Get session
@@ -115,40 +117,31 @@ namespace CoreApi.Controllers.Admin.AuditLog
                 #region Check Permission
                 var Error = __AdminUserManagement.HaveReadPermission(Session.User.Rights, ADMIN_RIGHTS.LOG);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogWarning($"User doesn't have permission to see admin audit log, user_name: { Session.User.UserName }");
                     return Problem(403, "User doesn't have permission to see admin audit log.");
                 }
                 #endregion
 
                 #region Get all audit logs
                 var (Logs, TotalSize) = await __SocialAuditLogManagement.GetAuditLogs(Start, Size, SearchTerm);
-
-                List<JObject> RawRet = new();
+                var RawRet              = new List<JObject>();
                 Logs.ForEach(e => RawRet.Add(e.GetJsonObject()));
+                AddLogParam("total_size", TotalSize);
                 var Ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(RawRet));
                 #endregion
 
                 #region Validate params: start, size, total_size
                 if (TotalSize != 0 && Start >= TotalSize) {
-                    LogWarning(
-                        $"Invalid request params for get audit log, start: { Start }, size: { Size }, "
-                        + $"search_term: { SearchTerm }, total_size: { TotalSize }"
-                    );
                     return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
                 }
                 #endregion
 
-                LogInformation(
-                    $"Get social auditlog success, user_name: { Session.User.UserName }, start: { Start }, "
-                    + $"size: { Size }, search_term: { SearchTerm }"
-                );
                 return Ok(200, "OK", new JObject(){
                     { "logs",       Ret },
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

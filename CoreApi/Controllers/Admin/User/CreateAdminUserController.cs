@@ -109,7 +109,8 @@ namespace CoreApi.Controllers.Admin.User
                 #region Parse Admin User
                 AdminUser NewUser = new AdminUser();
                 if (!NewUser.Parse(__ParserModel, out var ErrorPaser)) {
-                    LogWarning(ErrorPaser);
+                    AddLogParam("error_parser", ErrorPaser);
+                    AddLogParam("model_data", __ParserModel);
                     return Problem(400, "Bad request body.");
                 }
                 #endregion
@@ -117,7 +118,6 @@ namespace CoreApi.Controllers.Admin.User
                 #region Check Permission
                 var Error = __AdminUserManagement.HaveFullPermission(Session.User.Rights, ADMIN_RIGHTS.ADMIN_USER);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogWarning($"User doesn't have permission to create admin user, user_name: { Session.User.UserName }");
                     return Problem(403, "User doesn't have permission to create admin user.");
                 }
                 #endregion
@@ -128,10 +128,8 @@ namespace CoreApi.Controllers.Admin.User
                 if (Error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"IsUserExsiting Failed. ErrorCode: { Error }");
                 } else if (UsernameExisted) {
-                    LogWarning($"UserName have been used, user_name: { NewUser.UserName }");
                     return Problem(400, "UserName have been used.");
                 } else if (EmailExisted) {
-                    LogWarning($"Email have been used, email: { NewUser.Email }");
                     return Problem(400, "Email have been used.");
                 }
                 #endregion
@@ -139,7 +137,6 @@ namespace CoreApi.Controllers.Admin.User
                 #region Check password policy
                 var ErroMsg = __AdminUserManagement.ValidatePasswordWithPolicy(__ParserModel.password);
                 if (ErroMsg != string.Empty) {
-                    LogWarning($"New user not match password policy, error: { ErroMsg }");
                     return Problem(400, ErroMsg);
                 }
                 #endregion
@@ -151,13 +148,12 @@ namespace CoreApi.Controllers.Admin.User
                 }
                 #endregion
 
-                LogInformation($"Create new admin user success, user_name: { NewUser.UserName }");
                 return Ok(201, "OK", new JObject(){
                     { "user_id", NewUser.Id },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

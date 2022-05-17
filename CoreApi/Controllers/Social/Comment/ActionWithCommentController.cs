@@ -64,6 +64,8 @@ namespace CoreApi.Controllers.Social.Comment
                 #endregion
 
                 #region Validate params
+                AddLogParam("commment_id",  __CommentId);
+                AddLogParam("action",       Action);
                 if (__CommentId == default || __CommentId <= 0) {
                     return Problem(400, "Invalid request.");
                 }
@@ -77,7 +79,6 @@ namespace CoreApi.Controllers.Social.Comment
 
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Not found comment, comment_id: { __CommentId }");
                         return Problem(404, "Not found comment.");
                     }
 
@@ -86,7 +87,6 @@ namespace CoreApi.Controllers.Social.Comment
                 #endregion
 
                 if (await __SocialCommentManagement.IsContainsAction(__CommentId, Session.UserId, Action)) {
-                    LogWarning($"Action is already exists, action: { Action }, comment_id: { __CommentId }, user_id: { Session.UserId }");
                     return Problem(400, $"User already { Action } this comment.");
                 }
 
@@ -124,11 +124,10 @@ namespace CoreApi.Controllers.Social.Comment
                     );
                 }
 
-                LogDebug($"Action with comment success, action: { Action }, comment_id: { __CommentId }");
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

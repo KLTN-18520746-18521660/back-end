@@ -108,7 +108,6 @@ namespace CoreApi.Controllers.Admin.User
                 #region Check Permission
                 var Error = __AdminUserManagement.HaveReadPermission(Session.User.Rights, ADMIN_RIGHTS.ADMIN_USER);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogWarning($"User doesn't have permission for get admin user, user_name: { Session.User.UserName }");
                     return Problem(403, "User doesn't have permission for get admin user.");
                 }
                 #endregion
@@ -116,25 +115,24 @@ namespace CoreApi.Controllers.Admin.User
                 #region Get Admin user info by id
                 AdminUser RetUser = default;
                 (RetUser, Error) = await __AdminUserManagement.FindUserById(__Id);
+                AddLogParam("get_user_id", __Id);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    LogWarning($"User not found by id: { __Id }");
                     return Problem(404, "User not found.");
                 }
                 if (RetUser.Status.Type == StatusType.Deleted) {
-                    LogWarning($"Find user have been deleted, id: { __Id }");
+                    AddLogParam("user_status", RetUser.StatusStr);
                     return Problem(404, "User not found.");
                 }
                 #endregion
 
                 Error = __AdminUserManagement.HaveFullPermission(Session.User.Rights, ADMIN_RIGHTS.ADMIN_USER);
                 var Ret = Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION ? RetUser.GetPublicJsonObject() : RetUser.GetJsonObject();
-                LogInformation($"Get info user by id success, user_name: { Session.User.UserName }, id: { __Id }");
                 return Ok(200, "OK", new JObject(){
                     { "user", Ret },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

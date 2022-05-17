@@ -50,27 +50,22 @@ namespace CoreApi.Controllers.Social.User
                 #endregion
 
                 #region Validate params
+                AddLogParam("start", Start);
+                AddLogParam("size", Size);
                 if (Start < 0 || Size < 1) {
-                    LogDebug(
-                        "Invalid request params for get followes, "
-                        + $"start: { Start }, size: { Size }"
-                    );
                     return Problem(400, "Bad request params.");
                 }
                 #endregion
 
                 var (Users, TotalSize, Error) = await __SocialUserManagement.GetFollowingByName(Session.User.UserName);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    LogWarning($"Not found any user, user_name: { Session.User.UserName }");
+                    // LogWarning($"Not found any user, user_name: { Session.User.UserName }");
                     return Problem(404, "Not found any user.");
                 }
 
                 #region Validate params: start, size, total_size
                 if (TotalSize != 0 && Start >= TotalSize) {
-                    LogWarning(
-                        $"Invalid request params for get following, "
-                        + $"start: { Start }, size: { Size }, total_size: { TotalSize }"
-                    );
+                    AddLogParam("total_size", TotalSize);
                     return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
                 }
                 #endregion
@@ -87,8 +82,8 @@ namespace CoreApi.Controllers.Social.User
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

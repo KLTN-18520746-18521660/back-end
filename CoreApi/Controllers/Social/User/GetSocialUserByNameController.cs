@@ -36,6 +36,7 @@ namespace CoreApi.Controllers.Social.User
             #endregion
             try {
                 #region Validate params
+                AddLogParam("get_user_name", __UserName);
                 if (__UserName == default || __UserName == string.Empty || __UserName.Length < 4) {
                     return Problem(400, "Invalid user_name.");
                 }
@@ -58,13 +59,12 @@ namespace CoreApi.Controllers.Social.User
                     RetVal.Add("actions", Utils.ObjectToJsonToken(User.GetActionByUser(Session.UserId)));
                 }
 
-                LogInformation($"Get info user by user_name success, user_name: { User.UserName }");
                 return Ok(200, "OK", new JObject(){
                     { "user", RetVal },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -84,6 +84,7 @@ namespace CoreApi.Controllers.Social.User
             #endregion
             try {
                 #region Validate params
+                AddLogParam("get_user_name", __UserName);
                 if (__UserName == default || __UserName == string.Empty || __UserName.Length < 4) {
                     return Problem(400, "Invalid user_name.");
                 }
@@ -101,14 +102,13 @@ namespace CoreApi.Controllers.Social.User
                     return Problem(404, "Not found any user.");
                 }
 
-                LogInformation($"Get statistic info user by user_name success, user_name: { User.UserName }");
                 var RetVal = (IsValidSession && Session.User.Id == User.Id) ? User.GetStatisticInfo() : User.GetPublicStatisticInfo();
                 return Ok(200, "OK", new JObject(){
                     { "user", RetVal },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

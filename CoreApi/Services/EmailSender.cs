@@ -242,7 +242,7 @@ namespace CoreApi.Services
                 User.Settings.Remove("confirm_email");
                 User.Settings.Add("confirm_email", new JObject(){
                     { "is_sending", true },
-                    { "send_date",  DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT) },
+                    { "send_date",  DateTime.UtcNow.ToString(COMMON_DEFINE.DATE_TIME_FORMAT) },
                 });
                 if (await __DBContext.SaveChangesAsync() <= 0) {
                     LogError($"TraceId: { TraceId }, 'SendEmailUserSignUp', Can't save changes before send email, user_id: { User.Id }");
@@ -268,7 +268,7 @@ namespace CoreApi.Services
                 User.Settings.Add("confirm_email", new JObject(){
                     { "is_sending",     false },
                     { "send_success",   SendSuccess },
-                    { "send_date",      Model.DateTimeSend.ToString(CommonDefine.DATE_TIME_FORMAT) },
+                    { "send_date",      Model.DateTimeSend.ToString(COMMON_DEFINE.DATE_TIME_FORMAT) },
                     { "confirm_date",   default },
                     { "state",          RequestState },
                 });
@@ -310,7 +310,7 @@ namespace CoreApi.Services
                     User.Settings.Remove("forgot_password");
                     User.Settings.Add("forgot_password", new JObject(){
                         { "is_sending", true },
-                        { "send_date",  DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT) },
+                        { "send_date",  DateTime.UtcNow.ToString(COMMON_DEFINE.DATE_TIME_FORMAT) },
                     });
                 } else {
                     AdminUser = await __DBContext.AdminUsers
@@ -354,7 +354,7 @@ namespace CoreApi.Services
                     User.Settings.Add("forgot_password", new JObject(){
                         { "is_sending",     false },
                         { "send_success",   SendSuccess },
-                        { "send_date",      Model.DateTimeSend.ToString(CommonDefine.DATE_TIME_FORMAT) },
+                        { "send_date",      Model.DateTimeSend.ToString(COMMON_DEFINE.DATE_TIME_FORMAT) },
                         { "state",          RequestState },
                     });
                 } else {
@@ -362,7 +362,7 @@ namespace CoreApi.Services
                     AdminUser.Settings.Add("forgot_password", new JObject(){
                         { "is_sending",     false },
                         { "send_success",   SendSuccess },
-                        { "send_date",      DateTime.UtcNow.ToString(CommonDefine.DATE_TIME_FORMAT) },
+                        { "send_date",      DateTime.UtcNow.ToString(COMMON_DEFINE.DATE_TIME_FORMAT) },
                         { "state",          RequestState },
                     });
                 }

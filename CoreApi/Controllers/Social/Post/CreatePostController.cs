@@ -110,7 +110,6 @@ namespace CoreApi.Controllers.Social.Post
 
                 #region Validate permission
                 if (await __SocialUserManagement.HaveFullPermission(Session.UserId, SOCIAL_RIGHTS.POST) == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    LogWarning($"User doesn't have permission for create new post, user_name: { Session.User.UserName }");
                     return Problem(403, "User doesn't have permission for create new post. Contact admin for more detail.");
                 }
                 #endregion
@@ -150,13 +149,12 @@ namespace CoreApi.Controllers.Social.Post
                     }
                 );
 
-                LogInformation($"Add new post successfully, user_name: { Session.User.UserName }, post_id: { Post.Id }");
                 return Ok(201, "OK", new JObject(){
                     { "post_id", Post.Id },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

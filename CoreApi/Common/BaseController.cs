@@ -16,6 +16,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 using Newtonsoft.Json;
+using Serilog.Events;
 
 namespace CoreApi.Common
 {
@@ -53,15 +54,18 @@ namespace CoreApi.Common
     [Produces("application/json")]
     public class BaseController : ControllerBase
     {
-        private ILogger                         __Logger;
-        private bool                            __IsAdminController;
-        private string                          __TraceId;
-        private string                          __ControllerName;
-        private Mutex                           __DataContextMutex;
-        private Dictionary<string, object>      __DataContext;
-        protected BaseConfig                    __BaseConfig { get; private set; }
+        private static readonly int                             MAX_SIZE_OF_LOG_PARAMS = 15;
+        private ILogger                                         __Logger;
+        private bool                                            __IsAdminController;
+        private string                                          __TraceId;
+        private string                                          __ControllerName;
+        private string                                          __RunningFunction;
+        private Mutex                                           __DataContextMutex;
+        private Dictionary<string, object>                      __DataContext;
+        private List<(string PName, object PValue)>     __LogParams;
 
         #region Properties
+        protected BaseConfig                    __BaseConfig { get; private set; }
         public string TraceId                   { get => __TraceId; protected set { __TraceId = value; } }
         public string ControllerName            { get => __ControllerName; protected set { __ControllerName = value; } }
         public string SessionTokenHeaderKey     { get; private set; }
@@ -78,15 +82,19 @@ namespace CoreApi.Common
         }
         #endregion
 
-        public BaseController(BaseConfig _BaseConfig)
+        public BaseController(BaseConfig _BaseConfig, bool _IsAdminController = false)
         {
             __Logger                = Log.Logger;
             __TraceId               = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
             __BaseConfig            = _BaseConfig;
-            ControllerName        = "BaseController";
+            // __ControllerName        = "BaseController";
+            __ControllerName = Utils.GetHandlerNameFromClassName(this.GetType().Name);
+            __ControllerName        = this.GetType().Name;
             __DataContext           = new Dictionary<string, object>();
+            __LogParams             = new List<(string, object)>();
             __DataContextMutex      = new Mutex();
-            IsAdminController       = false;
+            __RunningFunction       = "Invalid";
+            IsAdminController       = _IsAdminController;
         }
         #region Data context handle
         [NonAction]
@@ -94,14 +102,14 @@ namespace CoreApi.Common
         {
             __DataContextMutex.WaitOne();
             if (__DataContext.ContainsKey(Key)) {
-                LogDebug($"Update context value, key: { Key }, value: { Value }");
+                WriteLog(LOG_LEVEL.DEBUG, false, $"Update context value", Param("key", Key), Param("value", Value));
                 __DataContext[Key] = Value;
             } else {
                 __DataContext.Add(Key, Value);
             }
             __DataContextMutex.ReleaseMutex();
         }
-        protected (T, bool) GetValueFromContext<T>(string Key)
+        protected (bool IsOK, T Value) GetValueFromContext<T>(string Key)
         {
             T RetVal    = default;
             var Ok      = false;
@@ -111,16 +119,17 @@ namespace CoreApi.Common
                 Ok      = true;
             }
             __DataContextMutex.ReleaseMutex();
-            return (RetVal, Ok);
+            return (Ok, RetVal);
         }
         #endregion
+        #region Base config
         [NonAction]
         protected T GetConfigValue<T>(CONFIG_KEY ConfigKey, SUB_CONFIG_KEY SubConfigKey)
         {
             var Error               = string.Empty;
             var CombinedConfigKey   = $"@{ DEFAULT_BASE_CONFIG.ConfigKeyToString(ConfigKey) }_{ DEFAULT_BASE_CONFIG.SubConfigKeyToString(SubConfigKey) }";
             try {
-                var (RetVal, GetOk) = GetValueFromContext<T>(CombinedConfigKey);
+                var (GetOk, RetVal) = GetValueFromContext<T>(CombinedConfigKey);
                 if (GetOk) {
                     return RetVal;
                 }
@@ -139,44 +148,58 @@ namespace CoreApi.Common
                 );
             }
         }
+        #endregion
+        #region Loging
+        [NonAction]
+        protected virtual string Param<T>(string PName, T PValue)
+        {
+            return Utils.ParamsToLog(PName, PValue);
+        }
+        [NonAction]
+        protected virtual void AddLogParam(string PName, object PValue)
+        {
+            if (__LogParams.Count >= MAX_SIZE_OF_LOG_PARAMS) {
+                WriteLog(LOG_LEVEL.ERROR, false, "Log params exceed max size",
+                    Param("max_size",           MAX_SIZE_OF_LOG_PARAMS),
+                    Param("log_params_size",    __LogParams.Count)
+                );
+                return;
+            }
+            __LogParams.Add((PName, PValue));
+        }
         [NonAction]
         protected virtual string CreateLogMessage(string Msg, params string[] Params)
         {
-            StringBuilder _Msg = new StringBuilder($"Controller: { ControllerName }, TraceId: { __TraceId }");
-            _Msg.Append(", ").Append(Msg);
-            foreach(var Param in Params) {
-                _Msg.Append(", ").Append(Param);
+            var _Msg = new StringBuilder(string.Format("TraceId: {0}, Handler: {1}.{2}", TraceId, ControllerName, __RunningFunction));
+            _Msg.Append(", Message: ").Append(Msg);
+            if (Params.Length != 0) {
+                _Msg.Append(", ").Append(string.Join(", ", Params));
             }
             return _Msg.ToString();
         }
         [NonAction]
-        protected virtual void LogDebug(string Msg, params string[] Params)
+        protected virtual string CreateLogParams()
         {
-            if (Msg != string.Empty) {
-                __Logger.Debug(CreateLogMessage(Msg, Params));
-            }
+            var Params = __LogParams.Select(e => Param(e.PName, e.PValue)).ToArray();
+            return string.Join(", ", Params);
         }
         [NonAction]
-        protected virtual void LogInformation(string Msg, params string[] Params)
+        protected virtual void WriteLog(LOG_LEVEL Level, bool LogParams, string Message, params string[] CustomParams)
         {
-            if (Msg != string.Empty) {
-                __Logger.Information(CreateLogMessage(Msg, Params));
+            if (Message == string.Empty) {
+                return;
             }
-        }
-        [NonAction]
-        protected virtual void LogWarning(string Msg, params string[] Params)
-        {
-            if (Msg != string.Empty) {
-                __Logger.Warning(CreateLogMessage(Msg, Params));
+            var CustomParamsStr = new StringBuilder(string.Join(", ", CustomParams));
+            if (LogParams && __LogParams.Count != 0) {
+                if (CustomParams.Length != 0) {
+                    CustomParamsStr.Append(", ");
+                }
+                CustomParamsStr.Append(CreateLogParams());
             }
+            __Logger.Write((LogEventLevel) Level, CreateLogMessage(Message, CustomParamsStr.ToString()));
         }
-        [NonAction]
-        protected virtual void LogError(string Msg, params string[] Params)
-        {
-            if (Msg != string.Empty) {
-                __Logger.Error(CreateLogMessage(Msg, Params));
-            }
-        }
+        #endregion
+        #region Common functions
         [NonAction]
         public void AddHeader(string HeaderKey, string Value)
         {
@@ -214,48 +237,17 @@ namespace CoreApi.Common
             };
         }
         [NonAction]
-        protected string MessageToCode(string Message)
+        protected virtual void SetTraceIdForServices(params BaseTransientService[] Services)
         {
-            return Message;
-            // Message contains("not found") --> "NOT_FOUND{ $entity }", "NOT_FOUND{ $entity }"
+            foreach (var Service in Services) {
+                Service.SetTraceId(TraceId);
+            }
         }
         [NonAction]
-        protected ObjectResult Problem(int StatusCode, string Message, JObject Data = default)
+        protected virtual void SetRunningFunction()
         {
-            var RespBody = new JObject(){
-                { "status",         StatusCode },
-                { "message",        Message },
-                { "message_code",   MessageToCode(Message) },
-                { "data",           Data },
-            };
-            if (Data == default) {
-                RespBody.Remove("data");
-            }
-            ObjectResult Obj = new (RespBody);
-            Obj.StatusCode = StatusCode;
-            if (StatusCode == (int) StatusCodes.Status401Unauthorized) {
-                Response.Cookies.Append(SessionTokenHeaderKey, string.Empty, GetCookieOptionsForDelete());
-            }
-            return Obj;
+            __RunningFunction = (new System.Diagnostics.StackTrace()).GetFrame(1).GetMethod().Name;
         }
-        [NonAction]
-        protected ObjectResult Ok(int StatusCode, string Message, JObject Data = default)
-        {
-            var RespBody = new JObject(){
-                { "status",         StatusCode },
-                { "message",        Message },
-                { "message_code",   MessageToCode(Message) },
-                { "data",           Data },
-            };
-            if (Data == default) {
-                RespBody.Remove("data");
-            }
-            ObjectResult Obj = new (RespBody);
-            Obj.StatusCode = StatusCode;
-            return Obj;
-        }
-
-        #region Common functions
         [NonAction]
         protected async Task<(BaseModel, IActionResult)> GetSessionToken<T>(T SessionManager,
                                                                             string SessionToken,
@@ -273,13 +265,11 @@ namespace CoreApi.Common
 
             #region Get session token
             if (SessionToken == default) {
-                LogDebug($"Missing header authorization.");
-                return (default, Problem(401, "Missing header authorization."));
+                return (default, Problem(401, "Missing header authorization.", default, LOG_LEVEL.DEBUG));
             }
 
             if (!CommonValidate.IsValidSessionToken(SessionToken)) {
-                LogDebug($"Invalid header authorization.");
-                return (default, Problem(401, "Invalid header authorization."));
+                return (default, Problem(401, "Invalid header authorization.", default, LOG_LEVEL.DEBUG));
             }
             #endregion
 
@@ -288,42 +278,50 @@ namespace CoreApi.Common
                 IgnoreErrorCodes = new ErrorCodes[]{};
             }
 
-            BaseModel Session = default;
-            ErrorCodes Error = ErrorCodes.NO_ERROR;
+            BaseModel Session   = default;
+            ErrorCodes Error    = ErrorCodes.NO_ERROR;
             if (IsAdminController) {
                 (Session, Error) = await (SessionManager as SessionAdminUserManagement).FindSessionForUse(SessionToken, ExpiryTime, ExtensionTime);
             } else {
                 (Session, Error) = await (SessionManager as SessionSocialUserManagement).FindSessionForUse(SessionToken, ExpiryTime, ExtensionTime);
             }
 
+            AddLogParam(SessionTokenHeaderKey, SessionToken);
             if (Error != ErrorCodes.NO_ERROR) {
                 foreach (var It in IgnoreErrorCodes) {
                     if (It == Error) {
-                        LogDebug($"Get session ignore error, error: { Error }");
+                        WriteLog(LOG_LEVEL.DEBUG, false, $"Get session success ignore error", Param("ignore_error_code", Error));
                         return (Session, default);
                     }
                 }
                 if (Error == ErrorCodes.NOT_FOUND) {
-                    LogDebug($"Session not found, { SessionTokenHeaderKey }: { SessionToken.Substring(0, 15) }");
-                    return (default, Problem(401, "Session not found."));
+                    return (default, Problem(401, "Session not found.", default, LOG_LEVEL.DEBUG));
                 }
+                AddLogParam(
+                    "user_name",
+                    IsAdminController ? (Session as SessionAdminUser).User.UserName : (Session as SessionSocialUser).User.UserName
+                );
                 if (Error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                    LogDebug($"Session has expired, { SessionTokenHeaderKey }: { SessionToken.Substring(0, 15) }");
-                    return (default, Problem(401, "Session has expired."));
+                    return (default, Problem(401, "Session has expired.", default, LOG_LEVEL.DEBUG));
                 }
                 if (Error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                    LogWarning($"User has been locked, { SessionTokenHeaderKey }: { SessionToken.Substring(0, 15) }");
                     return (default, Problem(423, "You have been locked."));
                 }
                 if (Error == ErrorCodes.PASSWORD_IS_EXPIRED) {
-                    LogWarning($"Password is expired and required to change, { SessionTokenHeaderKey }: { SessionToken.Substring(0, 15) }");
-                    AddHeader("Location", "/profile/change-password");
+                    AddHeader("Location", IsAdminController ? "/admin/profile/change-password" : "/profile/change-password");
                     return (default, Problem(301, "Password is expired, you must change password."));
                 }
-                throw new Exception($"FindSessionForUse Failed. ErrorCode: { Error }");
+                AddLogParam("get_session_token_error_code", Error.ToString());
+                throw new Exception($"FindSessionForUse failed");
             }
             #endregion
 
+
+            AddLogParam(
+                "user_name",
+                IsAdminController ? (Session as SessionAdminUser).User.UserName : (Session as SessionSocialUser).User.UserName
+            );
+            WriteLog(LOG_LEVEL.DEBUG, true, $"Get session success without error.");
             return (Session, default);
         }
         [NonAction]
@@ -334,7 +332,9 @@ namespace CoreApi.Common
                 foreach (var StatusStr in StatusArr) {
                     var _StatusType = EntityStatus.StatusStringToType(StatusStr);
                     if (_StatusType == default || NotAllowStatus.Contains(_StatusType)) {
-                        return (default, Problem(400, $"Invalid status: { StatusStr }."));
+                        AddLogParam("not_allow_status",    NotAllowStatus);
+                        AddLogParam("invalid_status",      StatusStr);
+                        return (default, Problem(400, $"Invalid status.", default, LOG_LEVEL.DEBUG));
                     }
                 }
             }
@@ -344,16 +344,65 @@ namespace CoreApi.Common
         protected ((string, bool)[], IActionResult) ValidateOrderParams(Models.OrderModel Orders, string[] AllowOrderParams)
         {
             if (!Orders.IsValid()) {
-                return (default, Problem(400, "Invalid order params."));
+                AddLogParam("orders_param", Orders);
+                return (default, Problem(400, "Invalid order params.", default, LOG_LEVEL.DEBUG));
             }
             var CombineOrders = Orders.GetOrders();
             foreach (var It in CombineOrders) {
                 if (!AllowOrderParams.Contains(It.Item1)) {
-                    return (default, Problem(400, $"Not allow order field: { It.Item1 }."));
+                    AddLogParam("allow_order_params",  AllowOrderParams);
+                    AddLogParam("invalid_order_param", It.Item1);
+                    return (default, Problem(400, $"Not allow order field."));
                 }
             }
             return (CombineOrders, default);
         }
+        #endregion
+        #region Handler rest response
+        [NonAction]
+        protected string MessageToCode(string Message)
+        {
+            return RESPONSE_MESSAGES.INVALID_REST_MESSAGE.CODE;
+        }
+        [NonAction]
+        protected ObjectResult Problem(int StatusCode, string Message, JObject Data = default, LOG_LEVEL Level = LOG_LEVEL.WARNING)
+        {
+            var MessageCode = MessageToCode(Message);
+            var RespBody    = new JObject(){
+                { "status",         StatusCode },
+                { "message",        Message },
+                { "message_code",   MessageCode },
+                { "data",           Data },
+            };
+            if (Data == default) {
+                RespBody.Remove("data");
+            }
+            ObjectResult Obj = new (RespBody);
+            Obj.StatusCode = StatusCode;
+            if (StatusCode == (int) StatusCodes.Status401Unauthorized) {
+                Response.Cookies.Append(SessionTokenHeaderKey, string.Empty, GetCookieOptionsForDelete());
+            }
+            WriteLog(Level, true, MessageCode);
+            return Obj;
+        }
+        [NonAction]
+        protected ObjectResult Ok(int StatusCode, string Message, JObject Data = default, LOG_LEVEL Level = LOG_LEVEL.INFO)
+        {
+            var MessageCode = MessageToCode(Message);
+            var RespBody = new JObject(){
+                { "status",         StatusCode },
+                { "message",        Message },
+                { "message_code",   MessageCode },
+                { "data",           Data },
+            };
+            if (Data == default) {
+                RespBody.Remove("data");
+            }
+            ObjectResult Obj = new (RespBody);
+            Obj.StatusCode = StatusCode;
+            WriteLog(Level, true, MessageCode);
+            return Obj;
+        }
+        #endregion
     }
-    #endregion
 }

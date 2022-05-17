@@ -91,14 +91,13 @@ namespace CoreApi.Controllers.Social.Session
                 var Session             = __Session as SessionSocialUser;
                 #endregion
 
-                LogInformation($"Get info user by apikey success, user_name: { Session.User.UserName }");
                 return Ok(200, "OK", new JObject(){
                     { "user",       Session.User.GetJsonObject() },
                     { "session",    Session.GetJsonObject() },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

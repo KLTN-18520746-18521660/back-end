@@ -19,7 +19,7 @@ namespace CoreApi.Controllers.Social.Tag
     {
         public GetTagController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "GetTag";
+            // ControllerName = "GetTag";
         }
 
         [HttpGet("")]
@@ -46,8 +46,10 @@ namespace CoreApi.Controllers.Social.Tag
                 #endregion
 
                 #region Validate params
+                AddLogParam("start", Start);
+                AddLogParam("size", Size);
+                AddLogParam("search_term", SearchTerm);
                 if (Start < 0 || Size < 1) {
-                    LogDebug($"Invalid params for get tags, start: { Start }, size: { Size }");
                     return Problem(400, "Bad request params.");
                 }
                 #endregion
@@ -59,10 +61,7 @@ namespace CoreApi.Controllers.Social.Tag
 
                 #region Validate params: start, size, total_size
                 if (TotalSize != 0 && Start >= TotalSize) {
-                    LogWarning(
-                        $"Invalid request params for get tags, start: { Start }, "
-                        + $"size: { Size }, search_term: { SearchTerm }, total_size: { TotalSize }"
-                    );
+                    AddLogParam("total_size", TotalSize);
                     return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
                 }
                 #endregion
@@ -76,14 +75,13 @@ namespace CoreApi.Controllers.Social.Tag
                     RetVal.Add(Obj);
                 });
 
-                LogDebug("GetTags success.");
                 return Ok(200, "OK", new JObject(){
                     { "tags",       Utils.ObjectToJsonToken(RetVal) },
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -109,8 +107,8 @@ namespace CoreApi.Controllers.Social.Tag
                 #endregion
 
                 #region Validate params
+                AddLogParam("tag", __Tag);
                 if (!__SocialTagManagement.IsValidTag(__Tag)) {
-                    LogDebug($"Invalid params for get tag, tag: { __Tag }");
                     return Problem(400, "Invalid tag.");
                 }
                 #endregion
@@ -118,7 +116,6 @@ namespace CoreApi.Controllers.Social.Tag
                 var (FindTag, Error) = await __SocialTagManagement.FindTagByName(__Tag, IsValidSession ? Session.UserId : default);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"not found tag: { __Tag }");
                         return Problem(404, "Not found tag.");
                     }
                     throw new Exception($"FindTagByName failed, ErrorCode: { Error }");
@@ -129,13 +126,12 @@ namespace CoreApi.Controllers.Social.Tag
                     ret.Add("actions", Utils.ObjectToJsonToken(FindTag.GetActionByUser(Session.UserId)));
                 }
 
-                LogInformation($"GetTagByName success, tag: { __Tag }");
                 return Ok(200, "OK", new JObject(){
                     { "tag", Utils.ObjectToJsonToken(ret) },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

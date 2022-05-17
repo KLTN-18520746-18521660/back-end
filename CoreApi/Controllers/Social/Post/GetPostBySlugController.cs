@@ -73,6 +73,13 @@ namespace CoreApi.Controllers.Social.Post
                 var Session             = __Session as SessionSocialUser;
                 #endregion
 
+                #region Validate params
+                AddLogParam("post_slug", __PostSlug);
+                if (__PostSlug == default || __PostSlug.Trim() == string.Empty) {
+                    return Problem(400, "Invalid request.");
+                }
+                #endregion
+
                 var (Post, Error) = await __SocialPostManagement.FindPostBySlug(__PostSlug.Trim(), IsValidSession ? Session.UserId : default);
 
                 if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
@@ -92,8 +99,8 @@ namespace CoreApi.Controllers.Social.Post
                     { "post",   Ret },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -119,6 +126,7 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 #region Validate params
+                AddLogParam("post_slug", __PostSlug);
                 if (__PostSlug == default || __PostSlug.Trim() == string.Empty) {
                     return Problem(400, "Invalid request.");
                 }
@@ -142,8 +150,8 @@ namespace CoreApi.Controllers.Social.Post
                     { "post", Ret },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

@@ -56,11 +56,10 @@ namespace CoreApi.Controllers.Social.User
                     throw new Exception($"DeleteUser failed, ErrorCode: { Error }");
                 }
 
-                LogInformation($"Delete User successfully, UserId: { Session.UserId }");
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

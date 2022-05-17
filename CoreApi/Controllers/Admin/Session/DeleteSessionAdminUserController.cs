@@ -101,12 +101,11 @@ namespace CoreApi.Controllers.Admin.Session
                 #endregion
 
                 #region Compare with present session token
+                AddLogParam("delete_session_token", __DeleteSessionToken);
                 if (!CommonValidate.IsValidSessionToken(__DeleteSessionToken)) {
-                    LogWarning($"Invalid session_token delete.");
                     return Problem(400, "Invalid session token.");
                 }
                 if (__DeleteSessionToken == SessionToken) {
-                    LogWarning($"Not allow delete session, session_token same with seesion_token delete.");
                     return Problem(400, "Not allow delete session. Try logout.");
                 }
                 #endregion
@@ -114,7 +113,6 @@ namespace CoreApi.Controllers.Admin.Session
                 #region Delete session
                 var (DelSession, Error) = await __SessionAdminUserManagement.FindSession(__DeleteSessionToken);
                 if (Error != ErrorCodes.NO_ERROR || DelSession.UserId != Session.UserId) {
-                    LogWarning($"Delete session not found, session_token: { __DeleteSessionToken.Substring(0, 15) }");
                     return Problem(404, "Delete session not found.");
                 }
                 Error = await __SessionAdminUserManagement.RemoveSession(DelSession.SessionToken);
@@ -123,11 +121,10 @@ namespace CoreApi.Controllers.Admin.Session
                 }
                 #endregion
 
-                LogInformation($"Delete session success, session_token: { __DeleteSessionToken.Substring(0, 15) }");
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -164,11 +161,11 @@ namespace CoreApi.Controllers.Admin.Session
                 }
                 #endregion
 
-                LogInformation($"Remove all session success, user_name: { Session.User.UserName }");
+                // LogInformation($"Remove all session success, user_name: { Session.User.UserName }");
                 return Ok(200, Error == ErrorCodes.NO_ERROR ? "OK" : "No change detected");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

@@ -53,13 +53,12 @@ namespace CoreApi.Controllers.Social.Category
                     Ret.Add(Obj);
                 });
 
-                LogDebug("GetCategories success.");
                 return Ok(200, "OK", new JObject(){
                     { "categories", Utils.ObjectToJsonToken(Ret) },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -85,6 +84,7 @@ namespace CoreApi.Controllers.Social.Category
                 #endregion
 
                 #region Validate params
+                AddLogParam("category", __Category);
                 if (!__SocialCategoryManagement.IsValidCategory(__Category)) {
                     return Problem(400, "Invalid category.");
                 }
@@ -93,7 +93,6 @@ namespace CoreApi.Controllers.Social.Category
                 var (FindCategory, Error) = await __SocialCategoryManagement.FindCategoryBySlug(__Category);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Not found category, category: { __Category }");
                         return Problem(404, "Not found category.");
                     }
                     throw new Exception($"FindCategoryBySlug failed, ErrorCode: { Error }");
@@ -104,13 +103,12 @@ namespace CoreApi.Controllers.Social.Category
                     Ret.Add("actions", Utils.ObjectToJsonToken(FindCategory.GetActionByUser(Session.UserId)));
                 }
 
-                LogDebug("GetCategories success.");
                 return Ok(200, "OK", new JObject(){
                     { "category", Utils.ObjectToJsonToken(Ret) },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

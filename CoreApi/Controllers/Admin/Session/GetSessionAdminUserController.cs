@@ -97,18 +97,17 @@ namespace CoreApi.Controllers.Admin.Session
                     throw new Exception($"GetAllAdminUserSessions Failed. ErrorCode: { Error }");
                 }
 
-                List<JObject> RawRet = new();
+                var RawRet = new List<JObject>();
                 AllSessionOfUser.ForEach(e => RawRet.Add(e.GetJsonObject()));
                 var Ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(RawRet));
                 #endregion
 
-                LogDebug($"Get all session success, user_name: { Session.User.UserName }");
                 return Ok(200, "OK", new JObject(){
                     { "sessions", Ret.ToString() },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -191,23 +190,19 @@ namespace CoreApi.Controllers.Admin.Session
                 #endregion
 
                 #region Get session for return
+                AddLogParam("get_session_token", __GetSessionToken);
                 var (Ret, Error) = await __SessionAdminUserManagement.FindSession(__GetSessionToken);
                 if (Error != ErrorCodes.NO_ERROR || Ret.UserId != Session.UserId) {
-                    LogWarning($"Session not found, session_token: { SessionToken.Substring(0, 15) }");
                     return Problem(404, "Session not found.");
                 }
                 #endregion
 
-                LogInformation(
-                    $"Get session success, user_name: { Session.User.UserName }, "
-                    + $"session_token: { __GetSessionToken.Substring(0, 15) }"
-                );
                 return Ok(200, "OK", new JObject(){
                     { "session", Ret.GetJsonObject() },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

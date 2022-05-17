@@ -114,8 +114,12 @@ namespace CoreApi.Controllers.Social.AuditLog
                 #endregion
 
                 #region Validate params
+                AddLogParam("start",       Start);
+                AddLogParam("size",        Size);
+                AddLogParam("type",        Type);
+                AddLogParam("key",         Key);
+                AddLogParam("search_term", SearchTerm);
                 if (Start < 0 || Size < 1) {
-                    LogDebug($"Bad request params, start: { Start }, size: { Size }");
                     return Problem(400, "Bad request params.");
                 }
                 #endregion
@@ -135,22 +139,17 @@ namespace CoreApi.Controllers.Social.AuditLog
 
                 #region Validate params: start, size, total_size
                 if (TotalSize != 0 && Start >= TotalSize) {
-                    LogWarning(
-                        $"Invalid request params for get audit log, start: { Start }, size: { Size }, "
-                        + $"search_term: { SearchTerm }, total_size: { TotalSize }"
-                    );
                     return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
                 }
                 #endregion
 
-                LogInformation($"Get social user auditlogs success, user_name: { Session.User.UserName }");
                 return Ok(200, "OK", new JObject(){
                     { "logs",       Ret },
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

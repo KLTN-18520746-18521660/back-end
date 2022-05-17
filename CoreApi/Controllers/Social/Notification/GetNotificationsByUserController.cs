@@ -21,7 +21,7 @@ namespace CoreApi.Controllers.Social.Notification
     {
         public GetNotificationsByUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "GetNotificationsByUser";
+            // ControllerName = "GetNotificationsByUser";
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace CoreApi.Controllers.Social.Notification
         // [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         // [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetNotificationsByUser([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
+        public async Task<IActionResult> GetNotificationsOfUser([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
                                                                 [FromServices] SocialUserManagement         __SocialUserManagement,
                                                                 [FromServices] NotificationsManagement      __NotificationsManagement,
                                                                 [FromHeader(Name = "session_token")] string SessionToken,
@@ -93,6 +93,9 @@ namespace CoreApi.Controllers.Social.Notification
                 #endregion
 
                 #region Validate params
+                AddLogParam("start", Start);
+                AddLogParam("size", Size);
+                AddLogParam("status", Status);
                 var (StatusArr, ErrRetValidate) = ValidateStatusParams(Status, new StatusType[] { StatusType.Deleted });
                 if (ErrRetValidate != default) {
                     return ErrRetValidate;
@@ -114,9 +117,7 @@ namespace CoreApi.Controllers.Social.Notification
 
                 #region Validate params: start, size, total_size
                 if (TotalSize != 0 && Start >= TotalSize) {
-                    LogWarning(
-                        $"Invalid request params for get audit log, start: { Start }, size: { Size }, total_size: { TotalSize }"
-                    );
+                    AddLogParam("total_size", TotalSize);
                     return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
                 }
                 #endregion
@@ -127,14 +128,13 @@ namespace CoreApi.Controllers.Social.Notification
                     Ret.Add(Obj);
                 });
 
-                LogInformation($"Get notification belog to user ok, user_id: { Session.UserId }");
                 return Ok(200, "OK", new JObject(){
                     { "notifications", Utils.ObjectToJsonToken(Ret) },
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

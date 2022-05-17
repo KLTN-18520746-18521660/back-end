@@ -89,6 +89,7 @@ namespace CoreApi.Controllers.Social.Notification
                 #endregion
 
                 #region Validate params
+                AddLogParam("notification_id", __NotificationId);
                 if (__NotificationId == default || __NotificationId <= 0) {
                     return Problem(400, $"Invalid params.");
                 }
@@ -110,8 +111,8 @@ namespace CoreApi.Controllers.Social.Notification
 
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -149,8 +150,8 @@ namespace CoreApi.Controllers.Social.Notification
 
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

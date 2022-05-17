@@ -59,6 +59,7 @@ namespace CoreApi.Controllers.Social.Comment
                 #endregion
 
                 #region Validate params
+                AddLogParam("post_slug", __PostSlug);
                 IActionResult ErrRetValidate    = default;
                 (string, bool)[] CombineOrders  = default;
                 string[] StatusArr              = default;
@@ -89,10 +90,8 @@ namespace CoreApi.Controllers.Social.Comment
 
                 if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Not found post, post_slug: { __PostSlug }");
                         return Problem(404, "Not found post.");
                     }
-
                     throw new Exception($"FindPostBySlug failed, ErrorCode: { Error }");
                 }
 
@@ -114,10 +113,6 @@ namespace CoreApi.Controllers.Social.Comment
 
                 #region Validate params: start, size, total_size
                 if (TotalSize != 0 && Start >= TotalSize) {
-                    LogWarning(
-                        $"Invalid request params for get comments, start: { Start }, "
-                        + $"size: { Size }, search_term: { SearchTerm }, total_size: { TotalSize }"
-                    );
                     return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
                 }
                 #endregion
@@ -159,14 +154,13 @@ namespace CoreApi.Controllers.Social.Comment
                     Ret.Add(Obj);
                 }
 
-                LogDebug($"Get comments by post slug succesfully.");
                 return Ok(200, "OK", new JObject(){
                     { "comments",   Utils.ObjectToJsonToken(Ret) },
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

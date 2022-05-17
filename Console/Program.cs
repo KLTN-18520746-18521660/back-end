@@ -119,7 +119,9 @@ namespace MyConsole
         }
         static void Main(string[] args)
         {
-            DEFAULT_BASE_CONFIG.ConfigKeyToString(CONFIG_KEY.API_GET_COMMENT_CONFIG);
+            // DEFAULT_BASE_CONFIG.ConfigKeyToString(CONFIG_KEY.API_GET_COMMENT_CONFIG);
+            var Test_Name_Param = "Hello";
+            Console.WriteLine(Utils.ParamsToLog(nameof(Test_Name_Param), Test_Name_Param));
         }
     }
 }

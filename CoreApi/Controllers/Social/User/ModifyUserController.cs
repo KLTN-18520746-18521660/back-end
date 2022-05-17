@@ -51,7 +51,6 @@ namespace CoreApi.Controllers.Social.User
 
                 #region validate sepecific rule
                 if (Session.User.VerifiedEmail && __ModelData.email != default) {
-                    LogWarning($"Can't change email have verified, user_name: { Session.User.UserName }");
                     return Problem(400, "Can't change email have verified.");
                 }
                 #endregion
@@ -59,7 +58,6 @@ namespace CoreApi.Controllers.Social.User
                 var Error = await __SocialUserManagement.ModifyUser(Session.UserId, __ModelData);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NO_CHANGE_DETECTED) {
-                        LogWarning($"No change detected when modify, user_name: { Session.User.UserName }");
                         return Problem(400, "No change detected.");
                     }
                     throw new Exception($"ModifyUser Failed, ErrorCode: { Error }");
@@ -76,8 +74,8 @@ namespace CoreApi.Controllers.Social.User
                     { "user", RetVal },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

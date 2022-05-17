@@ -89,6 +89,7 @@ namespace CoreApi.Controllers.Social.Notification
                 #endregion
 
                 #region Validate params
+                AddLogParam("notification_id", __NotificationId);
                 if (__NotificationId == default || __NotificationId <= 0) {
                     return Problem(400, $"Invalid params.");
                 }
@@ -97,17 +98,15 @@ namespace CoreApi.Controllers.Social.Notification
                 var Error = await __NotificationsManagement.DeleteNotification(Session.UserId, __NotificationId);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Not found notification, notification_id, { __NotificationId }");
                         return Problem(404, "Notification not found.");
                     }
                     throw new Exception($"DeleteNotification Failed. ErrorCode: { Error }");
                 }
 
-                LogDebug($"Delete notification ok, notification_id: { __NotificationId }");
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

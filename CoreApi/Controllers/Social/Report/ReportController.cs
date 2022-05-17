@@ -67,57 +67,53 @@ namespace CoreApi.Controllers.Social.Report
                     Content         = __ParserModel.content,
                     ReporterId      = Session.UserId,
                 };
+                AddLogParam("type", __Type);
+                AddLogParam("have_content", __ParserModel.content != default && __ParserModel.content != string.Empty);
                 switch (__Type) {
                     case "user":
                         {
+                            AddLogParam("report_user_name", __ParserModel.user_name);
                             if (__ParserModel.user_name == default) {
-                                LogWarning($"Missing user_name to report, user_name: { Session.User.UserName }");
                                 return Problem(400, "Invaid request body.");
                             }
                             var (ReportUser, Error) = await __SocialUserManagement.FindUserIgnoreStatus(__ParserModel.user_name, false);
                             if (Error != ErrorCodes.NO_ERROR) {
-                                LogWarning($"Not found user to report, user_name: { Session.User.UserName }");
                                 return Problem(404, "Not found report user.");
                             }
                             if (Session.UserId != ReportUser.Id) {
-                                LogWarning($"Not allow report yourself, user_name: { Session.User.UserName }");
-                                return Problem(400, "Not allow.");
+                                return Problem(400, "Not allow self report.");
                             }
                             Report.UserId = ReportUser.Id;
                             break;
                         }
                     case "post":
                         {
+                            AddLogParam("post_slug", __ParserModel.post_slug);
                             if (__ParserModel.post_slug == default) {
-                                LogWarning($"Missing post_slug to report, user_name: { Session.User.UserName }");
                                 return Problem(400, "Invaid request body.");
                             }
                             var (ReportPost, Error) = await __SocialPostManagement.FindPostBySlug(__ParserModel.post_slug);
                             if (Error != ErrorCodes.NO_ERROR) {
-                                LogWarning($"Not found post to report, user_name: { Session.User.UserName }");
                                 return Problem(404, "Not found report post.");
                             }
                             if (Session.UserId != ReportPost.Owner) {
-                                LogWarning($"Not allow report own post, user_name: { Session.User.UserName }");
-                                return Problem(400, "Not allow.");
+                                return Problem(400, "Not allow self report.");
                             }
                             Report.PostId = ReportPost.Id;
                             break;
                         }
                     case "comment":
                         {
+                            AddLogParam("comment_id", __ParserModel.comment_id);
                             if (__ParserModel.comment_id == default) {
-                                LogWarning($"Missing comment_id to report, user_name: { Session.User.UserName }");
                                 return Problem(400, "Invaid request body.");
                             }
                             var (ReportComment, Error) = await __SocialCommentManagement.FindCommentById(__ParserModel.comment_id);
                             if (Error != ErrorCodes.NO_ERROR) {
-                                LogWarning($"Not found comment to report, user_name: { Session.User.UserName }");
                                 return Problem(404, "Not found report comment.");
                             }
                             if (Session.UserId != ReportComment.Owner) {
-                                LogWarning($"Not allow report own comment, user_name: { Session.User.UserName }");
-                                return Problem(400, "Not allow.");
+                                return Problem(400, "Not allow self report.");
                             }
                             Report.CommentId = ReportComment.Id;
                             break;
@@ -125,13 +121,11 @@ namespace CoreApi.Controllers.Social.Report
                     case "feedback":
                         {
                             if (__ParserModel.content == default) {
-                                LogWarning($"Invalid request, type: { __Type }, content: { __ParserModel.content }");
                                 return Problem(400, "Invaid request body.");
                             }
                             break;
                         }
                     default:
-                        LogWarning($"Invalid request, type: { __Type }");
                         return Problem(400, "Invalid request.");
                 }
 
@@ -140,10 +134,11 @@ namespace CoreApi.Controllers.Social.Report
                     throw new Exception($"AddNewReport failed, ErrorCode: { ErrorNewReport }");
                 }
 
+                AddLogParam("report_id", Report.Id);
                 return Ok(200, "OK");
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

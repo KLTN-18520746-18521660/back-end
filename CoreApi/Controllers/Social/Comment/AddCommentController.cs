@@ -53,6 +53,7 @@ namespace CoreApi.Controllers.Social.Comment
                 #endregion
 
                 #region Validate slug
+                AddLogParam("post_slug", __PostSlug);
                 if (__PostSlug == default || __PostSlug.Trim() == string.Empty) {
                     return Problem(400, "Invalid request.");
                 }
@@ -63,7 +64,6 @@ namespace CoreApi.Controllers.Social.Comment
 
                 if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        LogWarning($"Not found post, post_slug: { __PostSlug }");
                         return Problem(404, "Not found post.");
                     }
 
@@ -81,18 +81,13 @@ namespace CoreApi.Controllers.Social.Comment
                 }
 
                 if (Comment.ParentId != default) {
+                    AddLogParam("parent_comment_id", Comment.ParentId);
                     SocialComment ParentComment = default;
                     (ParentComment, Error) = await __SocialCommentManagement.FindCommentById((long) Comment.ParentId);
                     if (Error != ErrorCodes.NO_ERROR) {
-                        LogWarning($"Not found parent comment, parent_comment_id: { ParentComment.Id }");
                         return Problem(404, "Not found parent comment.");
                     }
                     if (ParentComment.PostId != Post.Id) {
-                        LogWarning(
-                            $"Invalid parent comment, parent_comment_id: { ParentComment.Id }, "
-                            + $"parent_comment_belog_to_post_id: { ParentComment.PostId }"
-                            + $"post_id: { Post.Id }"
-                        );
                         return Problem(400, "Invalid parent comment.");
                     }
                 }
@@ -138,8 +133,8 @@ namespace CoreApi.Controllers.Social.Comment
                     { "comment", Ret },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }

@@ -80,18 +80,17 @@ namespace CoreApi.Controllers.Admin
                 #endregion
 
                 #region Find User
+                AddLogParam("user_name", __ModelData.user_name);
                 var IsEmail         = CommonValidate.IsEmail(__ModelData.user_name);
                 var (User, Error)   = await __AdminUserManagement.FindUser(__ModelData.user_name, IsEmail);
 
                 if (Error != ErrorCodes.NO_ERROR) {
-                    LogDebug($"Not found user_name: { __ModelData.user_name }, is_email: { IsEmail }");
                     return Problem(400, "User not found or incorrect password.");
                 }
                 #endregion
 
                 #region Check user is lock or not
                 if (User.Status.Type == StatusType.Blocked) {
-                    LogWarning($"User has been locked user_name: { __ModelData.user_name }, is_email: { IsEmail }");
                     return Problem(423, "You have been locked.");
                 }
                 #endregion
@@ -102,7 +101,6 @@ namespace CoreApi.Controllers.Admin
                     if (Error != ErrorCodes.NO_ERROR) {
                         throw new Exception($"Handle AdminUseLoginFail failed. ErrorCode: { Error }");
                     }
-                    LogWarning($"Incorrect password user_name: { __ModelData.user_name }, is_email: { IsEmail }");
                     return Problem(400, "User not found or incorrect password.");
                 }
                 #endregion
@@ -127,14 +125,13 @@ namespace CoreApi.Controllers.Admin
                                         GetCookieOptions(__ModelData.remember ? default : DateTime.UtcNow.AddMinutes(ExpiryTime)));
                 #endregion
 
-                LogInformation($"User login success user_name: { __ModelData.user_name }, is_email: { IsEmail }");
                 return Ok(200, "OK", new JObject(){
                     { "session_id", Session.SessionToken },
                     { "user_id",    User.Id },
                 });
             } catch (Exception e) {
-                LogError($"Unexpected exception, message: { e.ToString() }");
-                return Problem(500, "Internal Server Error.");
+                AddLogParam("exception_message", e.ToString());
+                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
             }
         }
     }
