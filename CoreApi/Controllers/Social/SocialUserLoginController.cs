@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Common;
@@ -19,7 +20,6 @@ namespace CoreApi.Controllers.Social
     {
         public SocialUserLoginController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "SocialUserLogin";
         }
 
         /// <summary>
@@ -64,9 +64,9 @@ namespace CoreApi.Controllers.Social
                                                          [FromServices] SessionSocialUserManagement __SessionSocialUserManagement,
                                                          [FromBody] Models.LoginModel               __ModelData)
         {
-            #region Set TraceId for services
-            __SocialUserManagement.SetTraceId(TraceId);
-            __SessionSocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SocialUserManagement, __SessionSocialUserManagement);
             #endregion
             try {
                 #region Get config values

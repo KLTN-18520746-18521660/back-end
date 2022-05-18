@@ -1,20 +1,18 @@
-using Serilog;
+
+using Common;
+using CoreApi.Common;
+using CoreApi.Common.Base;
 using DatabaseAccess.Context;
 using DatabaseAccess.Context.Models;
-using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
-using System.Linq;
-using System;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-
-using CoreApi.Common;
-using System.Text;
-using Newtonsoft.Json;
-using System.Threading;
-using Common;
 using Microsoft.Extensions.DependencyInjection;
-using DatabaseAccess.Common.Status;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CoreApi.Services
 {
@@ -22,15 +20,15 @@ namespace CoreApi.Services
     {
         List<AdminBaseConfig> Configs;
         SemaphoreSlim Gate;
-        bool isReloadConfig;
+        bool IsReloadConfig;
         public BaseConfig(IServiceProvider _IServiceProvider)
             : base(_IServiceProvider)
         {
             __ServiceName = "BaseConfig";
             InitConfig();
             Gate = new SemaphoreSlim(1);
-            isReloadConfig = false;
-            LogInformation("Init load all config successfully.");
+            IsReloadConfig = false;
+            WriteLog(LOG_LEVEL.INFO, string.Empty, "Init load all config successfully.");
         }
 
         protected void InitConfig()
@@ -80,11 +78,11 @@ namespace CoreApi.Services
         public async Task<(ErrorCodes ErrorCode, string[] Errors)> ReLoadConfig()
         {
             await Gate.WaitAsync();
-            isReloadConfig = true;
+            IsReloadConfig = true;
             await InitConfigAsync();
-            isReloadConfig = false;
+            IsReloadConfig = false;
             Gate.Release();
-            LogInformation("Reload all base config successfully.");
+            WriteLog(LOG_LEVEL.INFO, string.Empty, "Reload all base config successfully.");
 
             #region Read other service
             var Errors          = new List<string>();
@@ -93,17 +91,17 @@ namespace CoreApi.Services
             Errors.AddRange(__EmailSender.ReloadEmailConfig());
             #endregion
             if (Errors.Count != 0) {
-                LogError("Reload other services failed.");
+                WriteLog(LOG_LEVEL.ERROR, string.Empty, "Reload other services failed.");
                 return (ErrorCodes.INTERNAL_SERVER_ERROR, Errors.ToArray());
             } else {
-                LogInformation("Reload other services successfully.");
+                WriteLog(LOG_LEVEL.INFO, string.Empty, "Reload other services successfully.");
                 return (ErrorCodes.NO_ERROR, default);
             }
         }
 
         public (JObject Value, string Error) GetAllConfig()
         {
-            while(isReloadConfig);
+            while(IsReloadConfig);
             Dictionary<string, JObject> ret = new Dictionary<string, JObject>();
             Configs.ForEach(e => {
                 if (!ret.ContainsKey(e.ConfigKey)) {
@@ -115,7 +113,7 @@ namespace CoreApi.Services
 
         public (JObject Value, string Error) GetAllPublicConfig()
         {
-            while(isReloadConfig);
+            while(IsReloadConfig);
             List<AdminBaseConfig> configs = Utils.DeepClone<List<AdminBaseConfig>>(Configs);
             var (publicConfig, error) = GetConfigValue(CONFIG_KEY.PUBLIC_CONFIG);
 
@@ -159,7 +157,7 @@ namespace CoreApi.Services
 
         public (JObject Value, string Error) GetPublicConfig(CONFIG_KEY ConfigKey)
         {
-            while(isReloadConfig);
+            while(IsReloadConfig);
             List<AdminBaseConfig> configs = Utils.DeepClone<List<AdminBaseConfig>>(Configs);
             var (publicConfig, error) = GetConfigValue(CONFIG_KEY.PUBLIC_CONFIG);
 
@@ -185,7 +183,7 @@ namespace CoreApi.Services
 
         public (JObject Value, string Error) GetConfigValue(CONFIG_KEY ConfigKey)
         {
-            while(isReloadConfig);
+            while(IsReloadConfig);
             string configKeyStr = DEFAULT_BASE_CONFIG.ConfigKeyToString(ConfigKey);
             var config = Configs
                             .Where<AdminBaseConfig>(e => e.ConfigKey == configKeyStr)
@@ -198,7 +196,7 @@ namespace CoreApi.Services
 
             string Error = string.Empty;
             Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }.";
-            LogWarning(Error);
+            WriteLog(LOG_LEVEL.WARNING, string.Empty, Error);
             return (DEFAULT_BASE_CONFIG.GetConfig(ConfigKey), Error);
         }
 
@@ -209,7 +207,7 @@ namespace CoreApi.Services
                 Error = $"GetConfigValue. Unsupport get sub config type: { SubConfigKey }";
                 throw new Exception(Error);
             }
-            while(isReloadConfig);
+            while(IsReloadConfig);
             if (typeof(T) != typeof(string) && typeof(T) != typeof(int) && typeof(T) != typeof(bool)) {
                 Error = $"GetConfigValue. Unsupport convert type: { typeof(T) }";
                 throw new Exception(Error);
@@ -233,7 +231,7 @@ namespace CoreApi.Services
                     throw new Exception($"Invalid pair, config_key: { configKeyStr }, sub_config_key: { subConfigKeyStr }.");
                 }
                 Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }, sub_config_key: { subConfigKeyStr }.";
-                LogWarning(Error);
+                WriteLog(LOG_LEVEL.WARNING, string.Empty, Error);
                 return ((T) System.Convert.ChangeType(defaultConfig[subConfigKeyStr], typeof(T)), Error);
             }
         }
@@ -255,7 +253,7 @@ namespace CoreApi.Services
             }
 
             Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }.";
-            LogWarning(Error);
+            WriteLog(LOG_LEVEL.WARNING, string.Empty, Error);
             return (DEFAULT_BASE_CONFIG.GetConfig(ConfigKey), Error);
         }
 
@@ -292,7 +290,7 @@ namespace CoreApi.Services
                     throw new Exception($"Invalid pair, config_key: { configKeyStr }, sub_config_key: { subConfigKeyStr }.");
                 }
                 Error = $"Invalid config data. Default vaue will be use. config_key: { configKeyStr }, sub_config_key: { subConfigKeyStr }.";
-                LogWarning(Error);
+                WriteLog(LOG_LEVEL.WARNING, string.Empty, Error);
                 return ((T) System.Convert.ChangeType(defaultConfig[subConfigKeyStr], typeof(T)), Error);
             }
         }

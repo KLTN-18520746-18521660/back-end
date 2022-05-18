@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Models.ModifyModels;
 using CoreApi.Services;
@@ -19,7 +20,6 @@ namespace CoreApi.Controllers.Social.User
     {
         public DeleteUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "DeleteUser";
         }
 
         [HttpDelete("")]
@@ -33,10 +33,9 @@ namespace CoreApi.Controllers.Social.User
                                                     [FromBody] SocialCommentModifyModel         __ModelData,
                                                     [FromHeader(Name = "session_token")] string SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialCommentManagement.SetTraceId(TraceId);
-            __SocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionSocialUserManagement, __SocialCommentManagement, __SocialUserManagement);
             #endregion
             try {
                 #region Get session

@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -22,7 +23,6 @@ namespace CoreApi.Controllers.Social.Post
     {
         public GetPostsByUserNameController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "GetPostsByUserName";
         }
 
         /// <summary>
@@ -90,12 +90,15 @@ namespace CoreApi.Controllers.Social.Post
                                                             [FromQuery(Name = "status")] string         Status      = default,
                                                             [FromQuery] Models.OrderModel               Orders      = default)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialCategoryManagement.SetTraceId(TraceId);
-            __SocialUserManagement.SetTraceId(TraceId);
-            __SocialPostManagement.SetTraceId(TraceId);
-            __SocialTagManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(
+                __SessionSocialUserManagement,
+                __SocialCategoryManagement,
+                __SocialUserManagement,
+                __SocialPostManagement,
+                __SocialTagManagement
+            );
             #endregion
             try {
                 #region Get session (not required)

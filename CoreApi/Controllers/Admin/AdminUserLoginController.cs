@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Common;
@@ -17,10 +18,8 @@ namespace CoreApi.Controllers.Admin
     [Route("/api/admin/login")]
     public class AdminUserLoginController : BaseController
     {
-        public AdminUserLoginController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public AdminUserLoginController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
-            ControllerName = "AdminUserLogin";
-            IsAdminController = true;
         }
 
         /// <summary>
@@ -65,9 +64,12 @@ namespace CoreApi.Controllers.Admin
                                                         [FromServices] SessionAdminUserManagement   __SessionAdminUserManagement,
                                                         [FromBody] Models.LoginModel                __ModelData)
         {
-            #region Set TraceId for services
-            __AdminUserManagement.SetTraceId(TraceId);
-            __SessionAdminUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(
+                __AdminUserManagement,
+                __SessionAdminUserManagement
+            );
             #endregion
             try {
                 #region Get config values

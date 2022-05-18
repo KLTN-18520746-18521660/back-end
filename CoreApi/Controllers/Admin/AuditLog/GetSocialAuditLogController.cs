@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -19,7 +20,6 @@ namespace CoreApi.Controllers.Admin.AuditLog
     {
         public GetSocialAuditLogController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
-            // ControllerName = "GetSocialAuditLog";
         }
 
         /// <summary>

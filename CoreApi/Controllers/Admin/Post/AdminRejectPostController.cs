@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Common.Status;
@@ -16,10 +17,8 @@ namespace CoreApi.Controllers.Admin.Post
     [Route("/api/admin/post")]
     public class AdminRejectPostController : BaseController
     {
-        public AdminRejectPostController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public AdminRejectPostController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
-            ControllerName = "AdminRejectPost";
-            IsAdminController = true;
         }
 
         /// <summary>
@@ -102,10 +101,13 @@ namespace CoreApi.Controllers.Admin.Post
                                                     [FromHeader(Name = "session_token_admin")] string   SessionToken,
                                                     [FromQuery(Name = "reject_pending_content")] bool   RejectPendingContent = false)
         {
-            #region Set TraceId for services
-            __SessionAdminUserManagement.SetTraceId(TraceId);
-            __SocialPostManagement.SetTraceId(TraceId);
-            __AdminUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(
+                __SessionAdminUserManagement,
+                __SocialPostManagement,
+                __AdminUserManagement
+            );
             #endregion
             try {
                 #region Get session

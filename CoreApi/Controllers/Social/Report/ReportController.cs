@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Models.ModifyModels;
 using CoreApi.Services;
@@ -20,7 +21,6 @@ namespace CoreApi.Controllers.Social.Report
     {
         public ReportController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "Report";
         }
 
         [HttpPost("{type}")]
@@ -37,12 +37,15 @@ namespace CoreApi.Controllers.Social.Report
                                                 [FromBody] ParserSocialReport               __ParserModel,
                                                 [FromHeader(Name = "session_token")] string SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialCommentManagement.SetTraceId(TraceId);
-            __SocialUserManagement.SetTraceId(TraceId);
-            __SocialPostManagement.SetTraceId(TraceId);
-            __SocialReportManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(
+                __SessionSocialUserManagement,
+                __SocialCommentManagement,
+                __SocialUserManagement,
+                __SocialPostManagement,
+                __SocialReportManagement
+            );
             #endregion
             try {
                 #region Get session

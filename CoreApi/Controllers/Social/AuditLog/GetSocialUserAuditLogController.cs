@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -25,7 +26,6 @@ namespace CoreApi.Controllers.Social.AuditLog
 
         public GetSocialUserAuditLogController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "GetSocialUserAuditLog";
         }
 
         /// <summary>
@@ -95,10 +95,13 @@ namespace CoreApi.Controllers.Social.AuditLog
                                                       [FromQuery(Name = "size")] int                Size        = 20,
                                                       [FromQuery(Name = "search_term")] string      SearchTerm  = default)
         {
-            #region Set TraceId for services
-            __SocialUserManagement.SetTraceId(TraceId);
-            __SocialUserAuditLogManagement.SetTraceId(TraceId);
-            __SessionSocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(
+                __SocialUserManagement,
+                __SocialUserAuditLogManagement,
+                __SessionSocialUserManagement
+            );
             #endregion
             try {
                 #region Get session

@@ -88,9 +88,9 @@ namespace DatabaseAccess.Context.Models
 
             ListDefaultRight.ForEach(e => {
                 ListData.Add(new AdminUserRoleDetail() {
-                    RoleId = AdminRoleId,
-                    RightId = e.Id,
-                    ActionsStr = DefaultActions.ToString(Formatting.None)
+                    RoleId      = AdminRoleId,
+                    RightId     = e.Id,
+                    ActionsStr  = DefaultActions.ToString(Formatting.None)
                 });
             });
             return ListData;

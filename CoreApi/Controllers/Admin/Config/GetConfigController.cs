@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -16,10 +17,8 @@ namespace CoreApi.Controllers.Admin.Config
     [Route("/api/admin/config")]
     public class GetConfigController : BaseController
     {
-        public GetConfigController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public GetConfigController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
-            ControllerName = "GetConfig";
-            IsAdminController = true;
         }
 
         /// <summary>
@@ -77,9 +76,12 @@ namespace CoreApi.Controllers.Admin.Config
                                                       [FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
                                                       [FromHeader(Name = "session_token_admin")] string SessionToken)
         {
-            #region Set TraceId for services
-            __AdminUserManagement.SetTraceId(TraceId);
-            __SessionAdminUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(
+                __AdminUserManagement,
+                __SessionAdminUserManagement
+            );
             #endregion
             try {
                 #region Get session
@@ -185,9 +187,9 @@ namespace CoreApi.Controllers.Admin.Config
                                                               [FromRoute(Name = "config_key")] string       __ConfigKey,
                                                               [FromHeader(Name = "session_token")] string   SessionToken)
         {
-            #region Set TraceId for services
-            __AdminUserManagement.SetTraceId(TraceId);
-            __SessionAdminUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__AdminUserManagement, __SessionAdminUserManagement);
             #endregion
             try {
                 #region Get session

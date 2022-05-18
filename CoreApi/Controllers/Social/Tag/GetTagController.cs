@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -33,9 +34,9 @@ namespace CoreApi.Controllers.Social.Tag
                                                  [FromQuery(Name = "size")] int                 Size        = 20,
                                                  [FromQuery(Name = "search_term")] string       SearchTerm  = default)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialTagManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionSocialUserManagement, __SocialTagManagement);
             #endregion
             try {
                 #region Get session (not required)
@@ -94,9 +95,9 @@ namespace CoreApi.Controllers.Social.Tag
                                                       [FromRoute(Name = "tag")] string              __Tag,
                                                       [FromHeader(Name = "session_token")] string   SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialTagManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionSocialUserManagement, __SocialTagManagement);
             #endregion
             try {
                 #region Get session (not required)

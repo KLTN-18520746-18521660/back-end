@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Models;
 using CoreApi.Services;
@@ -20,9 +21,8 @@ namespace CoreApi.Controllers.Admin.User
     [Route("/api/admin/user/newpassword")]
     public class AdminUserNewPasswordController : BaseController
     {
-        public AdminUserNewPasswordController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public AdminUserNewPasswordController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
-            ControllerName = "AdminUserNewPassword";
         }
 
         [HttpPost("")]
@@ -33,8 +33,9 @@ namespace CoreApi.Controllers.Admin.User
         public async Task<IActionResult> NewPassword([FromServices] AdminUserManagement    __AdminUserManagement,
                                                      [FromBody] NewPasswordModel            __ModelData)
         {
-            #region Set TraceId for services
-            __AdminUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__AdminUserManagement);
             #endregion
             try {
                 #region Get config values

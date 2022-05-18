@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -17,10 +18,8 @@ namespace CoreApi.Controllers.Admin.User
     [Route("/api/admin/user")]
     public class CreateAdminUserController : BaseController
     {
-        public CreateAdminUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public CreateAdminUserController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
-            ControllerName = "CreateAdminUser";
-            IsAdminController = true;
         }
 
         /// <summary>
@@ -89,9 +88,9 @@ namespace CoreApi.Controllers.Admin.User
                                                          [FromBody] ParserAdminUser                         __ParserModel,
                                                          [FromHeader(Name = "session_token_admin")] string  SessionToken)
         {
-            #region Set TraceId for services
-            __AdminUserManagement.SetTraceId(TraceId);
-            __SessionAdminUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__AdminUserManagement, __SessionAdminUserManagement);
             #endregion
             try {
                 #region Get session

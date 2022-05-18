@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -21,7 +22,6 @@ namespace CoreApi.Controllers.Social.Notification
     {
         public MarkNotificationAsUnReadController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "MarkNotificationAsUnRead";
         }
 
         /// <summary>
@@ -71,9 +71,9 @@ namespace CoreApi.Controllers.Social.Notification
                                                                   [FromRoute(Name = "notification_id")] long    __NotificationId,
                                                                   [FromHeader(Name = "session_token")] string   SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionSocialUserManagement, __SocialUserManagement);
             #endregion
             try {
                 #region Get session
@@ -126,9 +126,9 @@ namespace CoreApi.Controllers.Social.Notification
                                                                    [FromServices] NotificationsManagement       __NotificationsManagement,
                                                                    [FromHeader(Name = "session_token")] string  SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionSocialUserManagement, __SocialUserManagement);
             #endregion
             try {
                 #region Get session

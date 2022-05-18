@@ -1,26 +1,21 @@
-using Serilog;
+using Common;
+using CoreApi.Common;
+using CoreApi.Common.Base;
+using CoreApi.Models.ModifyModels;
+using DatabaseAccess.Common.Actions;
+using DatabaseAccess.Common.Models;
+using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context;
 using DatabaseAccess.Context.Models;
-using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
-using System.Linq;
-using System.Linq.Expressions;  
-using System;
-using NpgsqlTypes;
-using Microsoft.EntityFrameworkCore;
-using DatabaseAccess.Common.Status;
-using DatabaseAccess.Common.Models;
-using CoreApi.Common;
-using Common;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using System.Linq.Dynamic.Core;
-using System.Linq.Dynamic;
-using DatabaseAccess.Common.Actions;
-using Npgsql.EntityFrameworkCore.PostgreSQL;
 using DatabaseAccess.Context.ParserModels;
-using CoreApi.Models.ModifyModels;
-using System.Reflection;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Dynamic.Core;
+using System.Threading.Tasks;
 
 namespace CoreApi.Services
 {
@@ -238,7 +233,7 @@ namespace CoreApi.Services
 
             // orderStr can't empty or null
             string orderStr = orders != default && orders.Length != 0 ? Utils.GenerateOrderString(orders) : string.Empty;
-            orderStr = $"visited asc, { orderStr }, created_timestamp desc";
+            orderStr = orderStr != string.Empty ? $"visited asc, { orderStr }, created_timestamp desc" : "visited asc, created_timestamp desc";
 
             var query =
                     from ids in (
@@ -420,7 +415,7 @@ namespace CoreApi.Services
 
             // orderStr can't empty or null
             string orderStr = orders != default && orders.Length != 0 ? Utils.GenerateOrderString(orders) : string.Empty;
-            orderStr = $"visited asc, { orderStr }, created_timestamp desc";
+            orderStr = orderStr != string.Empty ? $"visited asc, { orderStr }, created_timestamp desc" : "visited asc, created_timestamp desc";
 
             var query_post_of_following_users =
                     // Fllow: post, user, tag, category
@@ -829,7 +824,7 @@ namespace CoreApi.Services
 
             if (!ok) {
                 await transaction.RollbackAsync();
-                LogError(error);
+                WriteLog(LOG_LEVEL.ERROR, error);
                 return ErrorCodes.INTERNAL_SERVER_ERROR;
             }
             await transaction.CommitAsync();
@@ -898,7 +893,7 @@ namespace CoreApi.Services
 
             post.PendingContent = model.ToJsonObject();
             if (await __DBContext.SaveChangesAsync() <= 0) {
-                LogError($"AddPendingContent failed.");
+                WriteLog(LOG_LEVEL.ERROR, "AddPendingContent failed.");
             }
             return ErrorCodes.NO_ERROR;
         }
@@ -1017,11 +1012,15 @@ namespace CoreApi.Services
             }
             #endregion
             if (!haveChange) {
-                LogWarning($"ModifyPost with no change detected, post_id: { post.Id }");
+                WriteLog(LOG_LEVEL.WARNING, "ModifyPost with no change detected",
+                    Utils.ParamsToLog("post_id", post.Id)
+                );
             }
 
             if (!ok) {
-                LogError($"ModifyPost failed. error: { error }");
+                WriteLog(LOG_LEVEL.ERROR, "ModifyPost failed",
+                    Utils.ParamsToLog("error", error)
+                );
                 return ErrorCodes.INTERNAL_SERVER_ERROR;
             }
 
@@ -1038,7 +1037,9 @@ namespace CoreApi.Services
             post.LastModifiedTimestamp = DateTime.UtcNow;
             ok = await __DBContext.SaveChangesAsync() > 0;
             if (!ok) {
-                LogError($"ModifyPost failed. error: can't update last modified timestamp.");
+                WriteLog(LOG_LEVEL.ERROR, "ModifyPost failed",
+                    Utils.ParamsToLog("error", "can't update last modified timestamp.")
+                );
             }
             await transaction.CommitAsync();
             return ErrorCodes.NO_ERROR;

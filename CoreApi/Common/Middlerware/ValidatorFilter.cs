@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Common;
 
-namespace CoreApi.Common
+namespace CoreApi.Common.Middlerware
 {
     public class ValidatorFilter : IAsyncActionFilter
     {

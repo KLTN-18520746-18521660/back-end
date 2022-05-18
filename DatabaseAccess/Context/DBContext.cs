@@ -67,7 +67,8 @@ namespace DatabaseAccess.Context
                         o.SetPostgresVersion(14, 1);
                     }
                 )
-                .ReplaceService<IMigrationsIdGenerator, FixedMigrationsIdGenerator>();
+                .ReplaceService<IMigrationsIdGenerator, FixedMigrationsIdGenerator>()
+                .ConfigureWarnings(warnings => warnings.Ignore(CoreEventId.ContextInitialized));
             }
         }
 

@@ -1,5 +1,6 @@
 using Common;
 using CoreApi.Common;
+using CoreApi.Common.Base;
 using CoreApi.Models.ModifyModels;
 using DatabaseAccess.Common.Actions;
 using DatabaseAccess.Common.Models;
@@ -9,8 +10,6 @@ using DatabaseAccess.Context.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
-using NpgsqlTypes;
-using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;

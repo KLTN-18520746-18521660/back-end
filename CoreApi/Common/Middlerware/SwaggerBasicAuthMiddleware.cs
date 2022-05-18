@@ -13,7 +13,7 @@ using Newtonsoft.Json;
 using Serilog;
 using System.Diagnostics;
 
-namespace CoreApi.Common
+namespace CoreApi.Common.Middlerware
 {
     // From [https://github.com/domaindrivendev/Swashbuckle.WebApi/issues/384#issuecomment-410117400]
     public class SwaggerBasicAuthMiddleware

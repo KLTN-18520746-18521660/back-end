@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -16,10 +17,8 @@ namespace CoreApi.Controllers.Admin.Session
     [Route("/api/admin/session")]
     public class GetUserBySessionAdminController : BaseController
     {
-        public GetUserBySessionAdminController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public GetUserBySessionAdminController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
-            ControllerName = "GetUserBySessionAdmin";
-            IsAdminController = true;
         }
 
         /// <summary>
@@ -74,8 +73,9 @@ namespace CoreApi.Controllers.Admin.Session
         public async Task<IActionResult> GetUserBySession([FromServices] SessionAdminUserManagement __SessionAdminUserManagement,
                                                           [FromHeader(Name = "session_token_admin")] string SessionToken)
         {
-            #region Set TraceId for services
-            __SessionAdminUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionAdminUserManagement);
             #endregion
             try {
                 #region Get session

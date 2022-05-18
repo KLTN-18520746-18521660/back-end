@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -17,7 +18,6 @@ namespace CoreApi.Controllers.Social
     {
         public SocialUserLogoutController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "SocialUserLogout";
         }
 
         /// <summary>
@@ -60,8 +60,9 @@ namespace CoreApi.Controllers.Social
         public async Task<IActionResult> SocialUserLogout([FromServices] SessionSocialUserManagement    __SessionSocialUserManagement,
                                                           [FromHeader(Name = "session_token")] string   SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionSocialUserManagement);
             #endregion
             try {
                 #region Get config values

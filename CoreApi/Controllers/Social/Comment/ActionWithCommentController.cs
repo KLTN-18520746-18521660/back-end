@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Common.Status;
@@ -27,7 +28,6 @@ namespace CoreApi.Controllers.Social.Comment
 
         public ActionWithCommentController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "ActionWithComment";
         }
 
         [HttpPost("{comment_id}")]
@@ -45,10 +45,13 @@ namespace CoreApi.Controllers.Social.Comment
                                                        [FromQuery(Name = "action")] string          Action,
                                                        [FromHeader(Name = "session_token")] string  SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialCommentManagement.SetTraceId(TraceId);
-            __SocialPostManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(
+                __SessionSocialUserManagement,
+                __SocialCommentManagement,
+                __SocialPostManagement
+            );
             #endregion
             try {
                 #region Get session

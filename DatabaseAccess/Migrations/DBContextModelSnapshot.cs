@@ -178,7 +178,7 @@ namespace DatabaseAccess.Migrations
                             Id = 8,
                             ConfigKey = "PublicConfig",
                             StatusStr = "Enabled",
-                            ValueStr = "{\"UIConfig\":\"all\",\"SessionAdminUserConfig\":\"all\",\"SessionSocialUserConfig\":\"all\",\"UploadFileConfig\":\"all\",\"SocialUserIdle\":\"all\",\"AdminUserIdle\":\"all\"}"
+                            ValueStr = "{\"UIConfig\":\"all\",\"SessionAdminUserConfig\":\"all\",\"SessionSocialUserConfig\":\"all\",\"UploadFileConfig\":\"all\",\"SocialUserIdle\":\"all\",\"AdminUserIdle\":\"all\",\"SocialPasswordPolicy\":\"all\",\"AdminPasswordPolicy\":\"all\"}"
                         },
                         new
                         {
@@ -824,8 +824,8 @@ namespace DatabaseAccess.Migrations
 
                     b.Property<string>("Describe")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
                         .HasColumnName("describe");
 
                     b.Property<string>("DisplayName")

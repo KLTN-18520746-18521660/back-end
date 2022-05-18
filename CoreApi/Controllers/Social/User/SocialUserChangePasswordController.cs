@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Models;
 using CoreApi.Services;
@@ -23,7 +24,6 @@ namespace CoreApi.Controllers.Social.User
     {
         public SocialUserChangePasswordController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "SocialUserChangePassword";
         }
 
         [HttpPost("")]
@@ -37,9 +37,9 @@ namespace CoreApi.Controllers.Social.User
                                                         [FromBody] Models.ChangePasswordModel       __ModelData,
                                                         [FromHeader(Name = "session_token")] string SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionSocialUserManagement, __SocialUserManagement);
             #endregion
             try {
                 #region Get session

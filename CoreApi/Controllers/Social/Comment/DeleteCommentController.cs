@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -18,7 +19,6 @@ namespace CoreApi.Controllers.Social.Comment
     {
         public DeleteCommentController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "DeleteComment";
         }
 
         [HttpDelete("{comment_id}")]
@@ -32,10 +32,13 @@ namespace CoreApi.Controllers.Social.Comment
                                                        [FromRoute(Name = "comment_id")] long        __CommentId,
                                                        [FromHeader(Name = "session_token")] string  SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialCommentManagement.SetTraceId(TraceId);
-            __SocialPostManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(
+                __SessionSocialUserManagement,
+                __SocialCommentManagement,
+                __SocialPostManagement
+            );
             #endregion
             try {
                 #region Get session

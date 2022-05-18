@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Common.Status;
@@ -16,10 +17,8 @@ namespace CoreApi.Controllers.Admin.Post
     [Route("/api/admin/post")]
     public class AdminApprovePostController : BaseController
     {
-        public AdminApprovePostController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public AdminApprovePostController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
-            ControllerName = "AdminApprovePost";
-            IsAdminController = true;
         }
 
         /// <summary>
@@ -99,10 +98,13 @@ namespace CoreApi.Controllers.Admin.Post
                                                      [FromRoute(Name = "post_id")] long                 __PostId,
                                                      [FromHeader(Name = "session_token_admin")] string  SessionToken)
         {
-            #region Set TraceId for services
-            __SessionAdminUserManagement.SetTraceId(TraceId);
-            __SocialPostManagement.SetTraceId(TraceId);
-            __AdminUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(
+                __SessionAdminUserManagement,
+                __SocialPostManagement,
+                __AdminUserManagement
+            );
             #endregion
             try {
                 #region Get session

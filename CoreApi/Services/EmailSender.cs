@@ -1,19 +1,17 @@
-﻿using CoreApi.Common;
+﻿using Common;
+using CoreApi.Common.Base;
+using CoreApi.Services.Background;
 using DatabaseAccess.Context;
-using Microsoft.Extensions.Hosting;
+using DatabaseAccess.Context.Models;
+using FluentEmail.Core;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using DatabaseAccess.Context.Models;
-using FluentEmail.Core;
-using Newtonsoft.Json.Linq;
-using Common;
-using Newtonsoft.Json;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
-using CoreApi.Services.Background;
 
 namespace CoreApi.Services
 {
@@ -99,14 +97,14 @@ namespace CoreApi.Services
             var LimitSenderConfig   = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, SUB_CONFIG_KEY.LIMIT_SENDER);
 
             if (LimitSenderConfig.Error != string.Empty) {
-                LogWarning("Can not get config 'limit_sender' for email client, use default config.");
+                WriteLog(LOG_LEVEL.WARNING, string.Empty, "Can not get config 'limit_sender' for email client, use default config.");
             } else {
                 if (!ChangeGateLimit(LimitSenderConfig.Value)) {
                     ErrorMsg = $"Can not set 'limit_sender': { LimitSenderConfig.Value } for email client, "
                                 + "use default 'limit_sender': { __GateLimit }.";
-                    LogWarning(ErrorMsg);
+                    WriteLog(LOG_LEVEL.WARNING, string.Empty, ErrorMsg);
                 } else {
-                    LogInformation($"Set 'limit_sender' for email client success, value: { LimitSenderConfig.Value }");
+                    WriteLog(LOG_LEVEL.INFO, string.Empty, $"Set 'limit_sender' for email client success, value: { LimitSenderConfig.Value }");
                 }
             }
             return ErrorMsg;
@@ -128,7 +126,7 @@ namespace CoreApi.Services
                 var TemplateConfig = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.EMAIL_CLIENT_CONFIG, It.SubKey);
                 if (TemplateConfig.Error != string.Empty) {
                     var ErrMsg = $"Can not get config { DEFAULT_BASE_CONFIG.SubConfigKeyToString(It.SubKey) } for email client, use default config.";
-                    LogWarning(ErrMsg);
+                    WriteLog(LOG_LEVEL.WARNING, string.Empty, ErrMsg);
                     Errors.Add(ErrMsg);
                 } else {
                     __EmailTemplates[It.EmailType.ToString()] = TemplateConfig.Value;
@@ -171,15 +169,15 @@ namespace CoreApi.Services
         protected async Task<bool> SendEmail<T>(EmailForm Form) where T : BaseEmailModel
         {
             bool IsReleaseGate = false;
-            LogInformation($"TraceId: { Form.TraceId }, Received new request email sender, model_name: { Form.Model.ModelName }");
+            WriteLog(LOG_LEVEL.INFO, Form.TraceId, $"Received new request email sender, model_name: { Form.Model.ModelName }");
             try {
                 if (!__EmailTemplates.ContainsKey(Form.Model.ModelName)) {
-                    LogError($"TraceId: { Form.TraceId }, Missing template for model { Form.Model.ModelName }");
+                    WriteLog(LOG_LEVEL.ERROR, Form.TraceId, $"Missing template for model { Form.Model.ModelName }");
                     return false;
                 }
                 var Template = __EmailTemplates.Where(e => e.Key == Form.Model.ModelName).FirstOrDefault().Value;
                 if (Utils.BindModelToString<T>(Template, Form.Model as T) == string.Empty) {
-                    LogWarning($"TraceId: { Form.TraceId }, Invalid template for model { Form.Model.ModelName }. Using default instead.");
+                    WriteLog(LOG_LEVEL.WARNING, Form.TraceId, $"Invalid template for model { Form.Model.ModelName }. Using default instead.");
                     Template = __DefaultEmailTemplates.Where(e => e.Key == Form.Model.ModelName).FirstOrDefault().Value;
                 }
 
@@ -193,13 +191,13 @@ namespace CoreApi.Services
                 IsReleaseGate = true;
 
                 if (!Resp.Successful) {
-                    LogWarning($"TraceId: { Form.TraceId }, Send email failed.");
+                    WriteLog(LOG_LEVEL.WARNING, Form.TraceId, $"Send email failed.");
                 } else {
-                    LogInformation($"TraceId: { Form.TraceId }, Send email successfully.");
+                    WriteLog(LOG_LEVEL.INFO, Form.TraceId, $"Send email successfully.");
                 }
                 return Resp.Successful;
             } catch(Exception e) {
-                LogError($"TraceId: { Form.TraceId }, Unhandle Exception, { e }");
+                WriteLog(LOG_LEVEL.ERROR, Form.TraceId, "Unhandle Exception", Utils.ParamsToLog("exception_message", e.ToString()));
                 if (!IsReleaseGate) {
                     __Gate.Release();
                 }
@@ -232,11 +230,17 @@ namespace CoreApi.Services
                         .Where(e => e.Id == UserId)
                         .FirstOrDefaultAsync();
                 if (User == default) {
-                    LogWarning($"TraceId: { TraceId }, 'SendEmailUserSignUp', Not found user, user_id: { UserId }");
+                    WriteLog(LOG_LEVEL.WARNING, TraceId, $"Not found user",
+                        Utils.ParamsToLog("func_handler", $"{ System.Reflection.MethodBase.GetCurrentMethod().Name }"),
+                        Utils.ParamsToLog("user_id", $"{ User.Id }")
+                    );
                     return;
                 }
                 if (User.VerifiedEmail) {
-                    LogInformation($"TraceId: { TraceId }, User has verified email, user_id: { User.Id }");
+                    WriteLog(LOG_LEVEL.INFO, TraceId, $"User has verified email",
+                        Utils.ParamsToLog("func_handler", $"{ System.Reflection.MethodBase.GetCurrentMethod().Name }"),
+                        Utils.ParamsToLog("user_id", $"{ User.Id }")
+                    );
                     return;
                 }
                 User.Settings.Remove("confirm_email");
@@ -245,7 +249,10 @@ namespace CoreApi.Services
                     { "send_date",  DateTime.UtcNow.ToString(COMMON_DEFINE.DATE_TIME_FORMAT) },
                 });
                 if (await __DBContext.SaveChangesAsync() <= 0) {
-                    LogError($"TraceId: { TraceId }, 'SendEmailUserSignUp', Can't save changes before send email, user_id: { User.Id }");
+                    WriteLog(LOG_LEVEL.ERROR, TraceId, $"Can't save changes before send email",
+                        Utils.ParamsToLog("func_handler", $"{ System.Reflection.MethodBase.GetCurrentMethod().Name }"),
+                        Utils.ParamsToLog("user_id", $"{ User.Id }")
+                    );
                     return;
                 }
                 #region Send Email
@@ -273,7 +280,10 @@ namespace CoreApi.Services
                     { "state",          RequestState },
                 });
                 if (await __DBContext.SaveChangesAsync() <= 0) {
-                    LogError($"TraceId: { TraceId }, 'SendEmailUserSignUp', Can't save changes after send email, user_id: { User.Id }");
+                    WriteLog(LOG_LEVEL.ERROR, TraceId, $"Can't save changes after send email",
+                        Utils.ParamsToLog("func_handler", $"{ System.Reflection.MethodBase.GetCurrentMethod().Name }"),
+                        Utils.ParamsToLog("user_id", $"{ User.Id }")
+                    );
                     return;
                 }
             }
@@ -304,7 +314,11 @@ namespace CoreApi.Services
                             .Where(e => e.Id == UserId)
                             .FirstOrDefaultAsync();
                     if (User == default) {
-                        LogWarning($"TraceId: { TraceId }, 'SendEmailSocialUserForgotPassword', Not found user, user_id: { UserId }");
+                        WriteLog(LOG_LEVEL.WARNING, TraceId, $"Not found user",
+                            Utils.ParamsToLog("func_handler", $"{ System.Reflection.MethodBase.GetCurrentMethod().Name }"),
+                            Utils.ParamsToLog("is_admin", $"{ IsAdminUser }"),
+                            Utils.ParamsToLog("user_id", $"{ User.Id }")
+                        );
                         return;
                     }
                     User.Settings.Remove("forgot_password");
@@ -317,7 +331,11 @@ namespace CoreApi.Services
                             .Where(e => e.Id == UserId)
                             .FirstOrDefaultAsync();
                     if (AdminUser == default) {
-                        LogWarning($"TraceId: { TraceId }, 'SendEmailSocialUserForgotPassword', Not found admin user, user_id: { UserId }");
+                        WriteLog(LOG_LEVEL.WARNING, TraceId, $"Not found admin user",
+                            Utils.ParamsToLog("func_handler", $"{ System.Reflection.MethodBase.GetCurrentMethod().Name }"),
+                            Utils.ParamsToLog("is_admin", $"{ IsAdminUser }"),
+                            Utils.ParamsToLog("user_id", $"{ User.Id }")
+                        );
                         return;
                     }
                     AdminUser.Settings.Remove("forgot_password");
@@ -327,9 +345,10 @@ namespace CoreApi.Services
                     });
                 }
                 if (await __DBContext.SaveChangesAsync() < 0) {
-                    LogError(
-                        $"TraceId: { TraceId }, 'SendEmailSocialUserForgotPassword', "
-                        + $"Can't save changes before send email, user_id: { User.Id }, is_admin: { IsAdminUser }"
+                    WriteLog(LOG_LEVEL.ERROR, TraceId, $"Can't save changes before send email",
+                        Utils.ParamsToLog("func_handler", $"{ System.Reflection.MethodBase.GetCurrentMethod().Name }"),
+                        Utils.ParamsToLog("is_admin", $"{ IsAdminUser }"),
+                        Utils.ParamsToLog("user_id", $"{ User.Id }")
                     );
                     return;
                 }
@@ -367,7 +386,11 @@ namespace CoreApi.Services
                     });
                 }
                 if (await __DBContext.SaveChangesAsync() <= 0) {
-                    LogError($"TraceId: { TraceId }, 'SendEmailSocialUserForgotPassword', Can't save changes after send email, user_id: { User.Id }, is_admin: { IsAdminUser }");
+                    WriteLog(LOG_LEVEL.ERROR, TraceId, $"Can't save changes after send email",
+                        Utils.ParamsToLog("func_handler", $"{ System.Reflection.MethodBase.GetCurrentMethod().Name }"),
+                        Utils.ParamsToLog("is_admin", $"{ IsAdminUser }"),
+                        Utils.ParamsToLog("user_id", $"{ User.Id }")
+                    );
                     return;
                 }
             }

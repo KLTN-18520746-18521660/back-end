@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -18,7 +19,6 @@ namespace CoreApi.Controllers.Social.User
     {
         public GetSocialUserByNameController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "GetSocialUserByName";
         }
 
         [HttpGet("{user_name}")]
@@ -30,9 +30,9 @@ namespace CoreApi.Controllers.Social.User
                                                            [FromRoute(Name = "user_name")] string       __UserName,
                                                            [FromHeader(Name = "session_token")] string  SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionSocialUserManagement, __SocialUserManagement);
             #endregion
             try {
                 #region Validate params
@@ -78,9 +78,9 @@ namespace CoreApi.Controllers.Social.User
                                                                     [FromRoute(Name = "user_name")] string      __UserName,
                                                                     [FromHeader(Name = "session_token")] string SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionSocialUserManagement, __SocialUserManagement);
             #endregion
             try {
                 #region Validate params

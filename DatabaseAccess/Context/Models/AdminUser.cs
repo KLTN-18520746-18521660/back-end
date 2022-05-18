@@ -229,15 +229,15 @@ namespace DatabaseAccess.Context.Models
             List<AdminUser> ListData = new ()
             {
                 new AdminUser() {
-                    Id = DBCommon.FIRST_ADMIN_USER_ID,
-                    UserName = DBCommon.FIRST_ADMIN_USER_NAME,
-                    DisplayName = "Administrator",
-                    Salt = PasswordEncryptor.GenerateSalt(),
-                    Password = DBCommon.FIRST_ADMIN_USER_NAME,
-                    Email = "admin@admin",
-                    Status = new EntityStatus(EntityStatusType.AdminUser, StatusType.Readonly),
-                    SettingsStr = "{}",
-                    CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
+                    Id                  = DBCommon.FIRST_ADMIN_USER_ID,
+                    UserName            = DBCommon.FIRST_ADMIN_USER_NAME,
+                    DisplayName         = "Administrator",
+                    Salt                = DBCommon.FIRST_ADMIN_USER_SALT,
+                    Password            = DBCommon.FIRST_ADMIN_USER_NAME,
+                    Email               = "admin@admin",
+                    Status              = new EntityStatus(EntityStatusType.AdminUser, StatusType.Readonly),
+                    SettingsStr         = "{}",
+                    CreatedTimestamp    = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
                 }
             };
             return ListData;

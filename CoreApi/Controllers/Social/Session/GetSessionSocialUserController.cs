@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -19,7 +20,6 @@ namespace CoreApi.Controllers.Social.Session
     {
         public GetSessionSocialUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "GetSessionSocialUser";
         }
 
         /// <summary>
@@ -74,8 +74,9 @@ namespace CoreApi.Controllers.Social.Session
         public async Task<IActionResult> GetSessions([FromServices] SessionSocialUserManagement     __SessionSocialUserManagement,
                                                      [FromHeader(Name = "session_token")] string    SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionSocialUserManagement);
             #endregion
             try {
                 #region Get session

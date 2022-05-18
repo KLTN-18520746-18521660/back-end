@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Models;
 using CoreApi.Services;
@@ -23,7 +24,6 @@ namespace CoreApi.Controllers.Social.User
     {
         public SocialUserForgotPasswordController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "SocialUserForgotPassword";
         }
 
         [HttpPost("")]
@@ -36,8 +36,9 @@ namespace CoreApi.Controllers.Social.User
                                                                    [FromServices] Channel<EmailChannel> __EmailChannel,
                                                                    [FromBody] ForgotPasswordModel       __ModelData)
         {
-            #region Set TraceId for services
-            __SocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SocialUserManagement);
             #endregion
             try {
                 #region Get config values
@@ -102,8 +103,9 @@ namespace CoreApi.Controllers.Social.User
                                                         [FromQuery(Name = "d")] string      RawDate,
                                                         [FromQuery(Name = "s")] string      State)
         {
-            #region Set TraceId for services
-            __SocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SocialUserManagement);
             #endregion
             try {
                 #region Get config values

@@ -45,7 +45,7 @@ namespace Common
                     Value = new string('*', 5);
                 } else if (COMMON_DEFINE.CENSOR_KEY.Contains(PName)) {
                     Value = Value.Length > 3
-                        ? $"{ Value.Substring(0, 3) }{ new string('*', Value.Length - 3) }"
+                        ? $"{ Value.Substring(0, 3) }{ new string('*', Value.Length > 5 ? 5 : Value.Length - 3 ) }"
                         : new string('*', Value.Length);
                 }
             }
@@ -61,6 +61,8 @@ namespace Common
             } catch (JsonReaderException) {
                 return false;
             }
+            // $regex.= '\[(?:(?1)(?:,(?1))*)?\s*\]|'; //arrays
+            // $regex.= '\{(?:\s*'.$regexString.'\s*:(?1)(?:,\s*'.$regexString.'\s*:(?1))*)?\s*\}';    //objects
         }
         public static bool IsJsonObject(string Data)
         {

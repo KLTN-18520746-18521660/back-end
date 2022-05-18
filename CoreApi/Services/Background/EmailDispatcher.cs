@@ -1,14 +1,11 @@
-
-
+using Common;
+using CoreApi.Common.Base;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using CoreApi.Common;
-using DatabaseAccess.Context;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Newtonsoft.Json.Linq;
 
 namespace CoreApi.Services.Background
 {
@@ -31,7 +28,7 @@ namespace CoreApi.Services.Background
                                Channel<EmailChannel> _Channel)
             : base(_IServiceProvider)
         {
-            __ServiceName = "EmailDispatcher";
+            // __ServiceName = "EmailDispatcher";
             __Channel = _Channel;
         }
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -60,7 +57,9 @@ namespace CoreApi.Services.Background
                         }
                     }
                 } catch (Exception e) {
-                    LogError($"TraceId: { reqToSendEmail.TraceId }, Unhandle exception: { e.ToString() }");
+                    WriteLog(LOG_LEVEL.ERROR, reqToSendEmail.TraceId, "Unhandle exception",
+                        Utils.ParamsToLog("exception_message", e.ToString())
+                    );
                 }
             }
         }

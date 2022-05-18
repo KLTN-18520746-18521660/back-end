@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -19,7 +20,6 @@ namespace CoreApi.Controllers.Social.Category
     {
         public GetCategoryController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "GetCategory";
         }
 
         [HttpGet("")]
@@ -30,9 +30,12 @@ namespace CoreApi.Controllers.Social.Category
                                                        [FromServices] SocialCategoryManagement      __SocialCategoryManagement,
                                                        [FromHeader(Name = "session_token")] string  SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialCategoryManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(
+                __SessionSocialUserManagement,
+                __SocialCategoryManagement
+            );
             #endregion
             try {
                 #region Get session (not required)
@@ -71,9 +74,12 @@ namespace CoreApi.Controllers.Social.Category
                                                              [FromRoute(Name = "category")] string          __Category,
                                                              [FromHeader(Name = "session_token")] string    SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialCategoryManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(
+                __SessionSocialUserManagement,
+                __SocialCategoryManagement
+            );
             #endregion
             try {
                 #region Get session (not required)

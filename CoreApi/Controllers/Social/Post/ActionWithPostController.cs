@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Common.Status;
@@ -31,7 +32,6 @@ namespace CoreApi.Controllers.Social.Post
 
         public ActionWithPostController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "ActionWithPost";
         }
 
         [HttpPost("{post_slug}")]
@@ -48,9 +48,9 @@ namespace CoreApi.Controllers.Social.Post
                                                     [FromQuery(Name = "action")] string         Action,
                                                     [FromHeader(Name = "session_token")] string SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialPostManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionSocialUserManagement, __SocialPostManagement);
             #endregion
             try {
                 #region Get session

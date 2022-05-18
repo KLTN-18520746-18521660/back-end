@@ -92,35 +92,35 @@ namespace DatabaseAccess.Context.Models
             {
                 new SocialUserRight()
                 {
-                    Id = 1,
-                    RightName = "post",
-                    DisplayName = "Post",
-                    Describe = "Can create, interactive posts.",
-                    Status = new EntityStatus(EntityStatusType.SocialUserRight, StatusType.Readonly)
+                    Id              = 1,
+                    RightName       = "post",
+                    DisplayName     = "Post",
+                    Describe        = "Can create, interactive posts.",
+                    Status          = new EntityStatus(EntityStatusType.SocialUserRight, StatusType.Readonly)
                 },
                 new SocialUserRight()
                 {
-                    Id = 2,
-                    RightName = "comment",
-                    DisplayName = "Comment",
-                    Describe = "Can create, interactive comment.",
-                    Status = new EntityStatus(EntityStatusType.SocialUserRight, StatusType.Readonly)
+                    Id              = 2,
+                    RightName       = "comment",
+                    DisplayName     = "Comment",
+                    Describe        = "Can create, interactive comment.",
+                    Status          = new EntityStatus(EntityStatusType.SocialUserRight, StatusType.Readonly)
                 },
                 new SocialUserRight()
                 {
-                    Id = 3,
-                    RightName = "report",
-                    DisplayName = "Report",
-                    Describe = "Can create, interactive report.",
-                    Status = new EntityStatus(EntityStatusType.SocialUserRight, StatusType.Readonly)
+                    Id              = 3,
+                    RightName       = "report",
+                    DisplayName     = "Report",
+                    Describe        = "Can create, interactive report.",
+                    Status          = new EntityStatus(EntityStatusType.SocialUserRight, StatusType.Readonly)
                 },
                 new SocialUserRight()
                 {
-                    Id = 4,
-                    RightName = "upload",
-                    DisplayName = "Upload",
-                    Describe = "Can create, interactive report.",
-                    Status = new EntityStatus(EntityStatusType.SocialUserRight, StatusType.Readonly)
+                    Id              = 4,
+                    RightName       = "upload",
+                    DisplayName     = "Upload",
+                    Describe        = "Can create, interactive report.",
+                    Status          = new EntityStatus(EntityStatusType.SocialUserRight, StatusType.Readonly)
                 }
             };
             return ListData;
@@ -139,9 +139,9 @@ namespace DatabaseAccess.Context.Models
     }
     public static class SOCIAL_RIGHTS
     {
-        public static readonly string POST = "post";
-        public static readonly string COMMENT = "comment";
-        public static readonly string REPORT = "report";
-        public static readonly string UPLOAD = "upload";
+        public static readonly string POST      = "post";
+        public static readonly string COMMENT   = "comment";
+        public static readonly string REPORT    = "report";
+        public static readonly string UPLOAD    = "upload";
     }
 }

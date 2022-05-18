@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Models.ModifyModels;
 using CoreApi.Services;
@@ -20,7 +21,6 @@ namespace CoreApi.Controllers.Social.Post
     {
         public ModifyPostController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "ModifyPost";
         }
 
         /// <summary>
@@ -85,11 +85,14 @@ namespace CoreApi.Controllers.Social.Post
                                                     [FromBody] SocialPostModifyModel            __ModelData,
                                                     [FromHeader(Name = "session_token")] string SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialCategoryManagement.SetTraceId(TraceId);
-            __SocialPostManagement.SetTraceId(TraceId);
-            __SocialTagManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(
+                __SessionSocialUserManagement,
+                __SocialCategoryManagement,
+                __SocialPostManagement,
+                __SocialTagManagement
+            );
             #endregion
             try {
                 #region Get session

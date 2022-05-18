@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Models;
 using CoreApi.Services;
@@ -21,10 +22,8 @@ namespace CoreApi.Controllers.Admin.User
     [Route("/api/admin/user/changepassword")]
     public class AdminUserChangePasswordController : BaseController
     {
-        public AdminUserChangePasswordController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public AdminUserChangePasswordController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
-            ControllerName    = "AdminUserChangePassword";
-            IsAdminController = true;
         }
 
         [HttpPost("")]
@@ -38,9 +37,9 @@ namespace CoreApi.Controllers.Admin.User
                                                         [FromBody] Models.ChangePasswordModel       __ModelData,
                                                         [FromHeader(Name = "session_token")] string SessionToken)
         {
-            #region Set TraceId for services
-            __SessionAdminUserManagement.SetTraceId(TraceId);
-            __AdminUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionAdminUserManagement, __AdminUserManagement);
             #endregion
             try {
                 #region Get session

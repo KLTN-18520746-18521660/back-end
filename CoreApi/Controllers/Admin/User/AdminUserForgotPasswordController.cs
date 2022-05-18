@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Models;
 using CoreApi.Services;
@@ -21,10 +22,8 @@ namespace CoreApi.Controllers.Admin.User
     [Route("/api/admin/user/forgotpassword")]
     public class AdminUserForgotPasswordController : BaseController
     {
-        public AdminUserForgotPasswordController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public AdminUserForgotPasswordController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
-            ControllerName    = "AdminUserForgotPassword";
-            IsAdminController = true;
         }
 
         [HttpPost("")]
@@ -37,8 +36,9 @@ namespace CoreApi.Controllers.Admin.User
                                                                    [FromServices] Channel<EmailChannel> __EmailChannel,
                                                                    [FromBody] ForgotPasswordModel       __ModelData)
         {
-            #region Set TraceId for services
-            __AdminUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__AdminUserManagement);
             #endregion
             try {
                 #region Get config values
@@ -103,8 +103,9 @@ namespace CoreApi.Controllers.Admin.User
                                                         [FromQuery(Name = "d")] string      RawDate,
                                                         [FromQuery(Name = "s")] string      State)
         {
-            #region Set TraceId for services
-            __AdminUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__AdminUserManagement);
             #endregion
             try {
                 #region Get config values

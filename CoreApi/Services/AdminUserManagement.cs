@@ -1,19 +1,17 @@
-using Serilog;
+using Common;
+using CoreApi.Common;
+using CoreApi.Common.Base;
+using DatabaseAccess.Common;
+using DatabaseAccess.Common.Models;
+using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context;
 using DatabaseAccess.Context.Models;
-using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
-using System.Linq;
-using DatabaseAccess.Common;
-using DatabaseAccess.Common.Status;
-using DatabaseAccess.Common.Models;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-
-using CoreApi.Common;
-using System.Linq.Expressions;
-using Common;
 
 namespace CoreApi.Services
 {

@@ -193,17 +193,17 @@ namespace DatabaseAccess.Context.Models
 
     public static class ADMIN_RIGHTS
     {
-        public static readonly string DASHBOARD = "dashboard";
-        public static readonly string CATEGORY = "category";
-        public static readonly string TOPIC = "topic";
-        public static readonly string TAG = "tag";
-        public static readonly string POST = "post";
-        public static readonly string COMMENT = "comment";
-        public static readonly string SECURITY = "security";
-        public static readonly string SOCIAL_USER = "social_user";
-        public static readonly string ADMIN_USER = "admin_user";
-        public static readonly string LOG = "log";
-        public static readonly string CONFIG = "config";
-        public static readonly string UPLOAD = "upload";
+        public static readonly string DASHBOARD     = "dashboard";
+        public static readonly string CATEGORY      = "category";
+        public static readonly string TOPIC         = "topic";
+        public static readonly string TAG           = "tag";
+        public static readonly string POST          = "post";
+        public static readonly string COMMENT       = "comment";
+        public static readonly string SECURITY      = "security";
+        public static readonly string SOCIAL_USER   = "social_user";
+        public static readonly string ADMIN_USER    = "admin_user";
+        public static readonly string LOG           = "log";
+        public static readonly string CONFIG        = "config";
+        public static readonly string UPLOAD        = "upload";
     }
 }

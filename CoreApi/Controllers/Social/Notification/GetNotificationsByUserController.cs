@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -75,9 +76,9 @@ namespace CoreApi.Controllers.Social.Notification
                                                                 [FromQuery(Name = "size")] int              Size    = 20,
                                                                 [FromQuery(Name = "status")] string         Status  = default)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionSocialUserManagement, __SocialUserManagement);
             #endregion
             try {
                 #region Get session

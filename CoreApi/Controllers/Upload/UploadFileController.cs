@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -42,10 +43,8 @@ namespace CoreApi.Controllers.Upload
             "common",
         };
 
-        public UploadFileController(BaseConfig _BaseConfig)
-            : base(_BaseConfig)
+        public UploadFileController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            // ControllerName = "SocialUserLogin";
         }
 
         [NonAction]

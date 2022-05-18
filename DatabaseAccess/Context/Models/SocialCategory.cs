@@ -43,7 +43,7 @@ namespace DatabaseAccess.Context.Models
         public string DisplayName { get; set; }
         [Required]
         [Column("describe")]
-        [StringLength(100)]
+        [StringLength(300)]
         public string Describe { get; set; }
         [Required]
         [Column("slug")]
@@ -175,6 +175,27 @@ namespace DatabaseAccess.Context.Models
 
         public static List<SocialCategory> GetDefaultData()
         {
+//             List<SocialTag> ListData = new();
+//             var (listDataSeed, errMsg) = Utils.LoadListJsonFromFile<SocialTagSeed>(DataSeed.DataPath.SOCIAL_TAG);
+//             if (listDataSeed == default) {
+// #if DEBUG
+//                 throw new Exception($"GetDefaultData for SocialTag failed, error: { errMsg }");
+// #else
+//                 listDataSeed = new();
+// #endif
+//             }
+//             listDataSeed.ForEach(e => {
+//                 ListData.Add(new SocialTag
+//                 {
+//                     Id = e.id,
+//                     Tag = e.tag,
+//                     Name = e.name,
+//                     Describe = e.describe,
+//                     CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
+//                     Status = new EntityStatus(EntityStatusType.SocialTag, StatusType.Readonly),
+//                 });
+//             });
+//             return ListData;
             List<SocialCategory> ListData = new()
             {
                 new SocialCategory

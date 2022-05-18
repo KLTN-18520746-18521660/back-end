@@ -1,5 +1,6 @@
 // using Common;
-// using CoreApi.Common;
+// using CoreApi.Common.Base;
+using CoreApi.Common;
 // using CoreApi.Services;
 // using DatabaseAccess.Context.Models;
 // using Microsoft.AspNetCore.Http;
@@ -74,12 +75,15 @@
 //             if (!LoadConfigSuccess) {
 //                 return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
 //             }
-//             #region Set TraceId for services
-//             __SessionSocialUserManagement.SetTraceId(TraceId);
-//             __SocialCategoryManagement.SetTraceId(TraceId);
-//             __SocialUserManagement.SetTraceId(TraceId);
-//             __SocialPostManagement.SetTraceId(TraceId);
-//             __SocialTagManagement.SetTraceId(TraceId);
+//             #region Init Handler
+                // SetRunningFunction();
+                // SetTraceIdForServices(
+                //     __SessionSocialUserManagement,
+                //     __SocialCategoryManagement,
+                //     __SocialUserManagement,
+                //     __SocialPostManagement,
+                //     __SocialTagManagement
+                // );
 //             #endregion
 //             try {
 //                 #region Validate params

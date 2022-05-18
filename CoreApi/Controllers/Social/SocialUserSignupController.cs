@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using CoreApi.Services.Background;
@@ -19,7 +20,6 @@ namespace CoreApi.Controllers.Social
     {
         public SocialUserSignupController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "SocialUserSignup";
         }
 
         /// <summary>
@@ -56,8 +56,9 @@ namespace CoreApi.Controllers.Social
                                                           [FromServices] Channel<EmailChannel>  __EmailChannel,
                                                           [FromBody] ParserSocialUser           __ParserModel)
         {
-            #region Set TraceId for services
-            __SocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SocialUserManagement);
             #endregion
             try {
                 #region Parse Social User

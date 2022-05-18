@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Models;
 using CoreApi.Services;
@@ -23,7 +24,6 @@ namespace CoreApi.Controllers.Social.User
     {
         public SocialUserConfirmController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "SocialUserConfirm";
         }
 
         [HttpGet("")]
@@ -37,8 +37,9 @@ namespace CoreApi.Controllers.Social.User
                                                         [FromQuery(Name = "d")] string      RawDate,
                                                         [FromQuery(Name = "s")] string      State)
         {
-            #region Set TraceId for services
-            __SocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SocialUserManagement);
             #endregion
             try {
                 #region Get config values
@@ -131,8 +132,9 @@ namespace CoreApi.Controllers.Social.User
         public async Task<IActionResult> Confirm([FromServices] SocialUserManagement    __SocialUserManagement,
                                                  [FromBody] ConfirmUserModel            __ModelData)
         {
-            #region Set TraceId for services
-            __SocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SocialUserManagement);
             #endregion
             try {
                 #region Get config values
@@ -250,9 +252,9 @@ namespace CoreApi.Controllers.Social.User
                                                           [FromServices] Channel<EmailChannel>          __EmailChannel,
                                                           [FromHeader(Name = "session_token")] string   SessionToken)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionSocialUserManagement, __SocialUserManagement);
             #endregion
             try {
                 #region Get config values

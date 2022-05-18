@@ -17,8 +17,9 @@ using System.Threading.Tasks;
 using System.Threading;
 using Newtonsoft.Json;
 using Serilog.Events;
+using System.Runtime.CompilerServices;
 
-namespace CoreApi.Common
+namespace CoreApi.Common.Base
 {
     public static class HEADER_KEYS {
         public static readonly string API_KEY       = "session_token";
@@ -54,7 +55,7 @@ namespace CoreApi.Common
     [Produces("application/json")]
     public class BaseController : ControllerBase
     {
-        private static readonly int                             MAX_SIZE_OF_LOG_PARAMS = 15;
+        private static readonly int                             MAX_SIZE_OF_LOG_PARAMS = 15;  // It can not change in runtime
         private ILogger                                         __Logger;
         private bool                                            __IsAdminController;
         private string                                          __TraceId;
@@ -66,8 +67,8 @@ namespace CoreApi.Common
 
         #region Properties
         protected BaseConfig                    __BaseConfig { get; private set; }
-        public string TraceId                   { get => __TraceId; protected set { __TraceId = value; } }
-        public string ControllerName            { get => __ControllerName; protected set { __ControllerName = value; } }
+        public string TraceId                   { get => __TraceId; private set { __TraceId = value; } }
+        public string ControllerName            { get => __ControllerName; private set { __ControllerName = value; } }
         public string SessionTokenHeaderKey     { get; private set; }
         public bool IsAdminController {
             get => __IsAdminController;
@@ -88,8 +89,7 @@ namespace CoreApi.Common
             __TraceId               = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
             __BaseConfig            = _BaseConfig;
             // __ControllerName        = "BaseController";
-            __ControllerName = Utils.GetHandlerNameFromClassName(this.GetType().Name);
-            __ControllerName        = this.GetType().Name;
+            __ControllerName        = Utils.GetHandlerNameFromClassName(this.GetType().Name);
             __DataContext           = new Dictionary<string, object>();
             __LogParams             = new List<(string, object)>();
             __DataContextMutex      = new Mutex();
@@ -170,15 +170,16 @@ namespace CoreApi.Common
         [NonAction]
         protected virtual string CreateLogMessage(string Msg, params string[] Params)
         {
-            var _Msg = new StringBuilder(string.Format("TraceId: {0}, Handler: {1}.{2}", TraceId, ControllerName, __RunningFunction));
+            var _Msg        = new StringBuilder(string.Format("TraceId: {0}, Handler: {1}.{2}", TraceId, ControllerName, __RunningFunction));
+            var ParamsStr   = string.Join(", ", Params);
             _Msg.Append(", Message: ").Append(Msg);
-            if (Params.Length != 0) {
-                _Msg.Append(", ").Append(string.Join(", ", Params));
+            if (ParamsStr != string.Empty) {
+                _Msg.Append(", ").Append(ParamsStr);
             }
             return _Msg.ToString();
         }
         [NonAction]
-        protected virtual string CreateLogParams()
+        protected virtual string CreateLogParamsMessage()
         {
             var Params = __LogParams.Select(e => Param(e.PName, e.PValue)).ToArray();
             return string.Join(", ", Params);
@@ -194,7 +195,7 @@ namespace CoreApi.Common
                 if (CustomParams.Length != 0) {
                     CustomParamsStr.Append(", ");
                 }
-                CustomParamsStr.Append(CreateLogParams());
+                CustomParamsStr.Append(CreateLogParamsMessage());
             }
             __Logger.Write((LogEventLevel) Level, CreateLogMessage(Message, CustomParamsStr.ToString()));
         }
@@ -244,9 +245,9 @@ namespace CoreApi.Common
             }
         }
         [NonAction]
-        protected virtual void SetRunningFunction()
+        protected virtual void SetRunningFunction([CallerMemberName] string MemberName = "")
         {
-            __RunningFunction = (new System.Diagnostics.StackTrace()).GetFrame(1).GetMethod().Name;
+            __RunningFunction = MemberName;
         }
         [NonAction]
         protected async Task<(BaseModel, IActionResult)> GetSessionToken<T>(T SessionManager,

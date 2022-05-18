@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Models;
 using CoreApi.Services;
@@ -22,7 +23,6 @@ namespace CoreApi.Controllers.Social.User
     {
         public SocialUserNewPasswordController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "SocialUserNewPassword";
         }
 
         [HttpPost("")]
@@ -33,8 +33,9 @@ namespace CoreApi.Controllers.Social.User
         public async Task<IActionResult> NewPassword([FromServices] SocialUserManagement    __SocialUserManagement,
                                                      [FromBody] NewPasswordModel            __ModelData)
         {
-            #region Set TraceId for services
-            __SocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SocialUserManagement);
             #endregion
             try {
                 #region Get config values

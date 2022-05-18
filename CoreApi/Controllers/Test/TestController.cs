@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using DatabaseAccess.Context;
 using Newtonsoft.Json.Linq;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using Common;
 // using System.Data.Entity;
@@ -20,7 +21,6 @@ namespace CoreApi.Controllers.Test
     public class TestController : BaseController
     {
         public TestController(BaseConfig _BaseConfig) : base(_BaseConfig) {
-            ControllerName = "TestController";
         }
 
         [HttpGet]

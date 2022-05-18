@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Common.Status;
@@ -21,7 +22,6 @@ namespace CoreApi.Controllers.Social.Comment
     {
         public GetCommentByPostController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "GetCommentByPost";
         }
 
         [HttpGet("post/{post_slug}")]
@@ -41,10 +41,13 @@ namespace CoreApi.Controllers.Social.Comment
                                                           [FromQuery(Name = "status")] string               Status              = default,
                                                           [FromQuery] Models.OrderModel                     Orders              = default)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialCommentManagement.SetTraceId(TraceId);
-            __SocialPostManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(
+                __SessionSocialUserManagement,
+                __SocialCommentManagement,
+                __SocialPostManagement
+            );
             #endregion
             try {
                 #region Get config values

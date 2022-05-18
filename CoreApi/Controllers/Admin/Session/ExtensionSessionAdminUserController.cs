@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -15,10 +16,8 @@ namespace CoreApi.Controllers.Admin.Session
     [Route("/api/admin/session")]
     public class ExtensionSessionAdminUserController : BaseController
     {
-        public ExtensionSessionAdminUserController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public ExtensionSessionAdminUserController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
-            ControllerName = "ExtensionSessionAdminUser";
-            IsAdminController = true;
         }
 
         /// <summary>
@@ -73,8 +72,9 @@ namespace CoreApi.Controllers.Admin.Session
         public async Task<IActionResult> ExtensionSession([FromServices] SessionAdminUserManagement         __SessionAdminUserManagement,
                                                           [FromHeader(Name = "session_token_admin")] string SessionToken)
         {
-            #region Set TraceId for services
-            __SessionAdminUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionAdminUserManagement);
             #endregion
             try {
                 #region Get config values

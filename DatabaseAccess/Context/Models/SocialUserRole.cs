@@ -112,11 +112,11 @@ namespace DatabaseAccess.Context.Models
             {
                 new SocialUserRole()
                 {
-                    Id = 1,
-                    RoleName = "user",
+                    Id          = 1,
+                    RoleName    = "user",
                     DisplayName = "User",
-                    Describe = "Normal user",
-                    Status = new EntityStatus(EntityStatusType.SocialUserRole, StatusType.Readonly),
+                    Describe    = "Normal user",
+                    Status      = new EntityStatus(EntityStatusType.SocialUserRole, StatusType.Readonly),
                 }
             };
             return ListData;

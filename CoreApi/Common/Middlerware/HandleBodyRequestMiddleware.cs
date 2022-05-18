@@ -14,9 +14,10 @@ using Serilog;
 using System.Diagnostics;
 using System.IO;
 using Common;
+using CoreApi.Common.Base;
 using Newtonsoft.Json.Linq;
 
-namespace CoreApi.Common
+namespace CoreApi.Common.Middlerware
 {
     public class HandleBodyRequestMiddleware
     {
@@ -30,7 +31,7 @@ namespace CoreApi.Common
         public async Task InvokeAsync(HttpContext Context)
         {
             if (Context.Request.Path.StartsWithSegments("/api")
-                && (Context.Request.Method == Common.HTTP_METHODS.POST || Context.Request.Method == Common.HTTP_METHODS.PUT)
+                && (Context.Request.Method == HTTP_METHODS.POST || Context.Request.Method == HTTP_METHODS.PUT)
                 && !Context.Request.Path.StartsWithSegments("/api/upload")
             ) {
                 var Stream      = Context.Request.Body;// currently holds the original stream

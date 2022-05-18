@@ -1,22 +1,19 @@
-using Serilog;
-using DatabaseAccess.Context;
-using DatabaseAccess.Context.Models;
-using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
-using System.Linq;
-using System;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-
-using CoreApi.Common;
-using System.Text;
-using Newtonsoft.Json;
-using System.Threading;
 using Common;
-using Microsoft.Extensions.DependencyInjection;
-using System.Text.RegularExpressions;
+using CoreApi.Common;
+using CoreApi.Common.Base;
 using DatabaseAccess.Common.Actions;
 using DatabaseAccess.Common.Status;
+using DatabaseAccess.Context;
+using DatabaseAccess.Context.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CoreApi.Services
 {
@@ -155,7 +152,10 @@ namespace CoreApi.Services
                         var (post, error) = await __SocialPostManagement.FindPostById(postId);
                         if (error != ErrorCodes.NO_ERROR) {
                             ret.Add("error", $"ErrorCode: { error }");
-                            LogError($"Not found post, PostId: { postId }");
+                            WriteLog(LOG_LEVEL.ERROR, modelData.TraceId, "Not found post",
+                                Utils.ParamsToLog("func_handler", $"{ System.Reflection.MethodBase.GetCurrentMethod().Name }"),
+                                Utils.ParamsToLog("post_id", postId)
+                            );
                             break;
                         }
                         break;
@@ -170,7 +170,10 @@ namespace CoreApi.Services
                         var (comment, error) = await __SocialCommentManagement.FindCommentById(commentId);
                         if (error != ErrorCodes.NO_ERROR) {
                             ret.Add("error", $"ErrorCode: { error }");
-                            LogError($"Not found comment, CommentId: { commentId }");
+                            WriteLog(LOG_LEVEL.ERROR, modelData.TraceId, "Not found post",
+                                Utils.ParamsToLog("func_handler", $"{ System.Reflection.MethodBase.GetCurrentMethod().Name }"),
+                                Utils.ParamsToLog("comment_id", commentId)
+                            );
                             break;
                         }
                         break;
@@ -185,7 +188,10 @@ namespace CoreApi.Services
                         var (user, error) = await __SocialUserManagement.FindUserById(userId);
                         if (error != ErrorCodes.NO_ERROR) {
                             ret.Add("error", $"ErrorCode: { error }");
-                            LogError($"Not found user, UserId: { userId }");
+                            WriteLog(LOG_LEVEL.ERROR, modelData.TraceId, "Not found post",
+                                Utils.ParamsToLog("func_handler", $"{ System.Reflection.MethodBase.GetCurrentMethod().Name }"),
+                                Utils.ParamsToLog("user_id", userId)
+                            );
                             break;
                         }
                         break;
@@ -203,35 +209,59 @@ namespace CoreApi.Services
             {
                 var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
                 await __DBContext.SocialNotifications.AddAsync(notification);
-                if (await __DBContext.SaveChangesAsync() <= 0) {
-                    LogError($"TraceId: { traceId }, AddNotification failed, owner: { notification.Owner }, type: { notification.Type }, conent: { notification.ContentStr }");
+                if (await __DBContext.SaveChangesAsync() < 0) {
+                    WriteLog(LOG_LEVEL.ERROR, traceId, "add notification failed",
+                        Utils.ParamsToLog("func_handler", $"{ System.Reflection.MethodBase.GetCurrentMethod().Name }"),
+                        Utils.ParamsToLog("owner", notification.Owner),
+                        Utils.ParamsToLog("type", notification.Owner)
+                    );
                 } else {
-                    LogDebug($"TraceId: { traceId }, AddNotification success, owner: { notification.Owner }, type: { notification.Type }, conent: { notification.ContentStr }");
+                    WriteLog(LOG_LEVEL.DEBUG, traceId, "add notification successfully",
+                        Utils.ParamsToLog("owner", notification.Owner),
+                        Utils.ParamsToLog("type", notification.Owner)
+                    );
                 }
             }
         }
 
-        protected async Task AddRangeNotification(SocialNotification[] notification, string traceId)
+        protected async Task AddRangeNotification(SocialNotification[] notifications, string traceId)
         {
             using (var scope = __ServiceProvider.CreateScope())
             {
                 var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
-                await __DBContext.SocialNotifications.AddRangeAsync(notification);
-                if (await __DBContext.SaveChangesAsync() <= 0) {
-                    LogError($"TraceId: { traceId }, AddRangeNotification failed.");
+                await __DBContext.SocialNotifications.AddRangeAsync(notifications);
+                if (await __DBContext.SaveChangesAsync() < 0) {
+                    WriteLog(LOG_LEVEL.ERROR, traceId, "add notifications failed",
+                        Utils.ParamsToLog("func_handler", $"{ System.Reflection.MethodBase.GetCurrentMethod().Name }")
+                    );
                 } else {
-                    LogDebug($"TraceId: { traceId }, AddRangeNotification success.");
+                    WriteLog(LOG_LEVEL.INFO, traceId, "AddRangeNotification successfully");
                 }
             }
         }
-
+        protected void LogNewNotificationRequest(BaseNotificationSenderModel ModelData, NotificationType Type, [CallerMemberName] string MemberName = "")
+        {
+            WriteLog(LOG_LEVEL.INFO, ModelData.TraceId, "Received new notification",
+                Utils.ParamsToLog("type", Type),
+                Utils.ParamsToLog("action", ModelData.ActionStr),
+                Utils.ParamsToLog("action_of_user_id", ModelData.ActionOfUserId),
+                Utils.ParamsToLog("action_of_admin_user_id", ModelData.ActionOfAdminUserId),
+                Utils.ParamsToLog("func_handler", $"{ MemberName }")
+            );
+        }
+        protected void LogHandleSuccessNotificationRequest(BaseNotificationSenderModel ModelData, NotificationType Type, [CallerMemberName] string MemberName = "")
+        {
+            WriteLog(LOG_LEVEL.INFO, ModelData.TraceId, "Handle new notification successfully",
+                Utils.ParamsToLog("type", Type.ToString()),
+                Utils.ParamsToLog("func_handler", $"{ MemberName }")
+            );
+        }
         protected async Task SendNotificationTypeActionWithPost(PostNotificationModel modelData)
         {
             var type = NotificationType.ACTION_WITH_POST;
             var dataToDB = await GetValueToDB(type, modelData);
-            LogInformation($"TraceId: { modelData.TraceId }, Received new notification, type = { type }, Action = { modelData.ActionStr }, ActionOfUserId = { modelData.ActionOfUserId }, ActionOfAdminUserId = { modelData.ActionOfAdminUserId }");
+            LogNewNotificationRequest(modelData, type);
             if (dataToDB.Count != 0) {
-                LogError($"TraceId: { modelData.TraceId }, Invalid notification data to save to DB. type: { type }");
                 return;
             }
             switch (modelData.Action) {
@@ -335,16 +365,15 @@ namespace CoreApi.Services
                 default:
                     throw new Exception($"TraceId: { modelData.TraceId }, Invalid action with post: { modelData.Action }");
             }
-            LogInformation($"TraceId: { modelData.TraceId }, Handle new notification successfully.");
+            LogHandleSuccessNotificationRequest(modelData, type);
         }
 
         protected async Task SendNotificationTypeActionWithComment(CommentNotificationModel modelData)
         {
             var type = NotificationType.ACTION_WITH_COMMENT;
             var dataToDB = await GetValueToDB(type, modelData);
-            LogInformation($"TraceId: { modelData.TraceId }, Received new notification, type = { type }, Action = { modelData.ActionStr }, ActionOfUserId = { modelData.ActionOfUserId }, ActionOfAdminUserId = { modelData.ActionOfAdminUserId }");
+            LogNewNotificationRequest(modelData, type);
             if (dataToDB.Count != 0) {
-                LogError($"TraceId: { modelData.TraceId }, Invalid notification data to save to DB. type: { type }");
                 return;
             }
             switch (modelData.Action) {
@@ -447,16 +476,15 @@ namespace CoreApi.Services
                 default:
                     throw new Exception($"TraceId: { modelData.TraceId }, Invalid action with comment: { modelData.Action }");
             }
-            LogInformation($"TraceId: { modelData.TraceId }, Handle new notification successfully.");
+            LogHandleSuccessNotificationRequest(modelData, type);
         }
 
         protected async Task SendNotificationTypeActionWithUser(UserNotificationModel modelData)
         {
             var type = NotificationType.ACTION_WITH_USER;
             var dataToDB = await GetValueToDB(type, modelData);
-            LogInformation($"TraceId: { modelData.TraceId }, Received new notification, type = { type }, Action = { modelData.ActionStr }, ActionOfUserId = { modelData.ActionOfUserId }, ActionOfAdminUserId = { modelData.ActionOfAdminUserId }");
+            LogNewNotificationRequest(modelData, type);
             if (dataToDB.Count != 0) {
-                LogError($"TraceId: { modelData.TraceId }, Invalid notification data to save to DB. type: { type }");
                 return;
             }
             switch (modelData.Action) {
@@ -485,7 +513,7 @@ namespace CoreApi.Services
                 default:
                     throw new Exception($"TraceId: { modelData.TraceId }, Invalid action with user: { modelData.Action }");
             }
-            LogInformation($"TraceId: { modelData.TraceId }, Handle new notification successfully.");
+            LogHandleSuccessNotificationRequest(modelData, type);
         }
 
         public async Task SendNotification(NotificationType type, BaseNotificationSenderModel modelData)
@@ -505,7 +533,9 @@ namespace CoreApi.Services
                         throw new Exception($"TraceId: { modelData.TraceId }, Invalid type when send notification: { type }");
                 }
             } catch (Exception e) {
-                LogError(e.ToString());
+                WriteLog(LOG_LEVEL.ERROR, modelData.TraceId, "Unhandle exception",
+                    Utils.ParamsToLog("exception_message", e.ToString())
+                );
             }
         }
 
@@ -665,10 +695,9 @@ namespace CoreApi.Services
                     );
 
                 #region Update content notifications
-                var __BaseConfig = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
-                var (intervalTime, error) = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.NOTIFICATION, SUB_CONFIG_KEY.INTERVAL_TIME);
-                LogWarning(error);
-                var now = DateTime.UtcNow;
+                var __BaseConfig            = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
+                var (intervalTime, _)   = __BaseConfig.GetConfigValue<int>(CONFIG_KEY.NOTIFICATION, SUB_CONFIG_KEY.INTERVAL_TIME);
+                var now                     = DateTime.UtcNow;
                 foreach (var notify in notifications) {
                     if (notify.LastUpdateContent.HasValue == false
                         || (now = notify.LastUpdateContent.Value.ToUniversalTime()).Minute > intervalTime

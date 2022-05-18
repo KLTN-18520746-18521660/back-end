@@ -1,5 +1,6 @@
 using Common;
 using Common.Logger;
+using CoreApi.Common.Base;
 using DatabaseAccess;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -116,8 +117,8 @@ namespace CoreApi
         private static DatabaseAccessConfiguration __DBAccessConfig = DatabaseAccessConfiguration.DefaultDatabaseAccessConfiguration;
         private static SwaggerDocumentConfiguration __SwaggerDocumentConfiguration = SwaggerDocumentConfiguration.DefaultSwaggerDocumentConfiguration;
         private static List<string> __ListeningAddress  = new List<string>();
-        private static List<string> __AllowMethods      = new List<string>(Common.HTTP_METHODS.GetAllowMethods());
-        private static List<string> __AllowHeaders      = new List<string>(Common.HEADER_KEYS.GetAllowHeaders());
+        private static List<string> __AllowMethods      = new List<string>(HTTP_METHODS.GetAllowMethods());
+        private static List<string> __AllowHeaders      = new List<string>(HEADER_KEYS.GetAllowHeaders());
         #endregion
 
         #region Public Get Property

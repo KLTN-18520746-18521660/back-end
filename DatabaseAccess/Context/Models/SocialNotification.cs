@@ -52,7 +52,7 @@ namespace DatabaseAccess.Context.Models
         [Required]
         [Column("content", TypeName = "jsonb")]
         public string ContentStr {
-            get { return Content.ToString(); }
+            get { return Content.ToString(Formatting.None); }
             set { Content = JsonConvert.DeserializeObject<JObject>(value); }
         }
         [Column("last_update_content", TypeName = "timestamp with time zone")]

@@ -1,5 +1,6 @@
 using Common;
 using CoreApi.Common;
+using CoreApi.Common.Base;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
@@ -19,7 +20,6 @@ namespace CoreApi.Controllers.Admin.AuditLog
     {
         public GetAdminAuditLogController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
-            // ControllerName = "GetAdminAuditLog";
         }
 
         /// <summary>

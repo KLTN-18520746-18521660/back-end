@@ -1,4 +1,5 @@
 using Common;
+using CoreApi.Common.Base;
 using CoreApi.Common;
 using CoreApi.Services;
 using DatabaseAccess.Context.Models;
@@ -19,7 +20,6 @@ namespace CoreApi.Controllers.Social.User
     {
         public GetUserFollowerController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
-            ControllerName = "GetUserFollower";
         }
 
         [HttpGet("follower")]
@@ -32,9 +32,9 @@ namespace CoreApi.Controllers.Social.User
                                                          [FromQuery(Name = "start")] int                Start   = 0,
                                                          [FromQuery(Name = "size")] int                 Size    = 20)
         {
-            #region Set TraceId for services
-            __SessionSocialUserManagement.SetTraceId(TraceId);
-            __SocialUserManagement.SetTraceId(TraceId);
+            #region Init Handler
+            SetRunningFunction();
+            SetTraceIdForServices(__SessionSocialUserManagement, __SocialUserManagement);
             #endregion
             try {
                 #region Get session
