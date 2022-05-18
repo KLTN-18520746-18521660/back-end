@@ -173,92 +173,41 @@ namespace DatabaseAccess.Context.Models
             return action != default ? action.Actions.Select(e => e.action).ToArray() : new string[]{};
         }
 
+        class SocialCategorySeed
+        {
+            public long id              { get; set; }
+            public long? parent_id      { get; set; }
+            public string name          { get; set; }
+            public string display_name  { get; set; }
+            public string slug          { get; set; }
+            public string thumbnail     { get; set; }
+            public string describe      { get; set; }
+        }
         public static List<SocialCategory> GetDefaultData()
         {
-//             List<SocialTag> ListData = new();
-//             var (listDataSeed, errMsg) = Utils.LoadListJsonFromFile<SocialTagSeed>(DataSeed.DataPath.SOCIAL_TAG);
-//             if (listDataSeed == default) {
-// #if DEBUG
-//                 throw new Exception($"GetDefaultData for SocialTag failed, error: { errMsg }");
-// #else
-//                 listDataSeed = new();
-// #endif
-//             }
-//             listDataSeed.ForEach(e => {
-//                 ListData.Add(new SocialTag
-//                 {
-//                     Id = e.id,
-//                     Tag = e.tag,
-//                     Name = e.name,
-//                     Describe = e.describe,
-//                     CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
-//                     Status = new EntityStatus(EntityStatusType.SocialTag, StatusType.Readonly),
-//                 });
-//             });
-//             return ListData;
-            List<SocialCategory> ListData = new()
-            {
-                new SocialCategory
+            var ListData = new List<SocialCategory>();
+            var (ListDataSeed, ErrMsg) = Utils.LoadListJsonFromFile<SocialCategorySeed>(DataSeed.DataPath.SOCIAL_CATEGORY);
+            if (ListDataSeed == default) {
+#if DEBUG
+                throw new Exception($"GetDefaultData for SocialCategory failed, error: { ErrMsg }");
+#else
+                ListDataSeed = new();
+#endif
+            }
+            ListDataSeed.ForEach(e => {
+                ListData.Add(new SocialCategory
                 {
-                    Id = 1,
-                    ParentId = default,
-                    Name = "technology",
-                    DisplayName = "Technology",
-                    Describe = "This not a bug this a feature",
-                    Slug = "technology",
-                    Thumbnail = default,
-                    CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
-                    Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Readonly)
-                },
-                new SocialCategory
-                {
-                    Id = 2,
-                    ParentId = default,
-                    Name = "developer",
-                    DisplayName = "Developer",
-                    Describe = "Do not click to this",
-                    Slug = "developer",
-                    Thumbnail = default,
-                    CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
-                    Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Readonly)
-                },
-                new SocialCategory
-                {
-                    Id = 3,
-                    ParentId = default,
-                    Name = "dicussion",
-                    DisplayName = "Dicussion",
-                    Describe = "Search google to have better solution",
-                    Slug = "dicussion",
-                    Thumbnail = default,
-                    CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
-                    Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Readonly)
-                },
-                new SocialCategory
-                {
-                    Id = 4,
-                    ParentId = default,
-                    Name = "blog",
-                    DisplayName = "Blog",
-                    Describe = "Nothing in here",
-                    Slug = "blog",
-                    Thumbnail = default,
-                    CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
-                    Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Readonly)
-                },
-                new SocialCategory
-                {
-                    Id = 5,
-                    ParentId = default,
-                    Name = "left",
-                    DisplayName = "Left",
-                    Describe = "Life die have number",
-                    Slug = "left",
-                    Thumbnail = default,
-                    CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
-                    Status = new EntityStatus(EntityStatusType.SocialCategory, StatusType.Readonly)
-                }
-            };
+                    Id                  = e.id,
+                    ParentId            = e.parent_id,
+                    Name                = e.name,
+                    DisplayName         = e.display_name,
+                    Slug                = e.slug,
+                    Thumbnail           = e.thumbnail,
+                    Describe            = e.describe,
+                    CreatedTimestamp    = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
+                    Status              = new EntityStatus(EntityStatusType.SocialTag, StatusType.Readonly),
+                });
+            });
             return ListData;
         }
     }

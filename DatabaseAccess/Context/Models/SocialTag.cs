@@ -146,12 +146,12 @@ namespace DatabaseAccess.Context.Models
             return action != default ? action.Actions.Select(e => e.action).ToArray() : new string[]{};
         }
 
-        public class SocialTagSeed
+        class SocialTagSeed
         {
-            public long id { get; set; }
-            public string tag { get; set; }
-            public string name { get; set; }
-            public string describe { get; set; }
+            public long id              { get; set; }
+            public string tag           { get; set; }
+            public string name          { get; set; }
+            public string describe      { get; set; }
         }
         public static List<SocialTag> GetDefaultData()
         {
@@ -167,12 +167,12 @@ namespace DatabaseAccess.Context.Models
             listDataSeed.ForEach(e => {
                 ListData.Add(new SocialTag
                 {
-                    Id = e.id,
-                    Tag = e.tag,
-                    Name = e.name,
-                    Describe = e.describe,
-                    CreatedTimestamp = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
-                    Status = new EntityStatus(EntityStatusType.SocialTag, StatusType.Readonly),
+                    Id                  = e.id,
+                    Tag                 = e.tag,
+                    Name                = e.name,
+                    Describe            = e.describe,
+                    CreatedTimestamp    = DBCommon.DEFAULT_DATETIME_FOR_DATA_SEED,
+                    Status              = new EntityStatus(EntityStatusType.SocialTag, StatusType.Readonly),
                 });
             });
             return ListData;
