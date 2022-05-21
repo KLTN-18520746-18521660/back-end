@@ -104,15 +104,17 @@ namespace CoreApi
 
     public class Program
     {
-        public static readonly string APP_NAME                      = "APP-NAME";
-        public static readonly string CONFIG_FILE_PATH              = "./appsettings.json";
+        public static string CONFIG_FILE_PATH                       { get => __CONFIG_FILE_PATH; }
+        public static string __CONFIG_FILE_PATH                     = "./appsettings.json";
+        public static readonly string APP_NAME                      = "oOwlet Blog";
         private static readonly List<string> __ValidParamsFromArgs  = new List<string>();
         #region Variables
-        private static bool __DropDatabase = false;
+        private static bool __DropDatabase              = false;
+        private static bool __RunWithoutMigrateDatabase = false;
         private static IHost __Host;
         private static ILogger __Logger;
         private static IConfigurationRoot __Configuration;
-        private static ServerConfiguration __ServerConfiguration = ServerConfiguration.DefaultServerConfiguration;
+        private static ServerConfiguration __ServerConfiguration    = ServerConfiguration.DefaultServerConfiguration;
         private static EmailClientConfiguration __EmailClientConfig = EmailClientConfiguration.DefaultEmailClientConfiguration;
         private static DatabaseAccessConfiguration __DBAccessConfig = DatabaseAccessConfiguration.DefaultDatabaseAccessConfiguration;
         private static SwaggerDocumentConfiguration __SwaggerDocumentConfiguration = SwaggerDocumentConfiguration.DefaultSwaggerDocumentConfiguration;
@@ -125,10 +127,11 @@ namespace CoreApi
         public static List<string> AllowMethods         { get => __AllowMethods; }
         public static List<string> AllowHeaders         { get => __AllowHeaders; }
         public static List<string> ListeningAddress     { get => __ListeningAddress; }
-        public static ServerConfiguration ServerConfiguration   { get => __ServerConfiguration; }
-        public static EmailClientConfiguration EmailClientConfig { get => __EmailClientConfig; }
+        public static ServerConfiguration ServerConfiguration                   { get => __ServerConfiguration; }
+        public static EmailClientConfiguration EmailClientConfig                { get => __EmailClientConfig; }
         public static SwaggerDocumentConfiguration SwaggerDocumentConfiguration { get => __SwaggerDocumentConfiguration; }
-        public static bool DropDatabase { get => __DropDatabase; }
+        public static bool DropDatabase                 { get => __DropDatabase; }
+        public static bool RunWithoutMigrateDatabase    { get => __RunWithoutMigrateDatabase; }
         #endregion
         private static void SetParamsFromConfiguration(in IConfigurationRoot configuration, out List<string> warnings)
         {
@@ -289,10 +292,22 @@ namespace CoreApi
             if (args.Contains("show-sql-command")) {
                 __ServerConfiguration.ShowSQLCommandInLog = true;
             }
+            // [INFO] run without db when start
+            if (args.Contains("run-without-migrate-db")) {
+                __RunWithoutMigrateDatabase = true;
+            }
+            if (args.Contains("--config-file")) {
+                var Idx = args.IndexOf("--config-file");
+                if (Idx + 1 >= args.Count) {
+                    throw new Exception("Invalid args: missing config file path.");
+                }
+                __CONFIG_FILE_PATH = args[Idx + 1];
+            }
 #if DEBUG
             // [INFO] drop and migrate db when start
             if (args.Contains("drop-db")) {
-                __DropDatabase = true;
+                __DropDatabase              = true;
+                __RunWithoutMigrateDatabase = false;
             }
 #else
             __DropDatabase = false;
@@ -338,6 +353,7 @@ namespace CoreApi
         private static void LogStartInformation()
         {
             __Logger.Information("=================START=================");
+            __Logger.Information($"Reading configuration from: '{ CONFIG_FILE_PATH }'");
 #if DEBUG
             __Logger.Warning("The application is compiled in debug mode.");
 #endif
@@ -384,21 +400,21 @@ namespace CoreApi
         {
             // [IMPORTANT] Need to run by order
             try {
+                SetParamsFromArgs(new List<string>(args));
                 if (CommonValidate.ValidateFilePath(CONFIG_FILE_PATH, false) == default) {
-                    throw new Exception($"Missing configuration file. Path: { System.IO.Path.GetFullPath(CONFIG_FILE_PATH) }");
+                    throw new Exception($"Invalid configuration file. Path: { System.IO.Path.GetFullPath(CONFIG_FILE_PATH) }");
                 }
                 __Configuration = new ConfigurationBuilder()
                                     .AddJsonFile(CONFIG_FILE_PATH)
                                     .AddEnvironmentVariables()
                                     .Build();
-                List<string> warningsWhenSetParamsFromConfiguration;
-                SetParamsFromArgs(new List<string>(args));
-                SetParamsFromConfiguration(__Configuration, out warningsWhenSetParamsFromConfiguration);
-                __ServerConfiguration.TempPath = CommonValidate.ValidateDirectoryPath(__ServerConfiguration.TempPath, true);
-                __ServerConfiguration.UploadFilePath = CommonValidate.ValidateDirectoryPath(__ServerConfiguration.UploadFilePath, true);
+                var WarningsWhenSetParamsFromConfiguration = new List<string>();
+                SetParamsFromConfiguration(__Configuration, out WarningsWhenSetParamsFromConfiguration);
+                __ServerConfiguration.TempPath          = CommonValidate.ValidateDirectoryPath(__ServerConfiguration.TempPath, true);
+                __ServerConfiguration.UploadFilePath    = CommonValidate.ValidateDirectoryPath(__ServerConfiguration.UploadFilePath, true);
                 __Logger = SetDefaultSeriLogger(__Configuration);
                 LogStartInformation();
-                warningsWhenSetParamsFromConfiguration.ForEach(message => {
+                WarningsWhenSetParamsFromConfiguration.ForEach(message => {
                     __Logger.Warning(message);
                 });
 

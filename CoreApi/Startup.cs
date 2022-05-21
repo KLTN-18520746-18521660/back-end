@@ -175,7 +175,7 @@ namespace CoreApi
 
             if (env.IsDevelopment()) {
                 app.UseDeveloperExceptionPage();
-                __Logger.Warning($"Application is running in development mode.");
+                __Logger.Warning($"Application is running in development environment.");
             }
 
             if (Program.SwaggerDocumentConfiguration.Enable || env.IsDevelopment()) {
@@ -205,7 +205,11 @@ namespace CoreApi
                     __Logger.Warning($"Dropping database.host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }, db_name: { BaseConfigurationDB.DBName }");
                     __DBContext.Database.EnsureDeleted();
                 }
-                __DBContext.Database.Migrate();
+                if (Program.RunWithoutMigrateDatabase) {
+                    __Logger.Warning($"Application is running without migrate database");
+                } else {
+                    __DBContext.Database.Migrate();
+                }
                 if (__DBContext.GetStatus()) {
                     __Logger.Information($"Connected to database, host: { BaseConfigurationDB.Host }, port: { BaseConfigurationDB.Port }, db_name: { BaseConfigurationDB.DBName }");
                 } else {
