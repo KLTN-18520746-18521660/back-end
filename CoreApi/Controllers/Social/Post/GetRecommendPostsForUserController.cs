@@ -73,7 +73,7 @@ using CoreApi.Common;
     //             return Problem(500, "Not implement.");
     //             //////////////////////
     //             if (!LoadConfigSuccess) {
-    //                 return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+    //                 return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
     //             }
     //             #region Init Handler
                     // SetRunningFunction();
@@ -174,13 +174,13 @@ using CoreApi.Common;
     //                     ret.Add(obj);
     //                 });
 
-    //                 return Ok(200, "OK", new JObject(){
+    //                 return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
     //                     { "posts", Utils.ObjectToJsonToken(ret) },
     //                     { "total_size", totalSize },
     //                 });
     //             } catch (Exception e) {
     //                 AddLogParam("exception_message", e.ToString());
-    //                 return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+    //                 return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
     //             }
     //         }
     //     }

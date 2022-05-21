@@ -1,19 +1,10 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
-using System.IO;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography;
-// using DatabaseAccess.Common.Models;
 using Common;
 using System.Text;
-// using CoreApi;
 using System.Threading;
-using CoreApi.Models.ModifyModels;
-using DatabaseAccess.Context.Models;
-using System.Reflection;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace MyConsole
 {
@@ -119,9 +110,16 @@ namespace MyConsole
         }
         static void Main(string[] args)
         {
-            // DEFAULT_BASE_CONFIG.ConfigKeyToString(CONFIG_KEY.API_GET_COMMENT_CONFIG);
-            var Test_Name_Param = "Hello";
-            Console.WriteLine(Utils.ParamsToLog(nameof(Test_Name_Param), Test_Name_Param));
+            var a = "**Hiệu   1234Hi**";
+            var b = a.ToCharArray();
+            for (var i=0; i < b.Length; i++) {
+                if (!Char.IsLetterOrDigit(b[i])) {
+                    b[i] = ' ';
+                }
+            }
+            string charsStr = new string(b);  
+            var rs = Regex.Replace(charsStr, "\\s+", " ");
+            Console.WriteLine(rs.Trim());
         }
     }
 }

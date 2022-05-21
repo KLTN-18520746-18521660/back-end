@@ -99,7 +99,7 @@ namespace CoreApi.Controllers.Admin.Config
                 #region Check Permission
                 var Error = __AdminUserManagement.HaveFullPermission(Session.User.Rights, ADMIN_RIGHTS.CONFIG);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    return Problem(403, "User doesn't have permission for reload config.");
+                    return Problem(403, RESPONSE_MESSAGES.USER_DOES_NOT_HAVE_PERMISSION, new string[]{ "reload config" });
                 }
                 #endregion
 
@@ -108,14 +108,14 @@ namespace CoreApi.Controllers.Admin.Config
                 (Error, Errors) = await __BaseConfig.ReLoadConfig();
                 if (Error != ErrorCodes.NO_ERROR) {
                     var ErrResp = JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(Errors));
-                    return Problem(500, "Internal Server Error", ErrResp, LOG_LEVEL.ERROR);
+                    return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, ErrResp, LOG_LEVEL.ERROR);
                 }
                 #endregion
 
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

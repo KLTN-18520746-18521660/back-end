@@ -94,7 +94,7 @@ namespace CoreApi.Controllers.Social.Session
                 #region Get all sessions
                 var (AllSessionOfUser, Error) = await __SessionSocialUserManagement.GetAllSessionOfUser(Session.UserId);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"GetAllSocialUserSessions Failed. ErrorCode: { Error }");
+                    throw new Exception($"GetAllSocialUserSessions failed. ErrorCode: { Error }");
                 }
 
                 var RawRet = new List<JObject>();
@@ -103,12 +103,12 @@ namespace CoreApi.Controllers.Social.Session
                 #endregion
 
                 // LogInformation($"Get all session success, user_name: { Session.User.UserName }");
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "sessions", Ret },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -191,16 +191,16 @@ namespace CoreApi.Controllers.Social.Session
                 AddLogParam("get_session_token", __GetSessionToken);
                 var (Ret, Error) = await __SessionSocialUserManagement.FindSession(__GetSessionToken);
                 if (Error != ErrorCodes.NO_ERROR || Ret.UserId != Session.UserId) {
-                    return Problem(404, "Session not found.");
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "session" });
                 }
                 #endregion
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "session", Ret.GetJsonObject() },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

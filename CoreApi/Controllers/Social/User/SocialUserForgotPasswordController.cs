@@ -53,7 +53,7 @@ namespace CoreApi.Controllers.Social.User
                 var IsEmail         = CommonValidate.IsEmail(__ModelData.user_name);
                 var (User, Error)   = await __SocialUserManagement.FindUser(__ModelData.user_name, IsEmail);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    return Problem(400, "User not found.");
+                    return Problem(400, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "user" });
                 }
                 #endregion
 
@@ -68,10 +68,10 @@ namespace CoreApi.Controllers.Social.User
                 AddLogParam("forgot_password", FogotPasswordSetting != default ? FogotPasswordSetting.ToString(Formatting.None) : default);
                 if (FogotPasswordSetting != default && (FailedTimes == default || FailedTimes < NumberOfTimesAllowFailure)) {
                     if (IsSending == true && (Now - SendDate.ToUniversalTime()).TotalMinutes <= RequestTimeout) {
-                        return Problem(400, "Email is sending.");
+                        return Problem(400, RESPONSE_MESSAGES.EMAIL_IS_SENDING);
                     }
                     if (SendSuccess == true && (Now - SendDate.ToUniversalTime()).TotalMinutes <= RequestExpiryTime) {
-                        return Problem(400, "Email is sent successfully.");
+                        return Problem(400, RESPONSE_MESSAGES.EMAIL_IS_SENT_SUCCESSFULLY);
                     }
                 }
                 #endregion
@@ -85,10 +85,10 @@ namespace CoreApi.Controllers.Social.User
                     }
                 });
 
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -121,7 +121,7 @@ namespace CoreApi.Controllers.Social.User
                 ) {
                     AddLogParam("raw_user_id", RawUserId);
                     AddLogParam("raw_date", RawDate);
-                    return Problem(400, "Invalid params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
 
                 var Now     = DateTime.UtcNow;
@@ -131,10 +131,10 @@ namespace CoreApi.Controllers.Social.User
                 AddLogParam("user_id", UserId);
                 AddLogParam("date", Date);
                 if (UserId == default || Date == default || State == string.Empty || State.Length != 8) {
-                    return Problem(400, "Invalid params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 if ((Now - Date.ToUniversalTime()).TotalMinutes > RequestExpiryTime) {
-                    return Problem(410, "Request have expired.");
+                    return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 #endregion
 
@@ -142,11 +142,11 @@ namespace CoreApi.Controllers.Social.User
                 var (User, Error) = await __SocialUserManagement.FindUserById(UserId);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(400, "Invalid params.");
+                        return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                     } else if (Error == ErrorCodes.DELETED) {
-                        return Problem(400, "User has been deleted.");
+                        return Problem(400, RESPONSE_MESSAGES.USER_HAS_BEEN_DELETED);
                     } else if (Error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        return Problem(400, "User has been blocked.");
+                        return Problem(400, RESPONSE_MESSAGES.USER_HAS_BEEN_LOCKED);
                     }
                     throw new Exception($"FindUserById failed, ErrorCode: { Error }");
                 }
@@ -162,28 +162,28 @@ namespace CoreApi.Controllers.Social.User
 
                 AddLogParam("forgot_password", FogotPasswordSetting != default ? FogotPasswordSetting.ToString(Formatting.None) : default);
                 if (FogotPasswordSetting == default || IsSending == true || SendSuccess == false) {
-                    return Problem(410, "Request have expired.");
+                    return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 if (SendDate != Date) {
-                    return Problem(410, "Request have expired.");
+                    return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 if (RequestState == default || RequestState == string.Empty || RequestState.Length != 8) {
-                    return Problem(410, "Request have expired.");
+                    return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 if (RequestState != State) {
-                    return Problem(410, "Request have expired.");
+                    return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 if (FailedTimes != default && FailedTimes >= NumberOfTimesAllowFailure) {
-                    return Problem(410, "Request have expired.");
+                    return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 #endregion
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "user", User.GetPublicJsonObject() },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

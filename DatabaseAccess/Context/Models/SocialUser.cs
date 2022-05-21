@@ -173,33 +173,33 @@ namespace DatabaseAccess.Context.Models
             SocialNotificationActionOfUserIdNavigations     = new HashSet<SocialNotification>();
             SocialUserActionWithUserUserIdDesNavigations    = new HashSet<SocialUserActionWithUser>();
 
-            __ModelName = "SocialUser";
-            Id = Guid.NewGuid();
-            CreatedTimestamp = DateTime.UtcNow;
-            Status = new EntityStatus(EntityStatusType.SocialUser, StatusType.Activated);
-            Salt = PasswordEncryptor.GenerateSalt();
-            Publics = GetDefaultPublicFields();
-            SettingsStr = "{}";
-            RanksStr = "{}";
+            __ModelName         = "SocialUser";
+            Id                  = Guid.NewGuid();
+            CreatedTimestamp    = DateTime.UtcNow;
+            Status              = new EntityStatus(EntityStatusType.SocialUser, StatusType.Activated);
+            Salt                = PasswordEncryptor.GenerateSalt();
+            Publics             = GetDefaultPublicFields();
+            SettingsStr         = "{}";
+            RanksStr            = "{}";
         }
 
         public override bool Parse(IBaseParserModel Parser, out string Error)
         {
             Error = string.Empty;
             try {
-                var parser = (ParserModels.ParserSocialUser)Parser;
-                FirstName = parser.first_name;
-                LastName = parser.last_name;
-                DisplayName = parser.display_name;
-                Password = parser.password;
-                Email = parser.email;
-                Sex = parser.sex;
-                Phone = parser.phone;
-                Country = parser.country;
-                City = parser.city;
-                Province = parser.province;
-                Avatar = parser.avatar;
-                UserName = Utils.GenerateUserName();
+                var parser      = (ParserModels.ParserSocialUser)Parser;
+                FirstName       = parser.first_name;
+                LastName        = parser.last_name;
+                DisplayName     = parser.display_name;
+                Password        = parser.password;
+                Email           = parser.email;
+                Sex             = parser.sex;
+                Phone           = parser.phone;
+                Country         = parser.country;
+                City            = parser.city;
+                Province        = parser.province;
+                Avatar          = parser.avatar;
+                UserName        = Utils.GenerateUserName();
 
                 if (parser.settings != default) {
                     Settings = parser.settings;

@@ -580,7 +580,7 @@ namespace CoreApi.Services
                 if (notification.Status.Type == StatusType.Sent) {
                     return ErrorCodes.NO_CHANGE_DETECTED;
                 } else if (notification.Status.Type == StatusType.Deleted) {
-                    return ErrorCodes.INVALID_ACTION;
+                    return ErrorCodes.DELETED;
                 }
                 notification.Status.ChangeStatus(StatusType.Sent);
                 if (await __DBContext.SaveChangesAsync() <= 0) {
@@ -618,7 +618,7 @@ namespace CoreApi.Services
                 if (notification.Status.Type == StatusType.Read) {
                     return ErrorCodes.NO_CHANGE_DETECTED;
                 } else if (notification.Status.Type == StatusType.Deleted) {
-                    return ErrorCodes.INVALID_ACTION;
+                    return ErrorCodes.DELETED;
                 }
                 notification.Status.ChangeStatus(StatusType.Read);
                 if (await __DBContext.SaveChangesAsync() <= 0) {

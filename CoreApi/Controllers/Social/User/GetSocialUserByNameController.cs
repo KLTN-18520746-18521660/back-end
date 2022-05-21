@@ -38,7 +38,7 @@ namespace CoreApi.Controllers.Social.User
                 #region Validate params
                 AddLogParam("get_user_name", __UserName);
                 if (__UserName == default || __UserName == string.Empty || __UserName.Length < 4) {
-                    return Problem(400, "Invalid user_name.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
@@ -51,7 +51,7 @@ namespace CoreApi.Controllers.Social.User
 
                 var (User, Error) = await __SocialUserManagement.FindUser(__UserName, false);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    return Problem(404, "Not found any user.");
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "user" });
                 }
 
                 var RetVal = (IsValidSession && Session.User.Id == User.Id) ? User.GetJsonObject() : User.GetPublicJsonObject();
@@ -59,12 +59,12 @@ namespace CoreApi.Controllers.Social.User
                     RetVal.Add("actions", Utils.ObjectToJsonToken(User.GetActionByUser(Session.UserId)));
                 }
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "user", RetVal },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -86,7 +86,7 @@ namespace CoreApi.Controllers.Social.User
                 #region Validate params
                 AddLogParam("get_user_name", __UserName);
                 if (__UserName == default || __UserName == string.Empty || __UserName.Length < 4) {
-                    return Problem(400, "Invalid user_name.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
@@ -99,16 +99,16 @@ namespace CoreApi.Controllers.Social.User
 
                 var (User, Error) = await __SocialUserManagement.FindUser(__UserName, false);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    return Problem(404, "Not found any user.");
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "user" });
                 }
 
                 var RetVal = (IsValidSession && Session.User.Id == User.Id) ? User.GetStatisticInfo() : User.GetPublicStatisticInfo();
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "user", RetVal },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

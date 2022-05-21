@@ -91,28 +91,28 @@ namespace CoreApi.Controllers.Social.Notification
                 #region Validate params
                 AddLogParam("notification_id", __NotificationId);
                 if (__NotificationId == default || __NotificationId <= 0) {
-                    return Problem(400, $"Invalid params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
                 var Error = await __NotificationsManagement.MarkNotificationAsUnRead(Session.UserId, __NotificationId);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Notification not found.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "notification" });
                     }
                     if (Error == ErrorCodes.NO_CHANGE_DETECTED) {
-                        return Problem(400, "Notification isn't read by user.");
+                        return Problem(400, RESPONSE_MESSAGES.ACTION_HAS_BEEN_TAKEN, new string[]{ "unread" });
                     }
-                    if (Error == ErrorCodes.INVALID_ACTION) {
-                        return Problem(400, "Invalid action");
+                    if (Error == ErrorCodes.DELETED) {
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "notification" });
                     }
-                    throw new Exception($"MarkNotificationAsUnRead Failed. ErrorCode: { Error }");
+                    throw new Exception($"MarkNotificationAsUnRead failed. ErrorCode: { Error }");
                 }
 
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -145,13 +145,13 @@ namespace CoreApi.Controllers.Social.Notification
 
                 var Error = await __NotificationsManagement.MarkNotificationsAsUnRead(Session.UserId);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"MarkNotificationsAsUnRead Failed. ErrorCode: { Error }");
+                    throw new Exception($"MarkNotificationsAsUnRead failed. ErrorCode: { Error }");
                 }
 
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

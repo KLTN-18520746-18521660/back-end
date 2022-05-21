@@ -110,20 +110,20 @@ namespace CoreApi.Controllers.Social.Post
                 #region validate params
                 AddLogParam("post_id", __PostId);
                 if (__PostId <= 0) {
-                    return Problem(400, "Invalid request.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
                 #region get post by id
                 var (Post, Error) = await __SocialPostManagement.FindPostById(__PostId);
                 if (Error != ErrorCodes.NO_ERROR || Post.Owner != Session.UserId) {
-                    return Problem(404, "Not found post.");
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "post" });
                 }
                 #endregion
 
                 #region validate post modify nodel
                 if (__ModelData.categories != default && !await __SocialCategoryManagement.IsExistingCategories(__ModelData.categories)) {
-                    return Problem(400, $"Category not exist.");
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "categories" });
                 }
 
                 if (__ModelData.tags != default) {
@@ -131,9 +131,9 @@ namespace CoreApi.Controllers.Social.Post
                     (IsValidTags, Error) = await __SocialTagManagement.IsValidTags(__ModelData.tags);
                     if (!IsValidTags) {
                         if (Error == ErrorCodes.INVALID_PARAMS) {
-                            return Problem(400, "Invalid tags.");
+                            return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                         }
-                        throw new Exception($"IsValidTags Failed, ErrorCode: { Error }");
+                        throw new Exception($"IsValidTags failed, ErrorCode: { Error }");
                     }
                 }
                 #endregion
@@ -146,29 +146,30 @@ namespace CoreApi.Controllers.Social.Post
                 ) {
                     Error = await __SocialPostManagement.ModifyPostNotApproved(Post.Id, __ModelData);
                 } else {
-                    return Problem(400, $"Not allow modify post has '{ Post.StatusStr }'.");
+                    AddLogParam("post_status", Post.StatusStr);
+                    return Problem(403, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "modify post" });
                 }
 
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NO_CHANGE_DETECTED) {
-                        return Problem(400, "No change detected.");
+                        return Problem(400, RESPONSE_MESSAGES.NO_CHANGES_DETECTED);
                     }
                     if (Post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)) {
-                        throw new Exception($"AddPendingContent Failed, ErrorCode: { Error }");
+                        throw new Exception($"AddPendingContent failed, ErrorCode: { Error }");
                     } else {
-                        throw new Exception($"ModifyPostNotApproved Failed, ErrorCode: { Error }");
+                        throw new Exception($"ModifyPostNotApproved failed, ErrorCode: { Error }");
                     }
                 }
 
                 var Ret = Post.GetJsonObject();
                 Ret.Add("actions", Utils.ObjectToJsonToken(Post.GetActionByUser(Session.UserId)));
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "post", Ret },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

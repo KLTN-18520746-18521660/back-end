@@ -53,19 +53,19 @@ namespace CoreApi.Controllers.Social.User
                 AddLogParam("start", Start);
                 AddLogParam("size", Size);
                 if (Start < 0 || Size < 1) {
-                    return Problem(400, "Bad request params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
                 var (Users, TotalSize, Error) = await __SocialUserManagement.GetFollowerByName(Session.User.UserName);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    return Problem(404, "Not found any user.");
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "user" });
                 }
 
                 #region Validate params: start, size, total_size
                 if (TotalSize != 0 && Start >= TotalSize) {
                     AddLogParam("total_size", TotalSize);
-                    return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
+                    return Problem(400, RESPONSE_MESSAGES.INVALID_REQUEST_PARAMS_START_SIZE, new string[]{ Start.ToString(), TotalSize.ToString() });
                 }
                 #endregion
 
@@ -76,13 +76,13 @@ namespace CoreApi.Controllers.Social.User
                     RawRet.Add(r);
                 });
                 var Ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(RawRet));
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "users",      Ret },
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

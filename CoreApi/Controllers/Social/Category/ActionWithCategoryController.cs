@@ -1,17 +1,13 @@
 using Common;
-using CoreApi.Common.Base;
 using CoreApi.Common;
+using CoreApi.Common.Base;
 using CoreApi.Services;
-using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
 using System;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace CoreApi.Controllers.Social.Category
 {
@@ -65,10 +61,10 @@ namespace CoreApi.Controllers.Social.Category
                 AddLogParam("category", __Category);
                 AddLogParam("action",   Action);
                 if (!__SocialCategoryManagement.IsValidCategory(__Category)) {
-                    return Problem(400, "Invalid request.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 if (!ValidActions.Contains(Action)) {
-                    return Problem(400, "Invalid params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
@@ -76,14 +72,14 @@ namespace CoreApi.Controllers.Social.Category
 
                 if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found category.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "category" });
                     }
 
                     throw new Exception($"FindCategoryByName failed, ErrorCode: { Error }");
                 }
 
                 if (await __SocialCategoryManagement.IsContainsAction(FindCategory.Id, Session.UserId, Action)) {
-                    return Problem(400, $"User already { Action } this category.");
+                    return Problem(400, RESPONSE_MESSAGES.ACTION_HAS_BEEN_TAKEN, new string[]{ Action });
                 }
 
                 switch (Action) {
@@ -94,17 +90,17 @@ namespace CoreApi.Controllers.Social.Category
                         Error = await __SocialCategoryManagement.UnFollow(FindCategory.Id, Session.UserId);
                         break;
                     default:
-                        return Problem(400, "Invalid action.");
+                        return Problem(400, RESPONSE_MESSAGES.INVALID_ACTION, new string[]{ Action });
                 }
 
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"{ Action } category Failed, ErrorCode: { Error }");
+                    throw new Exception($"{ Action } category failed, ErrorCode: { Error }");
                 }
 
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

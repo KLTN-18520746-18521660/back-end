@@ -51,17 +51,17 @@ namespace CoreApi.Controllers.Admin.User
                 if (StringDecryptor.Decrypt(Uri.UnescapeDataString(__ModelData.i))    == default
                     || StringDecryptor.Decrypt(Uri.UnescapeDataString(__ModelData.d)) == default
                 ) {
-                    return Problem(400, "Invalid params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
 
                 var UserId  = CommonValidate.IsValidUUID(StringDecryptor.Decrypt(Uri.UnescapeDataString(__ModelData.i)));
                 var Date    = CommonValidate.IsValidDateTime(StringDecryptor.Decrypt(Uri.UnescapeDataString(__ModelData.d)),
                                                              COMMON_DEFINE.DATE_TIME_FORMAT);
                 if (UserId == default || Date == default || __ModelData.s == string.Empty || __ModelData.s.Length != 8) {
-                    return Problem(400, "Invalid params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 if ((DateTime.UtcNow - Date.ToUniversalTime()).TotalMinutes > RequestExpiryTime) {
-                    return Problem(410, "Request have expired.");
+                    return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 #endregion
 
@@ -69,11 +69,11 @@ namespace CoreApi.Controllers.Admin.User
                 var (User, Error) = await __AdminUserManagement.FindUserById(UserId);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(400, "Invalid params.");
+                        return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                     } else if (Error == ErrorCodes.DELETED) {
-                        return Problem(400, "User has been deleted.");
+                        return Problem(400, RESPONSE_MESSAGES.USER_HAS_BEEN_DELETED);
                     } else if (Error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                        return Problem(400, "User has been blocked.");
+                        return Problem(400, RESPONSE_MESSAGES.USER_HAS_BEEN_LOCKED);
                     }
                     throw new Exception($"FindUserById failed, ErrorCode: { Error }");
                 }
@@ -88,45 +88,45 @@ namespace CoreApi.Controllers.Admin.User
                 var SendSuccess             = FogotPasswordSetting != default ? FogotPasswordSetting.Value<bool>("send_success") : default;
 
                 if (SendDate != Date) {
-                    return Problem(410, "Request have expired.");
+                    return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 if (FogotPasswordSetting == default || IsSending == true || SendSuccess == false) {
-                    return Problem(410, "Request have expired.");
+                    return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 if (RequestState == default || RequestState == string.Empty || RequestState.Length != 8) {
-                    return Problem(410, "Request have expired.");
+                    return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 if (RequestState != __ModelData.s) {
-                    return Problem(410, "Request have expired.");
+                    return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 if (FailedTimes != default && FailedTimes >= NumberOfTimesAllowFailure) {
-                    return Problem(410, "Request have expired.");
+                    return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 #endregion
 
                 Error = await __AdminUserManagement.ChangePassword(User.Id, __ModelData.new_password, User.Id);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NO_CHANGE_DETECTED) {
-                        return Problem(400, "No change detected.");
+                        return Problem(400, RESPONSE_MESSAGES.NO_CHANGES_DETECTED);
                     }
                     var ErrHandle = await __AdminUserManagement.HandleNewPasswordFailed(User.Id);
                     if (ErrHandle != ErrorCodes.NO_ERROR) {
-                        WriteLog(LOG_LEVEL.ERROR, false, $"HandleNewPasswordFailed Failed, ErrorCode: { ErrHandle }");
+                        WriteLog(LOG_LEVEL.ERROR, false, $"HandleNewPasswordFailed failed, ErrorCode: { ErrHandle }");
                     }
-                    throw new Exception($"ChangePassword Failed, ErrorCode: { Error }");
+                    throw new Exception($"ChangePassword failed, ErrorCode: { Error }");
                 }
 
                 Error = await __AdminUserManagement.HandleNewPasswordSuccessfully(User.Id);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    WriteLog(LOG_LEVEL.ERROR, false, $"HandleNewPasswordSuccessfully Failed, ErrorCode: { Error }");
+                    WriteLog(LOG_LEVEL.ERROR, false, $"HandleNewPasswordSuccessfully failed, ErrorCode: { Error }");
                 }
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "user", User.GetPublicJsonObject() },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

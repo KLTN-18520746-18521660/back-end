@@ -66,7 +66,7 @@ namespace CoreApi.Controllers.Upload
                 IsValid = false;
             }
 
-            return (IsValid, Problem(400, "Invalid request upload file.", default, LOG_LEVEL.DEBUG));
+            return (IsValid, Problem(400, RESPONSE_MESSAGES.INVALID_REQUEST_UPLOAD_FILE, default, default, LOG_LEVEL.DEBUG));
         }
 
 #if DEBUG
@@ -86,7 +86,7 @@ namespace CoreApi.Controllers.Upload
                 #region Validate params
                 if (HttpContext.Request.Form.Files.Count != 1) {
                     AddLogParam("upload_files_size", HttpContext.Request.Form.Files.Count);
-                    return Problem(400, "Exceed max size of files to upload.", default, LOG_LEVEL.DEBUG);
+                    return Problem(400, RESPONSE_MESSAGES.EXCEED_MAX_SIZE_OF_FILES, default, default, LOG_LEVEL.DEBUG);
                 }
                 var FormFileValidate = IsValidFormFile(__FormFile, MaxLengthOfSingleFile);
                 if (!FormFileValidate.IsValid) {
@@ -107,12 +107,12 @@ namespace CoreApi.Controllers.Upload
                 }
 
                 var RetUrl = $"{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ __PrefixPath }/{ FileName }";
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "url", RetUrl }
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
 #endif
@@ -151,7 +151,7 @@ namespace CoreApi.Controllers.Upload
                 #region Validate params
                 if (HttpContext.Request.Form.Files.Count != 1) {
                     AddLogParam("upload_files_size", HttpContext.Request.Form.Files.Count);
-                    return Problem(400, "Exceed max size of files to upload.", default, LOG_LEVEL.DEBUG);
+                    return Problem(400, RESPONSE_MESSAGES.EXCEED_MAX_SIZE_OF_FILES, default, default, LOG_LEVEL.DEBUG);
                 }
                 var FormFileValidate = IsValidFormFile(__FormFile, MaxLengthOfSingleFile);
                 if (!FormFileValidate.IsValid) {
@@ -161,18 +161,18 @@ namespace CoreApi.Controllers.Upload
                 var ExtFile = Path.GetExtension(__FormFile.FileName);
                 if (!ALLOW_EXTENSIONS.Contains(ExtFile)) {
                     AddLogParam("file_type", ExtFile);
-                    return Problem(400, $"Not allow file type: { ExtFile }");
+                    return Problem(400, RESPONSE_MESSAGES.NOT_ALLOW_UPLOAD_FILE_TYPE, new string[]{ ExtFile });
                 }
                 if (!ALLOW_SOCIAL_PATHS.Contains(__PrefixPath)) {
                     AddLogParam("prefix_upload_path", __PrefixPath);
-                    return Problem(400, "Not allow upload file with path '{ __PrefixPath }.");
+                    return Problem(400, RESPONSE_MESSAGES.NOT_ALLOW_UPLOAD_FILE_WITH_PATH, new string[]{ __PrefixPath });
                 }
                 #endregion
 
                 #region Check Upload Permission
                 var Error = __SocialUserManagement.HaveFullPermission(Session.User.Rights, SOCIAL_RIGHTS.UPLOAD);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    return Problem(403, "User doesn't have permission to upload file.");
+                    return Problem(403, RESPONSE_MESSAGES.USER_DOES_NOT_HAVE_PERMISSION, new string[]{ "upload file" });
                 }
                 #endregion
 
@@ -189,12 +189,12 @@ namespace CoreApi.Controllers.Upload
 
                 var RetUrl = $"{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ __PrefixPath }/{ FileName }";
                 AddLogParam("url_file", RetUrl);
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "url", RetUrl }
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -234,7 +234,7 @@ namespace CoreApi.Controllers.Upload
                 #region Validate params
                 if (HttpContext.Request.Form.Files.Count != 1) {
                     AddLogParam("upload_files_size", HttpContext.Request.Form.Files.Count);
-                    return Problem(400, "Exceed max size of files to upload.", default, LOG_LEVEL.DEBUG);
+                    return Problem(400, RESPONSE_MESSAGES.EXCEED_MAX_SIZE_OF_FILES, default, default, LOG_LEVEL.DEBUG);
                 }
                 var FormFileValidate = IsValidFormFile(__FormFile, MaxLengthOfSingleFile);
                 if (!FormFileValidate.IsValid) {
@@ -244,18 +244,18 @@ namespace CoreApi.Controllers.Upload
                 var ExtFile = Path.GetExtension(__FormFile.FileName);
                 if (!ALLOW_EXTENSIONS.Contains(ExtFile)) {
                     AddLogParam("file_type", ExtFile);
-                    return Problem(400, $"Not allow file type: { ExtFile }");
+                    return Problem(400, RESPONSE_MESSAGES.NOT_ALLOW_UPLOAD_FILE_TYPE, new string[]{ ExtFile });
                 }
                 if (!ALLOW_ADMIN_PATHS.Contains(__PrefixPath)) {
                     AddLogParam("prefix_upload_path", __PrefixPath);
-                    return Problem(400, "Not allow upload file with path '{ __PrefixPath }.");
+                    return Problem(400, RESPONSE_MESSAGES.NOT_ALLOW_UPLOAD_FILE_WITH_PATH, new string[]{ __PrefixPath });
                 }
                 #endregion
 
                 #region Check Upload Permission
                 var Error = __AdminUserManagement.HaveFullPermission(Session.User.Rights, ADMIN_RIGHTS.UPLOAD);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    return Problem(403, "User doesn't have permission to upload file.");
+                    return Problem(403, RESPONSE_MESSAGES.USER_DOES_NOT_HAVE_PERMISSION, new string[]{ "upload file" });
                 }
                 #endregion
 
@@ -272,12 +272,12 @@ namespace CoreApi.Controllers.Upload
 
                 var RetUrl = $"{ Program.ServerConfiguration.PrefixPathGetUploadFile }/{ __PrefixPath }/{ FileName }";
                 AddLogParam("url_file", RetUrl);
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "url", RetUrl }
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error.", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

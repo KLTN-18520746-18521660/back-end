@@ -87,13 +87,13 @@ namespace CoreApi.Controllers.Admin
                 var (User, Error)   = await __AdminUserManagement.FindUser(__ModelData.user_name, IsEmail);
 
                 if (Error != ErrorCodes.NO_ERROR) {
-                    return Problem(400, "User not found or incorrect password.");
+                    return Problem(400, RESPONSE_MESSAGES.USER_NOT_FOUND_OR_INCORRECT_PASSWORD);
                 }
                 #endregion
 
                 #region Check user is lock or not
                 if (User.Status.Type == StatusType.Blocked) {
-                    return Problem(423, "You have been locked.");
+                    return Problem(423, RESPONSE_MESSAGES.USER_HAS_BEEN_LOCKED);
                 }
                 #endregion
 
@@ -101,9 +101,9 @@ namespace CoreApi.Controllers.Admin
                 if (PasswordEncryptor.EncryptPassword(__ModelData.password, User.Salt) != User.Password) {
                     Error = await __AdminUserManagement.HandleLoginFail(User.Id, LockTime, NumberOfTimesAllowLoginFailure);
                     if (Error != ErrorCodes.NO_ERROR) {
-                        throw new Exception($"Handle AdminUseLoginFail failed. ErrorCode: { Error }");
+                        throw new Exception($"HandleLoginFail failed. ErrorCode: { Error }");
                     }
-                    return Problem(400, "User not found or incorrect password.");
+                    return Problem(400, RESPONSE_MESSAGES.USER_NOT_FOUND_OR_INCORRECT_PASSWORD);
                 }
                 #endregion
 
@@ -112,12 +112,12 @@ namespace CoreApi.Controllers.Admin
                 SessionAdminUser Session    = default;
                 (Session, Error) = await __SessionAdminUserManagement.NewSession(User.Id, __ModelData.remember, Data);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"CreateNewAdminSession Failed. ErrorCode: { Error }");
+                    throw new Exception($"NewSession failed. ErrorCode: { Error }");
                 }
 
                 Error = await __AdminUserManagement.HandleLoginSuccess(User.Id);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"Handle AdminUserLoginSuccess failed. ErrorCode: { Error }");
+                    throw new Exception($"HandleLoginSuccess failed. ErrorCode: { Error }");
                 }
                 #endregion
 
@@ -127,13 +127,13 @@ namespace CoreApi.Controllers.Admin
                                         GetCookieOptions(__ModelData.remember ? default : DateTime.UtcNow.AddMinutes(ExpiryTime)));
                 #endregion
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "session_id", Session.SessionToken },
                     { "user_id",    User.Id },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

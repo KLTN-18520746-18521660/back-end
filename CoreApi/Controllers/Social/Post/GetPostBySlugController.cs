@@ -76,7 +76,7 @@ namespace CoreApi.Controllers.Social.Post
                 #region Validate params
                 AddLogParam("post_slug", __PostSlug);
                 if (__PostSlug == default || __PostSlug.Trim() == string.Empty) {
-                    return Problem(400, "Invalid request.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
@@ -84,7 +84,7 @@ namespace CoreApi.Controllers.Social.Post
 
                 if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found post.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "post" });
                     }
 
                     throw new Exception($"FindPostBySlug failed, ErrorCode: { Error }");
@@ -95,12 +95,12 @@ namespace CoreApi.Controllers.Social.Post
                 if (IsValidSession) {
                     Ret.Add("actions", Utils.ObjectToJsonToken(Post.GetActionByUser(Session.UserId)));
                 }
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "post",   Ret },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -129,7 +129,7 @@ namespace CoreApi.Controllers.Social.Post
                 #region Validate params
                 AddLogParam("post_slug", __PostSlug);
                 if (__PostSlug == default || __PostSlug.Trim() == string.Empty) {
-                    return Problem(400, "Invalid request.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
@@ -137,7 +137,7 @@ namespace CoreApi.Controllers.Social.Post
 
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found post.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "post" });
                     }
 
                     throw new Exception($"FindPostBySlug failed, ErrorCode: { Error }");
@@ -147,12 +147,12 @@ namespace CoreApi.Controllers.Social.Post
                     Ret.Add("actions", Utils.ObjectToJsonToken(Post.GetActionByUser(Session.UserId)));
                 }
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "post", Ret },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

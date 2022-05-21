@@ -101,10 +101,10 @@ namespace CoreApi.Controllers.Social.Session
                 #endregion
 
                 // LogInformation($"Session extension success, session_token: { SessionToken.Substring(0, 15) }");
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

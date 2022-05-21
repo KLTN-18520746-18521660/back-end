@@ -49,7 +49,7 @@ namespace CoreApi.Controllers.Social.Post
                 #region Validate params
                 AddLogParam("post_id", __PostId);
                 if (__PostId <= 0) {
-                    return Problem(400, "Invalid params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
@@ -57,24 +57,24 @@ namespace CoreApi.Controllers.Social.Post
                 var (Post, Error) = await __SocialPostManagement.FindPostById(__PostId);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found post.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "post" });
                     }
                     throw new Exception($"FindPostById failed. Post_id: { __PostId }, ErrorCode: { Error} ");
                 }
 
                 if (Post.Owner != Session.UserId) {
-                    return Problem(404, "Not found post.");
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "post" });
                 };
                 #endregion
 
                 var Ret = Post.GetJsonObject();
                 Ret.Add("actions", Utils.ObjectToJsonToken(Post.GetActionByUser(Session.UserId)));
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "post", Ret },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

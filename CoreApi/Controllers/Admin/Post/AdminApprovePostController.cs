@@ -122,14 +122,14 @@ namespace CoreApi.Controllers.Admin.Post
                 #region Validate params
                 AddLogParam("post_id", __PostId);
                 if (__PostId <= 0) {
-                    return Problem(400, "Invalid params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
                 #region Check Permission
                 var Error = __AdminUserManagement.HaveFullPermission(Session.User.Rights, ADMIN_RIGHTS.POST);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    return Problem(403, "User doesn't have permission to approve social post.");
+                    return Problem(403, RESPONSE_MESSAGES.USER_DOES_NOT_HAVE_PERMISSION, new string[]{ "approve social post" });
                 }
                 #endregion
 
@@ -138,20 +138,20 @@ namespace CoreApi.Controllers.Admin.Post
                 (Post, Error) = await __SocialPostManagement.FindPostById(__PostId);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found post.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "post" });
                     }
                     throw new Exception($"FindPostById failed. Post_id: { __PostId }, ErrorCode: { Error} ");
                 }
                 AddLogParam("post_status", Post.StatusStr);
                 AddLogParam("have_pending_content", Post.PendingContentStr != default);
                 if (__SocialPostManagement.ValidateChangeStatusAction(Post.Status.Type, StatusType.Approved) != ErrorCodes.NO_ERROR) {
-                    return Problem(400, "Not allow to approve post.");
+                    return Problem(400, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "approve post" });
                 }
                 #endregion
 
                 Error = await __SocialPostManagement.ApprovePost(Post.Id, Session.UserId);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"ApprovePost Failed, ErrorCode: { Error }");
+                    throw new Exception($"ApprovePost failed, ErrorCode: { Error }");
                 }
 
                 await __NotificationsManagement.SendNotification(
@@ -164,10 +164,10 @@ namespace CoreApi.Controllers.Admin.Post
                         PostId = Post.Id,
                     }
                 );
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

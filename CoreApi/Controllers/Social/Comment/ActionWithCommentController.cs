@@ -41,7 +41,7 @@ namespace CoreApi.Controllers.Social.Comment
                                                        [FromServices] SocialCommentManagement       __SocialCommentManagement,
                                                        [FromServices] SocialPostManagement          __SocialPostManagement,
                                                        [FromServices] NotificationsManagement       __NotificationsManagement,
-                                                       [FromRoute(Name = "commment_id")] long       __CommentId,
+                                                       [FromRoute(Name = "comment_id")] long       __CommentId,
                                                        [FromQuery(Name = "action")] string          Action,
                                                        [FromHeader(Name = "session_token")] string  SessionToken)
         {
@@ -67,13 +67,13 @@ namespace CoreApi.Controllers.Social.Comment
                 #endregion
 
                 #region Validate params
-                AddLogParam("commment_id",  __CommentId);
+                AddLogParam("comment_id",  __CommentId);
                 AddLogParam("action",       Action);
                 if (__CommentId == default || __CommentId <= 0) {
-                    return Problem(400, "Invalid request.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 if (!ValidActions.Contains(Action)) {
-                    return Problem(400, "Invalid params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
@@ -82,7 +82,7 @@ namespace CoreApi.Controllers.Social.Comment
 
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found comment.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "comment" });
                     }
 
                     throw new Exception($"FindCommentById failed, ErrorCode: { Error }");
@@ -90,7 +90,7 @@ namespace CoreApi.Controllers.Social.Comment
                 #endregion
 
                 if (await __SocialCommentManagement.IsContainsAction(__CommentId, Session.UserId, Action)) {
-                    return Problem(400, $"User already { Action } this comment.");
+                    return Problem(400, RESPONSE_MESSAGES.ACTION_HAS_BEEN_TAKEN, new string[]{ Action });
                 }
 
                 NotificationSenderAction NotificationAction = NotificationSenderAction.INVALID_ACTION;
@@ -109,11 +109,11 @@ namespace CoreApi.Controllers.Social.Comment
                         Error = await __SocialCommentManagement.UnDisLike(__CommentId, Session.UserId);
                         break;
                     default:
-                        return Problem(400, "Invalid action.");
+                        return Problem(400, RESPONSE_MESSAGES.INVALID_ACTION, new string[]{ Action });
                 }
 
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"{ Action } comment Failed, ErrorCode: { Error }");
+                    throw new Exception($"{ Action } comment failed, ErrorCode: { Error }");
                 }
 
                 if (NotificationAction != NotificationSenderAction.INVALID_ACTION) {
@@ -127,10 +127,10 @@ namespace CoreApi.Controllers.Social.Comment
                     );
                 }
 
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

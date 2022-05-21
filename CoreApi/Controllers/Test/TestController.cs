@@ -29,7 +29,7 @@ namespace CoreApi.Controllers.Test
             #region Init handler
             SetRunningFunction();
             #endregion
-            return Ok(200, "OK");
+            return Ok(200, RESPONSE_MESSAGES.OK);
         }
 
         [HttpPut]
@@ -38,7 +38,7 @@ namespace CoreApi.Controllers.Test
             #region Init handler
             SetRunningFunction();
             #endregion
-            return Ok(200, "OK");
+            return Ok(200, RESPONSE_MESSAGES.OK);
         }
 
         [HttpPost]
@@ -51,7 +51,7 @@ namespace CoreApi.Controllers.Test
             __ModelData.test_fied = "modify";
             WriteLog(LOG_LEVEL.FATAL, false, "This is message");
             WriteLog(LOG_LEVEL.ERROR, true, "This is message");
-            return Ok(200, "OK", JObject.FromObject(__ModelData));
+            return Ok(200, RESPONSE_MESSAGES.OK, default, JObject.FromObject(__ModelData));
         }
 
         [HttpDelete]
@@ -60,7 +60,7 @@ namespace CoreApi.Controllers.Test
             #region Init handler
             SetRunningFunction();
             #endregion
-            return Ok(200, "OK");
+            return Ok(200, RESPONSE_MESSAGES.OK);
         }
     }
 }

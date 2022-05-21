@@ -1169,7 +1169,6 @@ namespace DatabaseAccess.Migrations
                         .HasDefaultValueSql("'Pending'");
 
                     b.Property<string>("Thumbnail")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("thumbnail");
 

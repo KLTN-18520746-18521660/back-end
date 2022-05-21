@@ -66,18 +66,18 @@ namespace CoreApi.Controllers.Social
                 string ErrorParser = string.Empty;
                 if (!NewUser.Parse(__ParserModel, out ErrorParser)) {
                     AddLogParam("error_parser", ErrorParser);
-                    return Problem(400, "Bad request body.");
+                    return Problem(400, RESPONSE_MESSAGES.INVALID_REQUEST_BODY);
                 }
                 #endregion
 
                 #region Check unique user_name, email
                 var (UserNameExisted, EmailExisted, Error) = await __SocialUserManagement.IsUserExsiting(NewUser.UserName, NewUser.Email);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"IsUserExsiting Failed. ErrorCode: { Error }");
+                    throw new Exception($"IsUserExsiting failed. ErrorCode: { Error }");
                 } else if (UserNameExisted) {
-                    return Problem(400, "UserName have been used.");
+                    return Problem(400, RESPONSE_MESSAGES.USERNAME_HAS_BEEN_USED);
                 } else if (EmailExisted) {
-                    return Problem(400, "Email have been used.");
+                    return Problem(400, RESPONSE_MESSAGES.EMAIL_HAS_BEEN_USED);
                 }
                 #endregion
 
@@ -85,14 +85,14 @@ namespace CoreApi.Controllers.Social
                 var ErroMsg = __SocialUserManagement.ValidatePasswordWithPolicy(__ParserModel.password);
                 if (ErroMsg != string.Empty) {
                     AddLogParam("error_valiate", ErroMsg);
-                    return Problem(400, ErroMsg);
+                    return Problem(400, RESPONSE_MESSAGES.POLICY_PASSWORD_VIOLATION, new string[]{ ErroMsg });
                 }
                 #endregion
 
                 #region Add new social user
                 Error = await __SocialUserManagement.AddNewUser(NewUser);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"AddNewSocialUser Failed. ErrorCode: { Error }");
+                    throw new Exception($"AddNewUser failed. ErrorCode: { Error }");
                 }
                 #endregion
 
@@ -105,12 +105,12 @@ namespace CoreApi.Controllers.Social
                     }
                 });
 
-                return Ok(201, "OK", new JObject(){
+                return Ok(201, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "user_id", NewUser.Id },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

@@ -63,10 +63,10 @@ namespace CoreApi.Controllers.Social.User
                 AddLogParam("des_user_name", __UserName);
                 AddLogParam("action", Action);
                 if (__UserName == default || __UserName.Trim() == string.Empty) {
-                    return Problem(400, "Invalid request.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 if (!ValidActions.Contains(Action)) {
-                    return Problem(400, "Invalid params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
@@ -75,18 +75,18 @@ namespace CoreApi.Controllers.Social.User
 
                 if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found user destination.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "user destination" });
                     }
 
                     throw new Exception($"FindUser failed, ErrorCode: { Error }, user_name: { __UserName }");
                 }
                 if (UseDes.Id == Session.UserId) {
-                    return Problem(400, "Not allow.");
+                    return Problem(403, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ Action });
                 }
                 #endregion
 
                 if (await __SocialUserManagement.IsContainsAction(UseDes.Id, Session.UserId, Action)) {
-                    return Problem(400, $"User already { Action } this user.");
+                    return Problem(400, RESPONSE_MESSAGES.ACTION_HAS_BEEN_TAKEN, new string[]{ Action });
                 }
                 NotificationSenderAction notificationAction = NotificationSenderAction.INVALID_ACTION;
                 switch (Action) {
@@ -98,11 +98,11 @@ namespace CoreApi.Controllers.Social.User
                         Error = await __SocialUserManagement.UnFollow(UseDes.Id, Session.UserId);
                         break;
                     default:
-                        return Problem(400, "Invalid action.");
+                        return Problem(400, RESPONSE_MESSAGES.INVALID_ACTION, new string[]{ Action });
                 }
 
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"{ Action } post Failed, ErrorCode: { Error }");
+                    throw new Exception($"{ Action } post failed, ErrorCode: { Error }");
                 }
 
                 if (notificationAction != NotificationSenderAction.INVALID_ACTION) {
@@ -116,10 +116,10 @@ namespace CoreApi.Controllers.Social.User
                     );
                 }
 
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

@@ -51,7 +51,7 @@ namespace CoreApi.Controllers.Social.Tag
                 AddLogParam("size", Size);
                 AddLogParam("search_term", SearchTerm);
                 if (Start < 0 || Size < 1) {
-                    return Problem(400, "Bad request params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
@@ -63,7 +63,7 @@ namespace CoreApi.Controllers.Social.Tag
                 #region Validate params: start, size, total_size
                 if (TotalSize != 0 && Start >= TotalSize) {
                     AddLogParam("total_size", TotalSize);
-                    return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
+                    return Problem(400, RESPONSE_MESSAGES.INVALID_REQUEST_PARAMS_START_SIZE, new string[]{ Start.ToString(), TotalSize.ToString() });
                 }
                 #endregion
 
@@ -76,13 +76,13 @@ namespace CoreApi.Controllers.Social.Tag
                     RetVal.Add(Obj);
                 });
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "tags",       Utils.ObjectToJsonToken(RetVal) },
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -110,14 +110,14 @@ namespace CoreApi.Controllers.Social.Tag
                 #region Validate params
                 AddLogParam("tag", __Tag);
                 if (!__SocialTagManagement.IsValidTag(__Tag)) {
-                    return Problem(400, "Invalid tag.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
                 var (FindTag, Error) = await __SocialTagManagement.FindTagByName(__Tag, IsValidSession ? Session.UserId : default);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found tag.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "tag" });
                     }
                     throw new Exception($"FindTagByName failed, ErrorCode: { Error }");
                 }
@@ -127,12 +127,12 @@ namespace CoreApi.Controllers.Social.Tag
                     ret.Add("actions", Utils.ObjectToJsonToken(FindTag.GetActionByUser(Session.UserId)));
                 }
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "tag", Utils.ObjectToJsonToken(ret) },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

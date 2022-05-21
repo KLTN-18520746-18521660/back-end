@@ -112,7 +112,7 @@ namespace CoreApi.Controllers.Social.Post
                 #region Validate params
                 AddLogParam("post_id", __PostId);
                 if (__PostId <= 0) {
-                    return Problem(400, "Invalid params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
@@ -120,31 +120,33 @@ namespace CoreApi.Controllers.Social.Post
                 var (Post, Error) = await __SocialPostManagement.FindPostById(__PostId);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found post.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "post" });
                     }
                     throw new Exception($"FindPostById failed. Post_id: { __PostId }, ErrorCode: { Error } ");
                 }
 
                 if (Post.Owner != Session.UserId) {
-                    return Problem(404, "Not found post.");
+                    AddLogParam("post_owner", Post.Owner);
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "post" });
                 }
                 if (Post.Status.Type == StatusType.Deleted) {
-                    return Problem(400, "Post already deleted.");
+                    AddLogParam("post_status", Post.StatusStr);
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "post" });
                 }
                 if (__SocialPostManagement.ValidateChangeStatusAction(Post.Status.Type, StatusType.Deleted) == ErrorCodes.INVALID_ACTION) {
-                    return Problem(400, "Invalid action.");
+                    return Problem(400, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "delete post" });
                 }
                 #endregion
 
                 Error = await __SocialPostManagement.DeletedPost(Post.Id, Post.Owner);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"DeletedPost Failed, ErrorCode: { Error }");
+                    throw new Exception($"DeletedPost failed, ErrorCode: { Error }");
                 }
 
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

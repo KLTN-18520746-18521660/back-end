@@ -56,7 +56,7 @@ namespace CoreApi.Controllers.Social.Comment
                 #region Validate slug
                 AddLogParam("post_slug", __PostSlug);
                 if (__PostSlug == default || __PostSlug.Trim() == string.Empty) {
-                    return Problem(400, "Invalid request.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
@@ -65,7 +65,7 @@ namespace CoreApi.Controllers.Social.Comment
 
                 if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found post.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "post" });
                     }
 
                     throw new Exception($"FindPostBySlug failed, ErrorCode: { Error }");
@@ -86,10 +86,10 @@ namespace CoreApi.Controllers.Social.Comment
                     SocialComment ParentComment = default;
                     (ParentComment, Error) = await __SocialCommentManagement.FindCommentById((long) Comment.ParentId);
                     if (Error != ErrorCodes.NO_ERROR) {
-                        return Problem(404, "Not found parent comment.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "parent comment" });
                     }
                     if (ParentComment.PostId != Post.Id) {
-                        return Problem(400, "Invalid parent comment.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "parent comment" });
                     }
                 }
 
@@ -130,12 +130,12 @@ namespace CoreApi.Controllers.Social.Comment
                 var Ret = Comment.GetPublicJsonObject();
                 Ret.Add("actions", Utils.ObjectToJsonToken(Comment.GetActionByUser(Session.UserId)));
 
-                return Ok(201, "OK", new JObject(){
+                return Ok(201, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "comment", Ret },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

@@ -107,7 +107,7 @@ namespace CoreApi.Controllers.Admin.User
                 #region Check Permission
                 var Error = __AdminUserManagement.HaveReadPermission(Session.User.Rights, ADMIN_RIGHTS.ADMIN_USER);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    return Problem(403, "User doesn't have permission for get admin user.");
+                    return Problem(403, RESPONSE_MESSAGES.USER_DOES_NOT_HAVE_PERMISSION, new string[]{ "get admin user" });
                 }
                 #endregion
 
@@ -116,22 +116,22 @@ namespace CoreApi.Controllers.Admin.User
                 (RetUser, Error) = await __AdminUserManagement.FindUserById(__Id);
                 AddLogParam("get_user_id", __Id);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    return Problem(404, "User not found.");
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "user" });
                 }
                 if (RetUser.Status.Type == StatusType.Deleted) {
                     AddLogParam("user_status", RetUser.StatusStr);
-                    return Problem(404, "User not found.");
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "user" });
                 }
                 #endregion
 
                 Error = __AdminUserManagement.HaveFullPermission(Session.User.Rights, ADMIN_RIGHTS.ADMIN_USER);
                 var Ret = Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION ? RetUser.GetPublicJsonObject() : RetUser.GetJsonObject();
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "user", Ret },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

@@ -56,7 +56,7 @@ namespace CoreApi.Controllers.Social.Comment
                 #region Validate params
                 AddLogParam("comment_id", __CommentId);
                 if (__CommentId == default || __CommentId <= 0) {
-                    return Problem(400, "Invalid request.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
@@ -65,7 +65,7 @@ namespace CoreApi.Controllers.Social.Comment
 
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found comment.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "comment" });
                     }
 
                     throw new Exception($"FindCommentById failed, ErrorCode: { Error }");
@@ -74,7 +74,7 @@ namespace CoreApi.Controllers.Social.Comment
 
                 if (Comment.Owner != Session.UserId) {
                     AddLogParam("comment_owner", Comment.Owner);
-                    return Problem(403, "Not allow.");
+                    return Problem(403, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "delete comment" });
                 }
 
                 Error = await __SocialCommentManagement.DeleteComment(Comment);
@@ -82,12 +82,12 @@ namespace CoreApi.Controllers.Social.Comment
                     throw new Exception($"DeleteComment failed, ErrorCode: { Error }");
                 }
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "comment_id", Comment.Id },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

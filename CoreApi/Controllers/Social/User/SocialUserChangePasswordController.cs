@@ -60,28 +60,28 @@ namespace CoreApi.Controllers.Social.User
                 var ErroMsg = __SocialUserManagement.ValidatePasswordWithPolicy(__ModelData.new_password);
                 if (ErroMsg != string.Empty) {
                     AddLogParam("error_valiate", ErroMsg);
-                    return Problem(400, ErroMsg);
+                    return Problem(400, RESPONSE_MESSAGES.POLICY_PASSWORD_VIOLATION, new string[]{ ErroMsg });
                 }
                 #endregion
 
                 #region Validate old password
                 if (PasswordEncryptor.EncryptPassword(__ModelData.old_password, Session.User.Salt) != Session.User.Password) {
-                    return Problem(400, "Incorrect old password.");
+                    return Problem(400, RESPONSE_MESSAGES.INCORRECT_OLD_PASSWORD);
                 }
                 #endregion
 
                 var Error = await __SocialUserManagement.ChangePassword(Session.UserId, __ModelData.new_password);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NO_CHANGE_DETECTED) {
-                        return Problem(400, "No change detected.");
+                        return Problem(400, RESPONSE_MESSAGES.NO_CHANGES_DETECTED);
                     }
-                    throw new Exception($"ChangePassword Failed, ErrorCode: { Error }");
+                    throw new Exception($"ChangePassword failed, ErrorCode: { Error }");
                 }
 
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

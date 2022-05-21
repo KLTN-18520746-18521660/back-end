@@ -108,16 +108,16 @@ namespace CoreApi.Controllers.Admin.Config
                 #region Get all config
                 var (Ret, ErrMsg) = IsHaveReadPermission ? __BaseConfig.GetAllConfig() : __BaseConfig.GetAllPublicConfig();
                 if (ErrMsg != string.Empty) {
-                    throw new Exception($"GetAllConfig Failed. ErrorMsg: { ErrMsg }");
+                    throw new Exception($"GetAllConfig failed. ErrorMsg: { ErrMsg }");
                 }
                 #endregion
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "configs", Ret },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -207,7 +207,7 @@ namespace CoreApi.Controllers.Admin.Config
                 #region Validate params
                 AddLogParam("raw_config_key", __ConfigKey);
                 if (__ConfigKey == default || __ConfigKey == string.Empty) {
-                    return Problem(400, "Invalid config_key.");
+                    return Problem(400, RESPONSE_MESSAGES.INVALID_CONFIG_KEY, new string[]{ __ConfigKey });
                 }
                 #endregion
 
@@ -222,26 +222,26 @@ namespace CoreApi.Controllers.Admin.Config
 
                 #region Get config by key
                 var ConfigKey = DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey);
-                AddLogParam("config_key", ConfigKey);
+                AddLogParam("config_key", ConfigKey.ToString());
                 if (ConfigKey == CONFIG_KEY.INVALID) {
-                    return Problem(404, "Not found config_key.");
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "config_key" });
                 }
                 if (!IsHaveReadPermission && !__BaseConfig.IsPublicConfig(ConfigKey)) {
-                    return Problem(404, "Not found config_key.");
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "config_key" });
                 }
 
                 var (Ret, ErrMsg) = __BaseConfig.GetConfigValue(ConfigKey);
                 if (ErrMsg != string.Empty) {
-                    throw new Exception($"GetConfigValue Failed. ErrorMsg: { ErrMsg }");
+                    throw new Exception($"GetConfigValue failed. ErrorMsg: { ErrMsg }");
                 }
                 #endregion
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "config", Ret },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

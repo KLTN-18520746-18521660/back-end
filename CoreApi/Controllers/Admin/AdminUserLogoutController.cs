@@ -73,11 +73,11 @@ namespace CoreApi.Controllers.Admin
                 AddLogParam(SessionTokenHeaderKey, SessionToken);
                 SessionToken = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
                 if (SessionToken == default) {
-                    return Problem(401, "Missing header authorization.", default, LOG_LEVEL.DEBUG);
+                    return Problem(401, RESPONSE_MESSAGES.MISSING_HEADER_AUTHORIZE, default, default, LOG_LEVEL.DEBUG);
                 }
 
                 if (!CommonValidate.IsValidSessionToken(SessionToken)) {
-                    return Problem(401, "Invalid header authorization.", default, LOG_LEVEL.DEBUG);
+                    return Problem(401, RESPONSE_MESSAGES.INVALID_HEADER_AUTHORIZE, default, default, LOG_LEVEL.DEBUG);
                 }
                 #endregion
 
@@ -85,18 +85,18 @@ namespace CoreApi.Controllers.Admin
                 var (Session, Error) = await __SessionAdminUserManagement.FindSession(SessionToken);
 
                 if (Error != ErrorCodes.NO_ERROR) {
-                    return Problem(401, "Session not found.", default, LOG_LEVEL.DEBUG);
+                    return Problem(401, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "session" }, default, LOG_LEVEL.DEBUG);
                 }
                 #endregion
 
                 #region Remove session and clear expried session
                 Error = await __SessionAdminUserManagement.RemoveSession(Session.SessionToken);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"RemoveSessionAdminUser failed. ErrorCode: { Error }");
+                    throw new Exception($"RemoveSession failed. ErrorCode: { Error }");
                 }
                 Error = await __SessionAdminUserManagement.ClearExpiredSession(Session.User.GetExpiredSessions(ExpiryTime));
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"ClearExpiredSessionAdminUser failed. ErrorCode: { Error }");
+                    throw new Exception($"ClearExpiredSession failed. ErrorCode: { Error }");
                 }
                 #endregion
 
@@ -104,10 +104,10 @@ namespace CoreApi.Controllers.Admin
                 Response.Cookies.Append(SessionTokenHeaderKey, string.Empty, GetCookieOptionsForDelete());
                 #endregion
 
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

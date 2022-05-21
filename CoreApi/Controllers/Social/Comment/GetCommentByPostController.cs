@@ -34,7 +34,7 @@ namespace CoreApi.Controllers.Social.Comment
                                                           [FromServices] SocialPostManagement               __SocialPostManagement,
                                                           [FromRoute(Name = "post_slug")] string            __PostSlug,
                                                           [FromHeader(Name = "session_token")] string       SessionToken,
-                                                          [FromQuery(Name = "parrent_comment_id")] long?    ParrentCommentId    = default,
+                                                          [FromQuery(Name = "parent_comment_id")] long?     ParentCommentId    = default,
                                                           [FromQuery(Name = "start")] int                   Start               = 0,
                                                           [FromQuery(Name = "size")] int                    Size                = 20,
                                                           [FromQuery(Name = "search_term")] string          SearchTerm          = default,
@@ -68,10 +68,11 @@ namespace CoreApi.Controllers.Social.Comment
                 string[] StatusArr              = default;
                 string[] AllowOrderParams       = __SocialCommentManagement.GetAllowOrderFields(GetCommentAction.GetCommentsAttachedToPost);
                 if (__PostSlug == default || __PostSlug.Trim() == string.Empty) {
-                    return Problem(400, "Invalid request.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
-                if (ParrentCommentId != default && ParrentCommentId <= 0) {
-                    return Problem(400, "Invalid parrent_comment_id.");
+                if (ParentCommentId != default && ParentCommentId <= 0) {
+                    AddLogParam("parent_comment_id", ParentCommentId);
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 (CombineOrders, ErrRetValidate) = ValidateOrderParams(Orders, AllowOrderParams);
                 if (ErrRetValidate != default) {
@@ -93,7 +94,7 @@ namespace CoreApi.Controllers.Social.Comment
 
                 if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found post.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "post" });
                     }
                     throw new Exception($"FindPostBySlug failed, ErrorCode: { Error }");
                 }
@@ -103,7 +104,7 @@ namespace CoreApi.Controllers.Social.Comment
                 (Comments, TotalSize, Error) = await __SocialCommentManagement
                     .GetCommentsAttachedToPost(
                         Post.Id,
-                        ParrentCommentId,
+                        ParentCommentId,
                         Start,
                         Size,
                         SearchTerm,
@@ -116,7 +117,8 @@ namespace CoreApi.Controllers.Social.Comment
 
                 #region Validate params: start, size, total_size
                 if (TotalSize != 0 && Start >= TotalSize) {
-                    return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
+                    AddLogParam("total_size", TotalSize);
+                    return Problem(400, RESPONSE_MESSAGES.INVALID_REQUEST_PARAMS_START_SIZE, new string[]{ Start.ToString(), TotalSize.ToString() });
                 }
                 #endregion
 
@@ -157,13 +159,13 @@ namespace CoreApi.Controllers.Social.Comment
                     Ret.Add(Obj);
                 }
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "comments",   Utils.ObjectToJsonToken(Ret) },
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

@@ -77,13 +77,15 @@ namespace CoreApi.Controllers.Social.Post
                 var CategoriesArr   = Categories == default ? default : Categories.Split(',');
                 var TagsArr         = Tags == default ? default : Tags.Split(',');
                 if (!AllowTimeTrending.Contains(Time)) {
-                    return Problem(400, "Invalid trending time");
+                    AddLogParam("time", Time);
+                    AddLogParam("allow_times", AllowTimeTrending);
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 if (Categories != default && !await __SocialCategoryManagement.IsExistingCategories(CategoriesArr)) {
-                    return Problem(400, "Invalid categories not exists.");
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "categories" });
                 }
                 if (Tags != default && !await __SocialTagManagement.IsExistsTags(TagsArr)) {
-                    return Problem(400, "Invalid tags not exists.");
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "tags" });
                 }
                 #endregion
 
@@ -106,7 +108,7 @@ namespace CoreApi.Controllers.Social.Post
                 #region Validate params: start, size, total_size
                 if (TotalSize != 0 && Start >= TotalSize) {
                     AddLogParam("total_size", TotalSize);
-                    return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
+                    return Problem(400, RESPONSE_MESSAGES.INVALID_REQUEST_PARAMS_START_SIZE, new string[]{ Start.ToString(), TotalSize.ToString() });
                 }
                 #endregion
 
@@ -119,13 +121,13 @@ namespace CoreApi.Controllers.Social.Post
                     Ret.Add(Obj);
                 });
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "posts",      Utils.ObjectToJsonToken(Ret) },
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

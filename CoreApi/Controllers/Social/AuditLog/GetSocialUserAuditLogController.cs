@@ -123,7 +123,7 @@ namespace CoreApi.Controllers.Social.AuditLog
                 AddLogParam("key",         Key);
                 AddLogParam("search_term", SearchTerm);
                 if (Start < 0 || Size < 1) {
-                    return Problem(400, "Bad request params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
@@ -142,17 +142,18 @@ namespace CoreApi.Controllers.Social.AuditLog
 
                 #region Validate params: start, size, total_size
                 if (TotalSize != 0 && Start >= TotalSize) {
-                    return Problem(400, $"Invalid request params start: { Start }. Total size is { TotalSize }");
+                    AddLogParam("total_size", TotalSize);
+                    return Problem(400, RESPONSE_MESSAGES.INVALID_REQUEST_PARAMS_START_SIZE, new string[]{ Start.ToString(), TotalSize.ToString() });
                 }
                 #endregion
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "logs",       Ret },
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

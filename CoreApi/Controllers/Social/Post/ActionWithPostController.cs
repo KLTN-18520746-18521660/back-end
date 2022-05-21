@@ -69,10 +69,10 @@ namespace CoreApi.Controllers.Social.Post
                 AddLogParam("post_slug", __PostSlug);
                 AddLogParam("action", Action);
                 if (__PostSlug == default || __PostSlug.Trim() == string.Empty) {
-                    return Problem(400, "Invalid request.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 if (!ValidActions.Contains(Action)) {
-                    return Problem(400, "Invalid params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
@@ -82,7 +82,7 @@ namespace CoreApi.Controllers.Social.Post
 
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found post.");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "post" });
                     }
 
                     throw new Exception($"FindPostBySlug failed, ErrorCode: { Error }");
@@ -90,7 +90,7 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 if (await __SocialPostManagement.IsContainsAction(Post.Id, Session.UserId, Action)) {
-                    return Problem(400, $"User already { Action } this post.");
+                    return Problem(400, RESPONSE_MESSAGES.ACTION_HAS_BEEN_TAKEN, new string[]{ Action });
                 }
                 NotificationSenderAction notificationAction = NotificationSenderAction.INVALID_ACTION;
                 switch (Action) {
@@ -120,11 +120,11 @@ namespace CoreApi.Controllers.Social.Post
                         Error = await __SocialPostManagement.UnFollow(Post.Id, Session.UserId);
                         break;
                     default:
-                        return Problem(400, "Invalid action.");
+                        return Problem(400, RESPONSE_MESSAGES.INVALID_ACTION, new string[]{ Action });
                 }
 
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"{ Action } post Failed, ErrorCode: { Error }");
+                    throw new Exception($"{ Action } post failed, ErrorCode: { Error }");
                 }
 
                 if (notificationAction != NotificationSenderAction.INVALID_ACTION) {
@@ -138,10 +138,10 @@ namespace CoreApi.Controllers.Social.Post
                     );
                 }
 
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

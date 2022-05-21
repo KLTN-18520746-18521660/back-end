@@ -61,7 +61,7 @@ namespace CoreApi.Controllers.Social.Report
                 #endregion
 
                 if (__ParserModel.report_type.ToLower() == "other" && (__ParserModel.content == default || __ParserModel.content == string.Empty)) {
-                    return Problem(400, "Not accept empty content when type is 'other'");
+                    return Problem(400, RESPONSE_MESSAGES.NOT_ACCEPT, new string[]{ "empty content" });
                 }
 
                 SocialReport Report = new SocialReport(){
@@ -77,14 +77,14 @@ namespace CoreApi.Controllers.Social.Report
                         {
                             AddLogParam("report_user_name", __ParserModel.user_name);
                             if (__ParserModel.user_name == default) {
-                                return Problem(400, "Invaid request body.");
+                                return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_BODY);
                             }
                             var (ReportUser, Error) = await __SocialUserManagement.FindUserIgnoreStatus(__ParserModel.user_name, false);
                             if (Error != ErrorCodes.NO_ERROR) {
-                                return Problem(404, "Not found report user.");
+                                return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "report user" });
                             }
                             if (Session.UserId != ReportUser.Id) {
-                                return Problem(400, "Not allow self report.");
+                                return Problem(403, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "report" });
                             }
                             Report.UserId = ReportUser.Id;
                             break;
@@ -93,14 +93,14 @@ namespace CoreApi.Controllers.Social.Report
                         {
                             AddLogParam("post_slug", __ParserModel.post_slug);
                             if (__ParserModel.post_slug == default) {
-                                return Problem(400, "Invaid request body.");
+                                return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_BODY);
                             }
                             var (ReportPost, Error) = await __SocialPostManagement.FindPostBySlug(__ParserModel.post_slug);
                             if (Error != ErrorCodes.NO_ERROR) {
-                                return Problem(404, "Not found report post.");
+                                return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "report post" });
                             }
                             if (Session.UserId != ReportPost.Owner) {
-                                return Problem(400, "Not allow self report.");
+                                return Problem(403, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "report" });
                             }
                             Report.PostId = ReportPost.Id;
                             break;
@@ -109,14 +109,14 @@ namespace CoreApi.Controllers.Social.Report
                         {
                             AddLogParam("comment_id", __ParserModel.comment_id);
                             if (__ParserModel.comment_id == default) {
-                                return Problem(400, "Invaid request body.");
+                                return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_BODY);
                             }
                             var (ReportComment, Error) = await __SocialCommentManagement.FindCommentById(__ParserModel.comment_id);
                             if (Error != ErrorCodes.NO_ERROR) {
-                                return Problem(404, "Not found report comment.");
+                                return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "report comment" });
                             }
                             if (Session.UserId != ReportComment.Owner) {
-                                return Problem(400, "Not allow self report.");
+                                return Problem(403, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "report" });
                             }
                             Report.CommentId = ReportComment.Id;
                             break;
@@ -124,12 +124,12 @@ namespace CoreApi.Controllers.Social.Report
                     case "feedback":
                         {
                             if (__ParserModel.content == default) {
-                                return Problem(400, "Invaid request body.");
+                                return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_BODY);
                             }
                             break;
                         }
                     default:
-                        return Problem(400, "Invalid request.");
+                        return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
 
                 var ErrorNewReport = await __SocialReportManagement.AddNewReport(Report);
@@ -138,10 +138,10 @@ namespace CoreApi.Controllers.Social.Report
                 }
 
                 AddLogParam("report_id", Report.Id);
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

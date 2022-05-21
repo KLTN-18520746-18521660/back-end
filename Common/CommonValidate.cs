@@ -112,7 +112,7 @@ namespace Common
                                               int MinSpecialChar)
         {
             if (Password.Length < MinLen || Password.Length > MaxLen) {
-                return $"Password must less than { MaxLen } and greater than { MinLen }";
+                return $"Password length must less than { MaxLen } and greater than { MinLen }";
             }
             var UpperChar   = 0;
             var LowerChar   = 0;

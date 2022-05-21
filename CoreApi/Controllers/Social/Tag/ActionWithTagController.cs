@@ -62,10 +62,10 @@ namespace CoreApi.Controllers.Social.Tag
                 AddLogParam("tag", __Tag);
                 AddLogParam("action", Action);
                 if (!__SocialTagManagement.IsValidTag(__Tag)) {
-                    return Problem(400, "Invalid request.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 if (!ValidActions.Contains(Action)) {
-                    return Problem(400, "Invalid params.");
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
 
@@ -73,7 +73,7 @@ namespace CoreApi.Controllers.Social.Tag
                 var (FindTag, Error) = await __SocialTagManagement.FindTagByName(__Tag);
                 if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
-                        return Problem(404, "Not found tag");
+                        return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "tag" });
                     }
 
                     throw new Exception($"FindTagByName failed, ErrorCode: { Error }");
@@ -81,7 +81,7 @@ namespace CoreApi.Controllers.Social.Tag
                 #endregion
 
                 if (await __SocialTagManagement.IsContainsAction(FindTag.Id, Session.UserId, Action)) {
-                    return Problem(400, $"User already { Action } this tag.");
+                    return Problem(400, RESPONSE_MESSAGES.ACTION_HAS_BEEN_TAKEN, new string[]{ Action });
                 }
                 switch (Action) {
                     case "follow":
@@ -91,17 +91,17 @@ namespace CoreApi.Controllers.Social.Tag
                         Error = await __SocialTagManagement.UnFollow(FindTag.Id, Session.UserId);
                         break;
                     default:
-                        return Problem(400, "Invalid action.");
+                        return Problem(400, RESPONSE_MESSAGES.INVALID_ACTION, new string[]{ Action });
                 }
 
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"{ Action } tag Failed, ErrorCode: { Error }, user_name { Session.User.UserName }");
+                    throw new Exception($"{ Action } tag failed, ErrorCode: { Error }, user_name { Session.User.UserName }");
                 }
 
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

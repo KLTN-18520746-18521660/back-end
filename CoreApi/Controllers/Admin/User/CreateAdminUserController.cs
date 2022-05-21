@@ -110,14 +110,14 @@ namespace CoreApi.Controllers.Admin.User
                 if (!NewUser.Parse(__ParserModel, out var ErrorPaser)) {
                     AddLogParam("error_parser", ErrorPaser);
                     AddLogParam("model_data", __ParserModel);
-                    return Problem(400, "Bad request body.");
+                    return Problem(400, RESPONSE_MESSAGES.INVALID_REQUEST_BODY);
                 }
                 #endregion
 
                 #region Check Permission
                 var Error = __AdminUserManagement.HaveFullPermission(Session.User.Rights, ADMIN_RIGHTS.ADMIN_USER);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    return Problem(403, "User doesn't have permission to create admin user.");
+                    return Problem(403, RESPONSE_MESSAGES.USER_DOES_NOT_HAVE_PERMISSION, new string[]{ "create admin user" });
                 }
                 #endregion
 
@@ -125,34 +125,34 @@ namespace CoreApi.Controllers.Admin.User
                 bool UsernameExisted = false, EmailExisted = false;
                 (UsernameExisted, EmailExisted, Error) = await __AdminUserManagement.IsUserExsiting(NewUser.UserName, NewUser.Email);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"IsUserExsiting Failed. ErrorCode: { Error }");
+                    throw new Exception($"IsUserExsiting failed. ErrorCode: { Error }");
                 } else if (UsernameExisted) {
-                    return Problem(400, "UserName have been used.");
+                    return Problem(400, RESPONSE_MESSAGES.USERNAME_HAS_BEEN_USED);
                 } else if (EmailExisted) {
-                    return Problem(400, "Email have been used.");
+                    return Problem(400, RESPONSE_MESSAGES.EMAIL_HAS_BEEN_USED);
                 }
                 #endregion
 
                 #region Check password policy
                 var ErroMsg = __AdminUserManagement.ValidatePasswordWithPolicy(__ParserModel.password);
                 if (ErroMsg != string.Empty) {
-                    return Problem(400, ErroMsg);
+                    return Problem(400, RESPONSE_MESSAGES.POLICY_PASSWORD_VIOLATION, new string[]{ ErroMsg });
                 }
                 #endregion
 
                 #region Add new admin user
                 Error = await __AdminUserManagement.AddNewUser(Session.UserId, NewUser);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"AddNewAdminUser Failed. ErrorCode: { Error }");
+                    throw new Exception($"AddNewUser failed. ErrorCode: { Error }");
                 }
                 #endregion
 
-                return Ok(201, "OK", new JObject(){
+                return Ok(201, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "user_id", NewUser.Id },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

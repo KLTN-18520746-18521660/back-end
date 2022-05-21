@@ -63,7 +63,7 @@ namespace CoreApi.Common.Base
         private string                                          __RunningFunction;
         private Mutex                                           __DataContextMutex;
         private Dictionary<string, object>                      __DataContext;
-        private List<(string PName, object PValue)>     __LogParams;
+        private List<(string PName, object PValue)>             __LogParams;
 
         #region Properties
         protected BaseConfig                    __BaseConfig { get; private set; }
@@ -88,7 +88,6 @@ namespace CoreApi.Common.Base
             __Logger                = Log.Logger;
             __TraceId               = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
             __BaseConfig            = _BaseConfig;
-            // __ControllerName        = "BaseController";
             __ControllerName        = Utils.GetHandlerNameFromClassName(this.GetType().Name);
             __DataContext           = new Dictionary<string, object>();
             __LogParams             = new List<(string, object)>();
@@ -266,11 +265,11 @@ namespace CoreApi.Common.Base
 
             #region Get session token
             if (SessionToken == default) {
-                return (default, Problem(401, "Missing header authorization.", default, LOG_LEVEL.DEBUG));
+                return (default, Problem(401, RESPONSE_MESSAGES.MISSING_HEADER_AUTHORIZE, default, default, LOG_LEVEL.DEBUG));
             }
 
             if (!CommonValidate.IsValidSessionToken(SessionToken)) {
-                return (default, Problem(401, "Invalid header authorization.", default, LOG_LEVEL.DEBUG));
+                return (default, Problem(401, RESPONSE_MESSAGES.INVALID_HEADER_AUTHORIZE, default, default, LOG_LEVEL.DEBUG));
             }
             #endregion
 
@@ -296,21 +295,21 @@ namespace CoreApi.Common.Base
                     }
                 }
                 if (Error == ErrorCodes.NOT_FOUND) {
-                    return (default, Problem(401, "Session not found.", default, LOG_LEVEL.DEBUG));
+                    return (default, Problem(401, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "session" }, default, LOG_LEVEL.DEBUG));
                 }
                 AddLogParam(
                     "user_name",
                     IsAdminController ? (Session as SessionAdminUser).User.UserName : (Session as SessionSocialUser).User.UserName
                 );
                 if (Error == ErrorCodes.SESSION_HAS_EXPIRED) {
-                    return (default, Problem(401, "Session has expired.", default, LOG_LEVEL.DEBUG));
+                    return (default, Problem(401, RESPONSE_MESSAGES.SESSION_HAS_EXPIRED, default, default, LOG_LEVEL.DEBUG));
                 }
                 if (Error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
-                    return (default, Problem(423, "You have been locked."));
+                    return (default, Problem(423, RESPONSE_MESSAGES.USER_HAS_BEEN_LOCKED));
                 }
                 if (Error == ErrorCodes.PASSWORD_IS_EXPIRED) {
                     AddHeader("Location", IsAdminController ? "/admin/profile/change-password" : "/profile/change-password");
-                    return (default, Problem(301, "Password is expired, you must change password."));
+                    return (default, Problem(301, RESPONSE_MESSAGES.PASSWORD_IS_EXPIRED));
                 }
                 AddLogParam("get_session_token_error_code", Error.ToString());
                 throw new Exception($"FindSessionForUse failed");
@@ -335,7 +334,7 @@ namespace CoreApi.Common.Base
                     if (_StatusType == default || NotAllowStatus.Contains(_StatusType)) {
                         AddLogParam("not_allow_status",    NotAllowStatus);
                         AddLogParam("invalid_status",      StatusStr);
-                        return (default, Problem(400, $"Invalid status.", default, LOG_LEVEL.DEBUG));
+                        return (default, Problem(400, RESPONSE_MESSAGES.INVALID_STATUS_PARAMS));
                     }
                 }
             }
@@ -346,14 +345,14 @@ namespace CoreApi.Common.Base
         {
             if (!Orders.IsValid()) {
                 AddLogParam("orders_param", Orders);
-                return (default, Problem(400, "Invalid order params.", default, LOG_LEVEL.DEBUG));
+                return (default, Problem(400, RESPONSE_MESSAGES.INVALID_ORDER_PARAMS));
             }
             var CombineOrders = Orders.GetOrders();
             foreach (var It in CombineOrders) {
                 if (!AllowOrderParams.Contains(It.Item1)) {
                     AddLogParam("allow_order_params",  AllowOrderParams);
                     AddLogParam("invalid_order_param", It.Item1);
-                    return (default, Problem(400, $"Not allow order field."));
+                    return (default, Problem(400, RESPONSE_MESSAGES.NOT_ALLOW_SORT_BY, new string[]{ It.Item1 }));
                 }
             }
             return (CombineOrders, default);
@@ -361,21 +360,19 @@ namespace CoreApi.Common.Base
         #endregion
         #region Handler rest response
         [NonAction]
-        protected string MessageToCode(string Message)
+        protected ObjectResult Problem(int          StatusCode,
+                                       REST_MESSAGE Message,
+                                       string[]     MessageParams   = default,
+                                       JObject      BodyData        = default,
+                                       LOG_LEVEL    LogLevel        = LOG_LEVEL.WARNING)
         {
-            return RESPONSE_MESSAGES.INVALID_REST_MESSAGE.CODE;
-        }
-        [NonAction]
-        protected ObjectResult Problem(int StatusCode, string Message, JObject Data = default, LOG_LEVEL Level = LOG_LEVEL.WARNING)
-        {
-            var MessageCode = MessageToCode(Message);
             var RespBody    = new JObject(){
                 { "status",         StatusCode },
-                { "message",        Message },
-                { "message_code",   MessageCode },
-                { "data",           Data },
+                { "message",        Message.GetMessage(MessageParams) },
+                { "message_code",   Message.CODE },
+                { "data",           BodyData },
             };
-            if (Data == default) {
+            if (BodyData == default) {
                 RespBody.Remove("data");
             }
             ObjectResult Obj = new (RespBody);
@@ -383,25 +380,28 @@ namespace CoreApi.Common.Base
             if (StatusCode == (int) StatusCodes.Status401Unauthorized) {
                 Response.Cookies.Append(SessionTokenHeaderKey, string.Empty, GetCookieOptionsForDelete());
             }
-            WriteLog(Level, true, MessageCode);
+            WriteLog(LogLevel, true, Message.CODE);
             return Obj;
         }
         [NonAction]
-        protected ObjectResult Ok(int StatusCode, string Message, JObject Data = default, LOG_LEVEL Level = LOG_LEVEL.INFO)
+        protected ObjectResult Ok(int           StatusCode,
+                                  REST_MESSAGE  Message,
+                                  string[]      MessageParams   = default,
+                                  JObject       BodyData        = default,
+                                  LOG_LEVEL     LogLevel        = LOG_LEVEL.INFO)
         {
-            var MessageCode = MessageToCode(Message);
             var RespBody = new JObject(){
                 { "status",         StatusCode },
-                { "message",        Message },
-                { "message_code",   MessageCode },
-                { "data",           Data },
+                { "message",        Message.GetMessage(MessageParams) },
+                { "message_code",   Message.CODE },
+                { "data",           BodyData },
             };
-            if (Data == default) {
+            if (BodyData == default) {
                 RespBody.Remove("data");
             }
             ObjectResult Obj = new (RespBody);
             Obj.StatusCode = StatusCode;
-            WriteLog(Level, true, MessageCode);
+            WriteLog(LogLevel, true, Message.CODE);
             return Obj;
         }
         #endregion

@@ -36,7 +36,6 @@ namespace DatabaseAccess.Context.Models
         [Required]
         [Column("slug")]
         public string Slug { get; set; } // generate on create post and when modify post
-        [Required]
         [Column("thumbnail")]
         public string Thumbnail { get; set; }
         [Required]
@@ -89,7 +88,7 @@ namespace DatabaseAccess.Context.Models
             get => _content;
             set {
                 _content = value;
-                ContentSearch = Utils.TakeContentForSearchFromRawContent(value);
+                ContentSearch = Utils.TakeContentForSearchFromRawContent(value, ContentType == CONTENT_TYPE.MARKDOWN);
                 if (ShortContent == default || ShortContent == string.Empty) {
                     ShortContent = Utils.TakeShortContentFromContentSearch(ContentSearch);
                 }

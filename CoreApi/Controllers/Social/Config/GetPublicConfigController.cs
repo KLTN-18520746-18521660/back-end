@@ -59,7 +59,7 @@ namespace CoreApi.Controllers.Social.Config
                 #region Get all public config
                 var (RawRet, ErrMsg) = __BaseConfig.GetAllPublicConfig();
                 if (ErrMsg != string.Empty) {
-                    throw new Exception($"GetAllConfig Failed. ErrorMsg: { ErrMsg }");
+                    throw new Exception($"GetAllConfig failed. ErrorMsg: { ErrMsg }");
                 }
                 JObject Ret = new JObject();
                 foreach (var it in RawRet) {
@@ -70,12 +70,12 @@ namespace CoreApi.Controllers.Social.Config
                 }
                 #endregion
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "configs", Ret },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -105,32 +105,32 @@ namespace CoreApi.Controllers.Social.Config
                 #region Validate config_key
                 var ConfigKey = DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey);
                 var KeyNotAllow = IsNotAllowConfigKey(__ConfigKey);
-                AddLogParam("raw_config_key", __ConfigKey);
-                AddLogParam("config_key", ConfigKey);
-                AddLogParam("key_not_allow", KeyNotAllow);
-                if (__ConfigKey == default || ConfigKey == CONFIG_KEY.INVALID || KeyNotAllow == true
-                ) {
-                    return Problem(400, "Invalid config_key.");
+                AddLogParam("raw_config_key",   __ConfigKey);
+                AddLogParam("config_key",       ConfigKey.ToString());
+                AddLogParam("key_not_allow",    KeyNotAllow);
+                if (__ConfigKey == default || ConfigKey == CONFIG_KEY.INVALID || KeyNotAllow == true) {
+                    return Problem(400, RESPONSE_MESSAGES.INVALID_CONFIG_KEY, new string[]{ __ConfigKey });
                 }
                 #endregion
 
                 #region Get public config by key
                 if (DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey) == CONFIG_KEY.INVALID
-                    || __BaseConfig.IsPublicConfig(DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey))) {
-                    return Problem(400, "Invalid config_key.");
+                    || __BaseConfig.IsPublicConfig(DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey))
+                ) {
+                    return Problem(400, RESPONSE_MESSAGES.INVALID_CONFIG_KEY, new string[]{ __ConfigKey });
                 }
                 var (Ret, ErrMsg) = __BaseConfig.GetPublicConfig(DEFAULT_BASE_CONFIG.StringToConfigKey(__ConfigKey));
                 if (ErrMsg != string.Empty) {
-                    return Problem(400, "Invalid config_key or config_key not exist.");
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "config_key" });
                 }
                 #endregion
 
-                return Ok(200, "OK", new JObject(){
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "config", Ret },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

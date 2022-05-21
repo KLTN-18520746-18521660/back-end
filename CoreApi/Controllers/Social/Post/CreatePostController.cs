@@ -113,7 +113,7 @@ namespace CoreApi.Controllers.Social.Post
 
                 #region Validate permission
                 if (await __SocialUserManagement.HaveFullPermission(Session.UserId, SOCIAL_RIGHTS.POST) == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    return Problem(403, "User doesn't have permission for create new post. Contact admin for more detail.");
+                    return Problem(403, RESPONSE_MESSAGES.USER_DOES_NOT_HAVE_PERMISSION, new string[]{ "create new post" });
                 }
                 #endregion
 
@@ -127,14 +127,15 @@ namespace CoreApi.Controllers.Social.Post
 
                 #region validate params
                 if (!await __SocialCategoryManagement.IsExistingCategories(__ParserModel.categories)) {
-                    return Problem(400, $"Category not exist.");
+                    return Problem(400, RESPONSE_MESSAGES.ALREADY_EXIST, new string[]{ "Category" });
                 }
                 var (IsValidTags, Error) = await __SocialTagManagement.IsValidTags(__ParserModel.tags);
                 if (!IsValidTags) {
+                    AddLogParam("tags", __ParserModel.tags);
                     if (Error == ErrorCodes.INVALID_PARAMS) {
-                        return Problem(400, "Invalid tags.");
+                        return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                     }
-                    throw new Exception($"IsValidTags Failed, ErrorCode: { Error }");
+                    throw new Exception($"IsValidTags failed, ErrorCode: { Error }");
                 }
                 #endregion
 
@@ -152,12 +153,12 @@ namespace CoreApi.Controllers.Social.Post
                     }
                 );
 
-                return Ok(201, "OK", new JObject(){
+                return Ok(201, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "post_id", Post.Id },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

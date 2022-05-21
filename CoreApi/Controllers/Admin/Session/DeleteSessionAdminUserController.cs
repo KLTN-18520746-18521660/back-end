@@ -103,28 +103,28 @@ namespace CoreApi.Controllers.Admin.Session
                 #region Compare with present session token
                 AddLogParam("delete_session_token", __DeleteSessionToken);
                 if (!CommonValidate.IsValidSessionToken(__DeleteSessionToken)) {
-                    return Problem(400, "Invalid session token.");
+                    return Problem(400, RESPONSE_MESSAGES.INVALID_SESSION_TOKEN);
                 }
                 if (__DeleteSessionToken == SessionToken) {
-                    return Problem(400, "Not allow delete session. Try logout.");
+                    return Problem(400, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "delete session" });
                 }
                 #endregion
 
                 #region Delete session
                 var (DelSession, Error) = await __SessionAdminUserManagement.FindSession(__DeleteSessionToken);
                 if (Error != ErrorCodes.NO_ERROR || DelSession.UserId != Session.UserId) {
-                    return Problem(404, "Delete session not found.");
+                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "delete session" });
                 }
                 Error = await __SessionAdminUserManagement.RemoveSession(DelSession.SessionToken);
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"DeleteSessionAdmin Failed. ErrorCode: { Error }");
+                    throw new Exception($"RemoveSession failed. ErrorCode: { Error }");
                 }
                 #endregion
 
-                return Ok(200, "OK");
+                return Ok(200, RESPONSE_MESSAGES.OK);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
 
@@ -158,15 +158,14 @@ namespace CoreApi.Controllers.Admin.Session
                 #region Delete all session
                 var Error = await __SessionAdminUserManagement.RemoveAllSession(Session.UserId, new string[]{ SessionToken });
                 if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.NO_CHANGE_DETECTED) {
-                    throw new Exception($"RemoveAllSession Failed. ErrorCode: { Error }");
+                    throw new Exception($"RemoveAllSession failed. ErrorCode: { Error }");
                 }
                 #endregion
 
-                // LogInformation($"Remove all session success, user_name: { Session.User.UserName }");
-                return Ok(200, Error == ErrorCodes.NO_ERROR ? "OK" : "No change detected");
+                return Ok(200, Error == ErrorCodes.NO_ERROR ? RESPONSE_MESSAGES.OK : RESPONSE_MESSAGES.NO_CHANGES_DETECTED);
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
-                return Problem(500, "Internal Server Error", default, LOG_LEVEL.ERROR);
+                return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
     }

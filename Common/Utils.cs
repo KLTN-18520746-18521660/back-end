@@ -247,13 +247,36 @@ namespace Common
         }
         #endregion
         #region Post
-        public static string TakeContentForSearchFromRawContent(string RawContent)
+        public static string TakeContentForSearchFromRawContent(string RawContent, bool IsMarkdown) // default is HTML
         {
-            return string.Empty;
+            var Ret = DeepClone<string>(RawContent);
+            if (IsMarkdown) {
+                Ret = Regex.Replace(Ret, "$>#[*`!\\[\\]-_]+", string.Empty);
+                Ret = Regex.Replace(Ret, "(.*?)", string.Empty);
+            }
+            Ret = Regex.Replace(Ret, "<[\\/a-zA-Z0-9= \"\\\"'\'#;:()$_-]*?>", string.Empty);
+            var ArrChr = Ret.ToArray();
+            for (var i = 0; i < ArrChr.Length; i++) {
+                if (!Char.IsLetterOrDigit(ArrChr[i])) {
+                    ArrChr[i] = ' ';
+                }
+            }
+            Ret = new string(ArrChr);
+            Ret = Regex.Replace(Ret, "\\s+", " ");
+            return Ret.Trim();
         }
         public static string TakeShortContentFromContentSearch(string ContentSearch)
         {
-            return "demo_short_content";
+            if (ContentSearch.Length <= 200) {
+                return ContentSearch;
+            }
+            int Ind;
+            for (Ind = 200; Ind < ContentSearch.Length; Ind++) {
+                if (ContentSearch[Ind] == ' ') {
+                    break;
+                }
+            }
+            return ContentSearch.Substring(0, Ind + 1);
         }
         #endregion
         #region User

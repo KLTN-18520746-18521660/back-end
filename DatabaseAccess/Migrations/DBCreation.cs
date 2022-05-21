@@ -91,7 +91,7 @@ namespace DatabaseAccess.Migrations
                     parent_id = table.Column<long>(type: "bigint", nullable: true),
                     name = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     display_name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    describe = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    describe = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
                     slug = table.Column<string>(type: "text", nullable: false),
                     thumbnail = table.Column<string>(type: "text", nullable: true),
                     status = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: false, defaultValueSql: "'Enabled'"),
@@ -290,7 +290,7 @@ namespace DatabaseAccess.Migrations
                 {
                     role_id = table.Column<int>(type: "integer", nullable: false),
                     right_id = table.Column<int>(type: "integer", nullable: false),
-                    actions = table.Column<string>(type: "jsonb", nullable: false, defaultValueSql: "'{\r\n  \"read\": false,\r\n  \"write\": false\r\n}'")
+                    actions = table.Column<string>(type: "jsonb", nullable: false, defaultValueSql: "'{\"read\":false,\"write\":false}'")
                 },
                 constraints: table =>
                 {
@@ -365,7 +365,7 @@ namespace DatabaseAccess.Migrations
                     owner = table.Column<Guid>(type: "uuid", nullable: false),
                     title = table.Column<string>(type: "text", nullable: false),
                     slug = table.Column<string>(type: "text", nullable: false),
-                    thumbnail = table.Column<string>(type: "text", nullable: false),
+                    thumbnail = table.Column<string>(type: "text", nullable: true),
                     views = table.Column<int>(type: "integer", nullable: false, defaultValueSql: "0"),
                     time_read = table.Column<int>(type: "integer", nullable: false, defaultValueSql: "2"),
                     status = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: true, defaultValueSql: "'Pending'"),
@@ -512,7 +512,7 @@ namespace DatabaseAccess.Migrations
                 {
                     role_id = table.Column<int>(type: "integer", nullable: false),
                     right_id = table.Column<int>(type: "integer", nullable: false),
-                    actions = table.Column<string>(type: "jsonb", nullable: false, defaultValueSql: "'{\r\n  \"read\": false,\r\n  \"write\": false\r\n}'")
+                    actions = table.Column<string>(type: "jsonb", nullable: false, defaultValueSql: "'{\"read\":false,\"write\":false}'")
                 },
                 constraints: table =>
                 {
@@ -806,20 +806,28 @@ namespace DatabaseAccess.Migrations
                 columns: new[] { "id", "config_key", "status", "value" },
                 values: new object[,]
                 {
-                    { 1, "AdminUserLoginConfig", "Enabled", "{\r\n  \"number_of_times_allow_login_failure\": 5,\r\n  \"lock_time\": 360\r\n}" },
-                    { 2, "SocialUserLoginConfig", "Enabled", "{\r\n  \"number_of_times_allow_login_failure\": 5,\r\n  \"lock_time\": 360\r\n}" },
-                    { 3, "SessionAdminUserConfig", "Enabled", "{\r\n  \"expiry_time\": 5,\r\n  \"extension_time\": 5\r\n}" },
-                    { 4, "SessionSocialUserConfig", "Enabled", "{\r\n  \"expiry_time\": 5,\r\n  \"extension_time\": 5\r\n}" },
-                    { 5, "EmailClientConfig", "Enabled", "{\r\n  \"limit_sender\": 5,\r\n  \"template_user_signup\": \"<p>Dear @Model.UserName,</p>\\r\\n                                        <p>Confirm link here: <a href='@Model.ConfirmLink'>@Model.ConfirmLink</a><br>\\r\\n                                        Send datetime: @Model.DateTimeSend</p>\\r\\n                                        <p>Thanks for your register.</p>\"\r\n}" },
-                    { 6, "SocialUserConfirmConfig", "Enabled", "{\r\n  \"expiry_time\": 2880,\r\n  \"number_of_times_allow_confirm_failure\": 3,\r\n  \"prefix_url\": \"/auth/confirm-account\",\r\n  \"host_name\": \"http://localhost:4200\"\r\n}" },
+                    { 1, "AdminUserLoginConfig", "Enabled", "{\"number_of_times_allow_failure\":5,\"lock_time\":360}" },
+                    { 15, "APIGetCommentConfig", "Enabled", "{\"limit_size_get_reply_comment\":2}" },
+                    { 14, "AdminPasswordPolicy", "Enabled", "{\"min_len\":5,\"max_len\":25,\"min_upper_char\":0,\"min_lower_char\":0,\"min_number_char\":0,\"min_special_char\":0,\"expiry_time\":30,\"required_change_expired_password\":true}" },
+                    { 13, "SocialPasswordPolicy", "Enabled", "{\"min_len\":5,\"max_len\":25,\"min_upper_char\":0,\"min_lower_char\":0,\"min_number_char\":0,\"min_special_char\":0,\"expiry_time\":30,\"required_change_expired_password\":true}" },
+                    { 12, "AdminUserIdle", "Enabled", "{\"idle\":300,\"timeout\":10,\"ping\":10}" },
+                    { 11, "SocialUserIdle", "Enabled", "{\"idle\":300,\"timeout\":10,\"ping\":10}" },
+                    { 10, "Notification", "Enabled", "{\"interval_time\":120}" },
+                    { 9, "UploadFileConfig", "Enabled", "{\"max_length_of_single_file\":5242880}" },
+                    { 16, "ForgotPasswordConfig", "Enabled", "{\"expiry_time\":2880,\"timeout\":720,\"number_of_times_allow_failure\":1,\"prefix_url\":\"/auth/new-password\",\"host_name\":\"http://localhost:7005\",\"subject\":\"[oOwlet Blog] Forgot password.\"}" },
                     { 7, "UIConfig", "Enabled", "{}" },
-                    { 8, "PublicConfig", "Enabled", "{\r\n  \"UIConfig\": \"all\",\r\n  \"SessionAdminUserConfig\": \"all\",\r\n  \"SessionSocialUserConfig\": \"all\",\r\n  \"UploadFileConfig\": \"all\"\r\n}" }
+                    { 6, "SocialUserConfirmConfig", "Enabled", "{\"expiry_time\":2880,\"timeout\":720,\"number_of_times_allow_failure\":3,\"prefix_url\":\"/auth/confirm-account\",\"host_name\":\"http://localhost:7005\",\"subject\":\"[oOwlet Blog] Confirm signup.\"}" },
+                    { 5, "EmailClientConfig", "Enabled", "{\"limit_sender\":5,\"template_user_signup\":\"<p>Dear @Model.DisplayName,</p><p>Confirm link <a href='@Model.ConfirmLink'>here</a><br>Send datetime: @Model.DateTimeSend</p><p>Thanks for your register.</p>\",\"template_forgot_password\":\"<p>Dear @Model.DisplayName,</p><p>Confirm link <a href='@Model.ResetPasswordLink'>here</a><br>Send datetime: @Model.DateTimeSend.</p>\"}" },
+                    { 4, "SessionSocialUserConfig", "Enabled", "{\"expiry_time\":5,\"extension_time\":5}" },
+                    { 3, "SessionAdminUserConfig", "Enabled", "{\"expiry_time\":5,\"extension_time\":5}" },
+                    { 2, "SocialUserLoginConfig", "Enabled", "{\"number_of_times_allow_failure\":5,\"lock_time\":360}" },
+                    { 8, "PublicConfig", "Enabled", "{\"UIConfig\":\"all\",\"SessionAdminUserConfig\":\"all\",\"SessionSocialUserConfig\":\"all\",\"UploadFileConfig\":\"all\",\"SocialUserIdle\":\"all\",\"AdminUserIdle\":\"all\",\"SocialPasswordPolicy\":\"all\",\"AdminPasswordPolicy\":\"all\"}" }
                 });
 
             migrationBuilder.InsertData(
                 table: "admin_user",
                 columns: new[] { "id", "created_timestamp", "display_name", "email", "last_access_timestamp", "salt", "settings", "status", "password", "user_name" },
-                values: new object[] { new Guid("1afc27e9-85c3-4e48-89ab-dd997621ab32"), new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Administrator", "admin@admin", null, "5b8f88a6", "{}", "Readonly", "E6D2B26A29B297BC60A28C891ABAC464", "admin" });
+                values: new object[] { new Guid("1afc27e9-85c3-4e48-89ab-dd997621ab32"), new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Administrator", "admin@admin", null, "82b82727", "{}", "Readonly", "730B79CA0F3C34D5FF7ABEB11A8F3B28", "admin" });
 
             migrationBuilder.InsertData(
                 table: "admin_user_right",
@@ -827,17 +835,17 @@ namespace DatabaseAccess.Migrations
                 values: new object[,]
                 {
                     { 12, "Upload files.", "Upload", "upload", "Enabled" },
+                    { 11, "Modify, get config of server.", "Config", "config", "Enabled" },
                     { 10, "See and tracking log file.", "Log", "log", "Enabled" },
                     { 9, "Add, block, unblock, delete AdminUser.", "Admin User", "admin_user", "Enabled" },
                     { 8, "Block, unblock SocialUser", "Social User", "social_user", "Enabled" },
                     { 7, "Configure security of Server.", "Security", "security", "Enabled" },
-                    { 11, "Modify, get config of server.", "Config", "config", "Enabled" },
-                    { 5, "Review, accept, reject post. See report about post.", "Post", "post", "Enabled" },
                     { 4, "Add, create, disable tag.", "Tag", "tag", "Enabled" },
+                    { 5, "Review, accept, reject post. See report about post.", "Post", "post", "Enabled" },
                     { 3, "Add, create, disable topics", "Topic", "topic", "Enabled" },
                     { 2, "Add, create, disable category.", "Category", "category", "Enabled" },
-                    { 6, "Delete comment. See report about comment.", "Comment", "comment", "Enabled" },
-                    { 1, "Can access Homepage and see statistic.", "Dashboard", "dashboard", "Enabled" }
+                    { 1, "Can access Homepage and see statistic.", "Dashboard", "dashboard", "Enabled" },
+                    { 6, "Delete comment. See report about comment.", "Comment", "comment", "Enabled" }
                 });
 
             migrationBuilder.InsertData(
@@ -851,10 +859,10 @@ namespace DatabaseAccess.Migrations
                 values: new object[,]
                 {
                     { 5L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Life die have number", "Left", null, "left", null, "left", "Readonly", null },
+                    { 3L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Search google to have better solution", "Dicussion", null, "dicussion", null, "dicussion", "Readonly", null },
                     { 4L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Nothing in here", "Blog", null, "blog", null, "blog", "Readonly", null },
-                    { 2L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Do not click to this", "Developer", null, "developer", null, "developer", "Readonly", null },
                     { 1L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "This not a bug this a feature", "Technology", null, "technology", null, "technology", "Readonly", null },
-                    { 3L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Search google to have better solution", "Dicussion", null, "dicussion", null, "dicussion", "Readonly", null }
+                    { 2L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Do not click to this", "Developer", null, "developer", null, "developer", "Readonly", null }
                 });
 
             migrationBuilder.InsertData(
@@ -862,33 +870,33 @@ namespace DatabaseAccess.Migrations
                 columns: new[] { "id", "created_timestamp", "describe", "last_modified_timestamp", "name", "status", "tag" },
                 values: new object[,]
                 {
-                    { 20L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue Router I18n is a localization library for Vue Router. It is maintained by a community of individual developers and companies.", null, "Vue Router I18n", "Readonly", "vue-router-i18n" },
-                    { 17L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vuex is a state management pattern and library for Vue.js applications. It is maintained by a community of individual developers and companies.", null, "Vuex", "Readonly", "vuex" },
-                    { 18L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue I18n is a localization library for Vue.js. It is maintained by a community of individual developers and companies.", null, "Vue I18n", "Readonly", "vue-i18n" },
-                    { 19L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue Resource is a REST client for Vue.js. It is maintained by a community of individual developers and companies.", null, "Vue Resource", "Readonly", "vue-resource" },
-                    { 21L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), ".NET is a programming language and runtime environment developed by Microsoft. It is maintained by a community of individual developers and companies.", null, ".NET", "Readonly", "dotnet" },
-                    { 27L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "React Router DOM is a routing library for React. It is maintained by a community of individual developers and companies.", null, "React Router DOM", "Readonly", "react-router-dom" },
-                    { 23L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "ASP.NET is a web application framework developed by Microsoft. It is maintained by a community of individual developers and companies.", null, "ASP.NET", "Readonly", "aspnet" },
-                    { 24L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "ASP.NET Core is a web application framework developed by Microsoft. It is maintained by a community of individual developers and companies.", null, "ASP.NET Core", "Readonly", "aspnet-core" },
-                    { 25L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Next.js is a JavaScript framework for building web applications. It is maintained by a community of individual developers and companies.", null, "Next.js", "Readonly", "nextjs" },
-                    { 26L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "React Router is a routing library for React. It is maintained by a community of individual developers and companies.", null, "React Router", "Readonly", "react-router" },
-                    { 16L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue Router is a routing library for Vue.js. It is maintained by a community of individual developers and companies.", null, "Vue Router", "Readonly", "vue-router" },
-                    { 22L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "C# is a programming language and runtime environment developed by Microsoft. It is maintained by a community of individual developers and companies.", null, "CSharp", "Readonly", "csharp" },
                     { 15L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Bootstrap Vue is a Vue.js wrapper for Bootstrap. It is maintained by a community of individual developers and companies.", null, "Bootstrap Vue", "Readonly", "bootstrap-vue" },
-                    { 3L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue.js is an open-source JavaScript framework for building user interfaces. It is maintained by a community of individual developers and companies. Vue can be used as a base in the development of single-page or mobile applications.", null, "Vue", "Readonly", "vue" },
-                    { 13L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Material Design is a design language developed by Google. It is used to create a consistent and beautiful user experience across all products on Android, iOS, and the web.", null, "Material Design", "Readonly", "material-design" },
-                    { 1L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Angular is a TypeScript-based open-source web application platform led by the Angular Team at Google and by a community of individuals and corporations. Angular is a complete rewrite from the same team that built AngularJS.", null, "Angular", "Readonly", "angular" },
-                    { 2L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "React is a JavaScript library for building user interfaces. It is maintained by Facebook and a community of individual developers and companies. React can be used as a base in the development of single-page or mobile applications.", null, "React", "Readonly", "react" },
-                    { 4L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Angular CLI is a command-line interface for the Angular development platform. It is used to create and manage projects for the Angular framework.", null, "Angular CLI", "Readonly", "angular-cli" },
+                    { 26L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "React Router is a routing library for React. It is maintained by a community of individual developers and companies.", null, "React Router", "Readonly", "react-router" },
+                    { 25L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Next.js is a JavaScript framework for building web applications. It is maintained by a community of individual developers and companies.", null, "Next.js", "Readonly", "nextjs" },
+                    { 24L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "ASP.NET Core is a web application framework developed by Microsoft. It is maintained by a community of individual developers and companies.", null, "ASP.NET Core", "Readonly", "aspnet-core" },
+                    { 23L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "ASP.NET is a web application framework developed by Microsoft. It is maintained by a community of individual developers and companies.", null, "ASP.NET", "Readonly", "aspnet" },
+                    { 22L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "C# is a programming language and runtime environment developed by Microsoft. It is maintained by a community of individual developers and companies.", null, "CSharp", "Readonly", "csharp" },
+                    { 21L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), ".NET is a programming language and runtime environment developed by Microsoft. It is maintained by a community of individual developers and companies.", null, ".NET", "Readonly", "dotnet" },
+                    { 20L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue Router I18n is a localization library for Vue Router. It is maintained by a community of individual developers and companies.", null, "Vue Router I18n", "Readonly", "vue-router-i18n" },
+                    { 19L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue Resource is a REST client for Vue.js. It is maintained by a community of individual developers and companies.", null, "Vue Resource", "Readonly", "vue-resource" },
+                    { 18L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue I18n is a localization library for Vue.js. It is maintained by a community of individual developers and companies.", null, "Vue I18n", "Readonly", "vue-i18n" },
+                    { 17L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vuex is a state management pattern and library for Vue.js applications. It is maintained by a community of individual developers and companies.", null, "Vuex", "Readonly", "vuex" },
+                    { 16L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue Router is a routing library for Vue.js. It is maintained by a community of individual developers and companies.", null, "Vue Router", "Readonly", "vue-router" },
                     { 14L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Material Icons is a set of open source icons for use in web and mobile applications. It is maintained by a community of individual developers and companies.", null, "Material Icons", "Readonly", "material-icons" },
+                    { 13L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Material Design is a design language developed by Google. It is used to create a consistent and beautiful user experience across all products on Android, iOS, and the web.", null, "Material Design", "Readonly", "material-design" },
+                    { 12L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Material-UI is a React component library that enables you to create beautiful, high-fidelity, mobile-first experiences. It is maintained by a community of individual developers and companies.", null, "Material-UI", "Readonly", "material-ui" },
+                    { 11L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Bootstrap is a free and open-source front-end web framework for designing websites and web applications. It is maintained by a community of individual developers and companies.", null, "Bootstrap", "Readonly", "bootstrap" },
+                    { 10L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Less is a stylesheet language that is interpreted into Cascading Style Sheets (CSS). It is maintained by a community of individual developers and companies.", null, "Less", "Readonly", "less" },
+                    { 9L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Sass is a stylesheet language that is interpreted into Cascading Style Sheets (CSS). It is maintained by a community of individual developers and companies.", null, "Sass", "Readonly", "sass" },
+                    { 8L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Gulp is a streaming build system. It is maintained by a community of individual developers and companies.", null, "Gulp", "Readonly", "gulp" },
+                    { 7L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Webpack is a module bundler that packs multiple modules with dependencies into a single module. It is maintained by a community of individual developers and companies.", null, "Webpack", "Readonly", "webpack" },
                     { 6L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue CLI is a command-line interface for the Vue.js development platform. It is used to create and manage projects for the Vue framework.", null, "Vue CLI", "Readonly", "vue-cli" },
                     { 5L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "React Native is a framework for building native apps using React. It is maintained by Facebook and a community of individual developers and companies.", null, "React Native", "Readonly", "react-native" },
-                    { 8L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Gulp is a streaming build system. It is maintained by a community of individual developers and companies.", null, "Gulp", "Readonly", "gulp" },
-                    { 9L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Sass is a stylesheet language that is interpreted into Cascading Style Sheets (CSS). It is maintained by a community of individual developers and companies.", null, "Sass", "Readonly", "sass" },
-                    { 10L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Less is a stylesheet language that is interpreted into Cascading Style Sheets (CSS). It is maintained by a community of individual developers and companies.", null, "Less", "Readonly", "less" },
-                    { 11L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Bootstrap is a free and open-source front-end web framework for designing websites and web applications. It is maintained by a community of individual developers and companies.", null, "Bootstrap", "Readonly", "bootstrap" },
-                    { 12L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Material-UI is a React component library that enables you to create beautiful, high-fidelity, mobile-first experiences. It is maintained by a community of individual developers and companies.", null, "Material-UI", "Readonly", "material-ui" },
-                    { 7L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Webpack is a module bundler that packs multiple modules with dependencies into a single module. It is maintained by a community of individual developers and companies.", null, "Webpack", "Readonly", "webpack" }
+                    { 4L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Angular CLI is a command-line interface for the Angular development platform. It is used to create and manage projects for the Angular framework.", null, "Angular CLI", "Readonly", "angular-cli" },
+                    { 3L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Vue.js is an open-source JavaScript framework for building user interfaces. It is maintained by a community of individual developers and companies. Vue can be used as a base in the development of single-page or mobile applications.", null, "Vue", "Readonly", "vue" },
+                    { 2L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "React is a JavaScript library for building user interfaces. It is maintained by Facebook and a community of individual developers and companies. React can be used as a base in the development of single-page or mobile applications.", null, "React", "Readonly", "react" },
+                    { 1L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "Angular is a TypeScript-based open-source web application platform led by the Angular Team at Google and by a community of individuals and corporations. Angular is a complete rewrite from the same team that built AngularJS.", null, "Angular", "Readonly", "angular" },
+                    { 27L, new DateTime(2022, 2, 20, 6, 13, 13, 0, DateTimeKind.Utc), "React Router DOM is a routing library for React. It is maintained by a community of individual developers and companies.", null, "React Router DOM", "Readonly", "react-router-dom" }
                 });
 
             migrationBuilder.InsertData(
@@ -896,10 +904,10 @@ namespace DatabaseAccess.Migrations
                 columns: new[] { "id", "describe", "display_name", "right_name", "status" },
                 values: new object[,]
                 {
+                    { 3, "Can create, interactive report.", "Report", "report", "Readonly" },
                     { 4, "Can create, interactive report.", "Upload", "upload", "Readonly" },
                     { 1, "Can create, interactive posts.", "Post", "post", "Readonly" },
-                    { 2, "Can create, interactive comment.", "Comment", "comment", "Readonly" },
-                    { 3, "Can create, interactive report.", "Report", "report", "Readonly" }
+                    { 2, "Can create, interactive comment.", "Comment", "comment", "Readonly" }
                 });
 
             migrationBuilder.InsertData(
@@ -912,18 +920,18 @@ namespace DatabaseAccess.Migrations
                 columns: new[] { "right_id", "role_id", "actions" },
                 values: new object[,]
                 {
-                    { 1, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
-                    { 12, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
-                    { 11, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
-                    { 10, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
-                    { 8, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
-                    { 7, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
-                    { 9, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
-                    { 5, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
-                    { 4, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
-                    { 3, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
-                    { 2, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
-                    { 6, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" }
+                    { 1, 1, "{\"read\":true,\"write\":true}" },
+                    { 12, 1, "{\"read\":true,\"write\":true}" },
+                    { 11, 1, "{\"read\":true,\"write\":true}" },
+                    { 10, 1, "{\"read\":true,\"write\":true}" },
+                    { 8, 1, "{\"read\":true,\"write\":true}" },
+                    { 7, 1, "{\"read\":true,\"write\":true}" },
+                    { 9, 1, "{\"read\":true,\"write\":true}" },
+                    { 5, 1, "{\"read\":true,\"write\":true}" },
+                    { 4, 1, "{\"read\":true,\"write\":true}" },
+                    { 3, 1, "{\"read\":true,\"write\":true}" },
+                    { 2, 1, "{\"read\":true,\"write\":true}" },
+                    { 6, 1, "{\"read\":true,\"write\":true}" }
                 });
 
             migrationBuilder.InsertData(
@@ -936,10 +944,10 @@ namespace DatabaseAccess.Migrations
                 columns: new[] { "right_id", "role_id", "actions" },
                 values: new object[,]
                 {
-                    { 3, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
-                    { 1, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
-                    { 2, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" },
-                    { 4, 1, "{\r\n  \"read\": true,\r\n  \"write\": true\r\n}" }
+                    { 3, 1, "{\"read\":true,\"write\":true}" },
+                    { 1, 1, "{\"read\":true,\"write\":true}" },
+                    { 2, 1, "{\"read\":true,\"write\":true}" },
+                    { 4, 1, "{\"read\":true,\"write\":true}" }
                 });
 
             migrationBuilder.CreateIndex(
@@ -1119,7 +1127,7 @@ namespace DatabaseAccess.Migrations
                 table: "social_post",
                 column: "slug",
                 unique: true,
-                filter: "((status = 'Approved' OR status = 'Private') AND (slug <> ''))");
+                filter: "(slug <> '')");
 
             migrationBuilder.CreateIndex(
                 name: "IX_social_post_category_category_id",
