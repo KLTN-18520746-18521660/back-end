@@ -115,6 +115,7 @@ namespace CoreApi.Controllers.Social.Post
                 AddLogParam("categories", Categories);
                 AddLogParam("tags", Tags);
                 AddLogParam("orders", Orders);
+                AddLogParam("status", Status);
                 IActionResult ErrRetValidate    = default;
                 (string, bool)[] CombineOrders  = default;
                 string[] StatusArr              = default;

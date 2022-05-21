@@ -138,13 +138,15 @@ namespace CoreApi.Controllers.Social.Post
                 }
                 #endregion
 
+                var RawBodyObject = JObject.FromObject(GetRawBodyRequest());
+
                 if (Post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)) {
-                    Error = await __SocialPostManagement.AddPendingContent(Post.Id, __ModelData);
+                    Error = await __SocialPostManagement.AddPendingContent(Post.Id, __ModelData, RawBodyObject);
                 } else if (
                     Post.StatusStr      == EntityStatus.StatusTypeToString(StatusType.Private)
                     || Post.StatusStr   == EntityStatus.StatusTypeToString(StatusType.Pending)
                 ) {
-                    Error = await __SocialPostManagement.ModifyPostNotApproved(Post.Id, __ModelData);
+                    Error = await __SocialPostManagement.ModifyPostNotApproved(Post.Id, __ModelData, RawBodyObject);
                 } else {
                     AddLogParam("post_status", Post.StatusStr);
                     return Problem(403, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "modify post" });

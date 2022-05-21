@@ -214,7 +214,7 @@ namespace DatabaseAccess.Context.Models
             return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
         }
 
-        public JObject GetPublicShortJsonObject(Guid SocialUserId = default)
+        public JObject GetPublicShortJsonObject(Guid SocialUserId = default, bool IsAdmin = false)
         {
             var ret = new Dictionary<string, object>
             {
@@ -242,7 +242,7 @@ namespace DatabaseAccess.Context.Models
                 { "approved_timestamp", CreatedTimestamp },
                 { "last_modified_timestamp", LastModifiedTimestamp },
             };
-            if (this.Owner == SocialUserId) {
+            if (this.Owner == SocialUserId || IsAdmin) {
                 ret.Add("id", this.Id);
                 ret.Add("have_pending_content", PendingContent != default);
             }

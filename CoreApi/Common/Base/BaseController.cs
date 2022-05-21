@@ -18,6 +18,7 @@ using System.Threading;
 using Newtonsoft.Json;
 using Serilog.Events;
 using System.Runtime.CompilerServices;
+using System.IO;
 
 namespace CoreApi.Common.Base
 {
@@ -356,6 +357,13 @@ namespace CoreApi.Common.Base
                 }
             }
             return (CombineOrders, default);
+        }
+        [NonAction]
+        protected string GetRawBodyRequest()
+        {
+            var reader = new StreamReader(Request.Body);
+            reader.BaseStream.Seek(0, SeekOrigin.Begin); 
+            return reader.ReadToEnd();
         }
         #endregion
         #region Handler rest response

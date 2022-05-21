@@ -24,6 +24,7 @@ namespace CoreApi.Services
         GetNewPosts                     = 1,
         GetTrendingPosts                = 2,
         GetPostsByUserFollowing         = 3,
+        GetPostsByAdminUser             = 4,
     }
     public class SocialPostManagement : BaseTransientService
     {
@@ -67,11 +68,139 @@ namespace CoreApi.Services
                         "dislikes",
                         "comments",
                     };
+                case GetPostAction.GetPostsByAdminUser:
+                    return new string[] {
+                        "views",
+                        "likes",
+                        "dislikes",
+                        "comments",
+                        "follows",
+                        "reports",
+                        "title",
+                        "time_read",
+                        "created_timestamp",
+                        "last_modified_timestamp",
+                    };
                 default:
                     return default;
             }
         }
+        public async Task<(List<SocialPost>, int, ErrorCodes)> GetPostsByAdminUser(int start = 0,
+                                                                                   int size = 20,
+                                                                                   string search_term = default,
+                                                                                   string[] status = default,
+                                                                                   (string, bool)[] orders = default,
+                                                                                   string[] tags = default,
+                                                                                   string[] categories = default)
+        {
+            #region validate params
+            if (status != default) {
+                foreach (var statusStr in status) {
+                    var statusType = EntityStatus.StatusStringToType(statusStr);
+                    if (statusType == default || statusType == StatusType.Deleted) {
+                        return (default, default, ErrorCodes.INVALID_PARAMS);
+                    }
+                }
+            } else {
+                status = new string[]{};
+            }
 
+            if (tags == default) {
+                tags = new string[]{};
+            }
+
+            if (categories == default) {
+                categories = new string[]{};
+            }
+
+            var ColumnAllowOrder = GetAllowOrderFields(GetPostAction.GetPostsAttachedToUser);
+            if (orders != default) {
+                foreach (var order in orders) {
+                    if (!ColumnAllowOrder.Contains(order.Item1)) {
+                        return (default, default, ErrorCodes.INVALID_PARAMS);
+                    }
+                }
+            } else {
+                orders = new (string, bool)[]{};
+            }
+            #endregion
+
+            // orderStr can't empty or null
+            string orderStr = orders != default && orders.Length != 0 ? Utils.GenerateOrderString(orders) : "created_timestamp desc";
+            var query =
+                    from ids in (
+                        (from post in __DBContext.SocialPosts
+                                .Where(e => (search_term == default || e.SearchVector.Matches(search_term))
+                                    && ((
+                                            status.Count() == 0
+                                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                                        ) || status.Contains(e.StatusStr)
+                                    )
+                                    && (tags.Count() == 0
+                                        || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
+                                    )
+                                    && (categories.Count() == 0
+                                        || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
+                                    )
+                                )
+                        join action in __DBContext.SocialUserActionWithPosts on post.Id equals action.PostId
+                        into postWithAction
+                        from p in postWithAction.DefaultIfEmpty()
+                        group p by new {
+                            post.Id,
+                            post.Views,
+                            post.Title,
+                            post.TimeRead,
+                            post.CreatedTimestamp,
+                            post.LastModifiedTimestamp
+                        } into gr
+                        select new {
+                            gr.Key,
+                            Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Like))),
+                            DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
+                            Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
+                            Follows = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Follow))),
+                            Reports = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Report))),
+                        } into ret select new {
+                            ret.Key.Id,
+                            views = ret.Key.Views,
+                            likes = ret.Likes,
+                            dislikes = ret.DisLikes,
+                            comments = ret.Comments,
+                            follows = ret.Follows,
+                            reports = ret.Reports,
+                            title = ret.Key.Title,
+                            time_read = ret.Key.TimeRead,
+                            created_timestamp = ret.Key.CreatedTimestamp,
+                            last_modified_timestamp = ret.Key.LastModifiedTimestamp,
+                        })
+                        .OrderBy(orderStr)
+                        .Skip(start).Take(size)
+                        .Select(e => e.Id)
+                    )
+                    join posts in __DBContext.SocialPosts on ids equals posts.Id
+                    select posts;
+
+            var totalCount = await __DBContext.SocialPosts
+                                .CountAsync(e => (search_term == default || e.SearchVector.Matches(search_term))
+                                    && ((
+                                            status.Count() == 0
+                                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                                        ) || status.Contains(e.StatusStr)
+                                    )
+                                    && (tags.Count() == 0
+                                        || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
+                                    )
+                                    && (categories.Count() == 0
+                                        || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
+                                    )
+                                );
+            return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
+        }
         /* Example
         * status = ["Private"]
         * orders = [{"views", false}, {"created_timestamp", true}]
@@ -847,231 +976,230 @@ namespace CoreApi.Services
             return ErrorCodes.NO_ERROR;
         }
 
-        public async Task<ErrorCodes> AddPendingContent(long Id, SocialPostModifyModel model)
+        public async Task<ErrorCodes> AddPendingContent(long Id, SocialPostModifyModel Model, JObject RawModifyBody)
         {
-            var (post, error) = await FindPostById(Id);
-            if (error != ErrorCodes.NO_ERROR) {
-                return error;
+            var (Post, Error) = await FindPostById(Id);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
             }
 
             #region Check data change
-            var haveChange = false;
-            if (model.title != default && post.Title != model.title) {
-                haveChange = true;
+            var HaveChange = false;
+            if (Model.title != default && Post.Title != Model.title) {
+                HaveChange = true;
             }
-            if (model.thumbnail != default && post.Thumbnail != model.thumbnail) {
-                haveChange = true;
+            if (RawModifyBody.ContainsKey("thumbnail") && Post.Thumbnail != Model.thumbnail) {
+                HaveChange = true;
             }
-            if (model.short_content != default && post.ShortContent != model.short_content) {
-                haveChange = true;
+            if (Model.short_content != default && Post.ShortContent != Model.short_content) {
+                HaveChange = true;
             }
-            if (model.content != default && post.Content != model.content) {
-                haveChange = true;
+            if (Model.content != default && Post.Content != Model.content) {
+                HaveChange = true;
             }
-            if (model.time_read != default && post.TimeRead != model.time_read) {
-                haveChange = true;
+            if (Model.time_read != default && Post.TimeRead != Model.time_read) {
+                HaveChange = true;
             }
-            if (model.content_type != default && post.ContenTypeStr != model.content_type) {
-                haveChange = true;
+            if (Model.content_type != default && Post.ContenTypeStr != Model.content_type) {
+                HaveChange = true;
             }
-            if (model.categories != default) {
-                var old_categories = post.SocialPostCategories.Select(c => c.Category.Name);
-                if (model.categories != old_categories) {
-                    haveChange = true;
+            if (Model.categories != default) {
+                var OldCategories = Post.SocialPostCategories.Select(c => c.Category.Name);
+                if (Model.categories != OldCategories) {
+                    HaveChange = true;
                 }
             }
-            if (model.tags != default) {
-                var old_tags = post.SocialPostTags.Select(c => c.Tag.Tag);
-                if (model.tags != old_tags) {
-                    haveChange = true;
+            if (Model.tags != default) {
+                var OldTags = Post.SocialPostTags.Select(c => c.Tag.Tag);
+                if (Model.tags != OldTags) {
+                    HaveChange = true;
                 }
             }
             #endregion
-            if (!haveChange) {
+            if (!HaveChange || Post.PendingContent == RawModifyBody) {
                 return ErrorCodes.NO_CHANGE_DETECTED;
             }
 
-            post.PendingContent = model.ToJsonObject();
+            Post.PendingContent = RawModifyBody;
             if (await __DBContext.SaveChangesAsync() <= 0) {
                 WriteLog(LOG_LEVEL.ERROR, "AddPendingContent failed.");
             }
             return ErrorCodes.NO_ERROR;
         }
 
-        protected async Task<ErrorCodes> ModifyPost(SocialPost post, SocialPostModifyModel model, bool approvePost = false)
+        protected async Task<ErrorCodes> ModifyPost(SocialPost Post, SocialPostModifyModel Model, bool ApprovePost, JObject RawModifyBody)
         {
-            using var transaction = await __DBContext.Database.BeginTransactionAsync();
+            using var Transaction = await __DBContext.Database.BeginTransactionAsync();
             var __SocialTagManagement = (SocialTagManagement)__ServiceProvider.GetService(typeof(SocialTagManagement));
             var __SocialCategoryManagement = (SocialCategoryManagement)__ServiceProvider.GetService(typeof(SocialCategoryManagement));
-            var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
 
             #region Get data change and save
-            var haveChange = false;
-            var ok = true;
-            var error = string.Empty;
-            if (model.title != default && post.Title != model.title) {
-                post.Title = model.title;
-                post.Slug = Utils.GenerateSlug(post.Title, true);
-                haveChange = true;
+            var HaveChange = false;
+            var Ok = true;
+            var Error = string.Empty;
+            if (Model.title != default && Post.Title != Model.title) {
+                Post.Title = Model.title;
+                Post.Slug = Utils.GenerateSlug(Post.Title, true);
+                HaveChange = true;
             }
-            if (model.thumbnail != default && post.Thumbnail != model.thumbnail) {
-                post.Thumbnail = model.thumbnail;
-                haveChange = true;
+            if (RawModifyBody.ContainsKey("thumbnail") && Post.Thumbnail != Model.thumbnail) {
+                Post.Thumbnail = Model.thumbnail;
+                HaveChange = true;
             }
-            if (model.short_content != default && post.ShortContent != model.short_content) {
-                post.ShortContent = model.short_content;
-                haveChange = true;
+            if (Model.short_content != default && Post.ShortContent != Model.short_content) {
+                Post.ShortContent = Model.short_content;
+                HaveChange = true;
             }
-            if (model.content != default && post.Content != model.content) {
-                post.Content = model.content;
-                haveChange = true;
+            if (Model.content != default && Post.Content != Model.content) {
+                Post.Content = Model.content;
+                HaveChange = true;
             }
-            if (model.time_read != default && post.TimeRead != model.time_read) {
-                post.TimeRead = (int)model.time_read;
-                haveChange = true;
+            if (Model.time_read != default && Post.TimeRead != Model.time_read) {
+                Post.TimeRead = (int) Model.time_read;
+                HaveChange = true;
             }
-            if (model.content_type != default && post.ContenTypeStr != model.content_type) {
-                post.ContenTypeStr = model.content_type;
-                haveChange = true;
+            if (Model.content_type != default && Post.ContenTypeStr != Model.content_type) {
+                Post.ContenTypeStr = Model.content_type;
+                HaveChange = true;
             }
-            if (ok && model.categories != default) {
-                var old_categories = post.SocialPostCategories.Select(c => c.Category.Name);
-                if (model.categories.Count(e => old_categories.Contains(e)) == old_categories.Count()) {
-                    haveChange = true;
+            if (Ok && Model.categories != default) {
+                var OldCategories = Post.SocialPostCategories.Select(c => c.Category.Name);
+                if (Model.categories.Count(e => OldCategories.Contains(e)) == OldCategories.Count()) {
+                    HaveChange = true;
                     __DBContext.SocialPostCategories.RemoveRange(
-                        post.SocialPostCategories
+                        Post.SocialPostCategories
                     );
-                    ok = await __DBContext.SaveChangesAsync() >= 0;
-                    if (ok) {
-                        foreach (var it in model.categories) {
+                    Ok = await __DBContext.SaveChangesAsync() >= 0;
+                    if (Ok) {
+                        foreach (var it in Model.categories) {
                             // No need check status of category
-                            var (category, errCode) = await __SocialCategoryManagement.FindCategoryByNameIgnoreStatus(it);
-                            if (errCode != ErrorCodes.NO_ERROR) {
-                                ok = false;
-                                error = $"Not found category for add post, category: { it }";
+                            var (Category, ErrCode) = await __SocialCategoryManagement.FindCategoryByNameIgnoreStatus(it);
+                            if (ErrCode != ErrorCodes.NO_ERROR) {
+                                Ok = false;
+                                Error = $"Not found category for add post, category: { it }";
                                 break;
                             }
-                            var postCategory = new SocialPostCategory(){
-                                PostId = post.Id,
-                                Post = post,
-                                CategoryId = category.Id,
-                                Category = category,
+                            var PostCategory = new SocialPostCategory(){
+                                PostId      = Post.Id,
+                                Post        = Post,
+                                CategoryId  = Category.Id,
+                                Category    = Category,
                             };
-                            await __DBContext.SocialPostCategories.AddAsync(postCategory);
-                            post.SocialPostCategories.Add(postCategory);
+                            await __DBContext.SocialPostCategories.AddAsync(PostCategory);
+                            Post.SocialPostCategories.Add(PostCategory);
                             if (await __DBContext.SaveChangesAsync() <= 0) {
-                                ok = false;
-                                error = "Save post-category failed";
+                                Ok = false;
+                                Error = "Save post-category failed";
                                 break;
                             }
                         }
                     } else {
-                        error = "Save post-category failed";
+                        Error = "Save post-category failed";
                     }
                 }
             }
-            if (ok && model.tags != default) {
-                var old_tags = post.SocialPostTags.Select(c => c.Tag.Tag);
-                if (model.tags.Count(e => old_tags.Contains(e)) == old_tags.Count()) {
-                    haveChange = true;
+            if (Ok && Model.tags != default) {
+                var OldTags = Post.SocialPostTags.Select(c => c.Tag.Tag);
+                if (Model.tags.Count(e => OldTags.Contains(e)) == OldTags.Count()) {
+                    HaveChange = true;
                     __DBContext.SocialPostTags.RemoveRange(
-                        post.SocialPostTags
+                        Post.SocialPostTags
                     );
-                    ok = await __DBContext.SaveChangesAsync() >= 0;
-                    if (ok) {
-                        foreach (var it in model.tags) {
+                    Ok = await __DBContext.SaveChangesAsync() >= 0;
+                    if (Ok) {
+                        foreach (var it in Model.tags) {
                             // No need check status of tag
-                            var (tag, errCode) = await __SocialTagManagement.FindTagByNameIgnoreStatus(it);
-                            if (errCode != ErrorCodes.NO_ERROR) {
-                                ok = false;
-                                error = $"Not found tag for add new post. tag: { it }";
+                            var (Tag, ErrCode) = await __SocialTagManagement.FindTagByNameIgnoreStatus(it);
+                            if (ErrCode != ErrorCodes.NO_ERROR) {
+                                Ok = false;
+                                Error = $"Not found tag for add new post. tag: { it }";
                                 break;
                             }
-                            var postTag = new SocialPostTag(){
-                                PostId = post.Id,
-                                Post = post,
-                                TagId = tag.Id,
-                                Tag = tag,
+                            var PostTag = new SocialPostTag(){
+                                PostId  = Post.Id,
+                                Post    = Post,
+                                TagId   = Tag.Id,
+                                Tag     = Tag,
                             };
-                            await __DBContext.SocialPostTags.AddAsync(postTag);
-                            post.SocialPostTags.Add(postTag);
+                            await __DBContext.SocialPostTags.AddAsync(PostTag);
+                            Post.SocialPostTags.Add(PostTag);
                             if (await __DBContext.SaveChangesAsync() <= 0) {
-                                ok = false;
-                                error = "Save post-tag failed.";
+                                Ok = false;
+                                Error = "Save post-tag failed.";
                                 break;
                             }
 
                             #region Add action used tag
-                            await __SocialTagManagement.Used(tag.Id, post.Owner);
+                            await __SocialTagManagement.Used(Tag.Id, Post.Owner);
                             #endregion
                         }
                     } else {
-                        error = "Save post-tag failed";
+                        Error = "Save post-tag failed";
                     }
                 }
             }
             #endregion
-            if (!haveChange) {
+            if (!HaveChange) {
                 WriteLog(LOG_LEVEL.WARNING, "ModifyPost with no change detected",
-                    Utils.ParamsToLog("post_id", post.Id)
+                    Utils.ParamsToLog("post_id", Post.Id)
                 );
             }
 
-            if (!ok) {
+            if (!Ok) {
                 WriteLog(LOG_LEVEL.ERROR, "ModifyPost failed",
-                    Utils.ParamsToLog("error", error)
+                    Utils.ParamsToLog("error", Error)
                 );
                 return ErrorCodes.INTERNAL_SERVER_ERROR;
             }
 
-            if (approvePost) {
-                post.PendingContent = default;
-                post.Status.ChangeStatus(StatusType.Approved);
-                foreach (var it in post.SocialPostTags) {
+            if (ApprovePost) {
+                Post.PendingContent = default;
+                Post.Status.ChangeStatus(StatusType.Approved);
+                foreach (var it in Post.SocialPostTags) {
                     if (it.Tag.Status.Type == StatusType.Disabled) {
                         it.Tag.Status.ChangeStatus(StatusType.Enabled);
                     }
                 }
             }
 
-            post.LastModifiedTimestamp = DateTime.UtcNow;
-            ok = await __DBContext.SaveChangesAsync() > 0;
-            if (!ok) {
+            Post.LastModifiedTimestamp = DateTime.UtcNow;
+            Ok = await __DBContext.SaveChangesAsync() > 0;
+            if (!Ok) {
                 WriteLog(LOG_LEVEL.ERROR, "ModifyPost failed",
                     Utils.ParamsToLog("error", "can't update last modified timestamp.")
                 );
             }
-            await transaction.CommitAsync();
+            await Transaction.CommitAsync();
             return ErrorCodes.NO_ERROR;
         }
 
-        public async Task<ErrorCodes> ModifyPostNotApproved(long Id, SocialPostModifyModel model)
+        public async Task<ErrorCodes> ModifyPostNotApproved(long Id, SocialPostModifyModel Model, JObject RawModifyBody)
         {
-            var (post, error) = await FindPostById(Id);
-            if (error != ErrorCodes.NO_ERROR) {
-                return error;
+            var (Post, Error) = await FindPostById(Id);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
             }
 
-            var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
-            error = await ModifyPost(post, model, false);
-            if (error != ErrorCodes.NO_ERROR) {
-                return error;
+            var OldPost = Utils.DeepClone(Post.GetJsonObjectForLog());
+            Error = await ModifyPost(Post, Model, false, RawModifyBody);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
             }
 
             #region Write social audit log
-            (post, error) = await FindPostById(Id);
-            if (error == ErrorCodes.NO_ERROR) {
+            (Post, Error) = await FindPostById(Id);
+            if (Error == ErrorCodes.NO_ERROR) {
                 using (var scope = __ServiceProvider.CreateScope())
                 {
                     var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
-                    var (oldVal, newVal) = Utils.GetDataChanges(oldPost, post.GetJsonObjectForLog());
+                    var (OldVal, NewVal) = Utils.GetDataChanges(OldPost, Post.GetJsonObjectForLog());
                     await __SocialUserAuditLogManagement.AddNewUserAuditLog(
-                        post.GetModelName(),
-                        post.Id.ToString(),
+                        Post.GetModelName(),
+                        Post.Id.ToString(),
                         LOG_ACTIONS.MODIFY,
-                        post.Owner,
-                        oldVal,
-                        newVal
+                        Post.Owner,
+                        OldVal,
+                        NewVal
                     );
                 }
             } else {
@@ -1083,17 +1211,17 @@ namespace CoreApi.Services
 
         public async Task<ErrorCodes> ApprovePost(long Id, Guid AdminUserId)
         {
-            var (post, error) = await FindPostById(Id);
-            if (error != ErrorCodes.NO_ERROR) {
-                return error;
+            var (Post, Error) = await FindPostById(Id);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
             }
-            var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
-            if (post.Status.Type == StatusType.Pending
-                || (post.Status.Type == StatusType.Private && post.PendingContent == default)
+            var OldPost = Utils.DeepClone(Post.GetJsonObjectForLog());
+            if (Post.Status.Type == StatusType.Pending
+                || (Post.Status.Type == StatusType.Private && Post.PendingContent == default)
             ) {
-                post.Status.ChangeStatus(StatusType.Approved);
-                post.ApprovedTimestamp = DateTime.UtcNow;
-                foreach (var it in post.SocialPostTags) {
+                Post.Status.ChangeStatus(StatusType.Approved);
+                Post.ApprovedTimestamp = DateTime.UtcNow;
+                foreach (var it in Post.SocialPostTags) {
                     if (it.Tag.Status.Type == StatusType.Disabled) {
                         it.Tag.Status.ChangeStatus(StatusType.Enabled);
                     }
@@ -1103,26 +1231,29 @@ namespace CoreApi.Services
                     return ErrorCodes.INTERNAL_SERVER_ERROR;
                 }
             } else {
-                error = await ModifyPost(post, SocialPostModifyModel.FromJson(Utils.DeepClone(post.PendingContent)), true);
-                if (error != ErrorCodes.NO_ERROR) {
-                    return error;
+                Error = await ModifyPost(Post,
+                                         SocialPostModifyModel.FromJson(Utils.DeepClone(Post.PendingContent)),
+                                         true,
+                                         Utils.DeepClone(Post.PendingContent));
+                if (Error != ErrorCodes.NO_ERROR) {
+                    return Error;
                 }
             }
 
             #region Write social audit log
-            (post, error) = await FindPostById(Id);
-            if (error == ErrorCodes.NO_ERROR) {
+            (Post, Error) = await FindPostById(Id);
+            if (Error == ErrorCodes.NO_ERROR) {
                 using (var scope = __ServiceProvider.CreateScope())
                 {
                     var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
-                    var (oldVal, newVal) = Utils.GetDataChanges(oldPost, post.GetJsonObjectForLog());
+                    var (OldVal, NewVal) = Utils.GetDataChanges(OldPost, Post.GetJsonObjectForLog());
                     await __SocialUserAuditLogManagement.AddNewUserAuditLog(
-                        post.GetModelName(),
-                        post.Id.ToString(),
+                        Post.GetModelName(),
+                        Post.Id.ToString(),
                         LOG_ACTIONS.MODIFY,
-                        post.Owner,
-                        oldVal,
-                        newVal,
+                        Post.Owner,
+                        OldVal,
+                        NewVal,
                         AdminUserId
                     );
                 }
