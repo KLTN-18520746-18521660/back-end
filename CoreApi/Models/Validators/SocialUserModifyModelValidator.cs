@@ -12,9 +12,9 @@ namespace CoreApi.Models.Validators
     {
         public readonly int MinUserNameLength = 4;
         public readonly int MaxUserNameLength = 50;
-        public readonly int MinFirstNameLength = 3;
+        public readonly int MinFirstNameLength = 1;
         public readonly int MaxFirstNameLength = 25;
-        public readonly int MinLastNameLength = 3;
+        public readonly int MinLastNameLength = 1;
         public readonly int MaxLastNameLength = 25;
         public readonly int MinDisplayNameLength = 4;
         public readonly int MaxDisplayNameLength = 50;

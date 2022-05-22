@@ -28,7 +28,7 @@ namespace DatabaseAccess.Context.Validators
                     .WithMessage("{PropertyName} is null.")
                 .NotEmpty()
                     .WithMessage("{PropertyName} is empty.")
-                .Length(4, 25)
+                .Length(1, 25)
                     .WithMessage("Length of {PropertyName} must be from 4 to 25.");
 
             RuleFor(entity => entity.last_name)
@@ -37,7 +37,7 @@ namespace DatabaseAccess.Context.Validators
                     .WithMessage("{PropertyName} is null.")
                 .NotEmpty()
                     .WithMessage("{PropertyName} is empty.")
-                .Length(4, 25)
+                .Length(1, 25)
                     .WithMessage("Length of {PropertyName} must be from 4 to 25.");
 
             When(entity => entity.display_name != default, () => {
