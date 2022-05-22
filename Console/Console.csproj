@@ -5,6 +5,8 @@
     <TargetFramework>net5.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <AnalysisLevel>5.0</AnalysisLevel>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <Deterministic>False</Deterministic>
   </PropertyGroup>
 
   <ItemGroup>

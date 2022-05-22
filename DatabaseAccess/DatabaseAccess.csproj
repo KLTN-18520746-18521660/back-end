@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <AnalysisLevel>5.0</AnalysisLevel>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <Deterministic>False</Deterministic>
   </PropertyGroup>
 
   <ItemGroup>

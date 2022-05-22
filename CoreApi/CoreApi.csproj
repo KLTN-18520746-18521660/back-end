@@ -4,6 +4,8 @@
     <RootNamespace>CoreApi</RootNamespace>
     <GenerateProgramFile>false</GenerateProgramFile>
     <AnalysisLevel>5.0</AnalysisLevel>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <Deterministic>False</Deterministic>
   </PropertyGroup>
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
