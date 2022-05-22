@@ -156,10 +156,10 @@ namespace DatabaseAccess.Context.Models
         public static List<SocialTag> GetDefaultData()
         {
             List<SocialTag> ListData = new();
-            var (listDataSeed, errMsg) = Utils.LoadListJsonFromFile<SocialTagSeed>(DataSeed.DataPath.SOCIAL_TAG);
+            var (listDataSeed, errMsg) = Utils.LoadListJsonFromFile<SocialTagSeed>(DataSeed.DATA_PATH.SOCIAL_TAG);
             if (listDataSeed == default) {
 #if DEBUG
-                throw new Exception($"GetDefaultData for SocialTag failed, error: { errMsg }");
+                return ListData;
 #else
                 listDataSeed = new();
 #endif

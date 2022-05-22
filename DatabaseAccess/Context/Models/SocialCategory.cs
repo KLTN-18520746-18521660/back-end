@@ -186,10 +186,10 @@ namespace DatabaseAccess.Context.Models
         public static List<SocialCategory> GetDefaultData()
         {
             var ListData = new List<SocialCategory>();
-            var (ListDataSeed, ErrMsg) = Utils.LoadListJsonFromFile<SocialCategorySeed>(DataSeed.DataPath.SOCIAL_CATEGORY);
+            var (ListDataSeed, ErrMsg) = Utils.LoadListJsonFromFile<SocialCategorySeed>(DataSeed.DATA_PATH.SOCIAL_CATEGORY);
             if (ListDataSeed == default) {
 #if DEBUG
-                throw new Exception($"GetDefaultData for SocialCategory failed, error: { ErrMsg }");
+                return ListData;
 #else
                 ListDataSeed = new();
 #endif
