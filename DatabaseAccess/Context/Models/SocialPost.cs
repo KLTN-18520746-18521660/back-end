@@ -244,6 +244,7 @@ namespace DatabaseAccess.Context.Models
             };
             if (this.Owner == SocialUserId || IsAdmin) {
                 ret.Add("id", this.Id);
+                ret.Add("created_timestamp", CreatedTimestamp);
                 ret.Add("have_pending_content", PendingContent != default);
             }
             return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
@@ -337,6 +338,7 @@ namespace DatabaseAccess.Context.Models
                 { "pending_content", PendingContent },
                 { "have_pending_content", PendingContent != default },
                 { "approved_timestamp", CreatedTimestamp },
+                { "created_timestamp", CreatedTimestamp },
                 { "last_modified_timestamp", LastModifiedTimestamp },
             };
             return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
