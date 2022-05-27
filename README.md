@@ -126,3 +126,23 @@ CREATE DATABASE "cachec_db";
 	> wsl -- cd /mnt/d/doc/unv/Thesis/back-end/CoreApi `&`& dotnet publish --configuration Release -o ./tmp/publish
 	- reload service
 	> cp appsettings.json publish && sudo systemctl restart kltn.service
+	
+- Service file: /etc/systemd/system/oOwlet-Blog.service
+```
+[Unit]
+Description=Graduation thesis 18520746-18521660
+
+[Service]
+WorkingDirectory=/home/ubuntu/oOwlet-Blog
+ExecStart=sudo /usr/bin/dotnet /home/ubuntu/oOwlet-Blog/CoreApi.dll
+Restart=always
+# Restart service after 10 seconds if the dotnet service crashes:
+RestartSec=10
+KillSignal=SIGINT
+User=ubuntu
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+
+[Install]
+WantedBy=multi-user.target
+```
