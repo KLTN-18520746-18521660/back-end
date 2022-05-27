@@ -71,18 +71,16 @@ namespace CoreApi.Services
     {
         private Dictionary<string, string>  __DefaultEmailTemplates;
         private Dictionary<string, string>  __EmailTemplates;
-        private IFluentEmail                __Email;
         private SemaphoreSlim               __Gate;
         private int                         __GateLimit;
         private (RequestToSendEmailType EmailType, SUB_CONFIG_KEY SubKey)[] __TemplatePairKeys = new (RequestToSendEmailType, SUB_CONFIG_KEY)[]{
             (RequestToSendEmailType.UserSignup,         SUB_CONFIG_KEY.TEMPLATE_USER_SIGNUP),
             (RequestToSendEmailType.ForgotPassword,     SUB_CONFIG_KEY.TEMPLATE_FORGOT_PASSWORD),
         };
-        public EmailSender(IServiceProvider _IServiceProvider, IFluentEmail _Email)
+        public EmailSender(IServiceProvider _IServiceProvider)
             : base(_IServiceProvider)
         {
             __ServiceName           = "EmailSender";
-            __Email                 = _Email;
             __GateLimit             = 1;
             __Gate                  = new SemaphoreSlim(__GateLimit);
             __EmailTemplates        = new Dictionary<string, string>();
@@ -182,7 +180,8 @@ namespace CoreApi.Services
                 }
 
                 await __Gate.WaitAsync();
-                var Email = __Email
+                var Email = __ServiceProvider.GetService<IFluentEmailFactory>()
+                    .Create()
                     .To(Form.ToEmail)
                     .Subject(Form.Subject)
                     .UsingTemplate(Template, (T)Form.Model);
