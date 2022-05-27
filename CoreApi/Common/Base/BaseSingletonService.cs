@@ -12,7 +12,7 @@ namespace CoreApi.Common.Base
     {
         private static readonly string[] TEMPLATE_MESSAGE = new string[]{
             "TraceId: {0}, Handler: {1}",
-            "Handler: {0},"
+            "Handler: {0}"
         };
         private ILogger __Logger;
         protected string __ServiceName;
