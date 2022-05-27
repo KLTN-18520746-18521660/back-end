@@ -185,7 +185,7 @@ namespace CoreApi.Services
             if (error != ErrorCodes.NO_ERROR) {
                 return error;
             }
-            session.LastInteractionTime = now;
+            session.LastInteractionTime = now.ToUniversalTime();
             if (await __DBContext.SaveChangesAsync() > 0) {
                 return ErrorCodes.NO_ERROR;
             }
@@ -195,7 +195,9 @@ namespace CoreApi.Services
         public async Task<(List<SessionSocialUser>, ErrorCodes)> GetAllSessionOfUser(Guid UserId)
         {
             var Sessions = await __DBContext.SessionSocialUsers
-                .Where(e => e.UserId == UserId).ToListAsync();
+                .Where(e => e.UserId == UserId)
+                .OrderByDescending(e => e.LastInteractionTime)
+                .ToListAsync();
             if (Sessions.Count > 0) {
                 return (Sessions, ErrorCodes.NO_ERROR);
             }

@@ -120,6 +120,7 @@ namespace MyConsole
             string charsStr = new string(b);  
             var rs = Regex.Replace(charsStr, "\\s+", " ");
             Console.WriteLine(rs.Trim());
+            // / StringDecryptor
         }
     }
 }
