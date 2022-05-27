@@ -89,6 +89,7 @@ namespace CoreApi.Services
             var __EmailSender   = (EmailSender)__ServiceProvider.GetService(typeof(EmailSender));
 
             Errors.AddRange(__EmailSender.ReloadEmailConfig());
+            Errors = Errors.Where(e => e != string.Empty).ToList();
             #endregion
             if (Errors.Count != 0) {
                 WriteLog(LOG_LEVEL.ERROR, string.Empty, "Reload other services failed.");

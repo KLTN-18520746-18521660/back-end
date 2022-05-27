@@ -107,7 +107,9 @@ namespace CoreApi.Controllers.Admin.Config
                 var Errors = new string[]{};
                 (Error, Errors) = await __BaseConfig.ReLoadConfig();
                 if (Error != ErrorCodes.NO_ERROR) {
-                    var ErrResp = JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(Errors));
+                    var ErrResp = new JObject(){
+                       { "errors", JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(Errors)) }
+                    };
                     return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, ErrResp, LOG_LEVEL.ERROR);
                 }
                 #endregion
