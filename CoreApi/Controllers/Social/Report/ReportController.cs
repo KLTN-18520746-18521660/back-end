@@ -111,7 +111,7 @@ namespace CoreApi.Controllers.Social.Report
                             if (__ParserModel.comment_id == default) {
                                 return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_BODY);
                             }
-                            var (ReportComment, Error) = await __SocialCommentManagement.FindCommentById(__ParserModel.comment_id);
+                            var (ReportComment, Error) = await __SocialCommentManagement.FindCommentById((long)__ParserModel.comment_id);
                             if (Error != ErrorCodes.NO_ERROR) {
                                 return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "report comment" });
                             }
@@ -123,7 +123,7 @@ namespace CoreApi.Controllers.Social.Report
                         }
                     case "feedback":
                         {
-                            if (__ParserModel.content == default) {
+                            if (__ParserModel.content == default || __ParserModel.content == string.Empty) {
                                 return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_BODY);
                             }
                             break;
