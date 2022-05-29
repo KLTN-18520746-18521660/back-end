@@ -146,8 +146,15 @@ namespace CoreApi.Controllers.Admin.Post
                 }
                 #endregion
 
+                var Ret = Post.GetJsonObject();
+                if (Ret.ContainsKey("tags")) {
+                    Ret.SelectToken("tags").Replace(Utils.ObjectToJsonToken(Post.AllTags));
+                } else {
+                    Ret.Add("tags", Utils.ObjectToJsonToken(Post.AllTags));
+                }
+
                 return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
-                    { "post", Post.GetJsonObject() }
+                    { "post", Ret }
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());

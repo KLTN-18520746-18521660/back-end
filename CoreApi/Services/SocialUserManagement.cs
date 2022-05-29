@@ -8,7 +8,10 @@ using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context;
 using DatabaseAccess.Context.Models;
+using DatabaseAccess.Context.ParserModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -614,9 +617,9 @@ namespace CoreApi.Services
                 return ErrorCodes.INTERNAL_SERVER_ERROR;
             }
             if (ConfirmEmail.ContainsKey("confirm_date")) {
-                ConfirmEmail.SelectToken("confirm_date").Replace(DateTime.UtcNow.ToString(COMMON_DEFINE.DATE_TIME_FORMAT));
+                ConfirmEmail.SelectToken("confirm_date").Replace(DateTime.UtcNow);
             } else {
-                ConfirmEmail.Add("confirm_date", DateTime.UtcNow.ToString(COMMON_DEFINE.DATE_TIME_FORMAT));
+                ConfirmEmail.Add("confirm_date", DateTime.UtcNow);
             }
             if (ConfirmEmail.ContainsKey("failed_times")) {
                 ConfirmEmail.Remove("failed_times");
@@ -786,5 +789,226 @@ namespace CoreApi.Services
                 .Count(e => e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0);
             return (ret, total_size, ErrorCodes.NO_ERROR);
         }
+
+        #region Roles, Rights
+        public async Task<(SocialUserRole, ErrorCodes)> GetRole(string RoleName)
+        {
+            var Right = await __DBContext.SocialUserRoles
+                    .Where(e => e.RoleName == RoleName && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
+                    .FirstOrDefaultAsync();
+            if (Right == default) {
+                return (default, ErrorCodes.NOT_FOUND);
+            }
+            return (Right, ErrorCodes.NO_ERROR);
+        }
+        public async Task<(SocialUserRole, ErrorCodes)> GetRoleById(int Id)
+        {
+            var Role = await __DBContext.SocialUserRoles
+                    .Where(e => e.Id == Id)
+                    .FirstOrDefaultAsync();
+            if (Role == default) {
+                return (default, ErrorCodes.NOT_FOUND);
+            }
+            return (Role, ErrorCodes.NO_ERROR);
+        }
+
+        public async Task<(List<SocialUserRole>, int)> GetRoles()
+        {
+            return (
+                await __DBContext.SocialUserRoles
+                    .Where(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
+                    .ToListAsync(),
+                await __DBContext.SocialUserRoles
+                    .CountAsync(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
+            );
+        }
+        public async Task<ErrorCodes> NewRole(SocialUserRole Role, ParserSocialUserRole Parser, Guid UserId)
+        {
+            foreach (var It in Parser.role_details) {
+                var Actions = new JObject();
+                Actions["write"] = It.Value.ToArray().Contains("write");
+                Actions["read"] = It.Value.ToArray().Contains("read");
+                var (Right, Err) =  await GetRightById(int.Parse(It.Key));
+                if (Err != ErrorCodes.NO_ERROR) {
+                    return ErrorCodes.NOT_FOUND;
+                }
+                Role.SocialUserRoleDetails.Add(new SocialUserRoleDetail(){
+                    RightId     = int.Parse(It.Key),
+                    Right       = Right,
+                    Role        = Role,
+                    Actions     = Actions
+                });
+            }
+            await __DBContext.SocialUserRoles.AddAsync(Role);
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [SOCIAL] Write admin audit log
+                var __AdminAuditLogManagement = __ServiceProvider.GetService<AdminAuditLogManagement>();
+                var Error = ErrorCodes.NO_ERROR;
+                (Role, Error) = await GetRole(Role.RoleName);
+                await __AdminAuditLogManagement.AddNewAuditLog(
+                    Role.GetModelName(),
+                    Role.Id.ToString(),
+                    LOG_ACTIONS.CREATE,
+                    UserId,
+                    new JObject(),
+                    Role.GetJsonObjectForLog()
+                );
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        public async Task<ErrorCodes> ModifyRole(int RoleId, SocialUserRoleModifyModel ModelData, Guid UserId)
+        {
+            var (Role, Error) =  await GetRoleById(RoleId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+
+            var OldData = Utils.DeepClone(Role.GetJsonObjectForLog());
+            #region Get data change and save
+            var haveChange = false;
+            if (ModelData.display_name != default && ModelData.display_name != Role.Describe) {
+                Role.DisplayName = ModelData.display_name;
+                haveChange = true;
+            }
+            if (ModelData.describe != default && ModelData.describe != Role.Describe) {
+                Role.Describe = ModelData.describe;
+                haveChange = true;
+            }
+            if (ModelData.role_details != default) {
+                Role.SocialUserRoleDetails.Clear();
+                foreach (var It in ModelData.role_details) {
+                    var Actions = new JObject();
+                    Actions["write"] = It.Value.ToArray().Contains("write");
+                    Actions["read"] = It.Value.ToArray().Contains("read");
+                    var (Right, Err) =  await GetRightById(int.Parse(It.Key));
+                    if (Err != ErrorCodes.NO_ERROR) {
+                        return ErrorCodes.NOT_FOUND;
+                    }
+                    Role.SocialUserRoleDetails.Add(new SocialUserRoleDetail(){
+                        RightId     = int.Parse(It.Key),
+                        Right       = Right,
+                        Role        = Role,
+                        Actions     = Actions
+                    });
+                }
+                haveChange = true;
+            }
+            #endregion
+
+            if (!haveChange) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [SOCIAL] Write admin audit log
+                var __AdminAuditLogManagement = __ServiceProvider.GetService<AdminAuditLogManagement>();
+                var (OldVal, NewVal) = Utils.GetDataChanges(OldData, Role.GetJsonObjectForLog());
+                await __AdminAuditLogManagement.AddNewAuditLog(
+                    Role.GetModelName(),
+                    Role.Id.ToString(),
+                    LOG_ACTIONS.MODIFY,
+                    UserId,
+                    OldVal,
+                    NewVal
+                );
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        public async Task<(SocialUserRight, ErrorCodes)> GetRight(string RightName)
+        {
+            var Right = await __DBContext.SocialUserRights
+                    .Where(e => e.RightName == RightName && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
+                    .FirstOrDefaultAsync();
+            if (Right == default) {
+                return (default, ErrorCodes.NOT_FOUND);
+            }
+            return (Right, ErrorCodes.NO_ERROR);
+        }
+        public async Task<(SocialUserRight, ErrorCodes)> GetRightById(int Id)
+        {
+            var Right = await __DBContext.SocialUserRights
+                    .Where(e => e.Id == Id)
+                    .FirstOrDefaultAsync();
+            if (Right == default) {
+                return (default, ErrorCodes.NOT_FOUND);
+            }
+            return (Right, ErrorCodes.NO_ERROR);
+        }
+        public async Task<(List<SocialUserRight>, int)> GetRights()
+        {
+            return (
+                await __DBContext.SocialUserRights
+                    .Where(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
+                    .ToListAsync(),
+                await __DBContext.SocialUserRights
+                    .CountAsync(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
+            );
+        }
+        public async Task<ErrorCodes> NewRight(SocialUserRight Right, Guid UserId)
+        {
+            await __DBContext.SocialUserRights.AddAsync(Right);
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [SOCIAL] Write admin audit log
+                var __AdminAuditLogManagement = __ServiceProvider.GetService<AdminAuditLogManagement>();
+                await __AdminAuditLogManagement.AddNewAuditLog(
+                    Right.GetModelName(),
+                    Right.Id.ToString(),
+                    LOG_ACTIONS.CREATE,
+                    UserId,
+                    new JObject(),
+                    Right.GetJsonObjectForLog()
+                );
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        public async Task<ErrorCodes> ModifyRight(int RightId, SocialUserRightModifyModel ModelData, Guid UserId)
+        {
+            var (Right, Error) =  await GetRightById(RightId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            var OldData = Utils.DeepClone(Right.GetJsonObjectForLog());
+            #region Get data change and save
+            var haveChange = false;
+            if (ModelData.display_name != default && ModelData.display_name != Right.Describe) {
+                Right.DisplayName = ModelData.display_name;
+                haveChange = true;
+            }
+            if (ModelData.describe != default && ModelData.describe != Right.Describe) {
+                Right.Describe = ModelData.describe;
+                haveChange = true;
+            }
+            #endregion
+
+            if (!haveChange) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [SOCIAL] Write admin audit log
+                var __AdminAuditLogManagement = __ServiceProvider.GetService<AdminAuditLogManagement>();
+                var (OldVal, NewVal) = Utils.GetDataChanges(OldData, Right.GetJsonObjectForLog());
+                await __AdminAuditLogManagement.AddNewAuditLog(
+                    Right.GetModelName(),
+                    Right.Id.ToString(),
+                    LOG_ACTIONS.MODIFY,
+                    UserId,
+                    OldVal,
+                    NewVal
+                );
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        #endregion
     }
 }

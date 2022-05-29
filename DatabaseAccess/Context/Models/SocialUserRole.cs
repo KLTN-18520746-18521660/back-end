@@ -67,10 +67,14 @@ namespace DatabaseAccess.Context.Models
             Error = string.Empty;
             try {
                 var parser = (ParserModels.ParserSocialUserRole)Parser;
-                RoleName = parser.role_name;
+                if (!parser.IsValidRoleDetails()) {
+                    Error = "Invalid role details.";
+                    return false;
+                }
+                RoleName    = parser.role_name;
                 DisplayName = parser.display_name;
-                Describe = parser.describe;
-                Priority = parser.priority;
+                Describe    = parser.describe;
+                Priority    = parser.priority;
                 return true;
             } catch (Exception ex) {
                 Error = ex.ToString();
@@ -99,7 +103,7 @@ namespace DatabaseAccess.Context.Models
                 { "describe", Describe },
                 { "rights", GetRights() },
                 { "priority", Priority },
-                { "status", Status },
+                { "status", StatusStr },
 #if DEBUG
                 {"__ModelName", __ModelName }
 #endif

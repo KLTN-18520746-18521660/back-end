@@ -55,6 +55,15 @@ namespace DatabaseAccess.Context.Models
                 }).ToArray();
         }
         [NotMapped]
+        public object[] AllTags { get =>
+            SocialPostTags
+                .Select(e => new {
+                    tag = e.Tag.Tag,
+                    name = e.Tag.Name,
+                    status = e.Tag.StatusStr
+                }).ToArray();
+        }
+        [NotMapped]
         public object[] Categories { get =>
             SocialPostCategories
                 .Where(e => 
@@ -121,6 +130,14 @@ namespace DatabaseAccess.Context.Models
         public DateTime ApprovedTimestamp { get; set; }
         [Column("last_modified_timestamp", TypeName = "timestamp with time zone")]
         public DateTime? LastModifiedTimestamp { get; set; }
+        [NotMapped]
+        public JObject Settings { get; set; }
+        [Required]
+        [Column("settings", TypeName = "jsonb")]
+        public string SettingsStr {
+            get { return Settings.ToString(Formatting.None); }
+            set { Settings = JsonConvert.DeserializeObject<JObject>(value); }
+        }
 
         [ForeignKey(nameof(Owner))]
         [InverseProperty(nameof(SocialUser.SocialPosts))]
@@ -150,6 +167,7 @@ namespace DatabaseAccess.Context.Models
             __ModelName = "SocialPost";
             CreatedTimestamp = DateTime.UtcNow;
             Status = new EntityStatus(EntityStatusType.SocialPost, StatusType.Pending);
+            SettingsStr = "{}";
         }
         public override bool Parse(IBaseParserModel Parser, out string Error)
         {

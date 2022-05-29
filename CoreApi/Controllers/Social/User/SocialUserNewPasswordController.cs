@@ -39,8 +39,8 @@ namespace CoreApi.Controllers.Social.User
             #endregion
             try {
                 #region Get config values
-                var RequestExpiryTime                   = GetConfigValue<int>(CONFIG_KEY.FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                var NumberOfTimesAllowFailure           = GetConfigValue<int>(CONFIG_KEY.FORGOT_PASSWORD_CONFIG,
+                var RequestExpiryTime                   = GetConfigValue<int>(CONFIG_KEY.SOCIAL_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
+                var NumberOfTimesAllowFailure           = GetConfigValue<int>(CONFIG_KEY.SOCIAL_FORGOT_PASSWORD_CONFIG,
                                                                               SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_FAILURE);
                 #endregion
 

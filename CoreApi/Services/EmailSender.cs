@@ -245,7 +245,7 @@ namespace CoreApi.Services
                 User.Settings.Remove("confirm_email");
                 User.Settings.Add("confirm_email", new JObject(){
                     { "is_sending", true },
-                    { "send_date",  DateTime.UtcNow.ToString(COMMON_DEFINE.DATE_TIME_FORMAT) },
+                    { "send_date",  DateTime.UtcNow },
                 });
                 if (await __DBContext.SaveChangesAsync() <= 0) {
                     WriteLog(LOG_LEVEL.ERROR, TraceId, $"Can't save changes before send email",
@@ -256,7 +256,7 @@ namespace CoreApi.Services
                 }
                 #region Send Email
                 var UrlConfirm = string.Empty;
-                (UrlConfirm, RequestState) = Utils.GenerateUrlConfirm(User.Id, HostName, PrefixUrl);
+                (UrlConfirm, RequestState) = Utils.GenerateUrl(User.Id, HostName, PrefixUrl);
                 var Model = new UserSignUpEmailModel() {
                     UserName    = User.UserName,
                     DisplayName = User.DisplayName,
@@ -274,7 +274,7 @@ namespace CoreApi.Services
                 User.Settings.Add("confirm_email", new JObject(){
                     { "is_sending",     false },
                     { "send_success",   SendSuccess },
-                    { "send_date",      Model.DateTimeSend.ToString(COMMON_DEFINE.DATE_TIME_FORMAT) },
+                    { "send_date",      Model.DateTimeSend },
                     { "confirm_date",   default },
                     { "state",          RequestState },
                 });
@@ -300,9 +300,15 @@ namespace CoreApi.Services
 
             #region Load config value
             var __BaseConfig    = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
-            (Subject, ErrMsg)   = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.SUBJECT);
-            (HostName, ErrMsg)  = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.HOST_NAME);
-            (PrefixUrl, ErrMsg) = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.PREFIX_URL);
+            if (IsAdminUser) {
+                (Subject, ErrMsg)   = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.SUBJECT);
+                (HostName, ErrMsg)  = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.HOST_NAME);
+                (PrefixUrl, ErrMsg) = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.PREFIX_URL);
+            } else {
+                (Subject, ErrMsg)   = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.SUBJECT);
+                (HostName, ErrMsg)  = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.HOST_NAME);
+                (PrefixUrl, ErrMsg) = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.PREFIX_URL);
+            }
             #endregion
 
             using (var scope = __ServiceProvider.CreateScope())
@@ -323,7 +329,7 @@ namespace CoreApi.Services
                     User.Settings.Remove("forgot_password");
                     User.Settings.Add("forgot_password", new JObject(){
                         { "is_sending", true },
-                        { "send_date",  DateTime.UtcNow.ToString(COMMON_DEFINE.DATE_TIME_FORMAT) },
+                        { "send_date",  DateTime.UtcNow },
                     });
                 } else {
                     AdminUser = await __DBContext.AdminUsers
@@ -353,7 +359,9 @@ namespace CoreApi.Services
                 }
                 #region Send Email
                 var UrlForgot = string.Empty;
-                (UrlForgot, RequestState) = Utils.GenerateUrlConfirm(IsAdminUser ? AdminUser.Id : User.Id, HostName, PrefixUrl);
+                (UrlForgot, RequestState) = Utils.GenerateUrl(IsAdminUser ? AdminUser.Id : User.Id,
+                                                                     HostName,
+                                                                     PrefixUrl);
                 var Model = new ForgotPasswordEmailModel() {
                     UserName            = IsAdminUser ? AdminUser.UserName : User.UserName,
                     DisplayName         = IsAdminUser ? AdminUser.DisplayName : User.DisplayName,
@@ -372,7 +380,7 @@ namespace CoreApi.Services
                     User.Settings.Add("forgot_password", new JObject(){
                         { "is_sending",     false },
                         { "send_success",   SendSuccess },
-                        { "send_date",      Model.DateTimeSend.ToString(COMMON_DEFINE.DATE_TIME_FORMAT) },
+                        { "send_date",      Model.DateTimeSend },
                         { "state",          RequestState },
                     });
                 } else {
@@ -380,7 +388,7 @@ namespace CoreApi.Services
                     AdminUser.Settings.Add("forgot_password", new JObject(){
                         { "is_sending",     false },
                         { "send_success",   SendSuccess },
-                        { "send_date",      DateTime.UtcNow.ToString(COMMON_DEFINE.DATE_TIME_FORMAT) },
+                        { "send_date",      Model.DateTimeSend },
                         { "state",          RequestState },
                     });
                 }

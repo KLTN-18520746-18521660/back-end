@@ -157,7 +157,7 @@ namespace DatabaseAccess.Migrations
                             Id = 5,
                             ConfigKey = "EmailClientConfig",
                             StatusStr = "Enabled",
-                            ValueStr = "{\"limit_sender\":5,\"template_user_signup\":\"<p>Dear @Model.DisplayName,</p><p>Confirm link <a href='@Model.ConfirmLink'>here</a><br>Send datetime: @Model.DateTimeSend</p><p>Thanks for your register.</p>\",\"template_forgot_password\":\"<p>Dear @Model.DisplayName,</p><p>Confirm link <a href='@Model.ResetPasswordLink'>here</a><br>Send datetime: @Model.DateTimeSend.</p>\"}"
+                            ValueStr = "{\"limit_sender\":5,\"template_user_signup\":\"<p>Dear @Model.DisplayName,</p><p>Confirm link <a href='@Model.ConfirmLink'>here</a><br>Send datetime: @Model.DateTimeSend</p><p>Thanks for your register.</p>\",\"template_forgot_password\":\"<p>Dear @Model.DisplayName,</p><p>Click <a href='@Model.ResetPasswordLink'>here</a><br> to reset passwordSend datetime: @Model.DateTimeSend.</p>\"}"
                         },
                         new
                         {
@@ -232,9 +232,30 @@ namespace DatabaseAccess.Migrations
                         new
                         {
                             Id = 16,
-                            ConfigKey = "ForgotPasswordConfig",
+                            ConfigKey = "SocialForgotPasswordConfig",
                             StatusStr = "Enabled",
                             ValueStr = "{\"expiry_time\":2880,\"timeout\":720,\"number_of_times_allow_failure\":1,\"prefix_url\":\"/auth/new-password\",\"host_name\":\"http://localhost:7005\",\"subject\":\"[oOwlet Blog] Forgot password.\"}"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            ConfigKey = "AdminForgotPasswordConfig",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\"expiry_time\":2880,\"timeout\":720,\"number_of_times_allow_failure\":1,\"prefix_url\":\"/admin/new-password\",\"host_name\":\"http://localhost:7005\",\"subject\":\"[oOwlet Blog] Forgot password.\"}"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            ConfigKey = "APIGetRecommendPostsForPostConfig",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\"visted_factor\":5,\"views_factor\":1,\"likes_factor\":2,\"comments_factor\":1,\"tags_factor\":100,\"categories_factor\":100,\"common_words_factor\":500,\"common_words_size\":10,\"max_size\":50}"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            ConfigKey = "APIGetRecommendPostsForUserConfig",
+                            StatusStr = "Enabled",
+                            ValueStr = "{\"visted_factor\":5,\"views_factor\":1,\"likes_factor\":2,\"comments_factor\":1,\"tags_factor\":100,\"categories_factor\":100,\"common_words_factor\":500,\"common_words_size\":10,\"max_size\":50}"
                         });
                 });
 
@@ -1150,6 +1171,13 @@ namespace DatabaseAccess.Migrations
                         .HasColumnName("search_vector")
                         .HasAnnotation("Npgsql:TsVectorConfig", "english")
                         .HasAnnotation("Npgsql:TsVectorProperties", new[] { "ContentSearch", "Title", "ShortContent" });
+
+                    b.Property<string>("SettingsStr")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("settings")
+                        .HasDefaultValueSql("'{}'");
 
                     b.Property<string>("ShortContent")
                         .IsRequired()

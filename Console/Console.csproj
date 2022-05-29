@@ -20,6 +20,9 @@
     <ProjectReference Include="..\CoreApi\CoreApi.csproj">
       <Name>CoreApi</Name>
     </ProjectReference>
+    <ProjectReference Include="..\DatabaseAccess\DatabaseAccess.csproj">
+      <Name>DatabaseAccess</Name>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>

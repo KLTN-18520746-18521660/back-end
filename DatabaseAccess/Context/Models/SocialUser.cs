@@ -390,7 +390,9 @@ namespace DatabaseAccess.Context.Models
 
         public List<string> GetRoles()
         {
-            return SocialUserRoleOfUsers.Select(e => e.Role.RoleName).ToList();
+            return SocialUserRoleOfUsers
+                .Where(e => e.Role.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
+                .Select(e => e.Role.RoleName).ToList();
         }
 
         public Dictionary<string, JObject> GetRights()
@@ -398,17 +400,20 @@ namespace DatabaseAccess.Context.Models
             Dictionary<string, JObject> rights = new();
             Dictionary<string, JObject> rightsPriority = new();
             var notPriorityRoleDetails = SocialUserRoleOfUsers
-                .Where(e => e.Role.Priority == false)
+                .Where(e => e.Role.Priority == false && e.Role.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
                 .Select(e => e.Role.SocialUserRoleDetails)
                 .ToList();
 
             var priorityRoleDetails = SocialUserRoleOfUsers
-                .Where(e => e.Role.Priority)
+                .Where(e => e.Role.Priority && e.Role.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
                 .Select(e => e.Role.SocialUserRoleDetails)
                 .ToList();
 
             foreach (var roleDetails in notPriorityRoleDetails) {
                 foreach (var detail in roleDetails) {
+                    if (detail.Right.StatusStr == EntityStatus.StatusTypeToString(StatusType.Disabled)) {
+                        continue;
+                    }
                     var _obj = rights.GetValueOrDefault(detail.Right.RightName, new JObject());
                     var obj = detail.Actions;
                     JObject action;
@@ -434,7 +439,11 @@ namespace DatabaseAccess.Context.Models
 
             foreach (var roleDetails in priorityRoleDetails) {
                 foreach (var detail in roleDetails) {
-                    var _obj = rightsPriority.GetValueOrDefault(detail.Right.RightName, new JObject());var obj = detail.Actions;
+                    if (detail.Right.StatusStr == EntityStatus.StatusTypeToString(StatusType.Disabled)) {
+                        continue;
+                    }
+                    var _obj = rightsPriority.GetValueOrDefault(detail.Right.RightName, new JObject());
+                    var obj = detail.Actions;
                     JObject action;
                     if (_obj.Count != 0) {
                         try {

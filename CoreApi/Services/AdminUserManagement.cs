@@ -1,12 +1,15 @@
 using Common;
 using CoreApi.Common;
 using CoreApi.Common.Base;
+using CoreApi.Models.ModifyModels;
 using DatabaseAccess.Common;
 using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context;
 using DatabaseAccess.Context.Models;
+using DatabaseAccess.Context.ParserModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -18,8 +21,7 @@ namespace CoreApi.Services
     public class AdminUserManagement : BaseTransientService
     {
         private AdminAuditLogManagement __AdminAuditLogManagement;
-        public AdminUserManagement(DBContext _DBContext,
-                                   IServiceProvider _IServiceProvider,
+        public AdminUserManagement(IServiceProvider _IServiceProvider,
                                    AdminAuditLogManagement _AdminAuditLogManagement)
             : base(_IServiceProvider)
         {
@@ -128,6 +130,37 @@ namespace CoreApi.Services
                 return (user, ErrorCodes.NO_ERROR);
             }
             return (default, ErrorCodes.NOT_FOUND);
+        }
+
+        public async Task<(List<AdminUser>, int TotalSize)> GetUsers(int Start, int Size, string SearchTerm = default)
+        {
+            return
+            (
+                await __DBContext.AdminUsers
+                    .Where(e =>
+                        e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                        && (
+                            SearchTerm == default || SearchTerm == string.Empty
+                            || e.UserName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
+                            || e.DisplayName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
+                            || e.Email.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
+                        )
+                    )
+                    .OrderBy(e => e.Id)
+                    .Skip(Start)
+                    .Take(Size)
+                    .ToListAsync(),
+                await __DBContext.AdminUsers
+                    .CountAsync(e =>
+                        e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                        && (
+                            SearchTerm == default || SearchTerm == string.Empty
+                            || e.UserName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
+                            || e.DisplayName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
+                            || e.Email.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
+                        )
+                    )
+            );
         }
 
         // username_existed, email_existed, ERROR
@@ -337,7 +370,7 @@ namespace CoreApi.Services
             #endregion
 
             if (await __DBContext.SaveChangesAsync() > 0) {
-                #region [SOCIAL] Write admin audit log
+                #region [ADMIN] Write admin audit log
                 (User, Error) = await FindUserById(User.Id);
                 var (OldVal, NewVal) = Utils.GetDataChanges(OldUser, User.GetJsonObjectForLog());
                 if (Error == ErrorCodes.NO_ERROR) {
@@ -407,7 +440,7 @@ namespace CoreApi.Services
             #endregion
 
             if (await __DBContext.SaveChangesAsync() > 0) {
-                #region [SOCIAL] Write user audit log
+                #region [ADMIN] Write user audit log
                 (User, Error) = await FindUserById(Id);
                 var (OldVal, NewVal) = Utils.GetDataChanges(OldUser, User.GetJsonObjectForLog());
                 if (Error == ErrorCodes.NO_ERROR) {
@@ -457,6 +490,156 @@ namespace CoreApi.Services
             #endregion
 
             if (await __DBContext.SaveChangesAsync() > 0) {
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        #endregion
+
+        #region Roles, Rights
+        public async Task<(AdminUserRole, ErrorCodes)> GetRole(string RoleName)
+        {
+            var Right = await __DBContext.AdminUserRoles
+                    .Where(e => e.RoleName == RoleName && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
+                    .FirstOrDefaultAsync();
+            if (Right == default) {
+                return (default, ErrorCodes.NOT_FOUND);
+            }
+            return (Right, ErrorCodes.NO_ERROR);
+        }
+        public async Task<(List<AdminUserRole>, int)> GetRoles()
+        {
+            return (
+                await __DBContext.AdminUserRoles
+                    .Where(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
+                    .ToListAsync(),
+                await __DBContext.AdminUserRoles
+                    .CountAsync(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
+            );
+        }
+        public async Task<ErrorCodes> NewRole(AdminUserRole Role, ParserAdminUserRole Parser, Guid UserId)
+        {
+            foreach (var It in Parser.role_details) {
+                var Actions = new JObject();
+                Actions["write"] = It.Value.ToArray().Contains("write");
+                Actions["read"] = It.Value.ToArray().Contains("read");
+                var (Right, Err) =  await GetRightById(int.Parse(It.Key));
+                if (Err != ErrorCodes.NO_ERROR) {
+                    return ErrorCodes.NOT_FOUND;
+                }
+                Role.AdminUserRoleDetails.Add(new AdminUserRoleDetail(){
+                    RightId     = int.Parse(It.Key),
+                    Right       = Right,
+                    Role        = Role,
+                    Actions     = Actions
+                });
+            }
+            await __DBContext.AdminUserRoles.AddAsync(Role);
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [ADMIN] Write admin audit log
+                var __AdminAuditLogManagement = __ServiceProvider.GetService<AdminAuditLogManagement>();
+                var Error = ErrorCodes.NO_ERROR;
+                (Role, Error) = await GetRole(Role.RoleName);
+                await __AdminAuditLogManagement.AddNewAuditLog(
+                    Role.GetModelName(),
+                    Role.Id.ToString(),
+                    LOG_ACTIONS.CREATE,
+                    UserId,
+                    new JObject(),
+                    Role.GetJsonObjectForLog()
+                );
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        public async Task<(AdminUserRight, ErrorCodes)> GetRight(string RightName)
+        {
+            var Right = await __DBContext.AdminUserRights
+                    .Where(e => e.RightName == RightName && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
+                    .FirstOrDefaultAsync();
+            if (Right == default) {
+                return (default, ErrorCodes.NOT_FOUND);
+            }
+            return (Right, ErrorCodes.NO_ERROR);
+        }
+        public async Task<(AdminUserRight, ErrorCodes)> GetRightById(int Id)
+        {
+            var Right = await __DBContext.AdminUserRights
+                    .Where(e => e.Id == Id)
+                    .FirstOrDefaultAsync();
+            if (Right == default) {
+                return (default, ErrorCodes.NOT_FOUND);
+            }
+            return (Right, ErrorCodes.NO_ERROR);
+        }
+        public async Task<(List<AdminUserRight>, int)> GetRights()
+        {
+            return (
+                await __DBContext.AdminUserRights
+                    .Where(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
+                    .ToListAsync(),
+                await __DBContext.AdminUserRights
+                    .CountAsync(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
+            );
+        }
+        public async Task<ErrorCodes> NewRight(AdminUserRight Right, Guid UserId)
+        {
+            await __DBContext.AdminUserRights.AddAsync(Right);
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [AMDIN] Write admin audit log
+                var __AdminAuditLogManagement = __ServiceProvider.GetService<AdminAuditLogManagement>();
+                await __AdminAuditLogManagement.AddNewAuditLog(
+                    Right.GetModelName(),
+                    Right.Id.ToString(),
+                    LOG_ACTIONS.CREATE,
+                    UserId,
+                    new JObject(),
+                    Right.GetJsonObjectForLog()
+                );
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        public async Task<ErrorCodes> ModifyRight(int RightId, AdminUserRightModifyModel ModelData, Guid UserId)
+        {
+            var (Right, Error) =  await GetRightById(RightId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            var OldData = Utils.DeepClone(Right.GetJsonObjectForLog());
+            #region Get data change and save
+            var haveChange = false;
+            if (ModelData.display_name != default && ModelData.display_name != Right.Describe) {
+                Right.DisplayName = ModelData.display_name;
+                haveChange = true;
+            }
+            if (ModelData.describe != default && ModelData.describe != Right.Describe) {
+                Right.Describe = ModelData.describe;
+                haveChange = true;
+            }
+            #endregion
+
+            if (!haveChange) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [ADMIN] Write admin audit log
+                var __AdminAuditLogManagement = __ServiceProvider.GetService<AdminAuditLogManagement>();
+                var (OldVal, NewVal) = Utils.GetDataChanges(OldData, Right.GetJsonObjectForLog());
+                await __AdminAuditLogManagement.AddNewAuditLog(
+                    Right.GetModelName(),
+                    Right.Id.ToString(),
+                    LOG_ACTIONS.MODIFY,
+                    UserId,
+                    OldVal,
+                    NewVal
+                );
+                #endregion
                 return ErrorCodes.NO_ERROR;
             }
             return ErrorCodes.INTERNAL_SERVER_ERROR;

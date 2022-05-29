@@ -46,7 +46,7 @@ namespace CoreApi.Controllers.Social.Post
             #region Init Handler
             SetRunningFunction();
             SetTraceIdForServices(
-                __SocialCategoryManagement,
+                __SessionSocialUserManagement,
                 __SocialCategoryManagement,
                 __SocialUserManagement,
                 __SocialPostManagement,
@@ -79,6 +79,9 @@ namespace CoreApi.Controllers.Social.Post
                 var (CombineOrders, ErrRetValidate) = ValidateOrderParams(Orders, AllowOrderParams);
                 if (ErrRetValidate != default) {
                     return ErrRetValidate;
+                }
+                if (Start < 0 || Size < 1) {
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 if (CombineOrders == default) {
                     throw new Exception($"ValidateOrderParams failed.");

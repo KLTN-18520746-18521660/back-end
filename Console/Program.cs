@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using DatabaseAccess.Context.Models;
+using CoreApi.Services;
 
 namespace MyConsole
 {
@@ -110,17 +112,16 @@ namespace MyConsole
         }
         static void Main(string[] args)
         {
-            var a = "**Hiệu   1234Hi**";
-            var b = a.ToCharArray();
-            for (var i=0; i < b.Length; i++) {
-                if (!Char.IsLetterOrDigit(b[i])) {
-                    b[i] = ' ';
-                }
-            }
-            string charsStr = new string(b);  
-            var rs = Regex.Replace(charsStr, "\\s+", " ");
-            Console.WriteLine(rs.Trim());
-            // / StringDecryptor
+            var r = DEFAULT_BASE_CONFIG.GetValueFormatOfConfigKey(CONFIG_KEY.UI_CONFIG);
+            Console.WriteLine(r);
+            r = DEFAULT_BASE_CONFIG.GetValueFormatOfConfigKey(CONFIG_KEY.EMAIL_CLIENT_CONFIG);
+            Console.WriteLine(r);
+            r = DEFAULT_BASE_CONFIG.GetValueFormatOfConfigKey(CONFIG_KEY.ADMIN_PASSWORD_POLICY);
+            Console.WriteLine(r);
+            r = DEFAULT_BASE_CONFIG.GetValueFormatOfConfigKey(CONFIG_KEY.API_GET_COMMENT_CONFIG);
+            Console.WriteLine(r);
+            r = DEFAULT_BASE_CONFIG.GetValueFormatOfConfigKey(CONFIG_KEY.PUBLIC_CONFIG);
+            Console.WriteLine(r);
         }
     }
 }

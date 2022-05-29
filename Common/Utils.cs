@@ -187,10 +187,18 @@ namespace Common
             }
             return string.Join(", ", OrderStatements).Trim();
         }
+        public static string[] GetModelProperties(string Template)
+        {
+            var FindProperties = new Regex(@"@Model\.([a-zA-Z]+[a-zA-Z-0-9]*)");
+            return FindProperties.Matches(Template)
+                .Cast<Match>()
+                .OrderByDescending(i => i.Index)
+                .Select(e => e.Value).ToArray();
+        }
         public static string BindModelToString<T>(string Template, T Model) where T : class
         {
             var Ret = Template;
-            var FindProperties = new Regex(@"@Model.([a-zA-Z]+[a-zA-Z-0-9]*)");
+            var FindProperties = new Regex(@"@Model\.([a-zA-Z]+[a-zA-Z-0-9]*)");
             var Res = FindProperties.Matches(Template)
                 .Cast<Match>()
                 .OrderByDescending(i => i.Index);
@@ -251,10 +259,11 @@ namespace Common
         {
             var Ret = DeepClone<string>(RawContent);
             if (IsMarkdown) {
-                Ret = Regex.Replace(Ret, "$>#[*`!\\[\\]-_]+", string.Empty);
-                Ret = Regex.Replace(Ret, "(.*?)", string.Empty);
+                Ret = Regex.Replace(Ret, "$>#[*`!\\[\\]-_]+", " ");
+                Ret = Regex.Replace(Ret, "(.*?)", " ");
             }
-            Ret = Regex.Replace(Ret, "<[\\/a-zA-Z0-9= \"\\\"'\'#;:()$_-]*?>", string.Empty);
+            Ret = Regex.Replace(Ret, "<[\\/a-zA-Z0-9= \"\\\"'\'#;:()$_-]*?>", " ");
+            Ret = Regex.Replace(Ret, "&.*;", " ");
             var ArrChr = Ret.ToArray();
             for (var i = 0; i < ArrChr.Length; i++) {
                 if (!Char.IsLetterOrDigit(ArrChr[i])) {
@@ -293,7 +302,7 @@ namespace Common
             }
             return ret.Append(raw2).ToString();
         }
-        public static (string url, string state) GenerateUrlConfirm(Guid id, string host, string prefixUrl)
+        public static (string url, string state) GenerateUrl(Guid id, string host, string prefixUrl)
         {
             string state = RandomString(8);
             StringBuilder path = new StringBuilder(prefixUrl);

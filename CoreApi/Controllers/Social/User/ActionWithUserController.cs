@@ -73,7 +73,7 @@ namespace CoreApi.Controllers.Social.User
                 #region Get user-des info
                 var (UseDes, Error) = await __SocialUserManagement.FindUser(__UserName, false);
 
-                if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
+                if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
                         return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "user destination" });
                     }

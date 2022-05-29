@@ -556,7 +556,8 @@ namespace DatabaseAccess.Context
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.StatusStr).HasDefaultValueSql($"'{ EntityStatus.StatusTypeToString(StatusType.Pending) }'");
-
+                entity.Property(e => e.SettingsStr)
+                    .HasDefaultValueSql("'{}'");
 
                 entity
                     .HasGeneratedTsVectorColumn(

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Common;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Newtonsoft.Json;
@@ -16,23 +17,26 @@ namespace DatabaseAccess.Context.Models
 {
     public enum CONFIG_KEY
     {
-        INVALID                             = 0,
-        ADMIN_USER_LOGIN_CONFIG             = 1,
-        SOCIAL_USER_LOGIN_CONFIG            = 2,
-        SESSION_ADMIN_USER_CONFIG           = 3,
-        SESSION_SOCIAL_USER_CONFIG          = 4,
-        EMAIL_CLIENT_CONFIG                 = 5,
-        SOCIAL_USER_CONFIRM_CONFIG          = 6,
-        UI_CONFIG                           = 7,
-        PUBLIC_CONFIG                       = 8,
-        UPLOAD_FILE_CONFIG                  = 9,
-        NOTIFICATION                        = 10,
-        SOCIAL_USER_IDLE                    = 11,
-        ADMIN_USER_IDLE                     = 12,
-        SOCIAL_PASSWORD_POLICY              = 13,
-        ADMIN_PASSWORD_POLICY               = 14,
-        API_GET_COMMENT_CONFIG              = 15,
-        FORGOT_PASSWORD_CONFIG              = 16,
+        INVALID                                     = 0,
+        ADMIN_USER_LOGIN_CONFIG                     = 1,
+        SOCIAL_USER_LOGIN_CONFIG                    = 2,
+        SESSION_ADMIN_USER_CONFIG                   = 3,
+        SESSION_SOCIAL_USER_CONFIG                  = 4,
+        EMAIL_CLIENT_CONFIG                         = 5,
+        SOCIAL_USER_CONFIRM_CONFIG                  = 6,
+        UI_CONFIG                                   = 7,
+        PUBLIC_CONFIG                               = 8,
+        UPLOAD_FILE_CONFIG                          = 9,
+        NOTIFICATION                                = 10,
+        SOCIAL_USER_IDLE                            = 11,
+        ADMIN_USER_IDLE                             = 12,
+        SOCIAL_PASSWORD_POLICY                      = 13,
+        ADMIN_PASSWORD_POLICY                       = 14,
+        API_GET_COMMENT_CONFIG                      = 15,
+        SOCIAL_FORGOT_PASSWORD_CONFIG               = 16,
+        ADMIN_FORGOT_PASSWORD_CONFIG                = 17,
+        API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG     = 18,
+        API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG     = 19,
     }
 
     public enum SUB_CONFIG_KEY
@@ -62,6 +66,15 @@ namespace DatabaseAccess.Context.Models
         LIMIT_SIZE_GET_REPLY_COMMENT                = 21,
         TEMPLATE_FORGOT_PASSWORD                    = 22,
         SUBJECT                                     = 23,
+        VISTED_FACTOR                               = 24,
+        VIEWS_FACTOR                                = 25,
+        LIKES_FACTOR                                = 26,
+        COMMENTS_FACTOR                             = 27,
+        TAGS_FACTOR                                 = 28,
+        CATEGORIES_FACTOR                           = 29,
+        COMMON_WORDS_SIZE                           = 30,
+        COMMON_WORDS_FACTOR                         = 31,
+        MAX_SIZE                                    = 32
     }
 
     public static class DEFAULT_BASE_CONFIG
@@ -95,7 +108,7 @@ namespace DatabaseAccess.Context.Models
             {
                 SubConfigKeyToString(SUB_CONFIG_KEY.TEMPLATE_FORGOT_PASSWORD),
                 @"<p>Dear @Model.DisplayName,</p>"
-                + @"<p>Confirm link <a href='@Model.ResetPasswordLink'>here</a><br>"
+                + @"<p>Click <a href='@Model.ResetPasswordLink'>here</a><br> to reset password"
                 + @"Send datetime: @Model.DateTimeSend.</p>"
             },
         };
@@ -107,11 +120,19 @@ namespace DatabaseAccess.Context.Models
             { SubConfigKeyToString(SUB_CONFIG_KEY.HOST_NAME),                               "http://localhost:7005" },
             { SubConfigKeyToString(SUB_CONFIG_KEY.SUBJECT),                                 $"[{ BaseConfigurationDB.APP_NAME }] Confirm signup." },
         };
-        public static readonly Dictionary<string, object> ForgotPasswordConfig = new() {
+        public static readonly Dictionary<string, object> SocialForgotPasswordConfig = new() {
             { SubConfigKeyToString(SUB_CONFIG_KEY.EXPIRY_TIME),                             2880 }, // 2 days
             { SubConfigKeyToString(SUB_CONFIG_KEY.TIMEOUT),                                 720 }, // 12 hour
             { SubConfigKeyToString(SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_FAILURE),           1 },
             { SubConfigKeyToString(SUB_CONFIG_KEY.PREFIX_URL),                              "/auth/new-password" },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.HOST_NAME),                               "http://localhost:7005" },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.SUBJECT),                                 $"[{ BaseConfigurationDB.APP_NAME }] Forgot password." },
+        };
+        public static readonly Dictionary<string, object> AdminForgotPasswordConfig = new() {
+            { SubConfigKeyToString(SUB_CONFIG_KEY.EXPIRY_TIME),                             2880 }, // 2 days
+            { SubConfigKeyToString(SUB_CONFIG_KEY.TIMEOUT),                                 720 }, // 12 hour
+            { SubConfigKeyToString(SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_FAILURE),           1 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.PREFIX_URL),                              "/admin/new-password" },
             { SubConfigKeyToString(SUB_CONFIG_KEY.HOST_NAME),                               "http://localhost:7005" },
             { SubConfigKeyToString(SUB_CONFIG_KEY.SUBJECT),                                 $"[{ BaseConfigurationDB.APP_NAME }] Forgot password." },
         };
@@ -167,6 +188,28 @@ namespace DatabaseAccess.Context.Models
         public static readonly Dictionary<string, object> APIGetCommentConfig = new() {
             { SubConfigKeyToString(SUB_CONFIG_KEY.LIMIT_SIZE_GET_REPLY_COMMENT),                                    2 },
         };
+        public static readonly Dictionary<string, object> APIGetRecommendPostsForPostConfig = new() {
+            { SubConfigKeyToString(SUB_CONFIG_KEY.VISTED_FACTOR),                                       5 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.VIEWS_FACTOR),                                        1 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.LIKES_FACTOR),                                        2 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.COMMENTS_FACTOR),                                     1 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.TAGS_FACTOR),                                         100 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.CATEGORIES_FACTOR),                                   100 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.COMMON_WORDS_FACTOR),                                 500 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.COMMON_WORDS_SIZE),                                   10 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.MAX_SIZE),                                            50 },
+        };
+        public static readonly Dictionary<string, object> APIGetRecommendPostsForUserConfig = new() {
+            { SubConfigKeyToString(SUB_CONFIG_KEY.VISTED_FACTOR),                                       5 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.VIEWS_FACTOR),                                        1 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.LIKES_FACTOR),                                        2 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.COMMENTS_FACTOR),                                     1 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.TAGS_FACTOR),                                         100 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.CATEGORIES_FACTOR),                                   100 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.COMMON_WORDS_FACTOR),                                 500 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.COMMON_WORDS_SIZE),                                   10 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.MAX_SIZE),                                            50 },
+        };
         public static readonly string[] DEFAULT_CONFIG_KEYS = new string[]{
             ConfigKeyToString(CONFIG_KEY.ADMIN_USER_LOGIN_CONFIG),
             ConfigKeyToString(CONFIG_KEY.SOCIAL_USER_LOGIN_CONFIG),
@@ -183,7 +226,10 @@ namespace DatabaseAccess.Context.Models
             ConfigKeyToString(CONFIG_KEY.SOCIAL_PASSWORD_POLICY),
             ConfigKeyToString(CONFIG_KEY.ADMIN_PASSWORD_POLICY),
             ConfigKeyToString(CONFIG_KEY.API_GET_COMMENT_CONFIG),
-            ConfigKeyToString(CONFIG_KEY.FORGOT_PASSWORD_CONFIG),
+            ConfigKeyToString(CONFIG_KEY.SOCIAL_FORGOT_PASSWORD_CONFIG),
+            ConfigKeyToString(CONFIG_KEY.ADMIN_FORGOT_PASSWORD_CONFIG),
+            ConfigKeyToString(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG),
+            ConfigKeyToString(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG),
         };
         #endregion
         public static JObject GetConfig(CONFIG_KEY ConfigKey, string Error = default)
@@ -232,6 +278,8 @@ namespace DatabaseAccess.Context.Models
                 switch (key) {
                     case CONFIG_KEY.UI_CONFIG:
                     case CONFIG_KEY.API_GET_COMMENT_CONFIG:
+                    case CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG:
+                    case CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG:
                         // UI_CONFIG --> UIConfig
                         keyName = string.Join(
                             string.Empty,
@@ -269,6 +317,8 @@ namespace DatabaseAccess.Context.Models
                 switch (key) {
                     case CONFIG_KEY.UI_CONFIG:
                     case CONFIG_KEY.API_GET_COMMENT_CONFIG:
+                    case CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG:
+                    case CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG:
                         // UI_CONFIG --> UIConfig
                         keyName = string.Join(
                             string.Empty,
@@ -326,6 +376,46 @@ namespace DatabaseAccess.Context.Models
 
             Error ??= "Invalid sub config key.";
             return Error;
+        }
+        public static JObject GetValueFormatOfConfigKey(CONFIG_KEY ConfigKey, string Error = default)
+        {
+            Error ??= string.Empty;
+            var ConfigKeyStr    = ConfigKeyToString(ConfigKey);
+            var Config          = GetConfig(ConfigKey, Error);
+
+            if (Error != default && Error != string.Empty) {
+                return default;
+            }
+            switch (ConfigKey) {
+                case CONFIG_KEY.UI_CONFIG:
+                    return new JObject(){
+                        { "any", "any" }
+                    };
+                default:
+                    break;
+            }
+
+            var Ret = new JObject();
+            foreach (var It in Config) {
+                Ret[It.Key]         = new JObject();
+                Ret[It.Key]["type"] = It.Value.Type.ToString().ToLower();
+
+                var SubKey = StringToSubConfigKey(It.Key);
+                switch (SubKey) {
+                    case SUB_CONFIG_KEY.TEMPLATE_FORGOT_PASSWORD:
+                    case SUB_CONFIG_KEY.TEMPLATE_USER_SIGNUP:
+                        Ret[It.Key]["type"] = "text";
+                        Ret[It.Key]["contains"] = Utils.ObjectToJsonToken(Utils.GetModelProperties((string)It.Value));
+                        break;
+                    default:
+                        break;
+                }
+
+                if ((string)Ret[It.Key]["type"] == JTokenType.Integer.ToString().ToLower()) {
+                    Ret[It.Key]["min"] = 0;
+                }
+            }
+            return Ret;
         }
         #endregion
     }

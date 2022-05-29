@@ -42,6 +42,7 @@ namespace CoreApi.Controllers.Admin.Post
                                                      [FromQuery(Name = "tags")] string                  Tags        = default,
                                                      [FromQuery(Name = "categories")] string            Categories  = default,
                                                      [FromQuery(Name = "status")] string                Status      = default,
+                                                     [FromQuery(Name = "owner")] string                 Owner       = default,
                                                      [FromQuery] Models.OrderModel                      Orders      = default)
         {
             #region Init Handler
@@ -75,6 +76,7 @@ namespace CoreApi.Controllers.Admin.Post
                 AddLogParam("tags", Tags);
                 AddLogParam("status", Status);
                 AddLogParam("orders", Orders);
+                AddLogParam("owner", Owner);
                 IActionResult ErrRetValidate    = default;
                 (string, bool)[] CombineOrders  = default;
                 string[] StatusArr              = default;
@@ -118,6 +120,7 @@ namespace CoreApi.Controllers.Admin.Post
                         Start,
                         Size,
                         SearchTerm,
+                        Owner,
                         StatusArr,
                         CombineOrders,
                         TagsArr,

@@ -59,6 +59,9 @@ namespace Common
         }
         public static bool IsEmail(string Input)
         {
+            if (Input == default) {
+                return false;
+            }
             return Regex.IsMatch(Input, COMMON_DEFINE.EMAIL_REGEX);
         }
         public static Guid IsValidUUID(string id)

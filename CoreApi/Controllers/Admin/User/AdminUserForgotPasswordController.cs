@@ -42,9 +42,9 @@ namespace CoreApi.Controllers.Admin.User
             #endregion
             try {
                 #region Get config values
-                var RequestExpiryTime                   = GetConfigValue<int>(CONFIG_KEY.FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                var RequestTimeout                      = GetConfigValue<int>(CONFIG_KEY.FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.TIMEOUT);
-                var NumberOfTimesAllowFailure           = GetConfigValue<int>(CONFIG_KEY.FORGOT_PASSWORD_CONFIG,
+                var RequestExpiryTime                   = GetConfigValue<int>(CONFIG_KEY.ADMIN_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
+                var RequestTimeout                      = GetConfigValue<int>(CONFIG_KEY.ADMIN_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.TIMEOUT);
+                var NumberOfTimesAllowFailure           = GetConfigValue<int>(CONFIG_KEY.ADMIN_FORGOT_PASSWORD_CONFIG,
                                                                               SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_FAILURE);
                 #endregion
 
@@ -109,8 +109,8 @@ namespace CoreApi.Controllers.Admin.User
             #endregion
             try {
                 #region Get config values
-                var RequestExpiryTime                   = GetConfigValue<int>(CONFIG_KEY.FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
-                var NumberOfTimesAllowFailure           = GetConfigValue<int>(CONFIG_KEY.FORGOT_PASSWORD_CONFIG,
+                var RequestExpiryTime                   = GetConfigValue<int>(CONFIG_KEY.ADMIN_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.EXPIRY_TIME);
+                var NumberOfTimesAllowFailure           = GetConfigValue<int>(CONFIG_KEY.ADMIN_FORGOT_PASSWORD_CONFIG,
                                                                               SUB_CONFIG_KEY.NUMBER_OF_TIMES_ALLOW_FAILURE);
                 #endregion
 

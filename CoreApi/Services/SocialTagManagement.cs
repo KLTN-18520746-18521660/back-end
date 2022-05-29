@@ -213,6 +213,9 @@ namespace CoreApi.Services
         }
         public async Task<(bool, ErrorCodes)> IsValidTags(string[] tags, bool isEnableTag = false)
         {
+            if (tags.Distinct().Count() != tags.Count()) {
+                return (false, ErrorCodes.INVALID_PARAMS);
+            }
             foreach (var tag in tags) {
                 if (!IsValidTag(tag)) {
                     return (false, ErrorCodes.INVALID_PARAMS);

@@ -78,10 +78,10 @@ namespace CoreApi.Controllers.Social.Post
 
 
                 #region Get post info
-                var (Post, Error) = await __SocialPostManagement.FindPostBySlug(__PostSlug.Trim());
+                var (Post, Error) = await __SocialPostManagement.FindPostBySlug(__PostSlug.Trim(), Session.UserId);
 
                 if (Error != ErrorCodes.NO_ERROR) {
-                    if (Error == ErrorCodes.NOT_FOUND) {
+                    if (Error == ErrorCodes.NOT_FOUND || Error == ErrorCodes.USER_IS_NOT_OWNER) {
                         return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "post" });
                     }
 

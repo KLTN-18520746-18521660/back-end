@@ -103,8 +103,10 @@ namespace DatabaseAccess.Context.Models
             __ObjectJson = new Dictionary<string, object>
             {
                 { "id", Id },
+#if DEBUG
                 { "table", Table },
                 { "table_key", TableKey },
+#endif
                 { "action", Action },
                 { "old_value", OldValue.Data },
                 { "new_value", NewValue.Data },

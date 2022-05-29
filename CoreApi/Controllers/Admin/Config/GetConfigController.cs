@@ -230,14 +230,19 @@ namespace CoreApi.Controllers.Admin.Config
                     return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "config_key" });
                 }
 
-                var (Ret, ErrMsg) = __BaseConfig.GetConfigValue(ConfigKey);
+                var (ConfigValue, ErrMsg) = __BaseConfig.GetConfigValue(ConfigKey);
                 if (ErrMsg != string.Empty) {
                     throw new Exception($"GetConfigValue failed. ErrorMsg: { ErrMsg }");
+                }
+                var FormatValue = DEFAULT_BASE_CONFIG.GetValueFormatOfConfigKey(ConfigKey, ErrMsg);
+                if (ErrMsg != string.Empty) {
+                    throw new Exception($"GetValueFormatOfConfigKey failed. ErrorMsg: { ErrMsg }");
                 }
                 #endregion
 
                 return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
-                    { "config", Ret },
+                    { "config", ConfigValue },
+                    { "format", FormatValue },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());

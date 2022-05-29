@@ -126,6 +126,9 @@ namespace CoreApi.Controllers.Social.Post
                 if (ErrRetValidate != default) {
                     return ErrRetValidate;
                 }
+                if (Start < 0 || Size < 1) {
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
+                }
                 if (CombineOrders == default) {
                     throw new Exception($"ValidateOrderParams failed.");
                 }

@@ -78,7 +78,7 @@ namespace DatabaseAccess.Context.Models
                 { "right_name", RightName },
                 { "display_name", DisplayName },
                 { "describe", Describe },
-                { "status", Status },
+                { "status", StatusStr },
 #if DEBUG
                 {"__ModelName", __ModelName }
 #endif

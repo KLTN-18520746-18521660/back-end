@@ -70,7 +70,11 @@ namespace CoreApi.Common.Middlerware
                 string result;
 
                 context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                result = JsonConvert.SerializeObject(new { error = "An error has occured" });
+                result = JsonConvert.SerializeObject(new {
+                    status = (int) context.Response.StatusCode,
+                    message = "An error has occured",
+                    message_code = RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR.CODE,
+                });
 
                 context.Response.ContentType = "application/json";
                 return context.Response.WriteAsync(result);

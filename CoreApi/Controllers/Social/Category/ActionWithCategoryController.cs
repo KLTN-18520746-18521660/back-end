@@ -70,7 +70,7 @@ namespace CoreApi.Controllers.Social.Category
 
                 var (FindCategory, Error) = await __SocialCategoryManagement.FindCategoryByName(__Category);
 
-                if (Error != ErrorCodes.NO_ERROR && Error != ErrorCodes.USER_IS_NOT_OWNER) {
+                if (Error != ErrorCodes.NO_ERROR) {
                     if (Error == ErrorCodes.NOT_FOUND) {
                         return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "category" });
                     }

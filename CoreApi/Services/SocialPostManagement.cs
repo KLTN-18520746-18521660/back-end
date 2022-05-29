@@ -79,6 +79,7 @@ namespace CoreApi.Services
                         "title",
                         "time_read",
                         "created_timestamp",
+                        "status",
                         "last_modified_timestamp",
                     };
                 default:
@@ -88,6 +89,7 @@ namespace CoreApi.Services
         public async Task<(List<SocialPost>, int, ErrorCodes)> GetPostsByAdminUser(int start = 0,
                                                                                    int size = 20,
                                                                                    string search_term = default,
+                                                                                   string owner = default,
                                                                                    string[] status = default,
                                                                                    (string, bool)[] orders = default,
                                                                                    string[] tags = default,
@@ -131,6 +133,11 @@ namespace CoreApi.Services
                     from ids in (
                         (from post in __DBContext.SocialPosts
                                 .Where(e => (search_term == default || e.SearchVector.Matches(search_term))
+                                    && (
+                                        owner == default ||
+                                        e.OwnerNavigation.DisplayName.Contains(owner, StringComparison.OrdinalIgnoreCase) ||
+                                        e.OwnerNavigation.UserName.Contains(owner, StringComparison.OrdinalIgnoreCase)
+                                    )
                                     && ((
                                             status.Count() == 0
                                             && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
@@ -150,6 +157,7 @@ namespace CoreApi.Services
                             post.Id,
                             post.Views,
                             post.Title,
+                            post.StatusStr,
                             post.TimeRead,
                             post.CreatedTimestamp,
                             post.LastModifiedTimestamp
@@ -167,15 +175,16 @@ namespace CoreApi.Services
                                 EntityAction.GenContainsJsonStatement(ActionType.Report))),
                         } into ret select new {
                             ret.Key.Id,
-                            views = ret.Key.Views,
-                            likes = ret.Likes,
-                            dislikes = ret.DisLikes,
-                            comments = ret.Comments,
-                            follows = ret.Follows,
-                            reports = ret.Reports,
-                            title = ret.Key.Title,
-                            time_read = ret.Key.TimeRead,
-                            created_timestamp = ret.Key.CreatedTimestamp,
+                            status                  = ret.Key.StatusStr,
+                            views                   = ret.Key.Views,
+                            likes                   = ret.Likes,
+                            dislikes                = ret.DisLikes,
+                            comments                = ret.Comments,
+                            follows                 = ret.Follows,
+                            reports                 = ret.Reports,
+                            title                   = ret.Key.Title,
+                            time_read               = ret.Key.TimeRead,
+                            created_timestamp       = ret.Key.CreatedTimestamp,
                             last_modified_timestamp = ret.Key.LastModifiedTimestamp,
                         })
                         .OrderBy(orderStr)
@@ -428,6 +437,229 @@ namespace CoreApi.Services
             return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
         }
 
+        public async Task<(List<SocialPost>, int, ErrorCodes)> GetRecommendPostsForPost(long post_id,
+                                                                                        int start = 0,
+                                                                                        int size = 5,
+                                                                                        Guid socialUserId = default)
+        {
+            #region Validate params
+            if (post_id < 1) {
+                return (default, default, ErrorCodes.INVALID_PARAMS);
+            }
+            #endregion
+            var (__post, error) = await FindPostById(post_id);
+            if (error != ErrorCodes.NO_ERROR) {
+                return (default, default, error);
+            }
+            var tags        = __post.SocialPostTags.Select(e => e.Tag.Tag).ToArray();
+            var categories  = __post.SocialPostCategories.Select(e => e.Category.Name).ToArray();
+
+            #region Get config
+            var __BaseConfig        = __ServiceProvider.GetService<BaseConfig>();
+            var VistedFactor        = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.VISTED_FACTOR)
+                .Value;
+            var ViewsFactor         = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.VIEWS_FACTOR)
+                .Value;
+            var LikesFactor         = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.LIKES_FACTOR)
+                .Value;
+            var CommentsFactor         = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.COMMENTS_FACTOR)
+                .Value;
+            var TagsFactor          = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.TAGS_FACTOR)
+                .Value;
+            var CategoriesFactor    = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.CATEGORIES_FACTOR)
+                .Value;
+            var CommonWordsFactor     = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.COMMON_WORDS_FACTOR)
+                .Value;
+            var CommonWordsSize     = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.COMMON_WORDS_SIZE)
+                .Value;
+            var MaxSize     = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.MAX_SIZE)
+                .Value;
+            #endregion
+
+            var CommonWords = await DBHelper.RawSqlQuery(
+                "SELECT word FROM ts_stat"
+                + $"('SELECT to_tsvector(''simple'', title || short_content) FROM social_post WHERE id={ post_id }')"
+                + $"ORDER BY nentry DESC, ndoc DESC, word LIMIT { CommonWordsSize }",
+                x => (string)x[0]
+            );
+
+            var query =
+                    (from post in __DBContext.SocialPosts
+                        .Where(e => e.Id != post_id && (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)))
+                    join action in __DBContext.SocialUserActionWithPosts on post.Id equals action.PostId
+                    into postWithAction
+                    from p in postWithAction.DefaultIfEmpty()
+                    group p by new {
+                        post.Id,
+                        post.Views,
+                        post.CreatedTimestamp,
+                        MatchTags         = post.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t)),
+                        MatchCategories   = post.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c)),
+                        MatchCommonWords  = post.SearchVector.Matches(EF.Functions.ToTsQuery(string.Join(" | ", CommonWords))),
+                        actionStr         = post.SocialUserActionWithPosts
+                            .Where(e => e.UserId == socialUserId)
+                            .Select(e => e.ActionsStr)
+                            .FirstOrDefault()
+                    } into gr
+                    select new {
+                        gr.Key,
+                        Visited = (socialUserId == default) ? false
+                            : EF.Functions.JsonExists(gr.Key.actionStr,
+                            EntityAction.GenContainsJsonStatement(ActionType.Visited)),
+                        Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            EntityAction.GenContainsJsonStatement(ActionType.Like))),
+                        Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id)
+                    } into ret select new {
+                        ret.Key.Id,
+                        sort_factor =
+                            (ret.Visited ? 0 : VistedFactor)
+                            + (ret.Key.Views * ViewsFactor)
+                            + (ret.Likes * LikesFactor)
+                            + (ret.Comments * CommentsFactor)
+                            + (ret.Key.MatchTags ? 0 : TagsFactor)
+                            + (ret.Key.MatchCategories ? 0 : CategoriesFactor)
+                            + (ret.Key.MatchCommonWords ? 0 : CommonWordsFactor),
+                        created_timestamp = ret.Key.CreatedTimestamp,
+                    })
+                    .OrderBy("sort_factor desc, created_timestamp desc")
+                    .Take(MaxSize);
+
+            var queryPosts = 
+                    from ids in (query.Skip(start).Take(size).Select(e => e.Id))
+                    join posts in __DBContext.SocialPosts on ids equals posts.Id
+                    select posts;
+
+            return (await queryPosts.ToListAsync(), await query.CountAsync(), ErrorCodes.NO_ERROR);
+        }
+
+        public async Task<(List<SocialPost>, int, ErrorCodes)> GetRecommendPostsForUser(Guid SocialUserId,
+                                                                                        int start = 0,
+                                                                                        int size = 5)
+        {
+            var tags        = await __DBContext.SocialUserActionWithTags
+                .Where(e => e.UserId == SocialUserId && EF.Functions.JsonExists(e.ActionsStr,
+                            EntityAction.GenContainsJsonStatement(ActionType.Follow)))
+                .Select(e => e.Tag.Tag).ToListAsync();
+            var categories  = await __DBContext.SocialUserActionWithCategories
+                .Where(e => e.UserId == SocialUserId && EF.Functions.JsonExists(e.ActionsStr,
+                            EntityAction.GenContainsJsonStatement(ActionType.Follow)))
+                .Select(e => e.Category.Name).ToListAsync();
+            
+            var actionPosts = await __DBContext.SocialUserActionWithPosts
+                .Where(e => e.UserId == SocialUserId && (
+                        EF.Functions.JsonExists(e.ActionsStr,
+                            EntityAction.GenContainsJsonStatement(ActionType.Follow))
+                        || EF.Functions.JsonExists(e.ActionsStr,
+                            EntityAction.GenContainsJsonStatement(ActionType.Like))
+                    )
+                )
+                .Select(e => e.Post).ToListAsync();
+            var actionPostIds = actionPosts.Select(e => e.Id).ToList();
+            actionPostIds.AddRange(await __DBContext.SocialPosts.Where(e => e.Owner == SocialUserId)
+                .Select(e => e.Id).ToArrayAsync());
+            actionPosts.ForEach(e => tags.AddRange(e.SocialPostTags.Select(e => e.Tag.Tag).ToList()));
+            actionPosts.ForEach(e => categories.AddRange(e.SocialPostCategories.Select(e => e.Category.Name).ToList()));
+
+            #region Get config
+            var __BaseConfig        = __ServiceProvider.GetService<BaseConfig>();
+            var VistedFactor        = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.VISTED_FACTOR)
+                .Value;
+            var ViewsFactor         = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.VIEWS_FACTOR)
+                .Value;
+            var LikesFactor         = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.LIKES_FACTOR)
+                .Value;
+            var CommentsFactor         = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.COMMENTS_FACTOR)
+                .Value;
+            var TagsFactor          = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.TAGS_FACTOR)
+                .Value;
+            var CategoriesFactor    = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.CATEGORIES_FACTOR)
+                .Value;
+            var CommonWordsFactor     = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.COMMON_WORDS_FACTOR)
+                .Value;
+            var CommonWordsSize     = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.COMMON_WORDS_SIZE)
+                .Value;
+            var MaxSize     = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.MAX_SIZE)
+                .Value;
+            #endregion
+
+            var CommonWords = new List<string>();
+            if (actionPostIds.Count != 0){
+                CommonWords = await DBHelper.RawSqlQuery(
+                    "SELECT word FROM ts_stat"
+                    + "('SELECT to_tsvector(''simple'', title || short_content) FROM social_post "
+                    + $"WHERE id IN ({ string.Join(",", actionPostIds) })') "
+                    + $"ORDER BY nentry DESC, ndoc DESC, word LIMIT { CommonWordsSize }",
+                    x => (string)x[0]
+                );
+            }
+
+            var query =
+                    (from post in __DBContext.SocialPosts
+                        .Where(e => e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
+                    join action in __DBContext.SocialUserActionWithPosts on post.Id equals action.PostId
+                    into postWithAction
+                    from p in postWithAction.DefaultIfEmpty()
+                    group p by new {
+                        post.Id,
+                        post.Views,
+                        post.CreatedTimestamp,
+                        MatchTags         = post.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t)),
+                        MatchCategories   = post.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c)),
+                        MatchCommonWords  = post.SearchVector.Matches(EF.Functions.ToTsQuery(string.Join(" | ", CommonWords))),
+                        actionStr         = post.SocialUserActionWithPosts
+                            .Where(e => e.UserId == SocialUserId)
+                            .Select(e => e.ActionsStr)
+                            .FirstOrDefault()
+                    } into gr
+                    select new {
+                        gr.Key,
+                        Visited = (SocialUserId == default) ? false
+                            : EF.Functions.JsonExists(gr.Key.actionStr,
+                            EntityAction.GenContainsJsonStatement(ActionType.Visited)),
+                        Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            EntityAction.GenContainsJsonStatement(ActionType.Like))),
+                        Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id)
+                    } into ret select new {
+                        ret.Key.Id,
+                        sort_factor =
+                            (ret.Visited ? 0 : VistedFactor)
+                            + (ret.Key.Views * ViewsFactor)
+                            + (ret.Likes * LikesFactor)
+                            + (ret.Comments * CommentsFactor)
+                            + (ret.Key.MatchTags ? 0 : TagsFactor)
+                            + (ret.Key.MatchCategories ? 0 : CategoriesFactor)
+                            + (ret.Key.MatchCommonWords ? 0 : CommonWordsFactor),
+                        created_timestamp = ret.Key.CreatedTimestamp,
+                    })
+                    .OrderBy("sort_factor desc, created_timestamp desc")
+                    .Take(MaxSize);
+
+            var queryPosts = 
+                    from ids in (query.Skip(start).Take(size).Select(e => e.Id))
+                    join posts in __DBContext.SocialPosts on ids equals posts.Id
+                    select posts;
+
+            return (await queryPosts.ToListAsync(), await query.CountAsync(), ErrorCodes.NO_ERROR);
+        }
+
         public async Task<(List<SocialPost>, int, ErrorCodes)> GetTrendingPosts(Guid socialUserId = default,
                                                                                 int time = 7, // days
                                                                                 int start = 0,
@@ -671,56 +903,36 @@ namespace CoreApi.Services
             return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
         }
 
-        public async Task<(SocialPost, ErrorCodes)> FindPostBySlug(string Slug)
+        public async Task<(SocialPost, ErrorCodes)> FindPostBySlug(string Slug,
+                                                                   Guid SocialUserId = default,
+                                                                   bool IncreaseView = false)
         {
             if (Slug == string.Empty) {
                 return (default, ErrorCodes.INVALID_PARAMS);
             }
             var post = await __DBContext.SocialPosts
                     .Where(e => e.Slug == Slug
-                        && (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
-                            || e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Private)
-                        )
+                        && (e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                     )
                     .FirstOrDefaultAsync();
             if (post == default) {
                 return (default, ErrorCodes.NOT_FOUND);
             }
 
-            return (post, ErrorCodes.NO_ERROR);
-        }
-
-        public async Task<(SocialPost, ErrorCodes)> FindPostBySlug(string Slug, Guid SocialUserId)
-        {
-            if (Slug == string.Empty) {
-                return (default, ErrorCodes.INVALID_PARAMS);
-            }
-            var post = await __DBContext.SocialPosts
-                    .Where(e => e.Slug == Slug
-                        && (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
-                            || e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Private)
-                        )
-                    )
-                    .FirstOrDefaultAsync();
-            if (post == default) {
-                return (default, ErrorCodes.NOT_FOUND);
+            if (post.Status.Type != StatusType.Approved && (SocialUserId == default || SocialUserId != post.Owner)) {
+                return (post, ErrorCodes.USER_IS_NOT_OWNER);
             }
 
             #region increase views + add action 'Visited'
-            post.Views++;
-            await __DBContext.SaveChangesAsync();
-            if (SocialUserId != default && post.Status.Type == StatusType.Approved) {
-                await Visited(post.Id, SocialUserId);
+            if (IncreaseView) {
+                post.Views++;
+                await __DBContext.SaveChangesAsync();
+                if (SocialUserId != default && post.Status.Type == StatusType.Approved) {
+                    await Visited(post.Id, SocialUserId);
+                }
             }
             #endregion
 
-            if (post.Status.Type != StatusType.Approved && (SocialUserId == default || SocialUserId != post.Owner)) {
-                return (default, ErrorCodes.NOT_FOUND);
-            } else {
-                if (SocialUserId == default || SocialUserId != post.Owner) {
-                    return (post, ErrorCodes.USER_IS_NOT_OWNER);
-                }
-            }
             return (post, ErrorCodes.NO_ERROR);
         }
 
@@ -875,6 +1087,7 @@ namespace CoreApi.Services
                 ) ||
                 (
                     from == StatusType.Private && (
+                    to == StatusType.Pending ||
                     to == StatusType.Deleted ||
                     to == StatusType.Approved)
                 )
@@ -1344,6 +1557,40 @@ namespace CoreApi.Services
             return ErrorCodes.INTERNAL_SERVER_ERROR;
         }
 
+        public async Task<ErrorCodes> PublishPostPrivate(long Id, Guid SocialUser)
+        {
+            var (post, error) = await FindPostById(Id);
+            if (error != ErrorCodes.NO_ERROR) {
+                return error;
+            }
+            var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
+            post.Status.ChangeStatus(StatusType.Pending);
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [ADMIN] Write social audit log
+                (post, error) = await FindPostById(Id);
+                if (error == ErrorCodes.NO_ERROR) {
+                    using (var scope = __ServiceProvider.CreateScope())
+                    {
+                        var __SocialUserAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialUserAuditLogManagement>();
+                        var (oldVal, newVal) = Utils.GetDataChanges(oldPost, post.GetJsonObjectForLog());
+                        await __SocialUserAuditLogManagement.AddNewUserAuditLog(
+                            post.GetModelName(),
+                            post.Id.ToString(),
+                            LOG_ACTIONS.MODIFY,
+                            SocialUser,
+                            oldVal,
+                            newVal
+                        );
+                    }
+                } else {
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+
         public async Task<ErrorCodes> MakePostPrivate(long Id, Guid SocialUser)
         {
             var (post, error) = await FindPostById(Id);
@@ -1363,7 +1610,7 @@ namespace CoreApi.Services
                         await __SocialUserAuditLogManagement.AddNewUserAuditLog(
                             post.GetModelName(),
                             post.Id.ToString(),
-                            LOG_ACTIONS.CREATE,
+                            LOG_ACTIONS.MODIFY,
                             SocialUser,
                             oldVal,
                             newVal

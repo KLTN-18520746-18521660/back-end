@@ -2,6 +2,7 @@
 using Common;
 using CoreApi.Common;
 using CoreApi.Common.Base;
+using DatabaseAccess.Common.Models;
 using DatabaseAccess.Context;
 using DatabaseAccess.Context.Models;
 using Microsoft.EntityFrameworkCore;
@@ -106,7 +107,7 @@ namespace CoreApi.Services
             Dictionary<string, JObject> ret = new Dictionary<string, JObject>();
             Configs.ForEach(e => {
                 if (!ret.ContainsKey(e.ConfigKey)) {
-                    ret.Add(e.ConfigKey, e.GetJsonObject());
+                    ret.Add(e.ConfigKey, e.Value);
                 }
             });
             return (JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret)), string.Empty);
@@ -209,7 +210,7 @@ namespace CoreApi.Services
                 throw new Exception(Error);
             }
             while(IsReloadConfig);
-            if (typeof(T) != typeof(string) && typeof(T) != typeof(int) && typeof(T) != typeof(bool)) {
+            if (typeof(T) != typeof(string) && typeof(T) != typeof(int) && typeof(T) != typeof(float) && typeof(T) != typeof(bool)) {
                 Error = $"GetConfigValue. Unsupport convert type: { typeof(T) }";
                 throw new Exception(Error);
             }
@@ -235,6 +236,42 @@ namespace CoreApi.Services
                 WriteLog(LOG_LEVEL.WARNING, string.Empty, Error);
                 return ((T) System.Convert.ChangeType(defaultConfig[subConfigKeyStr], typeof(T)), Error);
             }
+        }
+
+        public async Task<ErrorCodes> UpdateConfig(CONFIG_KEY ConfigKey, JObject ModifyData, Guid UserId)
+        {
+            var ConfigKeyStr    = DEFAULT_BASE_CONFIG.ConfigKeyToString(ConfigKey);
+            using (var Scope = __ServiceProvider.CreateScope())
+            {
+                var __DBContext                 = Scope.ServiceProvider.GetRequiredService<DBContext>();
+                var __AdminAuditLogManagement   = Scope.ServiceProvider.GetRequiredService<AdminAuditLogManagement>();
+                var Config = await __DBContext.AdminBaseConfigs
+                            .Where<AdminBaseConfig>(e => e.ConfigKey == ConfigKeyStr)
+                            .FirstOrDefaultAsync();
+                if (Config == default) {
+                    WriteLog(LOG_LEVEL.ERROR, string.Empty, $"Missing config key in database: { ConfigKeyStr }");
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+                if (Config.Value.ToString(Formatting.None) == ModifyData.ToString(Formatting.None)) {
+                    return ErrorCodes.NO_CHANGE_DETECTED;
+                }
+                var OldValue   = Utils.DeepClone(Config.GetJsonObjectForLog());
+                Config.Value    = ModifyData;
+                if (await __DBContext.SaveChangesAsync() <= 0) {
+                    WriteLog(LOG_LEVEL.ERROR, string.Empty, $"Cannot save changes: { ConfigKeyStr }");
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+                var (OldVal, NewVal) = Utils.GetDataChanges(OldValue, Config.GetJsonObjectForLog());
+                await __AdminAuditLogManagement.AddNewAuditLog(
+                    Config.GetModelName(),
+                    ConfigKeyStr,
+                    LOG_ACTIONS.MODIFY,
+                    UserId,
+                    OldVal,
+                    NewVal
+                );
+            }
+            return ErrorCodes.NO_ERROR;
         }
 
         public async Task<(JObject Value, string Error)> GetConfigValueFromDB(CONFIG_KEY ConfigKey)
@@ -265,7 +302,7 @@ namespace CoreApi.Services
                 Error = $"GetConfigValue. Unsupport get sub config type: { SubConfigKey }";
                 throw new Exception(Error);
             }
-            if (typeof(T) != typeof(string) && typeof(T) != typeof(int)) {
+            if (typeof(T) != typeof(string) && typeof(T) != typeof(int) && typeof(T) != typeof(float) && typeof(T) != typeof(bool)) {
                 Error = $"GetConfigValue. Unsupport convert type: { typeof(T) }";
                 throw new Exception(Error);
             }

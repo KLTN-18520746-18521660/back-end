@@ -48,8 +48,8 @@ namespace CoreApi.Services
                     .Where(
                         e => e.UserId == UserId
                         && e.Table == ActionStr
-                        && (SearchTerm == default) || e.SearchVector.Matches(SearchTerm)
-                        && (Key == default) || e.TableKey == Key
+                        && ((SearchTerm == default) || e.SearchVector.Matches(SearchTerm))
+                        && ((Key == default) || e.TableKey == Key)
                     )
                     .OrderBy(e => e.Id)
                     .Skip(Start)

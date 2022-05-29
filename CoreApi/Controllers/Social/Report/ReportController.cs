@@ -95,7 +95,7 @@ namespace CoreApi.Controllers.Social.Report
                             if (__ParserModel.post_slug == default) {
                                 return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_BODY);
                             }
-                            var (ReportPost, Error) = await __SocialPostManagement.FindPostBySlug(__ParserModel.post_slug);
+                            var (ReportPost, Error) = await __SocialPostManagement.FindPostBySlug(__ParserModel.post_slug, Session.UserId);
                             if (Error != ErrorCodes.NO_ERROR) {
                                 return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "report post" });
                             }
