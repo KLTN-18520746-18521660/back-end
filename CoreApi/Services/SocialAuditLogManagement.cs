@@ -14,9 +14,7 @@ namespace CoreApi.Services
 {
     public class SocialAuditLogManagement : BaseTransientService
     {
-        public SocialAuditLogManagement(DBContext _DBContext,
-                                        IServiceProvider _IServiceProvider)
-            : base(_IServiceProvider)
+        public SocialAuditLogManagement(IServiceProvider _IServiceProvider) : base(_IServiceProvider)
         {
             __ServiceName = "SocialAuditLogManagement";
         }

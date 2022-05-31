@@ -77,8 +77,7 @@ namespace CoreApi.Services
             (RequestToSendEmailType.UserSignup,         SUB_CONFIG_KEY.TEMPLATE_USER_SIGNUP),
             (RequestToSendEmailType.ForgotPassword,     SUB_CONFIG_KEY.TEMPLATE_FORGOT_PASSWORD),
         };
-        public EmailSender(IServiceProvider _IServiceProvider)
-            : base(_IServiceProvider)
+        public EmailSender(IServiceProvider _IServiceProvider) : base(_IServiceProvider)
         {
             __ServiceName           = "EmailSender";
             __GateLimit             = 1;

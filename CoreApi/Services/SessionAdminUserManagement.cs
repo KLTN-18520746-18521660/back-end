@@ -14,9 +14,7 @@ namespace CoreApi.Services
 {
     public class SessionAdminUserManagement : BaseTransientService
     {
-        public SessionAdminUserManagement(DBContext _DBContext,
-                                          IServiceProvider _IServiceProvider)
-            : base(_IServiceProvider)
+        public SessionAdminUserManagement(IServiceProvider _IServiceProvider) : base(_IServiceProvider)
         {
             __ServiceName = "SessionAdminUserManagement";
         }

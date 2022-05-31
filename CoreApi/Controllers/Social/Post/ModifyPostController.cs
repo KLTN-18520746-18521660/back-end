@@ -138,7 +138,7 @@ namespace CoreApi.Controllers.Social.Post
                 }
                 #endregion
 
-                var RawBodyObject = JObject.FromObject(GetRawBodyRequest());
+                var RawBodyObject = JObject.Parse(GetRawBodyRequest());
 
                 if (Post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)) {
                     Error = await __SocialPostManagement.AddPendingContent(Post.Id, __ModelData, RawBodyObject);

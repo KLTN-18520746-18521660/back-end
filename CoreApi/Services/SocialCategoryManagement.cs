@@ -17,9 +17,7 @@ namespace CoreApi.Services
 {
     public class SocialCategoryManagement : BaseTransientService
     {
-        public SocialCategoryManagement(DBContext _DBContext,
-                                    IServiceProvider _IServiceProvider)
-            : base(_IServiceProvider)
+        public SocialCategoryManagement(IServiceProvider _IServiceProvider) : base(_IServiceProvider)
         {
             __ServiceName = "SocialCategoryManagement";
         }

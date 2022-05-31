@@ -28,9 +28,7 @@ namespace CoreApi.Services
     }
     public class SocialPostManagement : BaseTransientService
     {
-        public SocialPostManagement(DBContext _DBContext,
-                                    IServiceProvider _IServiceProvider)
-            : base(_IServiceProvider)
+        public SocialPostManagement(IServiceProvider _IServiceProvider) : base(_IServiceProvider)
         {
             __ServiceName = "SocialPostManagement";
         }

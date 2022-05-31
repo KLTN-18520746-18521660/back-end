@@ -79,7 +79,7 @@ namespace CoreApi.Controllers.Social
                 #endregion
 
                 #region Find User
-                var IsEmail         = CommonValidate.IsEmail(__ModelData.user_name);
+                var IsEmail         = CommonValidate.IsEmail(__ModelData.user_name.ToLower());
                 var (User, Error)   = await __SocialUserManagement.FindUser(__ModelData.user_name, IsEmail);
                 if (Error != ErrorCodes.NO_ERROR) {
                     return Problem(400, RESPONSE_MESSAGES.USER_NOT_FOUND_OR_INCORRECT_PASSWORD);

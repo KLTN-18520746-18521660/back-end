@@ -22,8 +22,7 @@ namespace CoreApi.Services
         List<AdminBaseConfig> Configs;
         SemaphoreSlim Gate;
         bool IsReloadConfig;
-        public BaseConfig(IServiceProvider _IServiceProvider)
-            : base(_IServiceProvider)
+        public BaseConfig(IServiceProvider _IServiceProvider) : base(_IServiceProvider)
         {
             __ServiceName = "BaseConfig";
             InitConfig();

@@ -9,9 +9,7 @@ namespace CoreApi.Services
 {
     public class SocialReportManagement : BaseTransientService
     {
-        public SocialReportManagement(DBContext _DBContext,
-                                    IServiceProvider _IServiceProvider)
-            : base(_IServiceProvider)
+        public SocialReportManagement(IServiceProvider _IServiceProvider) : base(_IServiceProvider)
         {
             __ServiceName = "SocialReportManagement";
         }

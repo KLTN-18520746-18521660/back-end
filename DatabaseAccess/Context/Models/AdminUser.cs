@@ -107,12 +107,12 @@ namespace DatabaseAccess.Context.Models
         {
             Error = string.Empty;
             try {
-                var parser = (ParserModels.ParserAdminUser)Parser;
-                UserName = parser.user_name;
+                var parser  = (ParserModels.ParserAdminUser)Parser;
+                Email       = parser.email.ToLower();
+                UserName    = parser.user_name;
+                Password    = parser.password;
+                Settings    = parser.settings;
                 DisplayName = parser.display_name;
-                Password = parser.password;
-                Email = parser.email;
-                Settings = parser.settings;
 
                 return true;
             } catch (Exception ex) {

@@ -23,8 +23,7 @@ namespace CoreApi.Services
     public class SocialUserManagement : BaseTransientService
     {
         private SocialUserAuditLogManagement __SocialUserAuditLogManagement;
-        public SocialUserManagement(DBContext _DBContext,
-                                    IServiceProvider _IServiceProvider,
+        public SocialUserManagement(IServiceProvider _IServiceProvider,
                                     SocialUserAuditLogManagement _SocialUserAuditLogManagement)
             : base(_IServiceProvider)
         {
@@ -89,7 +88,7 @@ namespace CoreApi.Services
             SocialUser user;
             if (isEmail) {
                 user = await __DBContext.SocialUsers
-                        .Where(e => e.Email == UserName
+                        .Where(e => string.Compare(e.Email, UserName, true) == 0
                             && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                         .FirstOrDefaultAsync();
             } else {
@@ -109,7 +108,7 @@ namespace CoreApi.Services
             SocialUser user;
             if (isEmail) {
                 user = await __DBContext.SocialUsers
-                        .Where(e => e.Email == UserName)
+                        .Where(e => string.Compare(e.Email, UserName, true) == 0)
                         .FirstOrDefaultAsync();
             } else {
                 user = await __DBContext.SocialUsers
@@ -418,8 +417,8 @@ namespace CoreApi.Services
                 user.Description = modelModify.description;
                 haveChange = true;
             }
-            if (modelModify.email != default && modelModify.email != user.Email) {
-                user.Email = modelModify.email;
+            if (modelModify.email != default && modelModify.email.ToLower() != user.Email) {
+                user.Email = modelModify.email.ToLower();
                 haveChange = true;
             }
             if (modelModify.avatar != default && modelModify.avatar != user.Avatar) {

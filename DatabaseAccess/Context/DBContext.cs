@@ -52,6 +52,7 @@ namespace DatabaseAccess.Context
         public virtual DbSet<SocialUserRight> SocialUserRights { get; set; }
         public virtual DbSet<SocialUserRole> SocialUserRoles { get; set; }
         public virtual DbSet<SocialUserRoleDetail> SocialUserRoleDetails { get; set; }
+        public virtual DbSet<RedirectUrl> RedirectUrls { get; set; }
 
         #region Configure Context
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -105,6 +106,7 @@ namespace DatabaseAccess.Context
             ConfigureEnitySocialUserRole(modelBuilder);
             ConfigureEnitySocialUserRoleDetail(modelBuilder);
             ConfigureEnitySocialUserRoleOfUser(modelBuilder);
+            ConfigureEnityRedirectUrls(modelBuilder);
 
             OnModelCreatingPartial(modelBuilder);
         }
@@ -998,6 +1000,19 @@ namespace DatabaseAccess.Context
                     .HasForeignKey(d => d.UserId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_social_user_role_of_user_user");
+            });
+        }
+        #endregion
+        #region Table RedirectUrl
+        private static void ConfigureEnityRedirectUrls(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<RedirectUrl>(entity =>
+            {
+                entity
+                    .HasCheckConstraint(
+                        "CK_redirect_url_times_valid_value",
+                        "(times >= 0)"
+                    );
             });
         }
         #endregion

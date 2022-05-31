@@ -86,7 +86,7 @@ namespace CoreApi.Services
             AdminUser user;
             if (isEmail) {
                 user = await __DBContext.AdminUsers
-                        .Where<AdminUser>(e => e.Email == UserName
+                        .Where<AdminUser>(e => string.Compare(e.Email, UserName, true) == 0
                             && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                         .FirstOrDefaultAsync();
             } else {
@@ -106,7 +106,7 @@ namespace CoreApi.Services
             AdminUser user;
             if (isEmail) {
                 user = await __DBContext.AdminUsers
-                        .Where(e => e.Email == UserName)
+                        .Where(e => string.Compare(e.Email, UserName, true) == 0)
                         .FirstOrDefaultAsync();
             } else {
                 user = await __DBContext.AdminUsers

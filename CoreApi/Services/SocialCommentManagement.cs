@@ -23,9 +23,7 @@ namespace CoreApi.Services
     }
     public class SocialCommentManagement : BaseTransientService
     {
-        public SocialCommentManagement(DBContext _DBContext,
-                                       IServiceProvider _IServiceProvider)
-            : base(_IServiceProvider)
+        public SocialCommentManagement(IServiceProvider _IServiceProvider) : base(_IServiceProvider)
         {
             __ServiceName = "SocialCommentManagement";
         }

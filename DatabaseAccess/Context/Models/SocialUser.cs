@@ -192,7 +192,7 @@ namespace DatabaseAccess.Context.Models
                 LastName        = parser.last_name;
                 DisplayName     = parser.display_name;
                 Password        = parser.password;
-                Email           = parser.email;
+                Email           = parser.email.ToLower();
                 Sex             = parser.sex;
                 Phone           = parser.phone;
                 Country         = parser.country;

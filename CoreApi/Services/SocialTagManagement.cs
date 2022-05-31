@@ -14,9 +14,7 @@ namespace CoreApi.Services
 {
     public class SocialTagManagement : BaseTransientService
     {
-        public SocialTagManagement(DBContext _DBContext,
-                                    IServiceProvider _IServiceProvider)
-            : base(_IServiceProvider)
+        public SocialTagManagement(IServiceProvider _IServiceProvider) : base(_IServiceProvider)
         {
             __ServiceName = "SocialTagManagement";
         }

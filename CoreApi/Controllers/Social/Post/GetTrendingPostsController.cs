@@ -46,7 +46,7 @@ namespace CoreApi.Controllers.Social.Post
                                                           [FromQuery(Name = "timem")] int               Time        = 7,
                                                           [FromQuery(Name = "start")] int               Start       = 0,
                                                           [FromQuery(Name = "size")] int                Size        = 20,
-                                                          [FromQuery(Name = "size")] string             SearchTerm  = default,
+                                                          [FromQuery(Name = "search_term")] string      SearchTerm  = default,
                                                           [FromQuery(Name = "tags")] string             Tags        = default,
                                                           [FromQuery(Name = "categories")] string       Categories  = default)
         {

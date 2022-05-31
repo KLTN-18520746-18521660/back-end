@@ -131,8 +131,7 @@ namespace CoreApi.Services
 
     public class NotificationsManagement : BaseSingletonService
     {
-        public NotificationsManagement(IServiceProvider _IServiceProvider)
-            : base(_IServiceProvider)
+        public NotificationsManagement(IServiceProvider _IServiceProvider) : base(_IServiceProvider)
         {
             __ServiceName = "NotificationsManagement";
         }

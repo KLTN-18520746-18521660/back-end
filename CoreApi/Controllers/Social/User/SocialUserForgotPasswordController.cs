@@ -50,7 +50,7 @@ namespace CoreApi.Controllers.Social.User
 
                 #region Find User
                 AddLogParam("user_name", __ModelData.user_name);
-                var IsEmail         = CommonValidate.IsEmail(__ModelData.user_name);
+                var IsEmail         = CommonValidate.IsEmail(__ModelData.user_name.ToLower());
                 var (User, Error)   = await __SocialUserManagement.FindUser(__ModelData.user_name, IsEmail);
                 if (Error != ErrorCodes.NO_ERROR) {
                     return Problem(400, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "user" });

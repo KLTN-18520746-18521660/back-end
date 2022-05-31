@@ -83,7 +83,7 @@ namespace CoreApi.Controllers.Admin
 
                 #region Find User
                 AddLogParam("user_name", __ModelData.user_name);
-                var IsEmail         = CommonValidate.IsEmail(__ModelData.user_name);
+                var IsEmail         = CommonValidate.IsEmail(__ModelData.user_name.ToLower());
                 var (User, Error)   = await __AdminUserManagement.FindUser(__ModelData.user_name, IsEmail);
 
                 if (Error != ErrorCodes.NO_ERROR) {
