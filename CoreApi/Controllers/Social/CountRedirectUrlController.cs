@@ -22,7 +22,7 @@ namespace CoreApi.Controllers.Social
         {
         }
 
-        [HttpGet("")]
+        [HttpPost("")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(SocialUserLoginSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
