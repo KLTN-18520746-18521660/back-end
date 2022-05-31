@@ -26,13 +26,13 @@ namespace DatabaseAccess.Context.Validators
                         MaxReportTypeLength.ToString()
                     ));
             
-            When(entity => entity.report_type.ToLower() != "others", () => {
+            When(entity => entity.report_type != default && entity.report_type.ToLower() != "others", () => {
                 RuleFor(entity => entity.content)
                     .Cascade(CascadeMode.Stop)
                     .Must(value => value == default || value == string.Empty)
                         .WithMessage("{PropertyName} is must be empty.");
             });
-            When(entity => entity.report_type.ToLower() == "others", () => {
+            When(entity => entity.report_type != default && entity.report_type.ToLower() == "others", () => {
                 RuleFor(entity => entity.content)
                     .Cascade(CascadeMode.Stop)
                     .NotNull()

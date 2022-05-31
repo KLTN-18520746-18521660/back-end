@@ -79,7 +79,8 @@ namespace CoreApi.Controllers.Social.Post
                     .GetRecommendPostsForPost(
                         Post.Id,
                         Start,
-                        Size
+                        Size,
+                        IsValidSession ? Session.UserId : default
                     );
                 if (Error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"GetRecommendPostsForPost failed, ErrorCode: { Error }");
@@ -94,11 +95,13 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 var Ret = new List<JObject>();
-                Posts.ForEach(e => {
-                    var Obj = e.GetPublicShortJsonObject();
-                    Obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionByUser(Session.UserId)));
-                    Ret.Add(Obj);
-                });
+                if (IsValidSession) {
+                    Posts.ForEach(e => {
+                        var Obj = e.GetPublicShortJsonObject();
+                        Obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionByUser(Session.UserId)));
+                        Ret.Add(Obj);
+                    });
+                }
 
                 return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "posts",      Utils.ObjectToJsonToken(Ret) },

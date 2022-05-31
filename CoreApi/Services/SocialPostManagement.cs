@@ -99,7 +99,7 @@ namespace CoreApi.Services
             if (status != default) {
                 foreach (var statusStr in status) {
                     var statusType = EntityStatus.StatusStringToType(statusStr);
-                    if (statusType == default || statusType == StatusType.Deleted) {
+                    if (statusType == default || statusType == StatusType.Deleted || statusType == StatusType.Private) {
                         return (default, default, ErrorCodes.INVALID_PARAMS);
                     }
                 }
@@ -141,6 +141,7 @@ namespace CoreApi.Services
                                     && ((
                                             status.Count() == 0
                                             && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Private)
                                         ) || status.Contains(e.StatusStr)
                                     )
                                     && (tags.Count() == 0

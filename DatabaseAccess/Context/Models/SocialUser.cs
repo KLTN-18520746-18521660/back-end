@@ -267,13 +267,16 @@ namespace DatabaseAccess.Context.Models
                     ret.Remove(x.Key);
                 }
             }
+            if (ret.ContainsKey("posts")) {
+                ret.SelectToken("posts").Replace(CountPosts(false));
+            }
             return ret;
         }
 
         public JObject GetPublicStatisticInfo(List<string> publicFields = default)
         {
             var publics = publicFields == default ? Publics.Select(e => e.ToString()).ToArray() : publicFields.ToArray();
-            var ret = GetStatisticInfo();
+            var ret = GetStatisticInfo(false);
             foreach (var x in __ObjectJson) {
                 if (!publics.Contains(x.Key)) {
                     ret.Remove(x.Key);
@@ -282,14 +285,14 @@ namespace DatabaseAccess.Context.Models
             return ret;
         }
 
-        public JObject GetStatisticInfo()
+        public JObject GetStatisticInfo(bool isOwner = true)
         {
             return new JObject()
             {
                 { "ranks",                      Ranks },
                 { "followers",                  CountFollowers() },
                 { "following",                  CountFollowing() },
-                { "posts",                      CountPosts() },
+                { "posts",                      CountPosts(isOwner) },
                 { "views",                      CountViews() },
                 { "likes",                      CountLikes() },
                 { "unread_notifications",       CountUnreadNotifications() },
@@ -342,9 +345,9 @@ namespace DatabaseAccess.Context.Models
         }
 
         #region Handle default data
-        public int CountPosts()
+        public int CountPosts(bool isOwner = true)
         {
-            return SocialPosts.Count();
+            return SocialPosts.Count(e => isOwner || e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved));
         }
 
         public int CountLikes()
