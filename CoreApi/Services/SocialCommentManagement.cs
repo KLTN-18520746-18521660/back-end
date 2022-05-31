@@ -102,13 +102,13 @@ namespace CoreApi.Services
                         } into gr
                         select new {
                             gr.Key,
-                            Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Like))),
-                            DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
-                            Replies = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            Replies = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Reply))),
-                            Reports = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            Reports = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Report))),
                         } into ret select new {
                             ret.Key.Id,

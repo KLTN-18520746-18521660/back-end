@@ -279,7 +279,7 @@ namespace CoreApi.Services
                         var userIds = post.OwnerNavigation.SocialUserActionWithUserUsers
                             .Where(
                                 e => e.UserIdDes == post.Owner
-                                && EF.Functions.JsonExists(e.ActionsStr,
+                                && EF.Functions.JsonContains(e.ActionsStr,
                                     EntityAction.GenContainsJsonStatement(ActionType.Follow)
                                 )
                             )
@@ -318,7 +318,7 @@ namespace CoreApi.Services
                         var userIds = post.OwnerNavigation.SocialUserActionWithUserUsers
                             .Where(
                                 e => e.UserIdDes == post.Owner
-                                && EF.Functions.JsonExists(e.ActionsStr,
+                                && EF.Functions.JsonContains(e.ActionsStr,
                                     EntityAction.GenContainsJsonStatement(ActionType.Follow)
                                 )
                             )
@@ -421,6 +421,9 @@ namespace CoreApi.Services
                             .Select(e => e.UserId)
                             .ToArray();
                         foreach (var userId in userIds) {
+                            if (userId == comment.Owner) {
+                                continue;
+                            }
                             notifications.Add(new SocialNotification(){
                                 Content             = dataToDB,
                                 Owner               = userId,
@@ -430,7 +433,7 @@ namespace CoreApi.Services
                                 CommentId           = modelData.CommentId,
                             });
                         }
-                        if (!userIds.Contains(comment.Post.Owner)) {
+                        if (!userIds.Contains(comment.Post.Owner) && comment.Owner != comment.Post.Owner) {
                             notifications.Add(new SocialNotification(){
                                 Content             = dataToDB,
                                 Owner               = comment.Post.Owner,
@@ -454,6 +457,9 @@ namespace CoreApi.Services
                         }
 
                         List<SocialNotification> notifications = new List<SocialNotification>();
+                        if (comment.Owner == comment.Parent.Owner) {
+                            break;
+                        }
                         notifications.Add(new SocialNotification(){
                             Content             = dataToDB,
                             Owner               = comment.Parent.Owner,
@@ -463,14 +469,6 @@ namespace CoreApi.Services
                             CommentId           = modelData.CommentId,
                         });
                         await AddRangeNotification(notifications.ToArray(), modelData.TraceId);
-                        await SendNotificationTypeActionWithComment(
-                            new CommentNotificationModel(NotificationSenderAction.NEW_COMMENT,
-                                                         modelData.ActionOfUserId,
-                                                         modelData.ActionOfAdminUserId){
-                                CommentId = comment.Id,
-                                TraceId = modelData.TraceId
-                            }
-                        );
                         break;
                     }
                 default:

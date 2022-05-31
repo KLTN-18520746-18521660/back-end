@@ -165,14 +165,14 @@ namespace CoreApi.Services
                         } into gr
                         select new {
                             gr.Key,
-                            Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Like))),
-                            DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
                             Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
-                            Follows = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            Follows = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Follow))),
-                            Reports = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            Reports = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Report))),
                         } into ret select new {
                             ret.Key.Id,
@@ -293,14 +293,14 @@ namespace CoreApi.Services
                         } into gr
                         select new {
                             gr.Key,
-                            Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Like))),
-                            DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
                             Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
-                            Follows = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            Follows = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Follow))),
-                            Reports = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            Reports = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Report))),
                         } into ret select new {
                             ret.Key.Id,
@@ -402,11 +402,11 @@ namespace CoreApi.Services
                         select new {
                             gr.Key,
                             Visited = (socialUserId == default) ? false
-                                : EF.Functions.JsonExists(gr.Key.actionStr,
+                                : EF.Functions.JsonContains(gr.Key.actionStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Visited)),
-                            Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Like))),
-                            DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
                             Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
                         } into ret select new {
@@ -514,9 +514,9 @@ namespace CoreApi.Services
                     select new {
                         gr.Key,
                         Visited = (socialUserId == default) ? false
-                            : EF.Functions.JsonExists(gr.Key.actionStr,
+                            : EF.Functions.JsonContains(gr.Key.actionStr,
                             EntityAction.GenContainsJsonStatement(ActionType.Visited)),
-                        Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                        Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                             EntityAction.GenContainsJsonStatement(ActionType.Like))),
                         Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id)
                     } into ret select new {
@@ -547,19 +547,19 @@ namespace CoreApi.Services
                                                                                         int size = 5)
         {
             var tags        = await __DBContext.SocialUserActionWithTags
-                .Where(e => e.UserId == SocialUserId && EF.Functions.JsonExists(e.ActionsStr,
+                .Where(e => e.UserId == SocialUserId && EF.Functions.JsonContains(e.ActionsStr,
                             EntityAction.GenContainsJsonStatement(ActionType.Follow)))
                 .Select(e => e.Tag.Tag).ToListAsync();
             var categories  = await __DBContext.SocialUserActionWithCategories
-                .Where(e => e.UserId == SocialUserId && EF.Functions.JsonExists(e.ActionsStr,
+                .Where(e => e.UserId == SocialUserId && EF.Functions.JsonContains(e.ActionsStr,
                             EntityAction.GenContainsJsonStatement(ActionType.Follow)))
                 .Select(e => e.Category.Name).ToListAsync();
             
             var actionPosts = await __DBContext.SocialUserActionWithPosts
                 .Where(e => e.UserId == SocialUserId && (
-                        EF.Functions.JsonExists(e.ActionsStr,
+                        EF.Functions.JsonContains(e.ActionsStr,
                             EntityAction.GenContainsJsonStatement(ActionType.Follow))
-                        || EF.Functions.JsonExists(e.ActionsStr,
+                        || EF.Functions.JsonContains(e.ActionsStr,
                             EntityAction.GenContainsJsonStatement(ActionType.Like))
                     )
                 )
@@ -633,9 +633,9 @@ namespace CoreApi.Services
                     select new {
                         gr.Key,
                         Visited = (SocialUserId == default) ? false
-                            : EF.Functions.JsonExists(gr.Key.actionStr,
+                            : EF.Functions.JsonContains(gr.Key.actionStr,
                             EntityAction.GenContainsJsonStatement(ActionType.Visited)),
-                        Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                        Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                             EntityAction.GenContainsJsonStatement(ActionType.Like))),
                         Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id)
                     } into ret select new {
@@ -711,11 +711,11 @@ namespace CoreApi.Services
                         select new {
                             gr.Key,
                             Visited = (socialUserId == default) ? false
-                                : EF.Functions.JsonExists(gr.Key.actionStr,
+                                : EF.Functions.JsonContains(gr.Key.actionStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Visited)),
-                            Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Like))),
-                            DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
                             Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
                         } into ret select new {
@@ -779,11 +779,11 @@ namespace CoreApi.Services
             string orderStr = orders != default && orders.Length != 0 ? Utils.GenerateOrderString(orders) : string.Empty;
             orderStr = orderStr != string.Empty ? $"visited asc, { orderStr }, created_timestamp desc" : "visited asc, created_timestamp desc";
 
+            // Fllow: post, user, tag, category
             var query_post_of_following_users =
-                    // Fllow: post, user, tag, category
                     from user_following_ids in __DBContext.SocialUserActionWithUsers
                         .Where(e => e.UserId == socialUserId
-                            && EF.Functions.JsonExists(e.ActionsStr,
+                            && EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Follow))
                         )
                         .Join(
@@ -797,7 +797,7 @@ namespace CoreApi.Services
             var query_post_of_following_tags =
                     from tag_following_ids in __DBContext.SocialUserActionWithTags
                         .Where(e => e.UserId == socialUserId
-                            && EF.Functions.JsonExists(e.ActionsStr,
+                            && EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Follow))
                         )
                         .Join(
@@ -811,7 +811,7 @@ namespace CoreApi.Services
             var query_post_of_following_categories =
                     from category_following_ids in __DBContext.SocialUserActionWithCategories
                         .Where(e => e.UserId == socialUserId
-                            && EF.Functions.JsonExists(e.ActionsStr,
+                            && EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Follow))
                         )
                         .Join(
@@ -825,7 +825,7 @@ namespace CoreApi.Services
             var query_post_of_following_posts =
                     from post_following_ids in __DBContext.SocialUserActionWithPosts
                         .Where(e => e.UserId == socialUserId
-                            && EF.Functions.JsonExists(e.ActionsStr,
+                            && EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Follow))
                         )
                         .Select(e => e.PostId)
@@ -866,11 +866,11 @@ namespace CoreApi.Services
                         select new {
                             gr.Key,
                             Visited = (socialUserId == default) ? false
-                                : EF.Functions.JsonExists(gr.Key.actionStr,
+                                : EF.Functions.JsonContains(gr.Key.actionStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Visited)),
-                            Likes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Like))),
-                            DisLikes = gr.Count(e => EF.Functions.JsonExists(e.ActionsStr,
+                            DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
                             Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
                         } into ret select new {

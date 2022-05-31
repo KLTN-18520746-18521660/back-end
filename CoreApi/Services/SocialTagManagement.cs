@@ -40,13 +40,13 @@ namespace CoreApi.Services
                             StartWith = (search_term != default) ? (gr.Key.Tag.StartsWith(search_term) ? 1 : 0) : 0,
                             Follow = gr.Count(e => (socialUserId != default)
                                 && (e.UserId == socialUserId)
-                                && EF.Functions.JsonExists(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Follow))),
+                                && EF.Functions.JsonContains(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Follow))),
                             Used = gr.Count(e => (socialUserId != default)
                                 && (e.UserId == socialUserId)
-                                && EF.Functions.JsonExists(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Used))),
+                                && EF.Functions.JsonContains(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Used))),
                             Visited = gr.Count(e => (socialUserId != default)
                                 && (e.UserId == socialUserId)
-                                && EF.Functions.JsonExists(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Visited))),
+                                && EF.Functions.JsonContains(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Visited))),
                         } into ret
                         orderby ret.Visited descending, ret.Used descending, ret.Follow descending, ret.StartWith descending
                         select ret.Key.Id).Skip(start).Take(size)
