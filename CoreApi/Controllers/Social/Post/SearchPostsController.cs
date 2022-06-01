@@ -18,37 +18,26 @@ using Newtonsoft.Json;
 namespace CoreApi.Controllers.Social.Post
 {
     [ApiController]
-    [Route("/api/post")]
-    public class GetTrendingPostsController : BaseController
+    [Route("/api/post/search")]
+    public class SearchPostsController : BaseController
     {
-        private int[] AllowTimeTrending = new int[]{
-            -1,     // all time
-            7,      // week
-            30,     // month
-            180,    // 6 month
-        };
-
-        public GetTrendingPostsController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public SearchPostsController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
         }
 
-        [HttpGet("trending")]
-        // [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetUserBySessionSocialSuccessExample))]
-        // [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
-        // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
-        // [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetTrendingPosts([FromServices] SessionSocialUserManagement    __SessionSocialUserManagement,
-                                                          [FromServices] SocialCategoryManagement       __SocialCategoryManagement,
-                                                          [FromServices] SocialUserManagement           __SocialUserManagement,
-                                                          [FromServices] SocialPostManagement           __SocialPostManagement,
-                                                          [FromServices] SocialTagManagement            __SocialTagManagement,
-                                                          [FromHeader(Name = "session_token")] string   SessionToken,
-                                                          [FromQuery(Name = "time")] int               Time        = 7,
-                                                          [FromQuery(Name = "start")] int               Start       = 0,
-                                                          [FromQuery(Name = "size")] int                Size        = 20,
-                                                          [FromQuery(Name = "search_term")] string      SearchTerm  = default,
-                                                          [FromQuery(Name = "tags")] string             Tags        = default,
-                                                          [FromQuery(Name = "categories")] string       Categories  = default)
+        [HttpGet("")]
+        public async Task<IActionResult> SearchPosts([FromServices] SessionSocialUserManagement    __SessionSocialUserManagement,
+                                                     [FromServices] SocialCategoryManagement       __SocialCategoryManagement,
+                                                     [FromServices] SocialUserManagement           __SocialUserManagement,
+                                                     [FromServices] SocialPostManagement           __SocialPostManagement,
+                                                     [FromServices] SocialTagManagement            __SocialTagManagement,
+                                                     [FromHeader(Name = "session_token")] string   SessionToken,
+                                                     [FromQuery(Name = "start")] int               Start       = 0,
+                                                     [FromQuery(Name = "size")] int                Size        = 20,
+                                                     [FromQuery(Name = "search_term")] string      SearchTerm  = default,
+                                                     [FromQuery(Name = "tags")] string             Tags        = default,
+                                                     [FromQuery(Name = "categories")] string       Categories  = default,
+                                                     [FromQuery] Models.OrderModel                 Orders      = default)
         {
             #region Init Handler
             SetRunningFunction();
@@ -69,20 +58,21 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 #region Validate params
-                AddLogParam("start", Start);
-                AddLogParam("size", Size);
-                AddLogParam("search_term", SearchTerm);
-                AddLogParam("categories", Categories);
-                AddLogParam("tags", Tags);
-                var CategoriesArr   = Categories == default ? default : Categories.Split(',');
-                var TagsArr         = Tags == default ? default : Tags.Split(',');
+                AddLogParam("tags",         Tags);
+                AddLogParam("size",         Size);
+                AddLogParam("start",        Start);
+                AddLogParam("orders",       Orders);
+                AddLogParam("categories",   Categories);
+                AddLogParam("search_term",  SearchTerm);
+                var AllowOrderParams                = __SocialPostManagement.GetAllowOrderFields(GetPostAction.SearchPosts);
+                var CategoriesArr                   = Categories == default ? default : Categories.Split(',');
+                var TagsArr                         = Tags == default ? default : Tags.Split(',');
+                var (CombineOrders, ErrRetValidate) = ValidateOrderParams(Orders, AllowOrderParams);
                 if (Start < 0 || Size < 1) {
                     return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
-                if (!AllowTimeTrending.Contains(Time)) {
-                    AddLogParam("time", Time);
-                    AddLogParam("allow_times", AllowTimeTrending);
-                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
+                if (ErrRetValidate != default) {
+                    return ErrRetValidate;
                 }
                 if (Categories != default && !await __SocialCategoryManagement.IsExistingCategories(CategoriesArr)) {
                     return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "categories" });
@@ -94,17 +84,17 @@ namespace CoreApi.Controllers.Social.Post
 
                 #region Get posts
                 var (Posts, TotalSize, Error) = await __SocialPostManagement
-                    .GetTrendingPosts(
+                    .SearchPosts(
                         IsValidSession ? Session.UserId : default,
-                        Time,
                         Start,
                         Size,
                         SearchTerm,
+                        CombineOrders,
                         TagsArr,
                         CategoriesArr
                     );
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"GetTrendingPosts failed, ErrorCode: { Error }");
+                    throw new Exception($"SearchPosts failed, ErrorCode: { Error }");
                 }
                 #endregion
 

@@ -35,13 +35,13 @@ namespace CoreApi.Services
             return
             (
                 await __DBContext.AdminAuditLogs
-                    .Where(e => e.SearchVector.Matches(SearchTerm))
+                    .Where(e => e.SearchVector.Matches(SearchTerm.Trim()))
                     .OrderBy(e => e.Id)
                     .Skip(Start)
                     .Take(Size)
                     .ToListAsync(),
                 await __DBContext.AdminAuditLogs
-                    .CountAsync(e => e.SearchVector.Matches(SearchTerm))
+                    .CountAsync(e => e.SearchVector.Matches(SearchTerm.Trim()))
             );
         }
 

@@ -83,7 +83,7 @@ namespace CoreApi.Services
                     from ids in (
                         (from comment in __DBContext.SocialComments
                                 .Where(e => e.PostId == postId
-                                    && (search_term == default || e.SearchVector.Matches(search_term))
+                                    && (search_term == default || e.SearchVector.Matches(search_term.Trim()))
                                     && (e.ParentId == parrent_comment_id)
                                     && ((status.Count() == 0
                                             && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
@@ -125,7 +125,7 @@ namespace CoreApi.Services
                     select comments;
             var totalCount = await __DBContext.SocialComments
                                 .CountAsync(e => e.PostId == postId
-                                    && (search_term == default || e.SearchVector.Matches(search_term))
+                                    && (search_term == default || e.SearchVector.Matches(search_term.Trim()))
                                     && (e.ParentId == parrent_comment_id)
                                     && ((status.Count() == 0
                                             && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))

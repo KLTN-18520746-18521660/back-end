@@ -89,7 +89,7 @@ namespace CoreApi.Controllers.Social.Post
 
                 var Ret = new List<JObject>();
                 Posts.ForEach(e => {
-                    var Obj = e.GetPublicShortJsonObject();
+                    var Obj = e.GetPublicShortJsonObject(Session.UserId);
                     Obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionByUser(Session.UserId)));
                     Ret.Add(Obj);
                 });

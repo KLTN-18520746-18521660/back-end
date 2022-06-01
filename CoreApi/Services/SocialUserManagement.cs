@@ -13,13 +13,18 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Dynamic.Core;
 using System.Threading.Tasks;
 
 namespace CoreApi.Services
 {
+    public enum GetUserAction {
+        SearchUsers                     = 0,
+    }
     public class SocialUserManagement : BaseTransientService
     {
         private SocialUserAuditLogManagement __SocialUserAuditLogManagement;
@@ -82,6 +87,19 @@ namespace CoreApi.Services
             }
         }
 
+        public string[] GetAllowOrderFields(GetUserAction action)
+        {
+            switch (action) {
+                case GetUserAction.SearchUsers:
+                    return new string[]{
+                        "following",
+                        "follower"
+                    };
+                default:
+                    return default;
+            }
+        }
+
         #region Find user, handle user login
         public async Task<(SocialUser, ErrorCodes)> FindUser(string UserName, bool isEmail)
         {
@@ -132,6 +150,88 @@ namespace CoreApi.Services
                 return (user, ErrorCodes.NO_ERROR);
             }
             return (default, ErrorCodes.NOT_FOUND);
+        }
+
+        public async Task<(List<SocialUser>, int, ErrorCodes)> SearchUsers(Guid SocialUserId = default,
+                                                                           int Start = 0,
+                                                                           int Size = 20,
+                                                                           string SearchTerm = default,
+                                                                           (string, bool)[] Orders = default)
+        {
+            #region validate params
+            var ColumnAllowOrder = GetAllowOrderFields(GetUserAction.SearchUsers);
+            if (Orders != default) {
+                foreach (var order in Orders) {
+                    if (!ColumnAllowOrder.Contains(order.Item1)) {
+                        return (default, default, ErrorCodes.INVALID_PARAMS);
+                    }
+                }
+            } else {
+                Orders = new (string, bool)[]{};
+            }
+            #endregion
+
+            // orderStr can't empty or null
+            string OrderStr = Orders != default && Orders.Length != 0 ? Utils.GenerateOrderString(Orders) : "following desc, follower desc";
+            var Query =
+                    from ids in (
+                        (from user in __DBContext.SocialUsers
+                                .Where(e => (e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
+                                    && (SearchTerm == default
+                                        || e.SearchVector.Matches(SearchTerm.Trim())
+                                        || e.UserName.ToLower().Contains(SearchTerm.Trim().ToLower())
+                                        || e.DisplayName.ToLower().Contains(SearchTerm.Trim().ToLower())
+                                    )
+                                )
+                        join ac1 in __DBContext.SocialUserActionWithUsers on user.Id equals ac1.UserIdDes
+                        into userAction1
+                        from u1 in userAction1.DefaultIfEmpty()
+                        join ac2 in __DBContext.SocialUserActionWithUsers on user.Id equals ac2.UserId
+                        into userAction2
+                        from u2 in userAction2.DefaultIfEmpty()
+                        group u2 by new {
+                            id = user.Id,
+                            id_1 = u1.UserId,
+                            acStr1 = u1.ActionsStr,
+                            id_2 = u2.UserIdDes,
+                            acStr2 = u2.ActionsStr
+                        } into gr
+                        select new {
+                            gr.Key,
+                            Following = SocialUserId == default
+                                ? false
+                                : (
+                                    gr.Key.id_1 == SocialUserId
+                                    && EF.Functions.JsonContains(gr.Key.acStr1,
+                                                                 EntityAction.GenContainsJsonStatement(ActionType.Follow))
+                                ),
+                            Follower = SocialUserId == default
+                                ? false
+                                : (
+                                    gr.Key.id_2 == SocialUserId
+                                    && EF.Functions.JsonContains(gr.Key.acStr2,
+                                                                 EntityAction.GenContainsJsonStatement(ActionType.Follow))
+                                ),
+                        } into ret select new {
+                            ret.Key.id,
+                            following = ret.Following,
+                            follower = ret.Follower
+                        })
+                        .OrderBy(OrderStr)
+                        .Skip(Start).Take(Size)
+                        .Select(e => e.id)
+                    )
+                    join users in __DBContext.SocialUsers on ids equals users.Id
+                    select users;
+            var TotalCount = await __DBContext.SocialUsers
+                                .CountAsync(e => (e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
+                                    && (SearchTerm == default
+                                        || e.SearchVector.Matches(SearchTerm.Trim())
+                                        || e.UserName.ToLower().Contains(SearchTerm.Trim().ToLower())
+                                        || e.DisplayName.ToLower().Contains(SearchTerm.Trim().ToLower())
+                                    )
+                                );
+            return (await Query.ToListAsync(), TotalCount, ErrorCodes.NO_ERROR);
         }
 
         // username_existed, email_existed, ERROR

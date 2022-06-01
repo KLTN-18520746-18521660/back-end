@@ -46,7 +46,7 @@ namespace CoreApi.Services
                     .Where(
                         e => e.UserId == UserId
                         && e.Table == ActionStr
-                        && ((SearchTerm == default) || e.SearchVector.Matches(SearchTerm))
+                        && ((SearchTerm == default) || e.SearchVector.Matches(SearchTerm.Trim()))
                         && ((Key == default) || e.TableKey == Key)
                     )
                     .OrderBy(e => e.Id)
@@ -57,7 +57,7 @@ namespace CoreApi.Services
                     .CountAsync(
                         e => e.UserId == UserId
                         && e.Table == ActionStr
-                        && (SearchTerm == default) || e.SearchVector.Matches(SearchTerm)
+                        && (SearchTerm == default) || e.SearchVector.Matches(SearchTerm.Trim())
                         && (Key == default) || e.TableKey == Key
                     )
             );

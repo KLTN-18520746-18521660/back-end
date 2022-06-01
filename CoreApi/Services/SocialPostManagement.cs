@@ -25,6 +25,7 @@ namespace CoreApi.Services
         GetTrendingPosts                = 2,
         GetPostsByUserFollowing         = 3,
         GetPostsByAdminUser             = 4,
+        SearchPosts                     = 5,
     }
     public class SocialPostManagement : BaseTransientService
     {
@@ -80,9 +81,129 @@ namespace CoreApi.Services
                         "status",
                         "last_modified_timestamp",
                     };
+                case GetPostAction.SearchPosts:
+                    return new string[] {
+                        "views",
+                        "likes",
+                        "dislikes",
+                        "comments",
+                        "follows",
+                        "reports",
+                        "title",
+                        "time_read",
+                        "created_timestamp",
+                        "last_modified_timestamp",
+                    };
                 default:
                     return default;
             }
+        }
+        public async Task<(List<SocialPost>, int, ErrorCodes)> SearchPosts(Guid socialUserId = default,
+                                                                           int start = 0,
+                                                                           int size = 20,
+                                                                           string search_term = default,
+                                                                           (string, bool)[] orders = default,
+                                                                           string[] tags = default,
+                                                                           string[] categories = default)
+        {
+            #region validate params
+            if (tags == default) {
+                tags = new string[]{};
+            }
+
+            if (categories == default) {
+                categories = new string[]{};
+            }
+
+            var ColumnAllowOrder = GetAllowOrderFields(GetPostAction.GetPostsAttachedToUser);
+            if (orders != default) {
+                foreach (var order in orders) {
+                    if (!ColumnAllowOrder.Contains(order.Item1)) {
+                        return (default, default, ErrorCodes.INVALID_PARAMS);
+                    }
+                }
+            } else {
+                orders = new (string, bool)[]{};
+            }
+            #endregion
+
+            // orderStr can't empty or null
+            string orderStr = orders != default && orders.Length != 0 ? Utils.GenerateOrderString(orders) : "created_timestamp desc";
+            var query =
+                    from ids in (
+                        (from post in __DBContext.SocialPosts
+                                .Where(e => (search_term == default || e.SearchVector.Matches(search_term.Trim()))
+                                    && ((socialUserId != default
+                                            && e.Owner == socialUserId
+                                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                                        )
+                                        || e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
+                                    )
+                                    && (tags.Count() == 0
+                                        || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
+                                    )
+                                    && (categories.Count() == 0
+                                        || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
+                                    )
+                                )
+                        join action in __DBContext.SocialUserActionWithPosts on post.Id equals action.PostId
+                        into postWithAction
+                        from p in postWithAction.DefaultIfEmpty()
+                        group p by new {
+                            post.Id,
+                            post.Views,
+                            post.Title,
+                            post.TimeRead,
+                            post.CreatedTimestamp,
+                            post.LastModifiedTimestamp
+                        } into gr
+                        select new {
+                            gr.Key,
+                            Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Like))),
+                            DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
+                            Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
+                            Follows = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Follow))),
+                            Reports = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Report))),
+                        } into ret select new {
+                            ret.Key.Id,
+                            views = ret.Key.Views,
+                            likes = ret.Likes,
+                            dislikes = ret.DisLikes,
+                            comments = ret.Comments,
+                            follows = ret.Follows,
+                            reports = ret.Reports,
+                            title = ret.Key.Title,
+                            time_read = ret.Key.TimeRead,
+                            created_timestamp = ret.Key.CreatedTimestamp,
+                            last_modified_timestamp = ret.Key.LastModifiedTimestamp,
+                        })
+                        .OrderBy(orderStr)
+                        .Skip(start).Take(size)
+                        .Select(e => e.Id)
+                    )
+                    join posts in __DBContext.SocialPosts on ids equals posts.Id
+                    select posts;
+
+            var totalCount = await __DBContext.SocialPosts
+                                .CountAsync(e => (search_term == default || e.SearchVector.Matches(search_term.Trim()))
+                                    && ((socialUserId != default
+                                            && e.Owner == socialUserId
+                                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                                        )
+                                        || e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
+                                    )
+                                    && (tags.Count() == 0
+                                        || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
+                                    )
+                                    && (categories.Count() == 0
+                                        || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
+                                    )
+                                );
+            return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
         }
         public async Task<(List<SocialPost>, int, ErrorCodes)> GetPostsByAdminUser(int start = 0,
                                                                                    int size = 20,
@@ -130,11 +251,11 @@ namespace CoreApi.Services
             var query =
                     from ids in (
                         (from post in __DBContext.SocialPosts
-                                .Where(e => (search_term == default || e.SearchVector.Matches(search_term))
+                                .Where(e => (search_term == default || e.SearchVector.Matches(search_term.Trim()))
                                     && (
                                         owner == default ||
-                                        e.OwnerNavigation.DisplayName.Contains(owner, StringComparison.OrdinalIgnoreCase) ||
-                                        e.OwnerNavigation.UserName.Contains(owner, StringComparison.OrdinalIgnoreCase)
+                                        e.OwnerNavigation.DisplayName.Contains(owner.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                                        e.OwnerNavigation.UserName.Contains(owner.Trim(), StringComparison.OrdinalIgnoreCase)
                                     )
                                     && ((
                                             status.Count() == 0
@@ -194,10 +315,16 @@ namespace CoreApi.Services
                     select posts;
 
             var totalCount = await __DBContext.SocialPosts
-                                .CountAsync(e => (search_term == default || e.SearchVector.Matches(search_term))
+                                .CountAsync(e => (search_term == default || e.SearchVector.Matches(search_term.Trim()))
+                                    && (
+                                        owner == default ||
+                                        e.OwnerNavigation.DisplayName.Contains(owner.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                                        e.OwnerNavigation.UserName.Contains(owner.Trim(), StringComparison.OrdinalIgnoreCase)
+                                    )
                                     && ((
                                             status.Count() == 0
                                             && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Private)
                                         ) || status.Contains(e.StatusStr)
                                     )
                                     && (tags.Count() == 0
@@ -264,7 +391,7 @@ namespace CoreApi.Services
                     from ids in (
                         (from post in __DBContext.SocialPosts
                                 .Where(e => e.Owner == socialUserId
-                                    && (search_term == default || e.SearchVector.Matches(search_term))
+                                    && (search_term == default || e.SearchVector.Matches(search_term.Trim()))
                                     && (isOwner
                                         ? ((status.Count() == 0
                                                 && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
@@ -322,7 +449,7 @@ namespace CoreApi.Services
 
             var totalCount = await __DBContext.SocialPosts
                                 .CountAsync(e => e.Owner == socialUserId
-                                    && (search_term == default || e.SearchVector.Matches(search_term))
+                                    && (search_term == default || e.SearchVector.Matches(search_term.Trim()))
                                     && (isOwner
                                         ? ((status.Count() == 0
                                                 && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
@@ -375,7 +502,7 @@ namespace CoreApi.Services
             var query =
                     from ids in (
                         (from post in __DBContext.SocialPosts
-                                .Where(e => (search_term == default || e.SearchVector.Matches(search_term))
+                                .Where(e => (search_term == default || e.SearchVector.Matches(search_term.Trim()))
                                     && (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
                                     )
                                     && (tags.Count() == 0
@@ -424,7 +551,7 @@ namespace CoreApi.Services
                     select posts;
 
             var totalCount = await __DBContext.SocialPosts
-                                .CountAsync(e => (search_term == default || e.SearchVector.Matches(search_term))
+                                .CountAsync(e => (search_term == default || e.SearchVector.Matches(search_term.Trim()))
                                     && (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
                                     && (tags.Count() == 0
                                         || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
@@ -684,7 +811,7 @@ namespace CoreApi.Services
             var query =
                     from ids in (
                         (from post in __DBContext.SocialPosts
-                                .Where(e => (search_term == default || e.SearchVector.Matches(search_term))
+                                .Where(e => (search_term == default || e.SearchVector.Matches(search_term.Trim()))
                                     && (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
                                     && (tags.Count() == 0
                                         || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
@@ -733,7 +860,7 @@ namespace CoreApi.Services
                     select posts;
 
             var totalCount = await __DBContext.SocialPosts
-                                .CountAsync(e => (search_term == default || e.SearchVector.Matches(search_term))
+                                .CountAsync(e => (search_term == default || e.SearchVector.Matches(search_term.Trim()))
                                     && (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
                                     && (tags.Count() == 0
                                         || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
@@ -749,6 +876,7 @@ namespace CoreApi.Services
         public async Task<(List<SocialPost>, int, ErrorCodes)> GetPostsByUserFollowing(Guid socialUserId,
                                                                                        int start = 0,
                                                                                        int size = 20,
+                                                                                       string search_term = default,
                                                                                        (string, bool)[] orders = default,
                                                                                        string[] tags = default,
                                                                                        string[] categories = default)
@@ -839,7 +967,9 @@ namespace CoreApi.Services
                         (from follow_post in
                             (from post in __DBContext.SocialPosts
                                     .Where(e =>
-                                        (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
+                                        e.Owner != socialUserId
+                                        && (search_term == default || e.SearchVector.Matches(search_term.Trim()))
+                                        && (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
                                         && (tags.Count() == 0
                                             || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
                                         )
@@ -889,7 +1019,9 @@ namespace CoreApi.Services
 
             var totalCount = await (from post in __DBContext.SocialPosts
                                     .Where(e =>
-                                        (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
+                                        e.Owner != socialUserId
+                                        && (search_term == default || e.SearchVector.Matches(search_term.Trim()))
+                                        && (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
                                         && (tags.Count() == 0
                                             || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
                                         )
@@ -1564,6 +1696,7 @@ namespace CoreApi.Services
             }
             var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
             post.Status.ChangeStatus(StatusType.Pending);
+            post.LastModifiedTimestamp = DateTime.UtcNow;
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [ADMIN] Write social audit log
                 (post, error) = await FindPostById(Id);
@@ -1598,6 +1731,7 @@ namespace CoreApi.Services
             }
             var oldPost = Utils.DeepClone(post.GetJsonObjectForLog());
             post.Status.ChangeStatus(StatusType.Private);
+            post.LastModifiedTimestamp = DateTime.UtcNow;
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [ADMIN] Write social audit log
                 (post, error) = await FindPostById(Id);

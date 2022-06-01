@@ -24,17 +24,22 @@ namespace CoreApi.Services
                                                           string search_term = default,
                                                           Guid socialUserId = default)
         {
+            search_term = search_term.Trim().ToLower();
             var query =
                     from ids in (
                         (from tag in __DBContext.SocialTags
                             .Where(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
-                                    && (search_term == default || (search_term != default && e.Tag.Contains(search_term))))
+                                    && (search_term == default
+                                    || e.Tag.Contains(search_term.Trim(), StringComparison.OrdinalIgnoreCase)
+                                )
+                            )
                         join action in __DBContext.SocialUserActionWithTags on tag.Id equals action.TagId
                         into tagWithAction
                         from t in tagWithAction.DefaultIfEmpty()
                         group t by new { tag.Id, tag.Tag } into gr
                         select new {
                             gr.Key,
+                            Match = (search_term != default) ? (gr.Key.Tag.ToLower() == search_term ? 1 : 0) : 0,
                             StartWith = (search_term != default) ? (gr.Key.Tag.StartsWith(search_term) ? 1 : 0) : 0,
                             Follow = gr.Count(e => (socialUserId != default)
                                 && (e.UserId == socialUserId)
@@ -46,7 +51,7 @@ namespace CoreApi.Services
                                 && (e.UserId == socialUserId)
                                 && EF.Functions.JsonContains(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Visited))),
                         } into ret
-                        orderby ret.Visited descending, ret.Used descending, ret.Follow descending, ret.StartWith descending
+                        orderby ret.Visited descending, ret.Used descending, ret.Follow descending, ret.StartWith descending, ret.Match descending
                         select ret.Key.Id).Skip(start).Take(size)
                     )
                     join tags in __DBContext.SocialTags on ids equals tags.Id
@@ -54,7 +59,10 @@ namespace CoreApi.Services
 
             var totalCount = await __DBContext.SocialTags
                             .CountAsync(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
-                                    && (search_term == default || (search_term != default && e.Tag.Contains(search_term))));
+                                    && (search_term == default
+                                    || e.Tag.Contains(search_term.Trim(), StringComparison.OrdinalIgnoreCase)
+                                )
+                            );
 
             return (await query.ToListAsync(), totalCount);
         }

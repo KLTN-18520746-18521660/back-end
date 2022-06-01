@@ -140,10 +140,10 @@ namespace CoreApi.Services
                     .Where(e =>
                         e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
                         && (
-                            SearchTerm == default || SearchTerm == string.Empty
-                            || e.UserName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
-                            || e.DisplayName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
-                            || e.Email.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
+                            SearchTerm == default || SearchTerm.Trim() == string.Empty
+                            || e.UserName.ToLower().Contains(SearchTerm.Trim().ToLower())
+                            || e.DisplayName.ToLower().Contains(SearchTerm.Trim().ToLower())
+                            || e.Email.ToLower().Contains(SearchTerm.Trim().ToLower())
                         )
                     )
                     .OrderBy(e => e.Id)
@@ -154,10 +154,10 @@ namespace CoreApi.Services
                     .CountAsync(e =>
                         e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
                         && (
-                            SearchTerm == default || SearchTerm == string.Empty
-                            || e.UserName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
-                            || e.DisplayName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
-                            || e.Email.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
+                            SearchTerm == default || SearchTerm.Trim() == string.Empty
+                            || e.UserName.ToLower().Contains(SearchTerm.Trim().ToLower())
+                            || e.DisplayName.ToLower().Contains(SearchTerm.Trim().ToLower())
+                            || e.Email.ToLower().Contains(SearchTerm.Trim().ToLower())
                         )
                     )
             );
