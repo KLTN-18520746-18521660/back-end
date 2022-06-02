@@ -152,16 +152,19 @@ namespace Common
             }
             return (items, errMsg);
         }
-        public static string RandomString(int StringLen)
+        public static string RandomString(int StringLen, int? Seed = default)
         {
-            string possibleChar = "abcdefghijklmnopqrstuvwxyz0123456789";
-            Random rand = new Random(Guid.NewGuid().GetHashCode());
-            StringBuilder output = new StringBuilder(string.Empty);
-            for (int i = 0; i < StringLen; i++) {
-                int pos = rand.Next(0, possibleChar.Length);
-                output.Append(possibleChar[pos].ToString());
+            string PossibleChar = "abcdefghijklmnopqrstuvwxyz0123456789";
+            Random Rand = new Random();
+            if (Seed != default) {
+                Rand = new Random((int)Seed);
             }
-            return output.ToString();
+            StringBuilder Output = new StringBuilder(string.Empty);
+            for (int i = 0; i < StringLen; i++) {
+                int pos = Rand.Next(0, PossibleChar.Length);
+                Output.Append(PossibleChar[pos].ToString());
+            }
+            return Output.ToString();
         }
         public static bool GetIpAddress(out List<string> Ip)
         {
@@ -223,6 +226,15 @@ namespace Common
                     .Insert(AllGroup.Index, Value.ToString());
             }
             return Ret;
+        }
+        public static string SimpleDecryptGuid(Guid Id)
+        {
+            var RandomStr   = RandomString(5, Id.GetHashCode());
+            var Prefix      = Id.ToString().Skip(1).Take(5).ToArray();
+
+            var _Prefix      = new string(Prefix);
+
+            return $"{ RandomStr }{ _Prefix }";
         }
         #endregion
         #region Session

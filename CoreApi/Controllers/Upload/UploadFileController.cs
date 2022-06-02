@@ -97,7 +97,10 @@ namespace CoreApi.Controllers.Upload
                 var ExtFile     = Path.GetExtension(__FormFile.FileName);
                 var FileName    = Utils.GenerateSlug(__FormFile.FileName.Replace(ExtFile, string.Empty));
                 FileName        = FileName.Length > 30 ? FileName.Substring(0, 30) : FileName;
-                FileName        = $"{ FileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }-public{ ExtFile }";
+                FileName        = string.Format("{0}-{1}-public{3}",
+                                                FileName,
+                                                ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds().ToString(),
+                                                ExtFile);
                 CommonValidate.ValidateDirectoryPath($"{ Program.ServerConfiguration.UploadFilePath }/{ __PrefixPath }", true);
                 var FilePath    = Path.Combine($"{ Program.ServerConfiguration.UploadFilePath }/{ __PrefixPath }", FileName);
                 using (var Stream = System.IO.File.Create(FilePath))
@@ -178,7 +181,11 @@ namespace CoreApi.Controllers.Upload
 
                 var FileName    = Utils.GenerateSlug(__FormFile.FileName.Replace(ExtFile, string.Empty));
                 FileName        = FileName.Length > 30 ? FileName.Substring(0, 30) : FileName;
-                FileName        = $"{ FileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ExtFile }";
+                FileName        = string.Format("{0}-{1}-{2}{3}",
+                                                FileName,
+                                                Utils.SimpleDecryptGuid(Session.UserId),
+                                                ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds().ToString(),
+                                                ExtFile);
                 CommonValidate.ValidateDirectoryPath($"{ Program.ServerConfiguration.UploadFilePath }/{ __PrefixPath }", true);
                 var FilePath = Path.Combine($"{ Program.ServerConfiguration.UploadFilePath }/{ __PrefixPath }", FileName);
                 using (var Stream = System.IO.File.Create(FilePath))
@@ -261,7 +268,11 @@ namespace CoreApi.Controllers.Upload
 
                 var FileName    = Utils.GenerateSlug(__FormFile.FileName.Replace(ExtFile, string.Empty));
                 FileName        = FileName.Length > 30 ? FileName.Substring(0, 30) : FileName;
-                FileName        = $"{ FileName }-{ ((DateTimeOffset) DateTime.UtcNow).ToUnixTimeSeconds() }{ ExtFile }";
+                FileName        = string.Format("{0}-{1}-{2}{3}",
+                                                FileName,
+                                                Utils.SimpleDecryptGuid(Session.UserId),
+                                                ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds().ToString(),
+                                                ExtFile);
                 CommonValidate.ValidateDirectoryPath($"{ Program.ServerConfiguration.UploadFilePath }/{ __PrefixPath }", true);
                 var FilePath    = Path.Combine($"{ Program.ServerConfiguration.UploadFilePath }/{ __PrefixPath }", FileName);
                 using (var Stream = System.IO.File.Create(FilePath))
