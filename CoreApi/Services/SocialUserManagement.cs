@@ -106,12 +106,12 @@ namespace CoreApi.Services
             SocialUser user;
             if (isEmail) {
                 user = await __DBContext.SocialUsers
-                        .Where(e => string.Compare(e.Email, UserName, true) == 0
+                        .Where(e => e.Email.ToLower() == UserName.ToLower()
                             && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                         .FirstOrDefaultAsync();
             } else {
                 user = await __DBContext.SocialUsers
-                        .Where(e => e.UserName == UserName
+                        .Where(e => e.UserName.ToLower() == UserName.ToLower()
                             && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                         .FirstOrDefaultAsync();
             }
@@ -126,7 +126,7 @@ namespace CoreApi.Services
             SocialUser user;
             if (isEmail) {
                 user = await __DBContext.SocialUsers
-                        .Where(e => string.Compare(e.Email, UserName, true) == 0)
+                        .Where(e => e.Email.ToLower() == UserName.ToLower())
                         .FirstOrDefaultAsync();
             } else {
                 user = await __DBContext.SocialUsers

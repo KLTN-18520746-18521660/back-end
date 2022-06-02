@@ -18,6 +18,7 @@
     <None Remove="logs\**" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="UAParser" Version="3.1.47" />
     <ProjectReference Include="..\Common\Common.csproj">
       <Name>Common</Name>
     </ProjectReference>

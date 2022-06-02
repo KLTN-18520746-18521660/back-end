@@ -104,6 +104,7 @@ namespace CoreApi.Controllers.Social
 
                 #region Create session
                 var Data                    = __ModelData.data == default ? new JObject() : __ModelData.data;
+                Data                        = GetRequestMetaData(Data);
                 SessionSocialUser Session   = default;
                 (Session, Error) = await __SessionSocialUserManagement.NewSession(User.Id, __ModelData.remember, Data);
                 if (Error != ErrorCodes.NO_ERROR) {

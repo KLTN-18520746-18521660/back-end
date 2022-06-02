@@ -109,6 +109,7 @@ namespace CoreApi.Controllers.Admin
 
                 #region Create session
                 var Data                    = __ModelData.data == default ? new JObject() : __ModelData.data;
+                Data                        = GetRequestMetaData(Data);
                 SessionAdminUser Session    = default;
                 (Session, Error) = await __SessionAdminUserManagement.NewSession(User.Id, __ModelData.remember, Data);
                 if (Error != ErrorCodes.NO_ERROR) {

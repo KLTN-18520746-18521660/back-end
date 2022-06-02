@@ -19,6 +19,7 @@ using Newtonsoft.Json;
 using Serilog.Events;
 using System.Runtime.CompilerServices;
 using System.IO;
+using UAParser;
 
 namespace CoreApi.Common.Base
 {
@@ -236,6 +237,30 @@ namespace CoreApi.Common.Base
                 Expires     = (Expires   == default) ? DateTime.UtcNow.AddDays(365) : Expires,
                 Path        = (Path      == default) ? "/" : Path,
             };
+        }
+        [NonAction]
+        public JObject GetRequestMetaData(JObject MetaData = default)
+        {
+            var Ret = MetaData == default ? new JObject() : MetaData;
+            #region Get User IP
+            var UserIP = HttpContext.Connection.RemoteIpAddress?.ToString();
+            Ret["ip"] = UserIP;
+            #endregion
+
+            #region Get User Agent
+            var RawUserAgent    = Request.Headers["User-Agent"].ToString();
+            RawUserAgent        = RawUserAgent == default ? "" : RawUserAgent;
+            var __UAParser      = UAParser.Parser.GetDefault();
+            var __ClientInfo    = __UAParser.Parse(RawUserAgent);
+#if DEBUG
+            Ret["user-agent"]   = RawUserAgent;
+#endif
+            Ret["device"]       = __ClientInfo.Device.ToString();
+            Ret["os"]           = __ClientInfo.OS.ToString();
+            Ret["ua"]           = __ClientInfo.UA.ToString();
+            #endregion
+
+            return Ret;
         }
         [NonAction]
         protected virtual void SetTraceIdForServices(params BaseTransientService[] Services)
