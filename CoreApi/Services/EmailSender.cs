@@ -243,6 +243,7 @@ namespace CoreApi.Services
                 }
                 User.Settings.Remove("confirm_email");
                 User.Settings.Add("confirm_email", new JObject(){
+                    { "email",      User.Email },
                     { "is_sending", true },
                     { "send_date",  DateTime.UtcNow },
                 });
@@ -271,6 +272,7 @@ namespace CoreApi.Services
 
                 User.Settings.Remove("confirm_email");
                 User.Settings.Add("confirm_email", new JObject(){
+                    { "email",          User.Email },
                     { "is_sending",     false },
                     { "send_success",   SendSuccess },
                     { "send_date",      Model.DateTimeSend },
@@ -327,6 +329,7 @@ namespace CoreApi.Services
                     }
                     User.Settings.Remove("forgot_password");
                     User.Settings.Add("forgot_password", new JObject(){
+                        { "email",      User.Email },
                         { "is_sending", true },
                         { "send_date",  DateTime.UtcNow },
                     });
@@ -344,6 +347,7 @@ namespace CoreApi.Services
                     }
                     AdminUser.Settings.Remove("forgot_password");
                     AdminUser.Settings.Add("forgot_password", new JObject(){
+                        { "email",      User.Email },
                         { "is_sending", true },
                         { "send_date",  DateTime.UtcNow },
                     });
@@ -377,6 +381,7 @@ namespace CoreApi.Services
                 if (!IsAdminUser) {
                     User.Settings.Remove("forgot_password");
                     User.Settings.Add("forgot_password", new JObject(){
+                        { "email",          User.Email },
                         { "is_sending",     false },
                         { "send_success",   SendSuccess },
                         { "send_date",      Model.DateTimeSend },
@@ -385,6 +390,7 @@ namespace CoreApi.Services
                 } else {
                     AdminUser.Settings.Remove("forgot_password");
                     AdminUser.Settings.Add("forgot_password", new JObject(){
+                        { "email",          User.Email },
                         { "is_sending",     false },
                         { "send_success",   SendSuccess },
                         { "send_date",      Model.DateTimeSend },

@@ -43,7 +43,7 @@ namespace DatabaseAccess.Context.Models
         public int Views { get; set; }
         [NotMapped]
         public int Comments { get =>
-            SocialComments.Count();
+            SocialComments.Count(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted));
         }
         [NotMapped]
         public object[] Tags { get =>
@@ -239,9 +239,24 @@ namespace DatabaseAccess.Context.Models
                 {
                     "owner",
                     new JObject(){
-                        { "user_name", this.OwnerNavigation.UserName },
-                        { "display_name", this.OwnerNavigation.DisplayName },
-                        { "avatar", this.OwnerNavigation.Avatar },
+                        {
+                            "user_name",
+                            this.OwnerNavigation.StatusStr == EntityStatus.StatusTypeToString(StatusType.Deleted)
+                                ? ""
+                                : this.OwnerNavigation.UserName
+                        },
+                        {
+                            "display_name",
+                            this.OwnerNavigation.StatusStr == EntityStatus.StatusTypeToString(StatusType.Deleted)
+                                ? ""
+                                : this.OwnerNavigation.DisplayName
+                        },
+                        {
+                            "avatar",
+                            this.OwnerNavigation.StatusStr == EntityStatus.StatusTypeToString(StatusType.Deleted)
+                                ? null
+                                : this.OwnerNavigation.Avatar
+                        },
                         { "status", this.OwnerNavigation.StatusStr },
                     }
                 },
@@ -309,9 +324,24 @@ namespace DatabaseAccess.Context.Models
                 {
                     "owner",
                     new JObject(){
-                        { "user_name", this.OwnerNavigation.UserName },
-                        { "display_name", this.OwnerNavigation.DisplayName },
-                        { "avatar", this.OwnerNavigation.Avatar },
+                        {
+                            "user_name",
+                            this.OwnerNavigation.StatusStr == EntityStatus.StatusTypeToString(StatusType.Deleted)
+                                ? ""
+                                : this.OwnerNavigation.UserName
+                        },
+                        {
+                            "display_name",
+                            this.OwnerNavigation.StatusStr == EntityStatus.StatusTypeToString(StatusType.Deleted)
+                                ? ""
+                                : this.OwnerNavigation.DisplayName
+                        },
+                        {
+                            "avatar",
+                            this.OwnerNavigation.StatusStr == EntityStatus.StatusTypeToString(StatusType.Deleted)
+                                ? null
+                                : this.OwnerNavigation.Avatar
+                        },
                         { "status", this.OwnerNavigation.StatusStr },
                     }
                 },

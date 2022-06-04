@@ -28,14 +28,12 @@ namespace CoreApi.Controllers.Social.User
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> DeleteUser([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
-                                                    [FromServices] SocialCommentManagement      __SocialCommentManagement,
                                                     [FromServices] SocialUserManagement         __SocialUserManagement,
-                                                    [FromBody] SocialCommentModifyModel         __ModelData,
                                                     [FromHeader(Name = "session_token")] string SessionToken)
         {
             #region Init Handler
             SetRunningFunction();
-            SetTraceIdForServices(__SessionSocialUserManagement, __SocialCommentManagement, __SocialUserManagement);
+            SetTraceIdForServices(__SessionSocialUserManagement, __SocialUserManagement);
             #endregion
             try {
                 #region Get session
@@ -50,7 +48,7 @@ namespace CoreApi.Controllers.Social.User
                 var Session             = __Session as SessionSocialUser;
                 #endregion
 
-                var Error = await __SocialUserManagement.DeleteUser(Session.User);
+                var Error = await __SocialUserManagement.DeleteUser(Session.UserId);
                 if (Error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"DeleteUser failed, ErrorCode: { Error }");
                 }

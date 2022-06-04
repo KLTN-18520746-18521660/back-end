@@ -26,6 +26,7 @@ namespace CoreApi.Services
         GetPostsByUserFollowing         = 3,
         GetPostsByAdminUser             = 4,
         SearchPosts                     = 5,
+        GetPostsByAction                = 6,
     }
     public class SocialPostManagement : BaseTransientService
     {
@@ -37,6 +38,7 @@ namespace CoreApi.Services
         public string[] GetAllowOrderFields(GetPostAction action)
         {
             switch (action) {
+                case GetPostAction.SearchPosts:
                 case GetPostAction.GetPostsAttachedToUser:
                     return new string[] {
                         "views",
@@ -81,16 +83,16 @@ namespace CoreApi.Services
                         "status",
                         "last_modified_timestamp",
                     };
-                case GetPostAction.SearchPosts:
+                case GetPostAction.GetPostsByAction:
                     return new string[] {
                         "views",
                         "likes",
                         "dislikes",
                         "comments",
                         "follows",
-                        "reports",
                         "title",
                         "time_read",
+                        "time_action",
                         "created_timestamp",
                         "last_modified_timestamp",
                     };
@@ -163,7 +165,10 @@ namespace CoreApi.Services
                                 EntityAction.GenContainsJsonStatement(ActionType.Like))),
                             DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
-                            Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
+                            Comments = __DBContext.SocialComments.Count(e =>
+                                e.PostId == gr.Key.Id
+                                && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                            ),
                             Follows = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Follow))),
                             Reports = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
@@ -288,7 +293,10 @@ namespace CoreApi.Services
                                 EntityAction.GenContainsJsonStatement(ActionType.Like))),
                             DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
-                            Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
+                            Comments = __DBContext.SocialComments.Count(e =>
+                                e.PostId == gr.Key.Id
+                                && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                            ),
                             Follows = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Follow))),
                             Reports = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
@@ -335,6 +343,164 @@ namespace CoreApi.Services
                                     )
                                 );
             return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
+        }
+        public async Task<(List<SocialPost>, int, ErrorCodes)> GetPostsByAction(Guid socialUserId,
+                                                                                string action,
+                                                                                int start = 0,
+                                                                                int size = 20,
+                                                                                string search_term = default,
+                                                                                (string, bool)[] orders = default,
+                                                                                string[] tags = default,
+                                                                                string[] categories = default)
+        {
+            var orderTimeActionDesc = true;
+            action = char.ToUpper(action[0]) + action.Substring(1).ToLower();
+            #region validate params
+            if (tags == default) {
+                tags = new string[]{};
+            }
+            if (categories == default) {
+                categories = new string[]{};
+            }
+            if (!EntityAction.ValidateAction(action, EntityActionType.UserActionWithPost)) {
+                return (default, default, ErrorCodes.INVALID_PARAMS);
+            }
+            var ColumnAllowOrder = GetAllowOrderFields(GetPostAction.GetPostsByAction);
+            if (orders != default) {
+                foreach (var order in orders) {
+                    if (!ColumnAllowOrder.Contains(order.Item1)) {
+                        return (default, default, ErrorCodes.INVALID_PARAMS);
+                    }
+                    if (order.Item1 == "time_action") {
+                        orderTimeActionDesc = order.Item2;
+                    }
+                }
+            } else {
+                orders = new (string, bool)[]{};
+            }
+            var __SocialUserManagement  = __ServiceProvider.GetService<SocialUserManagement>();
+            var (user, error)           = await __SocialUserManagement.FindUserById(socialUserId);
+            if (error != ErrorCodes.NO_ERROR) {
+                return (default, default, error);
+            }
+            #endregion
+
+            // var orderTimeAction = orderTimeActionDesc ? "desc" : "asc";
+            // var postIdsOrdered = await DBHelper.RawSqlQuery<(long post_id, DateTime time_action)>(
+            //     "SELECT post_id,"
+            //     + "(jsonb_path_query_first("
+            //         + "actions, '$[*] ? (@.action == $action)',"
+            //         + $"'{{\"action\": \"{ action }\"}}')::jsonb ->> 'date'"
+            //     + @$")::timestamptz AS time_action"
+            //     + "FROM social_user_action_with_post"
+            //     + $"WHERE actions @> '[{{\"action\":\"{ action }\"}}]'"
+            //     + $"ORDER BY time_action { orderTimeAction }",
+            //     x => ((long)x[0], DateTime.Parse((string)x[1]))
+            // );
+
+            // orderStr can't empty or null
+            string orderStr = orders != default && orders.Length != 0
+                ? Utils.GenerateOrderString(orders)
+                : "time_action desc";
+            if (orderStr == string.Empty) {
+                orderStr = "time_action desc";
+            }
+            search_term = search_term == default ? string.Empty : search_term;
+            var rawQuery =
+                "SELECT     P.id, P.views, P.title, P.time_read, "
+                            + "COUNT(DISTINCT AC.user_id) FILTER (WHERE AC.actions @> '[{\"action\": \"Like\"}]') AS likes, "
+                            + "COUNT(DISTINCT AC.user_id) FILTER (WHERE AC.actions @> '[{\"action\": \"Dislike\"}]') AS dislikes, "
+                            + "COUNT(DISTINCT AC.user_id) FILTER (WHERE AC.actions @> '[{\"action\": \"Follow\"}]') AS follows, "
+                            + "COUNT(DISTINCT CO.id) FILTER (WHERE CO.status != 'deleted') AS comments, "
+                            + "P.created_timestamp, P.last_modified_timestamp, PA.time_action "
+                + "FROM "
+                    + "social_post AS P JOIN "
+                    + "("
+                        + "SELECT   post_id, "
+                                    + "(jsonb_path_query_first("
+                                        + "actions,"
+                                        + "'$[*] ? (@.action == $action)',"
+                                        + $"'{{\"action\": \"{ action }\"}}'"
+                                    + ")::jsonb ->> 'date')::timestamptz AS time_action "
+                        + "FROM     social_user_action_with_post "
+                        + $"WHERE   actions @> '[{{\"action\":\"{ action }\"}}]' AND user_id = '{ socialUserId.ToString() }'"
+                    + ") AS PA ON P.id = PA.post_id "
+                    + "LEFT JOIN social_post_tag AS PT ON PT.post_id = P.id "
+                    + "JOIN social_tag AS T ON PT.tag_id = T.id "
+                    + "JOIN social_post_category AS PC ON PC.post_id = P.id "
+                    + "JOIN social_category AS CA ON PC.category_id = CA.id "
+                    + "LEFT JOIN social_user_action_with_post AS AC ON P.id = AC.post_id "
+                    + "LEFT JOIN social_comment CO ON P.id = CO.post_id "
+                + $"WHERE    ('{ search_term }' = '' OR P.search_vector @@ plainto_tsquery('{ search_term }')) "
+                            + $"AND ({ tags.Count() } = 0 OR T.tag IN ('{ string.Join(',', tags) }')) "
+                            + $"AND ({ categories.Count() } = 0 OR CA.name IN ('{ string.Join(',', categories) }')) "
+                + "GROUP BY     P.id, P.views, P.title, P.time_read, P.created_timestamp, P.last_modified_timestamp, PA.time_action "
+                + $"ORDER BY { orderStr }";
+            var postIdsOrdered = await DBHelper.RawSqlQuery<long>(
+                rawQuery,
+                x => (long)x[0]
+            );
+
+            var queryPosts = from ids in postIdsOrdered
+                        join post in __DBContext.SocialPosts on ids equals post.Id
+                        select post;
+            
+            return (queryPosts.ToList(), postIdsOrdered.Count(), ErrorCodes.NO_ERROR);
+            // var query =
+            //         from ids in (
+            //             (from post in __DBContext.SocialPosts
+            //             join postAction in user.SocialUserActionWithPosts
+            //                 .Where(e =>
+            //                     EF.Functions.JsonContains(e.ActionsStr, EntityAction.GenContainsJsonStatement(action))
+            //                 )
+            //                 on post.Id equals postAction.PostId
+            //             into postWithAction
+            //             from p in postWithAction.DefaultIfEmpty()
+            //             group p by new {
+            //                 post.Id,
+            //                 post.Views,
+            //                 post.Title,
+            //                 post.TimeRead,
+            //                 post.CreatedTimestamp,
+            //                 post.LastModifiedTimestamp,
+            //                 post.SocialUserActionWithPosts
+            //             } into gr
+            //             select new {
+            //                 gr.Key,
+            //                 ActionStr = gr.Where(e => e.UserId == socialUserId).FirstOrDefault().ActionsStr,
+            //                 Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+            //                     EntityAction.GenContainsJsonStatement(ActionType.Like))),
+            //                 DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+            //                     EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
+            //                 Comments = __DBContext.SocialComments.Count(e =>
+            //                     e.PostId == gr.Key.Id
+            //                     && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+            //                 ),
+            //                 Follows = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+            //                     EntityAction.GenContainsJsonStatement(ActionType.Follow))),
+            //                 Reports = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+            //                     EntityAction.GenContainsJsonStatement(ActionType.Report))),
+            //             } into ret select new {
+            //                 ret.Key.Id,
+            //                 views = ret.Key.Views,
+            //                 likes = ret.Likes,
+            //                 dislikes = ret.DisLikes,
+            //                 comments = ret.Comments,
+            //                 follows = ret.Follows,
+            //                 title = ret.Key.Title,
+            //                 time_read = ret.Key.TimeRead,
+            //                 created_timestamp = ret.Key.CreatedTimestamp,
+            //                 last_modified_timestamp = ret.Key.LastModifiedTimestamp,
+            //             })
+            //             .OrderBy(orderStr)
+            //             .Skip(start).Take(size)
+            //             .Select(e => e.Id)
+            //         )
+            //         join posts in __DBContext.SocialPosts on ids equals posts.Id
+            //         join idsOrdered in postIdsOrdered on ids equals idsOrdered.post_id
+            //         select posts;
+
+            // return (await query.ToListAsync(), postIdsOrdered.Count, ErrorCodes.NO_ERROR);
         }
         /* Example
         * status = ["Private"]
@@ -422,7 +588,10 @@ namespace CoreApi.Services
                                 EntityAction.GenContainsJsonStatement(ActionType.Like))),
                             DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
-                            Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
+                            Comments = __DBContext.SocialComments.Count(e =>
+                                e.PostId == gr.Key.Id
+                                && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                            ),
                             Follows = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Follow))),
                             Reports = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
@@ -533,7 +702,10 @@ namespace CoreApi.Services
                                 EntityAction.GenContainsJsonStatement(ActionType.Like))),
                             DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
-                            Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
+                            Comments = __DBContext.SocialComments.Count(e =>
+                                e.PostId == gr.Key.Id
+                                && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                            ),
                         } into ret select new {
                             ret.Key.Id,
                             visited = ret.Visited,
@@ -643,7 +815,10 @@ namespace CoreApi.Services
                             EntityAction.GenContainsJsonStatement(ActionType.Visited)),
                         Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                             EntityAction.GenContainsJsonStatement(ActionType.Like))),
-                        Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id)
+                        Comments = __DBContext.SocialComments.Count(e =>
+                            e.PostId == gr.Key.Id
+                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                        ),
                     } into ret select new {
                         ret.Key.Id,
                         sort_factor =
@@ -762,7 +937,10 @@ namespace CoreApi.Services
                             EntityAction.GenContainsJsonStatement(ActionType.Visited)),
                         Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                             EntityAction.GenContainsJsonStatement(ActionType.Like))),
-                        Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id)
+                        Comments = __DBContext.SocialComments.Count(e =>
+                            e.PostId == gr.Key.Id
+                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                        ),
                     } into ret select new {
                         ret.Key.Id,
                         sort_factor =
@@ -842,7 +1020,10 @@ namespace CoreApi.Services
                                 EntityAction.GenContainsJsonStatement(ActionType.Like))),
                             DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
-                            Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
+                            Comments = __DBContext.SocialComments.Count(e =>
+                                e.PostId == gr.Key.Id
+                                && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                            ),
                         } into ret select new {
                             ret.Key.Id,
                             visited = ret.Visited,
@@ -1000,7 +1181,10 @@ namespace CoreApi.Services
                                 EntityAction.GenContainsJsonStatement(ActionType.Like))),
                             DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
-                            Comments = __DBContext.SocialComments.Count(e => e.PostId == gr.Key.Id),
+                            Comments = __DBContext.SocialComments.Count(e =>
+                                e.PostId == gr.Key.Id
+                                && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                            ),
                         } into ret select new {
                             ret.Key.Id,
                             visited = ret.Visited,

@@ -96,9 +96,13 @@ namespace CoreApi.Controllers.Social.User
                 var SendDate        = ConfirmEmail != default ? ConfirmEmail.Value<DateTime>("send_date") : default;
                 var IsSending       = ConfirmEmail != default ? ConfirmEmail.Value<bool>("is_sending") : default;
                 var SendSuccess     = ConfirmEmail != default ? ConfirmEmail.Value<bool>("send_success") : default;
+                var EmailSend       = ConfirmEmail != default ? ConfirmEmail.Value<string>("email") : default;
 
                 AddLogParam("confirm_email", ConfirmEmail != default ? ConfirmEmail.ToString(Formatting.None) : default);
-                if (ConfirmEmail == default || IsSending == true || SendSuccess == false) {
+                if (ConfirmEmail == default || EmailSend == default || IsSending == true || SendSuccess == false) {
+                    return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
+                }
+                if (EmailSend != User.Email) {
                     return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 if (SendDate != Date) {
@@ -189,9 +193,13 @@ namespace CoreApi.Controllers.Social.User
                 var SendDate        = ConfirmEmail != default ? ConfirmEmail.Value<DateTime>("send_date") : default;
                 var IsSending       = ConfirmEmail != default ? ConfirmEmail.Value<bool>("is_sending") : default;
                 var SendSuccess     = ConfirmEmail != default ? ConfirmEmail.Value<bool>("send_success") : default;
+                var EmailSend       = ConfirmEmail != default ? ConfirmEmail.Value<string>("email") : default;
 
                 AddLogParam("confirm_email", ConfirmEmail != default ? ConfirmEmail.ToString(Formatting.None) : default);
-                if (ConfirmEmail == default || IsSending == true || SendSuccess == false) {
+                if (ConfirmEmail == default  || EmailSend == default || IsSending == true || SendSuccess == false) {
+                    return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
+                }
+                if (EmailSend != User.Email) {
                     return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 if (SendDate != Date) {

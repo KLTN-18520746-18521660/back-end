@@ -86,11 +86,15 @@ namespace CoreApi.Controllers.Social.User
                 var SendDate                = FogotPasswordSetting != default ? FogotPasswordSetting.Value<DateTime>("send_date") : default;
                 var IsSending               = FogotPasswordSetting != default ? FogotPasswordSetting.Value<bool>("is_sending") : default;
                 var SendSuccess             = FogotPasswordSetting != default ? FogotPasswordSetting.Value<bool>("send_success") : default;
+                var EmailSend               = FogotPasswordSetting != default ? FogotPasswordSetting.Value<string>("email") : default;
 
                 if (SendDate != Date) {
                     return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
-                if (FogotPasswordSetting == default || IsSending == true || SendSuccess == false) {
+                if (FogotPasswordSetting == default || EmailSend == default || IsSending == true || SendSuccess == false) {
+                    return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
+                }
+                if (EmailSend != User.Email) {
                     return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 if (RequestState == default || RequestState == string.Empty || RequestState.Length != 8) {

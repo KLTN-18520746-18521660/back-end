@@ -158,9 +158,24 @@ namespace DatabaseAccess.Context.Models
                 { "post_id", PostId },
                 { "owner", 
                     new JObject(){
-                        { "user_name", this.OwnerNavigation.UserName },
-                        { "display_name", this.OwnerNavigation.DisplayName },
-                        { "avatar", this.OwnerNavigation.Avatar },
+                        {
+                            "user_name",
+                            this.OwnerNavigation.StatusStr == EntityStatus.StatusTypeToString(StatusType.Deleted)
+                                ? ""
+                                : this.OwnerNavigation.UserName
+                        },
+                        {
+                            "display_name",
+                            this.OwnerNavigation.StatusStr == EntityStatus.StatusTypeToString(StatusType.Deleted)
+                                ? ""
+                                : this.OwnerNavigation.DisplayName
+                        },
+                        {
+                            "avatar",
+                            this.OwnerNavigation.StatusStr == EntityStatus.StatusTypeToString(StatusType.Deleted)
+                                ? null
+                                : this.OwnerNavigation.Avatar
+                        },
                         { "status", this.OwnerNavigation.StatusStr },
                     }
                 },

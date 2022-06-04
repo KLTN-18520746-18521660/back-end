@@ -22,6 +22,55 @@ namespace CoreApi.Services
             __ServiceName = "SocialCategoryManagement";
         }
 
+        public async Task<(List<SocialCategory>, int)> SearchCategories(int start = 0,
+                                                                               int size = 20,
+                                                                               string search_term = default,
+                                                                               Guid socialUserId = default)
+        {
+            search_term = search_term.Trim().ToLower();
+            var query =
+                    from ids in (
+                        (from category in __DBContext.SocialCategories
+                            .Where(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
+                                    && (search_term == default
+                                    || e.Name.ToLower().Contains(search_term)
+                                    || e.DisplayName.ToLower().Contains(search_term)
+                                    || e.Describe.ToLower().Contains(search_term)
+                                )
+                            )
+                        join action in __DBContext.SocialUserActionWithCategories on category.Id equals action.CategoryId
+                        into categoryWithAction
+                        from c in categoryWithAction.DefaultIfEmpty()
+                        group c by new { category.Id, category.Name } into gr
+                        select new {
+                            gr.Key,
+                            Match = (search_term != default) ? (gr.Key.Name.ToLower() == search_term ? 1 : 0) : 0,
+                            StartWith = (search_term != default) ? (gr.Key.Name.StartsWith(search_term) ? 1 : 0) : 0,
+                            Follow = gr.Count(e => (socialUserId != default)
+                                && (e.UserId == socialUserId)
+                                && EF.Functions.JsonContains(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Follow))),
+                            Visited = gr.Count(e => (socialUserId != default)
+                                && (e.UserId == socialUserId)
+                                && EF.Functions.JsonContains(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Visited))),
+                        } into ret
+                        orderby ret.Visited descending, ret.Follow descending, ret.StartWith descending, ret.Match descending
+                        select ret.Key.Id).Skip(start).Take(size)
+                    )
+                    join categories in __DBContext.SocialCategories on ids equals categories.Id
+                    select categories;
+
+            var totalCount = await __DBContext.SocialCategories
+                            .CountAsync(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
+                                    && (search_term == default
+                                    || e.Name.ToLower().Contains(search_term)
+                                    || e.DisplayName.ToLower().Contains(search_term)
+                                    || e.Describe.ToLower().Contains(search_term)
+                                )
+                            );
+
+            return (await query.ToListAsync(), totalCount);
+        }
+
         public async Task<(List<SocialCategory>, ErrorCodes)> GetCategories()
         {
             return (

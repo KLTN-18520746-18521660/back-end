@@ -103,6 +103,9 @@ namespace CoreApi.Services
                 return (Session, Error);
             }
 
+            if (Session.User.Status.Type == StatusType.Deleted) {
+                return (default, ErrorCodes.NOT_FOUND);
+            }
             if (Session.User.Status.Type == StatusType.Blocked) {
                 return (default, ErrorCodes.USER_HAVE_BEEN_LOCKED);
             }

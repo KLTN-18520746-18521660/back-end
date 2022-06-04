@@ -591,9 +591,13 @@ namespace CoreApi.Services
             return ErrorCodes.INTERNAL_SERVER_ERROR;
         }
 
-        public async Task<ErrorCodes> DeleteUser(SocialUser User)
+        public async Task<ErrorCodes> DeleteUser(Guid UserId)
         {
-            __DBContext.SocialUsers.Remove(User);
+            var (User, Error) = await FindUserById(UserId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            User.StatusStr = EntityStatus.StatusTypeToString(StatusType.Deleted);
 
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [SOCIAL] Write user activity

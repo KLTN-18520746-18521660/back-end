@@ -109,6 +109,35 @@ namespace Common
             }
             return default;
         }
+        public static JArray MakeValueJSonEmpty(JArray OriginArray, string[] IgnoreKeys = default)
+        {
+            for (int i = 0; i < OriginArray.Count; i++) {
+                if (OriginArray[i].Type == JTokenType.Object) {
+                    OriginArray[i] = MakeValueJSonEmpty((JObject) OriginArray[i], IgnoreKeys);
+                } else if (OriginArray[i].Type == JTokenType.Array) {
+                    OriginArray[i] = MakeValueJSonEmpty((JArray) OriginArray[i], IgnoreKeys);
+                } else {
+                    OriginArray[i] = "";
+                }
+            }
+            return JArray.FromObject(OriginArray.ToHashSet());
+        }
+        public static JObject MakeValueJSonEmpty(JObject OriginObject, string[] IgnoreKeys = default)
+        {
+            foreach (var It in OriginObject) {
+                if (IgnoreKeys != default && IgnoreKeys.Contains(It.Key)) {
+                    continue;
+                }
+                if (It.Value.Type == JTokenType.Object) {
+                    OriginObject[It.Key] = MakeValueJSonEmpty((JObject) It.Value, IgnoreKeys);
+                } else if (It.Value.Type == JTokenType.Array) {
+                    OriginObject[It.Key] = MakeValueJSonEmpty((JArray) It.Value, IgnoreKeys);
+                } else {
+                    OriginObject[It.Key] = "";
+                }
+            }
+            return OriginObject;
+        }
         public static T DeepClone<T>(T source)
         {
             // Don't serialize a null object, simply return the default for that object
@@ -177,7 +206,7 @@ namespace Common
             }
             return Ip.Count > 0;
         }
-        public static string GenerateOrderString((string, bool)[] Orders)
+        public static string GenerateOrderString((string, bool)[] Orders, string[] IgnoreFields = default)
         {
             /* Example
             * orders = [{"views", false}, {"created_timestamp", true}]
@@ -186,6 +215,9 @@ namespace Common
             */
             var OrderStatements = new List<string>();
             foreach (var Order in Orders) {
+                if (IgnoreFields != default && IgnoreFields.Contains(Order.Item1)) {
+                    continue;
+                }
                 OrderStatements.Add($"{ Order.Item1 } {( Order.Item2 ? "desc" : "asc" )}");
             }
             return string.Join(", ", OrderStatements).Trim();

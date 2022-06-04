@@ -130,6 +130,10 @@ namespace CoreApi.Controllers.Social.Comment
 
                 var Ret = Comment.GetPublicJsonObject();
                 Ret.Add("actions", Utils.ObjectToJsonToken(Comment.GetActionByUser(Session.UserId)));
+                Ret.Add("reply_comments", new JObject(){
+                    { "comments", Utils.ObjectToJsonToken(new List<JObject>()) },
+                    { "total_size", 0 },
+                });
 
                 return Ok(201, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "comment", Ret },

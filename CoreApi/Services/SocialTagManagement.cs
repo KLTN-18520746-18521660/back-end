@@ -19,7 +19,7 @@ namespace CoreApi.Services
             __ServiceName = "SocialTagManagement";
         }
 
-        public async Task<(List<SocialTag>, int)> GetTags(int start = 0,
+        public async Task<(List<SocialTag>, int)> SearchTags(int start = 0,
                                                           int size = 20,
                                                           string search_term = default,
                                                           Guid socialUserId = default)
@@ -30,7 +30,9 @@ namespace CoreApi.Services
                         (from tag in __DBContext.SocialTags
                             .Where(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
                                     && (search_term == default
-                                    || e.Tag.Contains(search_term.Trim(), StringComparison.OrdinalIgnoreCase)
+                                    || e.Tag.ToLower().Contains(search_term)
+                                    || e.Name.ToLower().Contains(search_term)
+                                    || e.Describe.ToLower().Contains(search_term)
                                 )
                             )
                         join action in __DBContext.SocialUserActionWithTags on tag.Id equals action.TagId
@@ -60,7 +62,57 @@ namespace CoreApi.Services
             var totalCount = await __DBContext.SocialTags
                             .CountAsync(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
                                     && (search_term == default
-                                    || e.Tag.Contains(search_term.Trim(), StringComparison.OrdinalIgnoreCase)
+                                    || e.Tag.ToLower().Contains(search_term)
+                                    || e.Name.ToLower().Contains(search_term)
+                                    || e.Describe.ToLower().Contains(search_term)
+                                )
+                            );
+
+            return (await query.ToListAsync(), totalCount);
+        }
+
+        public async Task<(List<SocialTag>, int)> GetTags(int start = 0,
+                                                          int size = 20,
+                                                          string search_term = default,
+                                                          Guid socialUserId = default)
+        {
+            search_term = search_term.Trim().ToLower();
+            var query =
+                    from ids in (
+                        (from tag in __DBContext.SocialTags
+                            .Where(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
+                                    && (search_term == default
+                                    || e.Tag.ToLower().Contains(search_term)
+                                )
+                            )
+                        join action in __DBContext.SocialUserActionWithTags on tag.Id equals action.TagId
+                        into tagWithAction
+                        from t in tagWithAction.DefaultIfEmpty()
+                        group t by new { tag.Id, tag.Tag } into gr
+                        select new {
+                            gr.Key,
+                            Match = (search_term != default) ? (gr.Key.Tag.ToLower() == search_term ? 1 : 0) : 0,
+                            StartWith = (search_term != default) ? (gr.Key.Tag.StartsWith(search_term) ? 1 : 0) : 0,
+                            Follow = gr.Count(e => (socialUserId != default)
+                                && (e.UserId == socialUserId)
+                                && EF.Functions.JsonContains(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Follow))),
+                            Used = gr.Count(e => (socialUserId != default)
+                                && (e.UserId == socialUserId)
+                                && EF.Functions.JsonContains(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Used))),
+                            Visited = gr.Count(e => (socialUserId != default)
+                                && (e.UserId == socialUserId)
+                                && EF.Functions.JsonContains(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Visited))),
+                        } into ret
+                        orderby ret.Visited descending, ret.Used descending, ret.Follow descending, ret.StartWith descending, ret.Match descending
+                        select ret.Key.Id).Skip(start).Take(size)
+                    )
+                    join tags in __DBContext.SocialTags on ids equals tags.Id
+                    select tags;
+
+            var totalCount = await __DBContext.SocialTags
+                            .CountAsync(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
+                                    && (search_term == default
+                                    || e.Tag.ToLower().Contains(search_term.Trim().ToLower())
                                 )
                             );
 
