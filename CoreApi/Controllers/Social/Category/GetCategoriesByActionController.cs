@@ -15,22 +15,16 @@ using System.Linq.Expressions;
 using DatabaseAccess.Common.Status;
 using Newtonsoft.Json;
 
-namespace CoreApi.Controllers.Social.Post
+namespace CoreApi.Controllers.Social.Category
 {
     [ApiController]
-    [Route("/api/post")]
-    public class GetPostsByActionController : BaseController
+    [Route("/api/catrgory")]
+    public class GetCategoriesByActionController : BaseController
     {
         public static string[] AllowActions = new string[]{
-            "saved",
-            "comment",
-            "like",
-            "dislike",
-            "visited",
-            "report",
             "follow",
         };
-        public GetPostsByActionController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public GetCategoriesByActionController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
         }
 
@@ -39,28 +33,22 @@ namespace CoreApi.Controllers.Social.Post
         // [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         // [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> GetPostsByAction([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
-                                                          [FromServices] SocialCategoryManagement     __SocialCategoryManagement,
-                                                          [FromServices] SocialUserManagement         __SocialUserManagement,
-                                                          [FromServices] SocialPostManagement         __SocialPostManagement,
-                                                          [FromServices] SocialTagManagement          __SocialTagManagement,
-                                                          [FromHeader(Name = "session_token")] string SessionToken,
-                                                          [FromQuery(Name = "action")] string         Action,
-                                                          [FromQuery(Name = "start")] int             Start       = 0,
-                                                          [FromQuery(Name = "size")] int              Size        = 20,
-                                                          [FromQuery(Name = "search_term")] string    SearchTerm  = default,
-                                                          [FromQuery(Name = "tags")] string           Tags        = default,
-                                                          [FromQuery(Name = "categories")] string     Categories  = default,
-                                                          [FromQuery] Models.OrderModel               Orders      = default)
+        public async Task<IActionResult> GetCategoriesByAction([FromServices] SessionSocialUserManagement  __SessionSocialUserManagement,
+                                                               [FromServices] SocialCategoryManagement     __SocialCategoryManagement,
+                                                               [FromServices] SocialUserManagement         __SocialUserManagement,
+                                                               [FromHeader(Name = "session_token")] string SessionToken,
+                                                               [FromQuery(Name = "action")] string         Action,
+                                                               [FromQuery(Name = "start")] int             Start       = 0,
+                                                               [FromQuery(Name = "size")] int              Size        = 20,
+                                                               [FromQuery(Name = "search_term")] string    SearchTerm  = default,
+                                                               [FromQuery] Models.OrderModel               Orders      = default)
         {
             #region Init Handler
             SetRunningFunction();
             SetTraceIdForServices(
                 __SessionSocialUserManagement,
                 __SocialCategoryManagement,
-                __SocialUserManagement,
-                __SocialPostManagement,
-                __SocialTagManagement
+                __SocialUserManagement
             );
             #endregion
             try {
@@ -77,17 +65,13 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 #region Validate params
-                AddLogParam("start", Start);
-                AddLogParam("size", Size);
-                AddLogParam("search_term", SearchTerm);
-                AddLogParam("categories", Categories);
-                AddLogParam("tags", Tags);
-                AddLogParam("orders", Orders);
+                AddLogParam("start",        Start);
+                AddLogParam("size",         Size);
+                AddLogParam("search_term",  SearchTerm);
+                AddLogParam("orders",       Orders);
                 IActionResult ErrRetValidate    = default;
                 (string, bool)[] CombineOrders  = default;
-                var AllowOrderParams            = __SocialPostManagement.GetAllowOrderFields(GetPostAction.GetPostsByAction);
-                var TagsArr                     = Tags == default ? default : Tags.Split(',');
-                var CategoriesArr               = Categories == default ? default : Categories.Split(',');
+                var AllowOrderParams            = __SocialCategoryManagement.GetAllowOrderFields(GetCategoryAction.GetCategoriesByAction);
                 (CombineOrders, ErrRetValidate) = ValidateOrderParams(Orders, AllowOrderParams);
                 if (ErrRetValidate != default) {
                     return ErrRetValidate;
@@ -102,12 +86,6 @@ namespace CoreApi.Controllers.Social.Post
                     AddLogParam("action", Action);
                     return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
-                if (Categories != default && !await __SocialCategoryManagement.IsExistingCategories(CategoriesArr)) {
-                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "categories" });
-                }
-                if (Tags != default && !await __SocialTagManagement.IsExistsTags(TagsArr)) {
-                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "tags" });
-                }
                 #endregion
 
                 Action = Action.Trim().ToLower();
@@ -117,20 +95,18 @@ namespace CoreApi.Controllers.Social.Post
                     return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
 
-                #region Get posts
-                var (Posts, TotalSize, Error) = await __SocialPostManagement
-                    .GetPostsByAction(
+                #region Get categories
+                var (Categories, TotalSize, Error) = await __SocialCategoryManagement
+                    .GetCategoriesByAction(
                         Session.UserId,
                         Action,
                         Start,
                         Size,
                         SearchTerm,
-                        CombineOrders,
-                        TagsArr,
-                        CategoriesArr
+                        CombineOrders
                     );
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"GetPostsByAction failed, ErrorCode: { Error }");
+                    throw new Exception($"GetCategoriesByAction failed, ErrorCode: { Error }");
                 }
                 #endregion
 
@@ -142,25 +118,14 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 var Ret = new List<JObject>();
-                foreach (var p in Posts) {
-                    var Obj = p.GetPublicShortJsonObject(Session.UserId);
-                    if (p.StatusStr != EntityStatus.StatusTypeToString(StatusType.Approved)) {
-                        TotalSize--;
-                        continue;
-                        // if (Action.ToLower() != "saved") {
-                        //     continue;
-                        // }
-                        // Obj = Utils.MakeValueJSonEmpty(Obj, new string[]{
-                        //     "status",
-                        // });
-                    } else {
-                        Obj.Add("actions", Utils.ObjectToJsonToken(p.GetActionByUser(Session.UserId)));
-                    }
+                foreach (var c in Categories) {
+                    var Obj = c.GetPublicJsonObject();
+                    Obj.Add("actions", Utils.ObjectToJsonToken(c.GetActionByUser(Session.UserId)));
                     Ret.Add(Obj);
                 }
 
                 return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
-                    { "posts",      Utils.ObjectToJsonToken(Ret) },
+                    { "categories",      Utils.ObjectToJsonToken(Ret) },
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {

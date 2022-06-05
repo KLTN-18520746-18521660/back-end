@@ -1,3 +1,4 @@
+using Common;
 using CoreApi.Common;
 using CoreApi.Common.Base;
 using DatabaseAccess.Common.Actions;
@@ -5,6 +6,7 @@ using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context;
 using DatabaseAccess.Context.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,17 +14,109 @@ using System.Threading.Tasks;
 
 namespace CoreApi.Services
 {
+    public enum GetTagAction {
+        GetTagsByAction         = 1,
+    }
     public class SocialTagManagement : BaseTransientService
     {
         public SocialTagManagement(IServiceProvider _IServiceProvider) : base(_IServiceProvider)
         {
             __ServiceName = "SocialTagManagement";
         }
+        public string[] GetAllowOrderFields(GetTagAction action)
+        {
+            switch (action) {
+                case GetTagAction.GetTagsByAction:
+                    return new string[] {
+                        "used",
+                        "posts",
+                        "follows",
+                        "time_action",
+                        "created_timestamp",
+                        "last_modified_timestamp",
+                    };
+                default:
+                    return default;
+            }
+        }
+        public async Task<(List<SocialTag>, int, ErrorCodes)> GetTagsByAction(Guid socialUserId,
+                                                                                string action,
+                                                                                int start = 0,
+                                                                                int size = 20,
+                                                                                string search_term = default,
+                                                                                (string, bool)[] orders = default)
+        {
+            action = char.ToUpper(action[0]) + action.Substring(1).ToLower();
+            #region validate params
+            if (!EntityAction.ValidateAction(action, EntityActionType.UserActionWithTag)) {
+                return (default, default, ErrorCodes.INVALID_PARAMS);
+            }
+            var ColumnAllowOrder = GetAllowOrderFields(GetTagAction.GetTagsByAction);
+            if (orders != default) {
+                foreach (var order in orders) {
+                    if (!ColumnAllowOrder.Contains(order.Item1)) {
+                        return (default, default, ErrorCodes.INVALID_PARAMS);
+                    }
+                }
+            } else {
+                orders = new (string, bool)[]{};
+            }
+            var __SocialUserManagement  = __ServiceProvider.GetService<SocialUserManagement>();
+            var (user, error)           = await __SocialUserManagement.FindUserById(socialUserId);
+            if (error != ErrorCodes.NO_ERROR) {
+                return (default, default, error);
+            }
+            #endregion
 
+            // orderStr can't empty or null
+            string orderStr = orders != default && orders.Length != 0
+                ? Utils.GenerateOrderString(orders)
+                : "time_action desc";
+            if (orderStr == string.Empty) {
+                orderStr = "time_action desc";
+            }
+            search_term = search_term == default ? string.Empty : search_term;
+            var rawQuery =
+                "SELECT     T.id, T.tag, "
+                            + "COUNT(DISTINCT TA.user_id) FILTER (WHERE TA.actions @> '[{\"action\": \"Used\"}]') AS used, "
+                            + "COUNT(DISTINCT TA.user_id) FILTER (WHERE TA.actions @> '[{\"action\": \"Follow\"}]') AS follows, "
+                            + "COUNT(DISTINCT P.id) FILTER (WHERE P.status = 'Approved') AS posts, "
+                            + "T.created_timestamp, T.last_modified_timestamp, TA.time_action "
+                + "FROM "
+                    + "social_tag AS T JOIN "
+                    + "("
+                        + "SELECT   tag_id, user_id, actions, "
+                                    + "(jsonb_path_query_first("
+                                        + "actions, "
+                                        + "'$[*] ? (@.action == $action)', "
+                                        + $"'{{\"action\": \"{ action }\"}}'"
+                                    + ")::jsonb ->> 'date')::timestamptz AS time_action "
+                        + "FROM     social_user_action_with_tag "
+                        + $"WHERE    actions @> '[{{\"action\":\"{ action }\"}}]' AND user_id = '{ socialUserId.ToString() }' "
+                    + ") AS TA ON T.id = TA.tag_id "
+                    + "LEFT JOIN social_post_tag AS PT ON PT.tag_id = T.id "
+                    + "JOIN social_post AS P ON P.id = PT.post_id "
+                + $"WHERE       T.status != 'Disabled' AND LOWER(T.tag) LIKE LOWER('%{ search_term }%') "
+                                + $"AND LOWER(T.name) LIKE LOWER('%{ search_term }%') "
+                                + $"AND LOWER(T.describe) LIKE LOWER('%{ search_term }%') "
+                + "GROUP BY     T.id, T.tag, "
+                                + "T.created_timestamp, T.last_modified_timestamp, TA.time_action "
+                + $"ORDER BY { orderStr }";
+            var tagIdsOrdered = await DBHelper.RawSqlQuery<long>(
+                rawQuery,
+                x => (long)x[0]
+            );
+
+            var queryTags = from ids in tagIdsOrdered
+                        join tag in __DBContext.SocialTags on ids equals tag.Id
+                        select tag;
+
+            return (queryTags.ToList(), tagIdsOrdered.Count(), ErrorCodes.NO_ERROR);
+        }
         public async Task<(List<SocialTag>, int)> SearchTags(int start = 0,
-                                                          int size = 20,
-                                                          string search_term = default,
-                                                          Guid socialUserId = default)
+                                                             int size = 20,
+                                                             string search_term = default,
+                                                             Guid socialUserId = default)
         {
             search_term = search_term.Trim().ToLower();
             var query =
@@ -49,11 +143,8 @@ namespace CoreApi.Services
                             Used = gr.Count(e => (socialUserId != default)
                                 && (e.UserId == socialUserId)
                                 && EF.Functions.JsonContains(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Used))),
-                            Visited = gr.Count(e => (socialUserId != default)
-                                && (e.UserId == socialUserId)
-                                && EF.Functions.JsonContains(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Visited))),
                         } into ret
-                        orderby ret.Visited descending, ret.Used descending, ret.Follow descending, ret.StartWith descending, ret.Match descending
+                        orderby ret.Used descending, ret.Follow descending, ret.StartWith descending, ret.Match descending
                         select ret.Key.Id).Skip(start).Take(size)
                     )
                     join tags in __DBContext.SocialTags on ids equals tags.Id
@@ -99,11 +190,8 @@ namespace CoreApi.Services
                             Used = gr.Count(e => (socialUserId != default)
                                 && (e.UserId == socialUserId)
                                 && EF.Functions.JsonContains(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Used))),
-                            Visited = gr.Count(e => (socialUserId != default)
-                                && (e.UserId == socialUserId)
-                                && EF.Functions.JsonContains(e.ActionsStr, EntityAction.GenContainsJsonStatement(ActionType.Visited))),
                         } into ret
-                        orderby ret.Visited descending, ret.Used descending, ret.Follow descending, ret.StartWith descending, ret.Match descending
+                        orderby ret.Used descending, ret.Follow descending, ret.StartWith descending, ret.Match descending
                         select ret.Key.Id).Skip(start).Take(size)
                     )
                     join tags in __DBContext.SocialTags on ids equals tags.Id
@@ -247,10 +335,6 @@ namespace CoreApi.Services
         public async Task<ErrorCodes> RemoveUsed(long tagId, Guid socialUserId)
         {
             return await RemoveAction(tagId, socialUserId, EntityAction.ActionTypeToString(ActionType.Used));
-        }
-        public async Task<ErrorCodes> Visited(long tagId, Guid socialUserId)
-        {
-            return await AddAction(tagId, socialUserId, EntityAction.ActionTypeToString(ActionType.Visited));
         }
         #endregion
 

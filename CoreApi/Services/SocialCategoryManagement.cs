@@ -1,3 +1,4 @@
+using Common;
 using CoreApi.Common;
 using CoreApi.Common.Base;
 using DatabaseAccess.Common.Actions;
@@ -15,13 +16,103 @@ using System.Threading.Tasks;
 
 namespace CoreApi.Services
 {
+    public enum GetCategoryAction {
+        GetCategoriesByAction         = 1,
+    }
     public class SocialCategoryManagement : BaseTransientService
     {
         public SocialCategoryManagement(IServiceProvider _IServiceProvider) : base(_IServiceProvider)
         {
             __ServiceName = "SocialCategoryManagement";
         }
+        public string[] GetAllowOrderFields(GetCategoryAction action)
+        {
+            switch (action) {
+                case GetCategoryAction.GetCategoriesByAction:
+                    return new string[] {
+                        "posts",
+                        "follows",
+                        "time_action",
+                        "created_timestamp",
+                        "last_modified_timestamp",
+                    };
+                default:
+                    return default;
+            }
+        }
+        public async Task<(List<SocialCategory>, int, ErrorCodes)> GetCategoriesByAction(Guid socialUserId,
+                                                                                    string action,
+                                                                                    int start = 0,
+                                                                                    int size = 20,
+                                                                                    string search_term = default,
+                                                                                    (string, bool)[] orders = default)
+        {
+            action = char.ToUpper(action[0]) + action.Substring(1).ToLower();
+            #region validate params
+            if (!EntityAction.ValidateAction(action, EntityActionType.UserActionWithCategory)) {
+                return (default, default, ErrorCodes.INVALID_PARAMS);
+            }
+            var ColumnAllowOrder = GetAllowOrderFields(GetCategoryAction.GetCategoriesByAction);
+            if (orders != default) {
+                foreach (var order in orders) {
+                    if (!ColumnAllowOrder.Contains(order.Item1)) {
+                        return (default, default, ErrorCodes.INVALID_PARAMS);
+                    }
+                }
+            } else {
+                orders = new (string, bool)[]{};
+            }
+            var __SocialUserManagement  = __ServiceProvider.GetService<SocialUserManagement>();
+            var (user, error)           = await __SocialUserManagement.FindUserById(socialUserId);
+            if (error != ErrorCodes.NO_ERROR) {
+                return (default, default, error);
+            }
+            #endregion
 
+            // orderStr can't empty or null
+            string orderStr = orders != default && orders.Length != 0
+                ? Utils.GenerateOrderString(orders)
+                : "time_action desc";
+            if (orderStr == string.Empty) {
+                orderStr = "time_action desc";
+            }
+            search_term = search_term == default ? string.Empty : search_term;
+            var rawQuery =
+                "SELECT     C.id, C.name, "
+                            + "COUNT(DISTINCT CA.user_id) FILTER (WHERE CA.actions @> '[{\"action\": \"Follow\"}]') AS follows, "
+                            + "COUNT(DISTINCT P.id) FILTER (WHERE P.status = 'Approved') AS posts, "
+                            + "C.created_timestamp, C.last_modified_timestamp, CA.time_action "
+                + "FROM "
+                    + "social_category AS C JOIN "
+                    + "("
+                        + "SELECT   category_id, user_id, actions, "
+                                    + "(jsonb_path_query_first("
+                                        + "actions, "
+                                        + "'$[*] ? (@.action == $action)', "
+                                        + $"'{{\"action\": \"{ action }\"}}'"
+                                    + ")::jsonb ->> 'date')::timestamptz AS time_action "
+                        + "FROM     social_user_action_with_category "
+                        + $"WHERE    actions @> '[{{\"action\":\"{ action }\"}}]' AND user_id = '{ socialUserId.ToString() }' "
+                    + ") AS CA ON C.id = CA.category_id "
+                    + "LEFT JOIN social_post_category AS PC ON PC.category_id = C.id "
+                    + "JOIN social_post AS P ON P.id = PC.post_id "
+                + $"WHERE       C.status != 'Disabled' AND LOWER(C.name) LIKE LOWER('%{ search_term }%') "
+                                + $"AND LOWER(C.display_name) LIKE LOWER('%{ search_term }%') "
+                                + $"AND LOWER(C.describe) LIKE LOWER('%{ search_term }%') "
+                + "GROUP BY     C.id, C.name, "
+                                + "C.created_timestamp, C.last_modified_timestamp, CA.time_action "
+                + $"ORDER BY { orderStr }";
+            var categoryIdsOrdered = await DBHelper.RawSqlQuery<long>(
+                rawQuery,
+                x => (long)x[0]
+            );
+
+            var queryCategories = from ids in categoryIdsOrdered
+                        join category in __DBContext.SocialCategories on ids equals category.Id
+                        select category;
+
+            return (queryCategories.ToList(), categoryIdsOrdered.Count(), ErrorCodes.NO_ERROR);
+        }
         public async Task<(List<SocialCategory>, int)> SearchCategories(int start = 0,
                                                                                int size = 20,
                                                                                string search_term = default,
