@@ -414,7 +414,7 @@ namespace CoreApi.Services
                     + "JOIN social_category AS CA ON PC.category_id = CA.id "
                     + "LEFT JOIN social_user_action_with_post AS AC ON P.id = AC.post_id "
                     + "LEFT JOIN social_comment CO ON P.id = CO.post_id "
-                + $"WHERE   status = 'Approved' "
+                + $"WHERE   P.status = 'Approved' "
                             + $"AND ('{ search_term }' = '' OR P.search_vector @@ plainto_tsquery('{ search_term }')) "
                             + $"AND ({ tags.Count() } = 0 OR T.tag IN ('{ string.Join(',', tags) }')) "
                             + $"AND ({ categories.Count() } = 0 OR CA.name IN ('{ string.Join(',', categories) }')) "
