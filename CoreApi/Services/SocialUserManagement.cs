@@ -867,12 +867,16 @@ namespace CoreApi.Services
             }
 
             var ret = user.SocialUserActionWithUserUserIdDesNavigations
-                .Where(e => e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0)
+                .Where(e => e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0
+                    && e.User.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                )
                 .Select(e => e.User)
                 .Skip(start).Take(size)
                 .ToList();
             var total_size = user.SocialUserActionWithUserUserIdDesNavigations
-                .Count(e => e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0);
+                .Count(e => e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0
+                    && e.User.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                );
             return (ret, total_size, ErrorCodes.NO_ERROR);
         }
 
@@ -884,12 +888,16 @@ namespace CoreApi.Services
             }
 
             var ret = user.SocialUserActionWithUserUsers
-                .Where(e => e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0)
+                .Where(e => e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0
+                    && e.UserIdDesNavigation.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                )
                 .Select(e => e.UserIdDesNavigation)
                 .Skip(start).Take(size)
                 .ToList();
             var total_size = user.SocialUserActionWithUserUsers
-                .Count(e => e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0);
+                .Count(e => e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0
+                    && e.UserIdDesNavigation.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                );
             return (ret, total_size, ErrorCodes.NO_ERROR);
         }
 

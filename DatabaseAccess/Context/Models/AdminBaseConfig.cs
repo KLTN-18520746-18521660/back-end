@@ -413,6 +413,7 @@ namespace DatabaseAccess.Context.Models
 
                 if ((string)Ret[It.Key]["type"] == JTokenType.Integer.ToString().ToLower()) {
                     Ret[It.Key]["min"] = 0;
+                    Ret[It.Key]["regex"] = "[0-9]{1,8}";
                 }
             }
             return Ret;

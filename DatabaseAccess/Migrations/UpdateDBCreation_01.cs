@@ -10,7 +10,7 @@ namespace DatabaseAccess.Migrations
                 name: "redirect_url",
                 columns: table => new
                 {
-                    url = table.Column<string>(type: "integer", nullable: false),
+                    url = table.Column<string>(type: "text", nullable: false),
                     times = table.Column<long>(type: "bigint", nullable: false),
                 },
                 constraints: table =>

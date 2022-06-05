@@ -926,7 +926,7 @@ namespace CoreApi.Services
                                     && (categories.Count() == 0
                                         || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
                                     )
-                                    && e.CreatedTimestamp >= compareDate
+                                    && (time == -1 || e.CreatedTimestamp >= compareDate)
                                 )
                         join action in __DBContext.SocialUserActionWithPosts on post.Id equals action.PostId
                         into postWithAction
@@ -978,7 +978,7 @@ namespace CoreApi.Services
                                     && (categories.Count() == 0
                                         || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
                                     )
-                                    && e.CreatedTimestamp >= compareDate
+                                    && (time == -1 || e.CreatedTimestamp >= compareDate)
                                 );
             return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
         }

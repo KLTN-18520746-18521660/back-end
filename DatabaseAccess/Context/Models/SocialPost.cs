@@ -279,6 +279,7 @@ namespace DatabaseAccess.Context.Models
                 ret.Add("id", this.Id);
                 ret.Add("created_timestamp", CreatedTimestamp);
                 ret.Add("have_pending_content", PendingContent != default);
+                ret.Add("visited_count", CountVisited());
             }
             return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
         }

@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Dynamic.Core;
 using System.Threading.Tasks;
 
 namespace CoreApi.Services
@@ -112,6 +113,68 @@ namespace CoreApi.Services
                         select tag;
 
             return (queryTags.ToList(), tagIdsOrdered.Count(), ErrorCodes.NO_ERROR);
+        }
+        public async Task<(List<SocialTag>, int, ErrorCodes)> GetTrendingTags(int time = 7, // days
+                                                                              int start = 0,
+                                                                              int size = 20,
+                                                                              string search_term = default)
+        {
+            // orderStr can't empty or null
+            var orderStr = $"used desc, follows desc, posts desc, created_timestamp desc";
+            var compareDate = DateTime.UtcNow.AddDays(-time);
+
+            var query =
+                    from ids in (
+                        (from tag in __DBContext.SocialTags
+                                .Where(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
+                                        && (search_term == default
+                                        || e.Tag.ToLower().Contains(search_term)
+                                        || e.Name.ToLower().Contains(search_term)
+                                        || e.Describe.ToLower().Contains(search_term)
+                                    )
+                                    && (time == -1 || e.CreatedTimestamp >= compareDate)
+                                )
+                        join action in __DBContext.SocialUserActionWithTags on tag.Id equals action.TagId
+                        into tagWithAction
+                        from t in tagWithAction.DefaultIfEmpty()
+                        group t by new {
+                            tag.Id,
+                            tag.CreatedTimestamp
+                        } into gr
+                        select new {
+                            gr.Key,
+                            Follow = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Follow))),
+                            Used = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Used))),
+                            Posts = __DBContext.SocialPosts.Count(e =>
+                                e.SocialPostTags.Count(pt => pt.TagId == gr.Key.Id) > 0
+                                && e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
+                            ),
+                        } into ret select new {
+                            ret.Key.Id,
+                            used = ret.Used,
+                            posts = ret.Posts,
+                            follows = ret.Follow,
+                            created_timestamp = ret.Key.CreatedTimestamp,
+                        })
+                        .OrderBy(orderStr)
+                        .Skip(start).Take(size)
+                        .Select(e => e.Id)
+                    )
+                    join tags in __DBContext.SocialTags on ids equals tags.Id
+                    select tags;
+
+            var totalCount = await __DBContext.SocialTags
+                                .CountAsync(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
+                                        && (search_term == default
+                                        || e.Tag.ToLower().Contains(search_term)
+                                        || e.Name.ToLower().Contains(search_term)
+                                        || e.Describe.ToLower().Contains(search_term)
+                                    )
+                                    && (time == -1 || e.CreatedTimestamp >= compareDate)
+                                );
+            return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
         }
         public async Task<(List<SocialTag>, int)> SearchTags(int start = 0,
                                                              int size = 20,

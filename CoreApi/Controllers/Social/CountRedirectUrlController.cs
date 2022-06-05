@@ -11,6 +11,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Text;
 using System.Threading.Tasks;
+using CoreApi.Models;
 
 namespace CoreApi.Controllers.Social
 {
@@ -29,8 +30,8 @@ namespace CoreApi.Controllers.Social
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> CountRedirectUrl([FromServices] RedirectUrlManagement          __RedirectUrlManagement,
                                                           [FromServices] SessionSocialUserManagement    __SessionSocialUserManagement,
-                                                          [FromHeader(Name = "session_token")] string   SessionToken,
-                                                          [FromQuery(Name = "url")] string              Url)
+                                                          [FromBody] CountRedirectUrlModel              __ModelData,
+                                                          [FromHeader(Name = "session_token")] string   SessionToken)
         {
             #region Init Handler
             SetRunningFunction();
@@ -44,7 +45,7 @@ namespace CoreApi.Controllers.Social
                 var Session             = __Session as SessionSocialUser;
                 #endregion
 
-                var error = await __RedirectUrlManagement.IncreaseTimesGoToUrl(Url);
+                var error = await __RedirectUrlManagement.IncreaseTimesGoToUrl(__ModelData.url);
                 if (error != ErrorCodes.NO_ERROR) {
                     AddLogParam("url", Url);
                     throw new Exception($"IncreaseTimesGoToUrl faied, ErrorCode: { error }");

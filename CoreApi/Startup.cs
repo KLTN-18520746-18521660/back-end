@@ -99,6 +99,7 @@ namespace CoreApi
                     .AddTransient<SocialUserManagement>()
                     .AddTransient<SocialUserAuditLogManagement>()
                     .AddTransient<SocialAuditLogManagement>()
+                    .AddTransient<RedirectUrlManagement>()
                     .AddTransient<SessionSocialUserManagement>();
             #endregion
 

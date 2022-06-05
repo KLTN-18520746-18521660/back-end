@@ -373,6 +373,7 @@ namespace DatabaseAccess.Context.Models
             return SocialUserActionWithUserUsers
                 .Count(e => 
                     e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0
+                    && e.UserIdDesNavigation.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
                 );
         }
 
@@ -381,6 +382,7 @@ namespace DatabaseAccess.Context.Models
             return SocialUserActionWithUserUserIdDesNavigations
                 .Count(e =>
                     e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0
+                    && e.User.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
                 );
         }
 

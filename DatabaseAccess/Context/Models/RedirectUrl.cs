@@ -22,13 +22,10 @@ namespace DatabaseAccess.Context.Models
         [Required]
         [Column("times")]
         public long Times { get; set; }
-        [Column("timestamp", TypeName = "timestamp with time zone")]
-        public DateTime Timestamp { get; private set; }
 
         public RedirectUrl()
         {
             __ModelName = "RedirectUrl";
-            Timestamp = DateTime.UtcNow;
         }
 
         public override bool Parse(IBaseParserModel Parser, out string Error)
@@ -42,7 +39,6 @@ namespace DatabaseAccess.Context.Models
                 publicFields = new List<string>() {
                     "url",
                     "times",
-                    "timestamp",
                 };
             }
             var ret = GetJsonObject();
@@ -60,7 +56,6 @@ namespace DatabaseAccess.Context.Models
             {
                 { "url",        Url },
                 { "times",      Times },
-                { "timestamp",  Timestamp },
 #if DEBUG
                 {"__ModelName", __ModelName }
 #endif

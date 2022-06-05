@@ -12,6 +12,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Dynamic.Core;
 using System.Threading.Tasks;
 
 namespace CoreApi.Services
@@ -112,6 +113,66 @@ namespace CoreApi.Services
                         select category;
 
             return (queryCategories.ToList(), categoryIdsOrdered.Count(), ErrorCodes.NO_ERROR);
+        }
+        
+        public async Task<(List<SocialCategory>, int, ErrorCodes)> GetTrendingCategories(int time = 7, // days
+                                                                                         int start = 0,
+                                                                                         int size = 20,
+                                                                                         string search_term = default)
+        {
+            // orderStr can't empty or null
+            var orderStr = $"follows desc, posts desc, created_timestamp desc";
+            var compareDate = DateTime.UtcNow.AddDays(-time);
+
+            var query =
+                    from ids in (
+                        (from category in __DBContext.SocialCategories
+                                .Where(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
+                                        && (search_term == default
+                                        || e.Name.ToLower().Contains(search_term)
+                                        || e.Describe.ToLower().Contains(search_term)
+                                        || e.DisplayName.ToLower().Contains(search_term)
+                                    )
+                                    && (time == -1 || e.CreatedTimestamp >= compareDate)
+                                )
+                        join action in __DBContext.SocialUserActionWithCategories on category.Id equals action.CategoryId
+                        into categoryWithAction
+                        from c in categoryWithAction.DefaultIfEmpty()
+                        group c by new {
+                            category.Id,
+                            category.CreatedTimestamp
+                        } into gr
+                        select new {
+                            gr.Key,
+                            Follow = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Follow))),
+                            Posts = __DBContext.SocialPosts.Count(e =>
+                                e.SocialPostCategories.Count(pt => pt.CategoryId == gr.Key.Id) > 0
+                                && e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
+                            ),
+                        } into ret select new {
+                            ret.Key.Id,
+                            posts = ret.Posts,
+                            follows = ret.Follow,
+                            created_timestamp = ret.Key.CreatedTimestamp,
+                        })
+                        .OrderBy(orderStr)
+                        .Skip(start).Take(size)
+                        .Select(e => e.Id)
+                    )
+                    join categories in __DBContext.SocialCategories on ids equals categories.Id
+                    select categories;
+
+            var totalCount = await __DBContext.SocialCategories
+                                .CountAsync(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
+                                        && (search_term == default
+                                        || e.Name.ToLower().Contains(search_term)
+                                        || e.Describe.ToLower().Contains(search_term)
+                                        || e.DisplayName.ToLower().Contains(search_term)
+                                    )
+                                    && (time == -1 || e.CreatedTimestamp >= compareDate)
+                                );
+            return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
         }
         public async Task<(List<SocialCategory>, int)> SearchCategories(int start = 0,
                                                                                int size = 20,

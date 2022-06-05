@@ -15,11 +15,11 @@ using System.Linq.Expressions;
 using DatabaseAccess.Common.Status;
 using Newtonsoft.Json;
 
-namespace CoreApi.Controllers.Social.Post
+namespace CoreApi.Controllers.Social.Tag
 {
     [ApiController]
-    [Route("/api/post")]
-    public class GetTrendingPostsController : BaseController
+    [Route("/api/tag")]
+    public class GetTrendingTagsController : BaseController
     {
         private int[] AllowTimeTrending = new int[]{
             -1,     // all time
@@ -28,7 +28,7 @@ namespace CoreApi.Controllers.Social.Post
             180,    // 6 month
         };
 
-        public GetTrendingPostsController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public GetTrendingTagsController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
         }
 
@@ -38,25 +38,19 @@ namespace CoreApi.Controllers.Social.Post
         // [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         // [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> GetTrendingPosts([FromServices] SessionSocialUserManagement    __SessionSocialUserManagement,
-                                                          [FromServices] SocialCategoryManagement       __SocialCategoryManagement,
                                                           [FromServices] SocialUserManagement           __SocialUserManagement,
-                                                          [FromServices] SocialPostManagement           __SocialPostManagement,
                                                           [FromServices] SocialTagManagement            __SocialTagManagement,
                                                           [FromHeader(Name = "session_token")] string   SessionToken,
                                                           [FromQuery(Name = "time")] int                Time        = -1,
                                                           [FromQuery(Name = "start")] int               Start       = 0,
                                                           [FromQuery(Name = "size")] int                Size        = 20,
-                                                          [FromQuery(Name = "search_term")] string      SearchTerm  = default,
-                                                          [FromQuery(Name = "tags")] string             Tags        = default,
-                                                          [FromQuery(Name = "categories")] string       Categories  = default)
+                                                          [FromQuery(Name = "search_term")] string      SearchTerm  = default)
         {
             #region Init Handler
             SetRunningFunction();
             SetTraceIdForServices(
                 __SessionSocialUserManagement,
-                __SocialCategoryManagement,
                 __SocialUserManagement,
-                __SocialPostManagement,
                 __SocialTagManagement
             );
             #endregion
@@ -72,10 +66,6 @@ namespace CoreApi.Controllers.Social.Post
                 AddLogParam("start", Start);
                 AddLogParam("size", Size);
                 AddLogParam("search_term", SearchTerm);
-                AddLogParam("categories", Categories);
-                AddLogParam("tags", Tags);
-                var CategoriesArr   = Categories == default ? default : Categories.Split(',');
-                var TagsArr         = Tags == default ? default : Tags.Split(',');
                 if (Start < 0 || Size < 1) {
                     return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
@@ -84,24 +74,15 @@ namespace CoreApi.Controllers.Social.Post
                     AddLogParam("allow_times", AllowTimeTrending);
                     return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
-                if (Categories != default && !await __SocialCategoryManagement.IsExistingCategories(CategoriesArr)) {
-                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "categories" });
-                }
-                if (Tags != default && !await __SocialTagManagement.IsExistsTags(TagsArr)) {
-                    return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "tags" });
-                }
                 #endregion
 
-                #region Get posts
-                var (Posts, TotalSize, Error) = await __SocialPostManagement
-                    .GetTrendingPosts(
-                        IsValidSession ? Session.UserId : default,
+                #region Get tags
+                var (Tags, TotalSize, Error) = await __SocialTagManagement
+                    .GetTrendingTags(
                         Time,
                         Start,
                         Size,
-                        SearchTerm,
-                        TagsArr,
-                        CategoriesArr
+                        SearchTerm
                     );
                 if (Error != ErrorCodes.NO_ERROR) {
                     throw new Exception($"GetTrendingPosts failed, ErrorCode: { Error }");
@@ -116,8 +97,8 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 var Ret = new List<JObject>();
-                Posts.ForEach(e => {
-                    var Obj = e.GetPublicShortJsonObject(IsValidSession ? Session.UserId : default);
+                Tags.ForEach(e => {
+                    var Obj = e.GetPublicJsonObject();
                     if (IsValidSession) {
                         Obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionByUser(Session.UserId)));
                     }
@@ -125,7 +106,7 @@ namespace CoreApi.Controllers.Social.Post
                 });
 
                 return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
-                    { "posts",      Utils.ObjectToJsonToken(Ret) },
+                    { "tags",      Utils.ObjectToJsonToken(Ret) },
                     { "total_size", TotalSize },
                 });
             } catch (Exception e) {
