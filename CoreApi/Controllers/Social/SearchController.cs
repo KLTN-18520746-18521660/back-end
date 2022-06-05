@@ -21,7 +21,7 @@ namespace CoreApi.Controllers.Social
     [Route("/api/search")]
     public class SearchController : BaseController
     {
-        public int DEFAULT_SEARCH_SIZE = 3;
+        public int DEFAULT_SEARCH_SIZE = 6;
         public SearchController(BaseConfig _BaseConfig) : base(_BaseConfig)
         {
         }
@@ -172,7 +172,7 @@ namespace CoreApi.Controllers.Social
                         }
                     },
                     { 
-                        "search_post",
+                        "search_category",
                         new JObject(){
                             { "categories", Utils.ObjectToJsonToken(RetCategories) },
                             { "total_size", TotalSizeCategories },
