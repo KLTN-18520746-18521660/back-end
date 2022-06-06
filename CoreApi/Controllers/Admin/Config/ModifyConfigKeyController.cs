@@ -49,6 +49,11 @@ namespace CoreApi.Controllers.Admin.Config
                     if (It.Value["min"] != default && Val < (int)It.Value["min"]) {
                         return "Exceed minium integer.";
                     }
+                } else if (Type == Input[It.Key].Type.ToString().ToLower()) {
+                    var Val = Input[It.Key];
+                    if (Val == default) {
+                        return "Invalid field is null";
+                    }
                 } else {
                     return "Invalid type";
                 }
