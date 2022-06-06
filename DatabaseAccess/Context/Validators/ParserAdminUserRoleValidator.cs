@@ -40,13 +40,13 @@ namespace DatabaseAccess.Context.Validators
                 .Matches("^.+$")
                     .WithMessage("{PropertyName} do not accept line terminators like: new line");
 
-            RuleFor(entity => entity.role_details)
+            RuleFor(entity => entity.rights)
                 .Cascade(CascadeMode.Stop)
                 .NotNull()
                     .WithMessage("{PropertyName} is Null")
-                .Must(role_details => role_details.Type == Newtonsoft.Json.Linq.JTokenType.Object)
+                .Must(rights => rights.Type == Newtonsoft.Json.Linq.JTokenType.Object)
                     .WithMessage("{PropertyName} must be a Json object.")
-                .Must((entity, role_details) => entity.IsValidRoleDetails())
+                .Must((entity, rights) => entity.IsValidRights())
                     .WithMessage("{PropertyName} is invalid.");
         }
     }

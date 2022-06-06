@@ -67,7 +67,7 @@ namespace DatabaseAccess.Context.Models
             Error = string.Empty;
             try {
                 var parser = (ParserModels.ParserSocialUserRole)Parser;
-                if (!parser.IsValidRoleDetails()) {
+                if (!parser.IsValidRights()) {
                     Error = "Invalid role details.";
                     return false;
                 }

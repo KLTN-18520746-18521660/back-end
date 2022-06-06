@@ -17,28 +17,28 @@ namespace DatabaseAccess.Context.ParserModels
         public string display_name { get; set; }
         public string describe { get; set; }
         public bool priority { get; set; }
-        
-        [DefaultValue("{1: [\"read\", \"write\"]}")]
-        public JObject role_details { get; set; }
+        [DefaultValue("{\"upload\": {\"read\": true, \"write\": true}}")]
+        public JObject rights { get; set; }
 
-        public bool IsValidRoleDetails()
+        public bool IsValidRights()
         {
-            var allow_str = new string[]{ "read", "write" };
-            foreach (var it in role_details) {
-                if (!Regex.IsMatch(it.Key, @"^\d+$")) {
+            var requiredKeys = new string[]{ "read", "write" };
+            foreach (var it in rights) {
+                if (!Regex.IsMatch(it.Key, @"^\w+$")) {
                     return false;
                 }
-                if (it.Value.Type != JTokenType.Array) {
+                if (it.Value.Type != JTokenType.Object) {
                     return false;
                 }
                 var count = 0;
-                foreach (var r in allow_str) {
-                    if (it.Value.ToArray().Contains(r)) {
+                var val = it.Value.ToObject<JObject>();
+                foreach (var k in requiredKeys) {
+                    if (val.ContainsKey(k)) {
                         count++;
                     }
                 }
 
-                if (count != it.Value.ToArray().Count()) {
+                if (count != 2 || val.Count != 2) {
                     return false;
                 }
             }

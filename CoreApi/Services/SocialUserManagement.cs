@@ -348,6 +348,30 @@ namespace CoreApi.Services
             return ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION;
         }
 
+        public async Task<ErrorCodes> HaveWritePermission(Guid UserId, string Right)
+        {
+            #region Find user info
+            var (User, Error) = await FindUserById(UserId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
+            return HaveWritePermission(User.Rights, Right);
+        }
+
+        public ErrorCodes HaveWritePermission(Dictionary<string, JObject> UserRights, string Right)
+        {
+            if (UserRights.ContainsKey(Right)) {
+                var right = UserRights[Right];
+                if (right["write"] != default &&
+                    ((bool)right["write"]) == true) {
+                    return ErrorCodes.NO_ERROR;
+                }
+            }
+            return ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION;
+        }
+
         public async Task<ErrorCodes> HaveFullPermission(Guid UserId, string Right)
         {
             #region Find user info
@@ -935,16 +959,16 @@ namespace CoreApi.Services
         }
         public async Task<ErrorCodes> NewRole(SocialUserRole Role, ParserSocialUserRole Parser, Guid UserId)
         {
-            foreach (var It in Parser.role_details) {
+            foreach (var It in Parser.rights) {
                 var Actions = new JObject();
-                Actions["write"] = It.Value.ToArray().Contains("write");
-                Actions["read"] = It.Value.ToArray().Contains("read");
-                var (Right, Err) =  await GetRightById(int.Parse(It.Key));
+                Actions["write"] = It.Value.ToObject<JObject>()["write"];
+                Actions["read"] = It.Value.ToObject<JObject>()["read"];
+                var (Right, Err) =  await GetRight(It.Key);
                 if (Err != ErrorCodes.NO_ERROR) {
                     return ErrorCodes.NOT_FOUND;
                 }
                 Role.SocialUserRoleDetails.Add(new SocialUserRoleDetail(){
-                    RightId     = int.Parse(It.Key),
+                    RightId     = Right.Id,
                     Right       = Right,
                     Role        = Role,
                     Actions     = Actions
