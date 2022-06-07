@@ -127,7 +127,7 @@ namespace CoreApi.Controllers.Admin.User
                 Error = __AdminUserManagement.HaveFullPermission(Session.User.Rights, ADMIN_RIGHTS.ADMIN_USER);
                 var Ret = Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION ? RetUser.GetPublicJsonObject() : RetUser.GetJsonObject();
                 return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
-                    { "user", Ret },
+                    { "admin", Ret },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());

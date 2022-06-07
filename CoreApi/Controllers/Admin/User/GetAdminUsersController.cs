@@ -84,7 +84,7 @@ namespace CoreApi.Controllers.Admin.User
                 #endregion
 
                 return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
-                    { "users", Ret },
+                    { "admins", Ret },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
