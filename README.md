@@ -120,7 +120,7 @@ CREATE DATABASE "social_db";
 CREATE DATABASE "cachec_db";
 ```
 
-#DEPLOY
+# DEPLOY
 - Linux (Ubuntu)
 	- get publish file by wsl:
 	> wsl -- cd /mnt/d/doc/unv/Thesis/back-end/CoreApi `&`& dotnet publish --configuration Release -o ./tmp/publish
