@@ -13,19 +13,12 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CoreApi.Controllers.Admin.Post
+namespace CoreApi.Controllers.Admin.Statistic
 {
     [ApiController]
-    [Route("/api/admin/posts_statistics")]
-    public class AdminGetPostStatisticsController : BaseController
+    [Route("/api/admin/statistic/post/count")]
+    public class AdminGetPostCountController : BaseController
     {
-        private int[] AllowTimes = new int[]{
-            -1,     // all time
-            7,      // week
-            30,     // month
-            180,    // 6 month
-        };
-
         private string[] AllowTypes = new string[]{
             "comment",
             "visited",
@@ -36,7 +29,7 @@ namespace CoreApi.Controllers.Admin.Post
             "view",
         };
 
-        public AdminGetPostStatisticsController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
+        public AdminGetPostCountController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
         }
 
@@ -48,15 +41,16 @@ namespace CoreApi.Controllers.Admin.Post
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> AdminGetPostStatistics([FromServices] SessionAdminUserManagement          __SessionAdminUserManagement,
-                                                                [FromServices] SocialCategoryManagement            __SocialCategoryManagement,
-                                                                [FromServices] SocialPostManagement                __SocialPostManagement,
-                                                                [FromServices] AdminUserManagement                 __AdminUserManagement,
-                                                                [FromServices] SocialTagManagement                 __SocialTagManagement,
-                                                                [FromHeader(Name = "session_token_admin")] string  SessionToken,
-                                                                [FromQuery(Name = "tags")] string                  Tags        = default,
-                                                                [FromQuery(Name = "categories")] string            Categories  = default,
-                                                                [FromQuery(Name = "time")] int                     Time        = default)
+        public async Task<IActionResult> AdminGetPostCountStatistics(
+                        [FromServices] SessionAdminUserManagement          __SessionAdminUserManagement,
+                        [FromServices] SocialCategoryManagement            __SocialCategoryManagement,
+                        [FromServices] SocialPostManagement                __SocialPostManagement,
+                        [FromServices] AdminUserManagement                 __AdminUserManagement,
+                        [FromServices] SocialTagManagement                 __SocialTagManagement,
+                        [FromHeader(Name = "session_token_admin")] string  SessionToken,
+                        [FromQuery(Name = "tags")] string                  Tags        = default,
+                        [FromQuery(Name = "categories")] string            Categories  = default,
+                        [FromQuery(Name = "time")] int                     Time        = default)
         {
             #region Init Handler
             SetRunningFunction();
@@ -93,7 +87,7 @@ namespace CoreApi.Controllers.Admin.Post
                 if (Tags != default && !await __SocialTagManagement.IsExistsTags(TagsArr)) {
                     return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "tags" });
                 }
-                if (!AllowTimes.Contains(Time)) {
+                if (Time <= 0 && Time != -1) {
                     return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 #endregion
@@ -108,24 +102,26 @@ namespace CoreApi.Controllers.Admin.Post
                 #region Get statistics
                 JObject Ret      = default;
                 (Ret, Error) = await __SocialPostManagement
-                    .GetPostsStatisticByAdminUser(
+                    .GetPostsCountStatistic(
                         Time,
                         TagsArr,
                         CategoriesArr
                     );
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"GetPostsStatisticByAdminUser failed, ErrorCode: { Error }");
+                    throw new Exception($"GetPostsCountStatistic failed, ErrorCode: { Error }");
                 }
                 #endregion
 
-                return Ok(200, RESPONSE_MESSAGES.OK, default, Ret);
+                return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
+                    { "statistic", Ret },
+                });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
                 return Problem(500, RESPONSE_MESSAGES.INTERNAL_SERVER_ERROR, default, default, LOG_LEVEL.ERROR);
             }
         }
 
-        [HttpGet("detail")]
+        [HttpGet("{type}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(GetPostByIdSuccessExample))]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(StatusCode400Examples))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(StatusCode401Examples))]
@@ -133,19 +129,19 @@ namespace CoreApi.Controllers.Admin.Post
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(StatusCode404Examples))]
         [ProducesResponseType(StatusCodes.Status423Locked, Type = typeof(StatusCode423Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
-        public async Task<IActionResult> AdminGetPostsStatisticsDetail(
-                                                                [FromServices] SessionAdminUserManagement          __SessionAdminUserManagement,
-                                                                [FromServices] SocialCategoryManagement            __SocialCategoryManagement,
-                                                                [FromServices] SocialPostManagement                __SocialPostManagement,
-                                                                [FromServices] AdminUserManagement                 __AdminUserManagement,
-                                                                [FromServices] SocialTagManagement                 __SocialTagManagement,
-                                                                [FromHeader(Name = "session_token_admin")] string  SessionToken,
-                                                                [FromQuery(Name = "start")] int                    Start = 0,
-                                                                [FromQuery(Name = "size")] int                     Size = 20,
-                                                                [FromQuery(Name = "tags")] string                  Tags        = default,
-                                                                [FromQuery(Name = "categories")] string            Categories  = default,
-                                                                [FromQuery(Name = "type")] string                  Type        = default,
-                                                                [FromQuery(Name = "time")] int                     Time        = default)
+        public async Task<IActionResult> AdminGetPostCountStatisticsDetail(
+                    [FromServices] SessionAdminUserManagement          __SessionAdminUserManagement,
+                    [FromServices] SocialCategoryManagement            __SocialCategoryManagement,
+                    [FromServices] SocialPostManagement                __SocialPostManagement,
+                    [FromServices] AdminUserManagement                 __AdminUserManagement,
+                    [FromServices] SocialTagManagement                 __SocialTagManagement,
+                    [FromRoute(Name = "type")] string                  __Type,
+                    [FromHeader(Name = "session_token_admin")] string  SessionToken,
+                    [FromQuery(Name = "start")] int                    Start = 0,
+                    [FromQuery(Name = "size")] int                     Size = 20,
+                    [FromQuery(Name = "tags")] string                  Tags        = default,
+                    [FromQuery(Name = "categories")] string            Categories  = default,
+                    [FromQuery(Name = "time")] int                     Time        = default)
         {
             #region Init Handler
             SetRunningFunction();
@@ -175,9 +171,9 @@ namespace CoreApi.Controllers.Admin.Post
                 AddLogParam("size", Size);
                 AddLogParam("categories", Categories);
                 AddLogParam("tags", Tags);
-                AddLogParam("type", Type);
+                AddLogParam("type", __Type);
                 AddLogParam("time", Time);
-                Type = Type.ToLower();
+                var Type = __Type.ToLower();
                 var TagsArr                     = Tags == default ? default : Tags.Split(',');
                 var CategoriesArr               = Categories == default ? default : Categories.Split(',');
                 if (Categories != default && !await __SocialCategoryManagement.IsExistingCategories(CategoriesArr)) {
@@ -189,7 +185,7 @@ namespace CoreApi.Controllers.Admin.Post
                 if (Start < 0 || Size < 1) {
                     return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
-                if (!AllowTimes.Contains(Time)) {
+                if (Time <= 0 && Time != -1) {
                     return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
                 if (!AllowTypes.Contains(Type)) {
@@ -208,7 +204,7 @@ namespace CoreApi.Controllers.Admin.Post
                 List<SocialPost> Posts  = default;
                 int TotalSize           = default;
                 (Posts, TotalSize, Error) = await __SocialPostManagement
-                    .GetPostsStatisticDetailByAdminUser(
+                    .GetPostsCountStatisticDetail(
                         Type,
                         Time,
                         Start,
@@ -217,7 +213,7 @@ namespace CoreApi.Controllers.Admin.Post
                         CategoriesArr
                     );
                 if (Error != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"GetPostsStatisticDetailByAdminUser failed, ErrorCode: { Error }");
+                    throw new Exception($"GetPostsCountStatisticDetail failed, ErrorCode: { Error }");
                 }
                 #endregion
 
