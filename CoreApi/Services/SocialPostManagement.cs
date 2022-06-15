@@ -210,8 +210,9 @@ namespace CoreApi.Services
                                 );
             return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
         }
-        public async Task<(JObject, ErrorCodes)> GetChartStatistic(DateTime start_date = default,
-                                                                   DateTime end_date = default,
+        public async Task<(JObject, ErrorCodes)> GetChartStatistic(string start_date,
+                                                                   string end_date,
+                                                                   string date_format,
                                                                    string[] tags = default,
                                                                    string[] categories = default)
         {
@@ -223,69 +224,47 @@ namespace CoreApi.Services
             if (categories == default) {
                 categories = new string[]{};
             }
-            #endregion
-            return (default, ErrorCodes.NOT_IMPLEMENT_YET);
-            // var compareDate = DateTime.UtcNow.AddDays(-time);
-            // var query =
-            //         from post in __DBContext.SocialPosts
-            //                 .Where(e =>
-            //                     (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
-            //                     && (tags.Count() == 0
-            //                         || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
-            //                     )
-            //                     && (categories.Count() == 0
-            //                         || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
-            //                     )
-            //                     && (time == -1 || e.CreatedTimestamp >= compareDate)
-            //                 )
-            //         join action in __DBContext.SocialUserActionWithPosts on post.Id equals action.PostId
-            //         into postWithAction
-            //         from p in postWithAction.DefaultIfEmpty()
-            //         group p by new {
-            //             post.Id,
-            //             post.Views,
-            //             post.CreatedTimestamp,
-            //         } into gr
-            //         select new {
-            //             gr.Key,
-            //             Visited = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
-            //                 EntityAction.GenContainsJsonStatement(ActionType.Visited))),
-            //             Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
-            //                 EntityAction.GenContainsJsonStatement(ActionType.Like))),
-            //             DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
-            //                 EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
-            //             Saved = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
-            //                 EntityAction.GenContainsJsonStatement(ActionType.Saved))),
-            //             Follows = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
-            //                 EntityAction.GenContainsJsonStatement(ActionType.Follow))),
-            //             Comments = __DBContext.SocialComments.Count(e =>
-            //                 e.PostId == gr.Key.Id
-            //                 && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
-            //             ),
-            //         } into ret select new {
-            //             ret.Key.Id,
-            //             visited     = ret.Visited,
-            //             views       = ret.Key.Views,
-            //             likes       = ret.Likes,
-            //             dislikes    = ret.DisLikes,
-            //             saved       = ret.Saved,
-            //             follows     = ret.Follows,
-            //             comments    = ret.Comments,
-            //             created_timestamp = ret.Key.CreatedTimestamp,
-            //         };
-            // var rs = await query.ToListAsync();
-            // var statistics = new JObject(){
-            //     { "posts",      rs.Count() },
-            //     { "visited",    rs.Sum(e => e.visited) },
-            //     { "views",      rs.Sum(e => e.views) },
-            //     { "likes",      rs.Sum(e => e.likes) },
-            //     { "saved",      rs.Sum(e => e.saved) },
-            //     { "follows",    rs.Sum(e => e.follows) },
-            //     { "dislikes",   rs.Sum(e => e.dislikes) },
-            //     { "comments",   rs.Sum(e => e.comments) },
-            // };
 
-            // return (statistics, ErrorCodes.NO_ERROR);
+            if (start_date == default || end_date == default || date_format == default) {
+                return (default, ErrorCodes.INVALID_PARAMS);
+            }
+            #endregion
+
+            var rawQuery =
+                $"SELECT     TO_CHAR(days, '{ date_format }'), "
+                            + "json_build_object("
+                                + "'created', COUNT(*) FILTER (WHERE DATE(sp.created_timestamp) = DATE(days)),"
+                                + "'approved', COUNT(*) FILTER (WHERE DATE(sp.approved_timestamp) = DATE(days))"
+                            + ") AS statistic "
+                + "FROM        social_post sp "
+                            + " CROSS JOIN LATERAL "
+                            + "generate_series("
+                                + $"TO_DATE('{ start_date }', '{ date_format }'), "
+                                + $"TO_DATE('{ end_date }', '{ date_format }'), "
+                                + "interval '1 day'"
+                            + ") AS days "
+                + "WHERE       ("
+                                + $"DATE(sp.created_timestamp) >= TO_DATE('{ start_date }', '{ date_format }') "
+                                + $"AND DATE(sp.created_timestamp) <= TO_DATE('{ end_date }', '{ date_format }') "
+                            + ") OR ("
+                                + $"DATE(sp.approved_timestamp) >= TO_DATE('{ start_date }', '{ date_format }') "
+                                + $"AND DATE(sp.approved_timestamp) <= TO_DATE('{ end_date }', '{ date_format }') "
+                            + ") "
+                + "GROUP BY days";
+            var raw_ret = await DBHelper.RawSqlQuery<(string, string)>(
+                rawQuery,
+                x => ((string)x[0], (string)x[1])
+            );
+
+            var ret = new JObject();
+            foreach (var it in raw_ret) {
+                if (Utils.IsJsonObject(it.Item2)) {
+                    ret.Add(it.Item1, JToken.Parse(it.Item2));
+                } else {
+                    ret.Add(it.Item1, new JObject());
+                }
+            }
+            return (ret, ErrorCodes.NO_ERROR);
         }
         public async Task<(JObject, ErrorCodes)> GetPostsCountStatistic(int time = 7,
                                                                                  string[] tags = default,

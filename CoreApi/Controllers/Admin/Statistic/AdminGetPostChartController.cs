@@ -80,7 +80,7 @@ namespace CoreApi.Controllers.Admin.Statistic
                     || EndDate.ToString(DATE_TIME_FORMAT) != End) {
                     return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
-                if (StartDate.CompareTo(EndDate) <= 0) {
+                if (StartDate.CompareTo(EndDate) >= 0) {
                     return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
                 }
 
@@ -105,8 +105,9 @@ namespace CoreApi.Controllers.Admin.Statistic
                 JObject Ret     = default;
                 (Ret, Error)    = await __SocialPostManagement
                     .GetChartStatistic(
-                        StartDate,
-                        EndDate,
+                        Start,
+                        End,
+                        DATE_TIME_FORMAT,
                         TagsArr,
                         CategoriesArr
                     );
