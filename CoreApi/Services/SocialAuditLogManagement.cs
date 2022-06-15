@@ -21,7 +21,7 @@ namespace CoreApi.Services
 
         public async Task<(List<SocialAuditLog> AuditLogs, int TotalSize)> GetAuditLogs(int Start, int Size, string SearchTerm = default)
         {
-            if (SearchTerm == default || SearchTerm == string.Empty) {
+            if (SearchTerm == default || SearchTerm.Trim() == string.Empty) {
                 return 
                 (
                     await __DBContext.SocialAuditLogs
@@ -32,16 +32,17 @@ namespace CoreApi.Services
                     await __DBContext.SocialAuditLogs.CountAsync()
                 );
             }
+            SearchTerm = SearchTerm.Trim();
             return
             (
                 await __DBContext.SocialAuditLogs
-                    .Where(e => e.SearchVector.Matches(SearchTerm.Trim()))
+                    .Where(e => e.SearchVector.Matches(SearchTerm))
                     .OrderBy(e => e.Id)
                     .Skip(Start)
                     .Take(Size)
                     .ToListAsync(),
                 await __DBContext.SocialAuditLogs
-                    .CountAsync(e => e.SearchVector.Matches(SearchTerm.Trim()))
+                    .CountAsync(e => e.SearchVector.Matches(SearchTerm))
             );
         }
 

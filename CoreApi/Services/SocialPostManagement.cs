@@ -1168,7 +1168,7 @@ namespace CoreApi.Services
             }
 
             #region increase views + add action 'Visited'
-            if (IncreaseView) {
+            if (IncreaseView && post.Status.Type == StatusType.Approved) {
                 post.Views++;
                 await __DBContext.SaveChangesAsync();
                 if (SocialUserId != default && post.Status.Type == StatusType.Approved) {
@@ -1311,6 +1311,9 @@ namespace CoreApi.Services
         #region Post handle
         public ErrorCodes ValidateChangeStatusAction(StatusType from, StatusType to)
         {
+            if (from == to) {
+                return ErrorCodes.NO_ERROR;
+            }
             if ((
                     from == StatusType.Pending && (
                     to == StatusType.Approved ||

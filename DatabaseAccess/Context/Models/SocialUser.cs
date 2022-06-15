@@ -347,7 +347,10 @@ namespace DatabaseAccess.Context.Models
         #region Handle default data
         public int CountPosts(bool isOwner = true)
         {
-            return SocialPosts.Count(e => isOwner || e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved));
+            return SocialPosts.Count(e => isOwner
+                ? e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                : e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
+            );
         }
 
         public int CountLikes()

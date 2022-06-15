@@ -170,6 +170,7 @@ namespace CoreApi.Services
                 Orders = new (string, bool)[]{};
             }
             #endregion
+            SearchTerm = SearchTerm.Trim().ToLower();
 
             // orderStr can't empty or null
             string OrderStr = Orders != default && Orders.Length != 0 ? Utils.GenerateOrderString(Orders) : "following desc, follower desc";
@@ -178,9 +179,9 @@ namespace CoreApi.Services
                         (from user in __DBContext.SocialUsers
                                 .Where(e => (e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                                     && (SearchTerm == default
-                                        || e.SearchVector.Matches(SearchTerm.Trim())
-                                        || e.UserName.ToLower().Contains(SearchTerm.Trim().ToLower())
-                                        || e.DisplayName.ToLower().Contains(SearchTerm.Trim().ToLower())
+                                        || e.SearchVector.Matches(SearchTerm)
+                                        || e.UserName.ToLower().Contains(SearchTerm)
+                                        || e.DisplayName.ToLower().Contains(SearchTerm)
                                     )
                                 )
                         join ac1 in __DBContext.SocialUserActionWithUsers on user.Id equals ac1.UserIdDes
@@ -226,9 +227,9 @@ namespace CoreApi.Services
             var TotalCount = await __DBContext.SocialUsers
                                 .CountAsync(e => (e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                                     && (SearchTerm == default
-                                        || e.SearchVector.Matches(SearchTerm.Trim())
-                                        || e.UserName.ToLower().Contains(SearchTerm.Trim().ToLower())
-                                        || e.DisplayName.ToLower().Contains(SearchTerm.Trim().ToLower())
+                                        || e.SearchVector.Matches(SearchTerm)
+                                        || e.UserName.ToLower().Contains(SearchTerm)
+                                        || e.DisplayName.ToLower().Contains(SearchTerm)
                                     )
                                 );
             return (await Query.ToListAsync(), TotalCount, ErrorCodes.NO_ERROR);

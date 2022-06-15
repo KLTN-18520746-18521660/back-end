@@ -280,6 +280,7 @@ namespace DatabaseAccess.Context.Models
                 ret.Add("created_timestamp", CreatedTimestamp);
                 ret.Add("have_pending_content", PendingContent != default);
                 ret.Add("visited_count", CountVisited());
+                ret["tags"] = this.AllTags;
             }
             return JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret));
         }
@@ -314,6 +315,9 @@ namespace DatabaseAccess.Context.Models
                 if (!publicFields.Contains(x.Key)) {
                     ret.Remove(x.Key);
                 }
+            }
+            if (ret.ContainsKey("tags")) {
+                ret.SelectToken("tags").Replace(Utils.ObjectToJsonToken(this.Tags));
             }
             return ret;
         }
@@ -354,7 +358,7 @@ namespace DatabaseAccess.Context.Models
                 { "likes", CountLikes() },
                 { "dislikes", CountDisLikes() },
                 { "comments", Comments },
-                { "tags", Tags },
+                { "tags", AllTags },
                 { "categories", Categories },
                 { "visited_count", CountVisited() },
                 { "content", Content },
