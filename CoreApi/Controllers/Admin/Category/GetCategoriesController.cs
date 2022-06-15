@@ -15,39 +15,53 @@ using System.Linq.Expressions;
 using DatabaseAccess.Common.Status;
 using Newtonsoft.Json;
 
-namespace CoreApi.Controllers.Social.Category
+namespace CoreApi.Controllers.Admin.Category
 {
     [ApiController]
-    [Route("/api/category/search")]
-    public class SearchCategoriesController : BaseController
+    [Route("/api/admin/category")]
+    public class GetCategoriesController : BaseController
     {
-        public SearchCategoriesController(BaseConfig _BaseConfig) : base(_BaseConfig)
+        public GetCategoriesController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
         }
 
         [HttpGet("")]
-        public async Task<IActionResult> SearchCategories([FromServices] SessionSocialUserManagement    __SessionSocialUserManagement,
-                                                          [FromServices] SocialCategoryManagement       __SocialCategoryManagement,
-                                                          [FromServices] SocialUserManagement           __SocialUserManagement,
-                                                          [FromHeader(Name = "session_token")] string   SessionToken,
-                                                          [FromQuery(Name = "start")] int               Start       = 0,
-                                                          [FromQuery(Name = "size")] int                Size        = 20,
-                                                          [FromQuery(Name = "search_term")] string      SearchTerm  = default)
+        public async Task<IActionResult> GetCategories([FromServices] SessionAdminUserManagement     __SessionAdminUserManagement,
+                                                       [FromServices] SocialCategoryManagement       __SocialCategoryManagement,
+                                                       [FromServices] AdminUserManagement            __AdminUserManagement,
+                                                       [FromHeader(Name = "session_token")] string   SessionToken,
+                                                       [FromQuery(Name = "start")] int               Start       = 0,
+                                                       [FromQuery(Name = "size")] int                Size        = 20,
+                                                       [FromQuery(Name = "search_term")] string      SearchTerm  = default)
         {
             #region Init Handler
             SetRunningFunction();
             SetTraceIdForServices(
-                __SessionSocialUserManagement,
+                __SessionAdminUserManagement,
                 __SocialCategoryManagement,
-                __SocialUserManagement
+                __AdminUserManagement
             );
             #endregion
             try {
-                #region Get session (not required)
+                #region Get session
                 SessionToken            = SessionToken != default ? SessionToken : GetValueFromCookie(SessionTokenHeaderKey);
-                var (__Session, _)      = await GetSessionToken(__SessionSocialUserManagement, SessionToken);
-                var IsValidSession      = __Session != default;
-                var Session             = __Session as SessionSocialUser;
+                var (__Session, ErrRet) = await GetSessionToken(__SessionAdminUserManagement, SessionToken);
+                if (ErrRet != default) {
+                    return ErrRet;
+                }
+                if (__Session == default) {
+                    throw new Exception($"GetSessionToken failed.");
+                }
+                var Session             = __Session as SessionAdminUser;
+                #endregion
+
+                #region Check Permission
+                var IsHaveReadPermission = true;
+                var Error = __AdminUserManagement.HaveReadPermission(Session.User.Rights, ADMIN_RIGHTS.CATEGORY);
+                if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
+                    IsHaveReadPermission = false;
+                }
+                AddLogParam("have_read_permission", IsHaveReadPermission);
                 #endregion
 
                 #region Validate params
@@ -65,7 +79,8 @@ namespace CoreApi.Controllers.Social.Category
                         Start,
                         Size,
                         SearchTerm,
-                        IsValidSession ? Session.UserId : default
+                        default,
+                        true
                     );
                 #endregion
 
@@ -78,16 +93,13 @@ namespace CoreApi.Controllers.Social.Category
 
                 var Ret = new List<JObject>();
                 Categories.ForEach(e => {
-                    var Obj = e.GetPublicJsonObject();
-                    if (IsValidSession) {
-                        Obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionByUser(Session.UserId)));
-                    }
+                    var Obj = e.GetJsonObject();
                     Ret.Add(Obj);
                 });
 
                 return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
-                    { "categories",      Utils.ObjectToJsonToken(Ret) },
-                    { "total_size", TotalSize },
+                    { "categories",     Utils.ObjectToJsonToken(Ret) },
+                    { "total_size",     TotalSize },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());

@@ -179,13 +179,14 @@ namespace CoreApi.Services
         public async Task<(List<SocialTag>, int)> SearchTags(int start = 0,
                                                              int size = 20,
                                                              string search_term = default,
-                                                             Guid socialUserId = default)
+                                                             Guid socialUserId = default,
+                                                             bool isAdmin = false)
         {
             search_term = search_term.Trim().ToLower();
             var query =
                     from ids in (
                         (from tag in __DBContext.SocialTags
-                            .Where(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
+                            .Where(e => (isAdmin || e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
                                     && (search_term == default
                                     || e.Tag.ToLower().Contains(search_term)
                                     || e.Name.ToLower().Contains(search_term)
@@ -214,7 +215,7 @@ namespace CoreApi.Services
                     select tags;
 
             var totalCount = await __DBContext.SocialTags
-                            .CountAsync(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
+                            .CountAsync(e => (isAdmin || e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
                                     && (search_term == default
                                     || e.Tag.ToLower().Contains(search_term)
                                     || e.Name.ToLower().Contains(search_term)

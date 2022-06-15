@@ -175,15 +175,16 @@ namespace CoreApi.Services
             return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
         }
         public async Task<(List<SocialCategory>, int)> SearchCategories(int start = 0,
-                                                                               int size = 20,
-                                                                               string search_term = default,
-                                                                               Guid socialUserId = default)
+                                                                        int size = 20,
+                                                                        string search_term = default,
+                                                                        Guid socialUserId = default,
+                                                                        bool isAdmin = false)
         {
             search_term = search_term.Trim().ToLower();
             var query =
                     from ids in (
                         (from category in __DBContext.SocialCategories
-                            .Where(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
+                            .Where(e => (isAdmin || e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
                                     && (search_term == default
                                     || e.Name.ToLower().Contains(search_term)
                                     || e.DisplayName.ToLower().Contains(search_term)
@@ -212,7 +213,7 @@ namespace CoreApi.Services
                     select categories;
 
             var totalCount = await __DBContext.SocialCategories
-                            .CountAsync(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
+                            .CountAsync(e => (isAdmin || e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled))
                                     && (search_term == default
                                     || e.Name.ToLower().Contains(search_term)
                                     || e.DisplayName.ToLower().Contains(search_term)

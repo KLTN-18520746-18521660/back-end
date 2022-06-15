@@ -41,8 +41,8 @@ namespace CoreApi.Controllers.Admin.Statistic
                                                            [FromHeader(Name = "session_token_admin")] string SessionToken,
                                                            [FromQuery(Name = "tags")] string Tags = default,
                                                            [FromQuery(Name = "categories")] string Categories = default,
-                                                           [FromQuery(Name = "start")] string Start = default,
-                                                           [FromQuery(Name = "end")] string End = default)
+                                                           [FromQuery(Name = "start_date")] string Start = default,
+                                                           [FromQuery(Name = "end_date")] string End = default)
         {
             #region Init Handler
             SetRunningFunction();
