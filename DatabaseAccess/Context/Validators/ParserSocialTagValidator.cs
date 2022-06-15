@@ -30,32 +30,31 @@ namespace DatabaseAccess.Context.Validators
                 .Matches("^[a-zA-Z0-9-_]+$")
                     .WithMessage("{PropertyName} only accept [0-9a-zA-Z], '_', '-'.");
 
-            When(entity => entity.name != default, () => {
-                RuleFor(entity => entity.name)
-                    .Cascade(CascadeMode.Stop)
-                    .NotEmpty()
-                        .WithMessage("{PropertyName} is empty.")
-                    .Length(MinTagNameLength, MaxTagNameLength)
-                        .WithMessage(string.Format("Length of {0} must be from {1} to {2}.",
-                            "{PropertyName}",
-                            MinTagNameLength.ToString(),
-                            MaxTagNameLength.ToString()
-                        ));
+            RuleFor(entity => entity.name)
+                .Cascade(CascadeMode.Stop)
+                .NotNull()
+                    .WithMessage("{PropertyName} is null.")
+                .NotEmpty()
+                    .WithMessage("{PropertyName} is empty.")
+                .Length(MinTagNameLength, MaxTagNameLength)
+                    .WithMessage(string.Format("Length of {0} must be from {1} to {2}.",
+                        "{PropertyName}",
+                        MinTagNameLength.ToString(),
+                        MaxTagNameLength.ToString()
+                    ));
 
-            });
-
-            When(entity => entity.describe != default, () => {
-                RuleFor(entity => entity.describe)
-                    .Cascade(CascadeMode.Stop)
-                    .NotEmpty()
-                        .WithMessage("{PropertyName} is empty.")
-                    .Length(MinTagDescribeLength, MaxTagDescribeLength)
-                        .WithMessage(string.Format("Length of {0} must be from {1} to {2}.",
-                            "{PropertyName}",
-                            MinTagDescribeLength.ToString(),
-                            MaxTagDescribeLength.ToString()
-                        ));
-            });
+            RuleFor(entity => entity.describe)
+                .Cascade(CascadeMode.Stop)
+                .NotNull()
+                    .WithMessage("{PropertyName} is null.")
+                .NotEmpty()
+                    .WithMessage("{PropertyName} is empty.")
+                .Length(MinTagDescribeLength, MaxTagDescribeLength)
+                    .WithMessage(string.Format("Length of {0} must be from {1} to {2}.",
+                        "{PropertyName}",
+                        MinTagDescribeLength.ToString(),
+                        MaxTagDescribeLength.ToString()
+                    ));
         }
     }
 }

@@ -68,6 +68,7 @@ namespace DatabaseAccess.Context.Models
             try {
                 var parser = (ParserModels.ParserSocialTag)Parser;
                 Tag = parser.tag;
+                Name = parser.name;
                 Describe = parser.describe;
 
                 return true;

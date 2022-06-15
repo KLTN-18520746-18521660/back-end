@@ -15,7 +15,7 @@ using System.Linq.Expressions;
 using DatabaseAccess.Common.Status;
 using Newtonsoft.Json;
 
-namespace CoreApi.Controllers.Admin.Category
+namespace CoreApi.Controllers.Admin.Tag
 {
     [ApiController]
     [Route("/api/admin/tag")]
@@ -57,7 +57,7 @@ namespace CoreApi.Controllers.Admin.Category
 
                 #region Check Permission
                 var IsHaveReadPermission = true;
-                var Error = __AdminUserManagement.HaveReadPermission(Session.User.Rights, ADMIN_RIGHTS.CATEGORY);
+                var Error = __AdminUserManagement.HaveReadPermission(Session.User.Rights, ADMIN_RIGHTS.TAG);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
                     IsHaveReadPermission = false;
                 }

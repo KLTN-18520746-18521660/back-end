@@ -18,7 +18,7 @@ using DatabaseAccess.Common.Status;
 namespace CoreApi.Controllers.Admin.User
 {
     [ApiController]
-    [Route("/api/admin/user")]
+    [Route("/api/admin/user_social")]
     public class ModifySocialUserController : BaseController
     {
         private static string[] AllowStatus = new string[]{
@@ -29,7 +29,7 @@ namespace CoreApi.Controllers.Admin.User
         {
         }
 
-        [HttpPut("social/{id}")]
+        [HttpPut("{id}")]
         public async Task<IActionResult> ModifySocialUser([FromServices] AdminUserManagement                 __AdminUserManagement,
                                                           [FromServices] SocialUserManagement                __SocialUserManagement,
                                                           [FromServices] SessionAdminUserManagement          __SessionAdminUserManagement,

@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,15 +7,16 @@ using System.Threading.Tasks;
 using FluentValidation;
 using System.ComponentModel.DataAnnotations.Schema;
 using DatabaseAccess.Common.Interface;
+using System.ComponentModel;
 
 namespace DatabaseAccess.Context.ParserModels
 {
-    public class ParserSocialCategory : IBaseParserModel
+    public class SocialTagModifyModel
     {
-        public long? parent_id { get; set; }
+        [DefaultValue("name of aplv")]
         public string name { get; set; }
-        public string display_name { get; set; }
+        [DefaultValue("describe of palv")]
         public string describe { get; set; }
-        public string thumbnail { get; set; }
+        public string status { get; set; }
     }
 }

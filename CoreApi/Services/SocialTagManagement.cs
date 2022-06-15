@@ -2,11 +2,14 @@ using Common;
 using CoreApi.Common;
 using CoreApi.Common.Base;
 using DatabaseAccess.Common.Actions;
+using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context;
 using DatabaseAccess.Context.Models;
+using DatabaseAccess.Context.ParserModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -182,7 +185,7 @@ namespace CoreApi.Services
                                                              Guid socialUserId = default,
                                                              bool isAdmin = false)
         {
-            search_term = search_term.Trim().ToLower();
+            search_term = search_term == default ? default : search_term.Trim().ToLower();
             var query =
                     from ids in (
                         (from tag in __DBContext.SocialTags
@@ -231,7 +234,7 @@ namespace CoreApi.Services
                                                           string search_term = default,
                                                           Guid socialUserId = default)
         {
-            search_term = search_term.Trim().ToLower();
+            search_term = search_term == default ? default : search_term.Trim().ToLower();
             var query =
                     from ids in (
                         (from tag in __DBContext.SocialTags
@@ -264,7 +267,7 @@ namespace CoreApi.Services
             var totalCount = await __DBContext.SocialTags
                             .CountAsync(e => e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
                                     && (search_term == default
-                                    || e.Tag.ToLower().Contains(search_term.Trim().ToLower())
+                                    || e.Tag.ToLower().Contains(search_term)
                                 )
                             );
 
@@ -403,10 +406,89 @@ namespace CoreApi.Services
         #endregion
 
         #region Tag handle
-        public async Task<ErrorCodes> AddNewTag(SocialTag Tag)
+        public async Task<ErrorCodes> AddNewTag(SocialTag Tag, Guid AdminUserId)
         {
+            #region Find user
+            using (var scope = __ServiceProvider.CreateScope())
+            {
+                var __AdminUserManagement = scope.ServiceProvider.GetRequiredService<AdminUserManagement>();
+                var (user, error) = await __AdminUserManagement.FindUserById(AdminUserId);
+                if (error != ErrorCodes.NO_ERROR || (user.Status.Type != StatusType.Activated && user.Status.Type != StatusType.Readonly)) {
+                    return error == ErrorCodes.NOT_FOUND ? error :
+                        (user.Status.Type == StatusType.Deleted ? ErrorCodes.DELETED : ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION);
+                }
+            }
+            #endregion
+
             await __DBContext.SocialTags.AddAsync(Tag);
             if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [ADMIN] Write admin audit log
+                var (newTag, error) = await FindTagById(Tag.Id);
+                if (error == ErrorCodes.NO_ERROR) {
+                    using (var scope = __ServiceProvider.CreateScope())
+                    {
+                        var __SocialAuditLogManagement = scope.ServiceProvider.GetRequiredService<SocialAuditLogManagement>();
+                        await __SocialAuditLogManagement.AddNewAuditLog(
+                            newTag.GetModelName(),
+                            newTag.Id.ToString(),
+                            LOG_ACTIONS.CREATE,
+                            AdminUserId,
+                            new JObject(),
+                            newTag.GetJsonObject()
+                        );
+                    }
+                } else {
+                    return ErrorCodes.INTERNAL_SERVER_ERROR;
+                }
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        public async Task<ErrorCodes> ModifyTag(long TagId, SocialTagModifyModel ModelData, Guid AdminUserId)
+        {
+            #region Find tag info
+            var (Tag, Error) = await FindTagById(TagId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
+            var OldData = Utils.DeepClone(Tag.GetJsonObjectForLog());
+            #region Get data change and save
+            var haveChange = false;
+            if (ModelData.name != default && ModelData.name != Tag.Name) {
+                Tag.Name = ModelData.name;
+                haveChange = true;
+            }
+            if (ModelData.describe != default && ModelData.describe != Tag.Describe) {
+                Tag.Describe = ModelData.describe;
+                haveChange = true;
+            }
+            if (ModelData.status != default && ModelData.status != Tag.StatusStr) {
+                Tag.StatusStr = ModelData.status;
+                haveChange = true;
+            }
+            #endregion
+
+            if (!haveChange) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+
+            Tag.LastModifiedTimestamp = DateTime.UtcNow;
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [ADMIN] Write admin audit log
+                var __SocialAuditLogManagement = __ServiceProvider.GetService<SocialAuditLogManagement>();
+                var (OldVal, NewVal) = Utils.GetDataChanges(OldData, Tag.GetJsonObjectForLog());
+                await __SocialAuditLogManagement.AddNewAuditLog(
+                    Tag.GetModelName(),
+                    Tag.Id.ToString(),
+                    LOG_ACTIONS.MODIFY,
+                    AdminUserId,
+                    OldVal,
+                    NewVal
+                );
+                #endregion
                 return ErrorCodes.NO_ERROR;
             }
             return ErrorCodes.INTERNAL_SERVER_ERROR;

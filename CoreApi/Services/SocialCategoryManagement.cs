@@ -6,6 +6,7 @@ using DatabaseAccess.Common.Models;
 using DatabaseAccess.Common.Status;
 using DatabaseAccess.Context;
 using DatabaseAccess.Context.Models;
+using DatabaseAccess.Context.ParserModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
@@ -180,7 +181,7 @@ namespace CoreApi.Services
                                                                         Guid socialUserId = default,
                                                                         bool isAdmin = false)
         {
-            search_term = search_term.Trim().ToLower();
+            search_term = search_term == default ? default : search_term.Trim().ToLower();
             var query =
                     from ids in (
                         (from category in __DBContext.SocialCategories
@@ -400,6 +401,63 @@ namespace CoreApi.Services
                 } else {
                     return ErrorCodes.INTERNAL_SERVER_ERROR;
                 }
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        public async Task<ErrorCodes> ModifyCategory(long CategoryId, SocialCategoryModifyModel ModelData, Guid AdminUserId)
+        {
+            #region Find tag info
+            var (Category, Error) = await FindCategoryById(CategoryId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
+            var OldData = Utils.DeepClone(Category.GetJsonObjectForLog());
+            #region Get data change and save
+            var haveChange = false;
+            if (ModelData.parent_id != default && ModelData.parent_id != Category.ParentId) {
+                var (ParentCategory, ErrorGetParent) = await FindCategoryById((long) ModelData.parent_id);
+                if (ErrorGetParent != ErrorCodes.NO_ERROR) {
+                    return ErrorCodes.NOT_FOUND;
+                }
+                Category.ParentId = ParentCategory.Id;
+                Category.Parent = ParentCategory;
+                haveChange = true;
+            }
+            if (ModelData.display_name != default && ModelData.display_name != Category.DisplayName) {
+                Category.DisplayName = ModelData.display_name;
+                haveChange = true;
+            }
+            if (ModelData.describe != default && ModelData.describe != Category.Describe) {
+                Category.Describe = ModelData.describe;
+                haveChange = true;
+            }
+            if (ModelData.status != default && ModelData.status != Category.StatusStr) {
+                Category.StatusStr = ModelData.status;
+                haveChange = true;
+            }
+            #endregion
+
+            if (!haveChange) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+
+            Category.LastModifiedTimestamp = DateTime.UtcNow;
+            if (await __DBContext.SaveChangesAsync() > 0) {
+                #region [ADMIN] Write admin audit log
+                var __SocialAuditLogManagement = __ServiceProvider.GetService<SocialAuditLogManagement>();
+                var (OldVal, NewVal) = Utils.GetDataChanges(OldData, Category.GetJsonObjectForLog());
+                await __SocialAuditLogManagement.AddNewAuditLog(
+                    Category.GetModelName(),
+                    Category.Id.ToString(),
+                    LOG_ACTIONS.MODIFY,
+                    AdminUserId,
+                    OldVal,
+                    NewVal
+                );
                 #endregion
                 return ErrorCodes.NO_ERROR;
             }

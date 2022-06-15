@@ -30,7 +30,7 @@ namespace CoreApi.Controllers.Admin.User
         {
         }
 
-        [HttpPut("admin/{id}")]
+        [HttpPut("{id}")]
         public async Task<IActionResult> ModifyAdminUser([FromServices] AdminUserManagement                 __AdminUserManagement,
                                                          [FromServices] SessionAdminUserManagement          __SessionAdminUserManagement,
                                                          [FromRoute(Name = "id")] Guid                      __Id,

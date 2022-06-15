@@ -170,7 +170,7 @@ namespace CoreApi.Services
                 Orders = new (string, bool)[]{};
             }
             #endregion
-            SearchTerm = SearchTerm.Trim().ToLower();
+            SearchTerm = SearchTerm == default ? default : SearchTerm.Trim().ToLower();
 
             // orderStr can't empty or null
             string OrderStr = Orders != default && Orders.Length != 0 ? Utils.GenerateOrderString(Orders) : "following desc, follower desc";
@@ -235,6 +235,38 @@ namespace CoreApi.Services
             return (await Query.ToListAsync(), TotalCount, ErrorCodes.NO_ERROR);
         }
 
+        public async Task<(List<SocialUser>, int TotalSize)> GetUsers(int Start, int Size, string SearchTerm = default)
+        {
+            return
+            (
+                await __DBContext.SocialUsers
+                    .Where(e =>
+                        e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                        && (
+                            SearchTerm == default || SearchTerm.Trim() == string.Empty
+                            || e.SearchVector.Matches(SearchTerm)
+                            || e.UserName.ToLower().Contains(SearchTerm.Trim().ToLower())
+                            || e.DisplayName.ToLower().Contains(SearchTerm.Trim().ToLower())
+                            || e.Email.ToLower().Contains(SearchTerm.Trim().ToLower())
+                        )
+                    )
+                    .OrderBy(e => e.Id)
+                    .Skip(Start)
+                    .Take(Size)
+                    .ToListAsync(),
+                await __DBContext.SocialUsers
+                    .CountAsync(e =>
+                        e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                        && (
+                            SearchTerm == default || SearchTerm.Trim() == string.Empty
+                            || e.SearchVector.Matches(SearchTerm)
+                            || e.UserName.ToLower().Contains(SearchTerm.Trim().ToLower())
+                            || e.DisplayName.ToLower().Contains(SearchTerm.Trim().ToLower())
+                            || e.Email.ToLower().Contains(SearchTerm.Trim().ToLower())
+                        )
+                    )
+            );
+        }
         // username_existed, email_existed, ERROR
         public async Task<(bool, bool, ErrorCodes)> IsUserExsiting(string UserName, string Email)
         {
