@@ -17,7 +17,7 @@ namespace DatabaseAccess.Context.ParserModels
         public string display_name { get; set; }
         public string describe { get; set; }
         public bool priority { get; set; }
-        [DefaultValue("{upload: {'read': true, 'write': true}")]
+        [DefaultValue("{\"upload\": {\"read\": true, \"write\": true}}")]
         public JObject rights { get; set; }
 
         public bool IsValidRights()

@@ -13,7 +13,7 @@ using System.Text.RegularExpressions;
 
 namespace CoreApi.Models.ModifyModels
 {
-    public class SocialUserRoleModifyModel
+    public class AdminUserRoleModifyModel
     {
         public string display_name { get; set; }
         public string describe { get; set; }

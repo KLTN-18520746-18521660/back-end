@@ -8,13 +8,11 @@ using System.IO;
 
 namespace CoreApi.Models.Validators
 {
-    public class SocialUserRoleModifyModelValidator : AbstractValidator<SocialUserRoleModifyModel>
+    public class AdminUserModifyModelValidator : AbstractValidator<AdminUserModifyModel>
     {
         public readonly int MinDisplayNameLength = 4;
         public readonly int MaxDisplayNameLength = 50;
-        public readonly int MinDescriptionLength = 4;
-        public readonly int MaxDescriptionLength = 150;
-        public SocialUserRoleModifyModelValidator()
+        public AdminUserModifyModelValidator()
         {
             When(entity => entity.display_name != default, () => {
                 RuleFor(entity => entity.display_name)
@@ -33,26 +31,13 @@ namespace CoreApi.Models.Validators
                         .WithMessage("{PropertyName} do not accept line terminators like: new line");
             });
 
-            When(entity => entity.describe != default, () => {
-                RuleFor(entity => entity.describe)
-                    .Cascade(CascadeMode.Stop)
-                    .Length(MinDescriptionLength, MaxDescriptionLength)
-                        .WithMessage(string.Format("Length of {0} must be from {1} to {2}.",
-                            "{PropertyName}",
-                            MinDescriptionLength.ToString(),
-                            MaxDescriptionLength.ToString()
-                        ))
-                    .Matches("^.+$")
-                        .WithMessage("{PropertyName} do not accept line terminators like: new line");
-            });
-
-            When(entity => entity.rights != default, () => {
-                RuleFor(entity => entity.rights)
+            When(entity => entity.roles != default, () => {
+                RuleFor(entity => entity.roles)
                     .Cascade(CascadeMode.Stop)
                     .NotNull()
                         .WithMessage("{PropertyName} is Null")
-                    .Must(rights => rights.Type == Newtonsoft.Json.Linq.JTokenType.Object)
-                        .WithMessage("{PropertyName} must be a Json object.")
+                    .Must(rights => rights.Type == Newtonsoft.Json.Linq.JTokenType.Array)
+                        .WithMessage("{PropertyName} must be a Json array.")
                     .Must((entity, rights) => entity.IsValidRights())
                         .WithMessage("{PropertyName} is invalid.");
             });

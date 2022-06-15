@@ -8,13 +8,13 @@ using System.IO;
 
 namespace CoreApi.Models.Validators
 {
-    public class SocialUserRoleModifyModelValidator : AbstractValidator<SocialUserRoleModifyModel>
+    public class AdminUserRoleModifyModelValidator : AbstractValidator<AdminUserRoleModifyModel>
     {
         public readonly int MinDisplayNameLength = 4;
         public readonly int MaxDisplayNameLength = 50;
         public readonly int MinDescriptionLength = 4;
         public readonly int MaxDescriptionLength = 150;
-        public SocialUserRoleModifyModelValidator()
+        public AdminUserRoleModifyModelValidator()
         {
             When(entity => entity.display_name != default, () => {
                 RuleFor(entity => entity.display_name)

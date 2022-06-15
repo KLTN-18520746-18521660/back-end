@@ -355,6 +355,69 @@ namespace CoreApi.Services
 
             return CommonValidate.ValidatePassword(Password, MinLen, MaxLen, MinUpperChar, MinLowerChar, MinNumberChar, MinSpecialChar);
         }
+        public async Task<ErrorCodes> ModifyUser(Guid UserId, AdminUserModifyModel ModelData, Guid AdminUserId)
+        {
+            #region Find user info
+            var (User, Error) = await FindUserById(UserId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
+            var OldData = Utils.DeepClone(User.GetJsonObjectForLog());
+            #region Get data change and save
+            var haveChange = false;
+            if (ModelData.display_name != default && ModelData.display_name != User.DisplayName) {
+                User.DisplayName = ModelData.display_name;
+                haveChange = true;
+            }
+            if (ModelData.status != default && ModelData.status != User.StatusStr) {
+                User.StatusStr = ModelData.status;
+                haveChange = true;
+            }
+            if (ModelData.roles != default) {
+                User.AdminUserRoleOfUsers.Clear();
+                foreach (var It in ModelData.roles) {
+                    var (Role, Err) =  await GetRoleIgnoreStatus(It.ToString());
+                    if (Err != ErrorCodes.NO_ERROR) {
+                        return ErrorCodes.NOT_FOUND;
+                    }
+                    User.AdminUserRoleOfUsers.Add(new AdminUserRoleOfUser(){
+                        RoleId      = Role.Id,
+                        Role        = Role,
+                        UserId      = User.Id,
+                        User        = User
+                    });
+                }
+                haveChange = true;
+            }
+            #endregion
+
+            if (!haveChange) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+
+            var Ret = await __DBContext.SaveChangesAsync();
+            if (Ret == 0) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+            if (Ret > 0) {
+                #region [ADMIN] Write admin audit log
+                var __AdminAuditLogManagement = __ServiceProvider.GetService<AdminAuditLogManagement>();
+                var (OldVal, NewVal) = Utils.GetDataChanges(OldData, User.GetJsonObjectForLog());
+                await __AdminAuditLogManagement.AddNewAuditLog(
+                    User.GetModelName(),
+                    User.Id.ToString(),
+                    LOG_ACTIONS.MODIFY,
+                    AdminUserId,
+                    OldVal,
+                    NewVal
+                );
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
         public async Task<ErrorCodes> ChangePassword(Guid AdminUserId, string NewPassword, Guid AdminUserIdAction)
         {
             var (User, Error) = await FindUserById(AdminUserId);
@@ -531,6 +594,26 @@ namespace CoreApi.Services
             }
             return (Right, ErrorCodes.NO_ERROR);
         }
+        public async Task<(AdminUserRole, ErrorCodes)> GetRoleIgnoreStatus(string RoleName)
+        {
+            var Right = await __DBContext.AdminUserRoles
+                    .Where(e => e.RoleName == RoleName)
+                    .FirstOrDefaultAsync();
+            if (Right == default) {
+                return (default, ErrorCodes.NOT_FOUND);
+            }
+            return (Right, ErrorCodes.NO_ERROR);
+        }
+        public async Task<(AdminUserRole, ErrorCodes)> GetRoleById(int Id)
+        {
+            var Role = await __DBContext.AdminUserRoles
+                    .Where(e => e.Id == Id)
+                    .FirstOrDefaultAsync();
+            if (Role == default) {
+                return (default, ErrorCodes.NOT_FOUND);
+            }
+            return (Role, ErrorCodes.NO_ERROR);
+        }
         public async Task<(List<AdminUserRole>, int)> GetRoles()
         {
             return (
@@ -572,6 +655,70 @@ namespace CoreApi.Services
                     UserId,
                     new JObject(),
                     Role.GetJsonObjectForLog()
+                );
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
+        public async Task<ErrorCodes> ModifyRole(int RoleId, AdminUserRoleModifyModel ModelData, Guid UserId)
+        {
+            var (Role, Error) =  await GetRoleById(RoleId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+
+            var OldData = Utils.DeepClone(Role.GetJsonObjectForLog());
+            #region Get data change and save
+            var haveChange = false;
+            if (ModelData.display_name != default && ModelData.display_name != Role.DisplayName) {
+                Role.DisplayName = ModelData.display_name;
+                haveChange = true;
+            }
+            if (ModelData.describe != default && ModelData.describe != Role.Describe) {
+                Role.Describe = ModelData.describe;
+                haveChange = true;
+            }
+            if (ModelData.rights != default) {
+                Role.AdminUserRoleDetails.Clear();
+                foreach (var It in ModelData.rights) {
+                    var Actions = new JObject();
+                    Actions["write"] = It.Value.ToObject<JObject>()["write"];
+                    Actions["read"] = It.Value.ToObject<JObject>()["read"];
+                    var (Right, Err) =  await GetRight(It.Key);
+                    if (Err != ErrorCodes.NO_ERROR) {
+                        return ErrorCodes.NOT_FOUND;
+                    }
+                    Role.AdminUserRoleDetails.Add(new AdminUserRoleDetail(){
+                        RightId     = Right.Id,
+                        Right       = Right,
+                        Role        = Role,
+                        Actions     = Actions
+                    });
+                }
+                haveChange = true;
+            }
+            #endregion
+
+            if (!haveChange) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+
+            var Ret = await __DBContext.SaveChangesAsync();
+            if (Ret == 0) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+            if (Ret > 0) {
+                #region [ADMIN] Write admin audit log
+                var __AdminAuditLogManagement = __ServiceProvider.GetService<AdminAuditLogManagement>();
+                var (OldVal, NewVal) = Utils.GetDataChanges(OldData, Role.GetJsonObjectForLog());
+                await __AdminAuditLogManagement.AddNewAuditLog(
+                    Role.GetModelName(),
+                    Role.Id.ToString(),
+                    LOG_ACTIONS.MODIFY,
+                    UserId,
+                    OldVal,
+                    NewVal
                 );
                 #endregion
                 return ErrorCodes.NO_ERROR;

@@ -639,6 +639,65 @@ namespace CoreApi.Services
             }
             return ErrorCodes.INTERNAL_SERVER_ERROR;
         }
+        public async Task<ErrorCodes> ModifyUser(Guid UserId, SocialUserModifyModelByAdmin ModelData, Guid AdminUserId)
+        {
+            #region Find user info
+            var (User, Error) = await FindUserById(UserId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return Error;
+            }
+            #endregion
+
+            var OldData = Utils.DeepClone(User.GetJsonObjectForLog());
+            #region Get data change and save
+            var haveChange = false;
+            if (ModelData.status != default && ModelData.status != User.StatusStr) {
+                User.StatusStr = ModelData.status;
+                haveChange = true;
+            }
+            if (ModelData.roles != default) {
+                User.SocialUserRoleOfUsers.Clear();
+                foreach (var It in ModelData.roles) {
+                    var (Role, Err) =  await GetRoleIgnoreStatus(It.ToString());
+                    if (Err != ErrorCodes.NO_ERROR) {
+                        return ErrorCodes.NOT_FOUND;
+                    }
+                    User.SocialUserRoleOfUsers.Add(new SocialUserRoleOfUser(){
+                        RoleId      = Role.Id,
+                        Role        = Role,
+                        UserId      = User.Id,
+                        User        = User
+                    });
+                }
+                haveChange = true;
+            }
+            #endregion
+
+            if (!haveChange) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+            var Ret = await __DBContext.SaveChangesAsync();
+            if (Ret == 0) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+            if (Ret > 0) {
+                #region [ADMIN] Write audit log
+                var __SocialUserAuditLogManagement = __ServiceProvider.GetService<SocialUserAuditLogManagement>();
+                var (OldVal, NewVal) = Utils.GetDataChanges(OldData, User.GetJsonObjectForLog());
+                await __SocialUserAuditLogManagement.AddNewUserAuditLog(
+                    User.GetModelName(),
+                    User.Id.ToString(),
+                    LOG_ACTIONS.MODIFY,
+                    User.Id,
+                    OldVal,
+                    NewVal,
+                    AdminUserId
+                );
+                #endregion
+                return ErrorCodes.NO_ERROR;
+            }
+            return ErrorCodes.INTERNAL_SERVER_ERROR;
+        }
         #endregion
 
         #region Forgot password
@@ -937,6 +996,16 @@ namespace CoreApi.Services
             }
             return (Right, ErrorCodes.NO_ERROR);
         }
+        public async Task<(SocialUserRole, ErrorCodes)> GetRoleIgnoreStatus(string RoleName)
+        {
+            var Right = await __DBContext.SocialUserRoles
+                    .Where(e => e.RoleName == RoleName)
+                    .FirstOrDefaultAsync();
+            if (Right == default) {
+                return (default, ErrorCodes.NOT_FOUND);
+            }
+            return (Right, ErrorCodes.NO_ERROR);
+        }
         public async Task<(SocialUserRole, ErrorCodes)> GetRoleById(int Id)
         {
             var Role = await __DBContext.SocialUserRoles
@@ -1005,7 +1074,7 @@ namespace CoreApi.Services
             var OldData = Utils.DeepClone(Role.GetJsonObjectForLog());
             #region Get data change and save
             var haveChange = false;
-            if (ModelData.display_name != default && ModelData.display_name != Role.Describe) {
+            if (ModelData.display_name != default && ModelData.display_name != Role.DisplayName) {
                 Role.DisplayName = ModelData.display_name;
                 haveChange = true;
             }
@@ -1013,18 +1082,18 @@ namespace CoreApi.Services
                 Role.Describe = ModelData.describe;
                 haveChange = true;
             }
-            if (ModelData.role_details != default) {
+            if (ModelData.rights != default) {
                 Role.SocialUserRoleDetails.Clear();
-                foreach (var It in ModelData.role_details) {
+                foreach (var It in ModelData.rights) {
                     var Actions = new JObject();
-                    Actions["write"] = It.Value.ToArray().Contains("write");
-                    Actions["read"] = It.Value.ToArray().Contains("read");
-                    var (Right, Err) =  await GetRightById(int.Parse(It.Key));
+                    Actions["write"] = It.Value.ToObject<JObject>()["write"];
+                    Actions["read"] = It.Value.ToObject<JObject>()["read"];
+                    var (Right, Err) =  await GetRight(It.Key);
                     if (Err != ErrorCodes.NO_ERROR) {
                         return ErrorCodes.NOT_FOUND;
                     }
                     Role.SocialUserRoleDetails.Add(new SocialUserRoleDetail(){
-                        RightId     = int.Parse(It.Key),
+                        RightId     = Right.Id,
                         Right       = Right,
                         Role        = Role,
                         Actions     = Actions
@@ -1038,7 +1107,11 @@ namespace CoreApi.Services
                 return ErrorCodes.NO_CHANGE_DETECTED;
             }
 
-            if (await __DBContext.SaveChangesAsync() > 0) {
+            var Ret = await __DBContext.SaveChangesAsync();
+            if (Ret == 0) {
+                return ErrorCodes.NO_CHANGE_DETECTED;
+            }
+            if (Ret > 0) {
                 #region [SOCIAL] Write admin audit log
                 var __AdminAuditLogManagement = __ServiceProvider.GetService<AdminAuditLogManagement>();
                 var (OldVal, NewVal) = Utils.GetDataChanges(OldData, Role.GetJsonObjectForLog());
