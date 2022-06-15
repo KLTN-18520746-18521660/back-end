@@ -103,7 +103,7 @@ namespace CoreApi.Controllers.Admin.Session
                 #endregion
 
                 return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
-                    { "sessions", Ret.ToString() },
+                    { "sessions", Ret },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
