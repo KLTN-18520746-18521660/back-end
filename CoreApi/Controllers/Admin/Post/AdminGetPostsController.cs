@@ -97,6 +97,9 @@ namespace CoreApi.Controllers.Admin.Post
                 if (StatusArr == default) {
                     throw new Exception($"ValidateStatusParams failed.");
                 }
+                if (Start < 0 || Size < 1) {
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
+                }
                 if (Categories != default && !await __SocialCategoryManagement.IsExistingCategories(CategoriesArr)) {
                     return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "categories" });
                 }

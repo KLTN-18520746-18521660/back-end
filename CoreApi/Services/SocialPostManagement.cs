@@ -210,6 +210,194 @@ namespace CoreApi.Services
                                 );
             return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
         }
+        public async Task<(JObject, ErrorCodes)> GetPostsStatisticByAdminUser(int time = 7,
+                                                                                 string[] tags = default,
+                                                                                 string[] categories = default)
+        {
+            #region validate params
+            if (tags == default) {
+                tags = new string[]{};
+            }
+
+            if (categories == default) {
+                categories = new string[]{};
+            }
+            #endregion
+            var compareDate = DateTime.UtcNow.AddDays(-time);
+            var query =
+                    from post in __DBContext.SocialPosts
+                            .Where(e =>
+                                (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
+                                && (tags.Count() == 0
+                                    || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
+                                )
+                                && (categories.Count() == 0
+                                    || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
+                                )
+                                && (time == -1 || e.CreatedTimestamp >= compareDate)
+                            )
+                    join action in __DBContext.SocialUserActionWithPosts on post.Id equals action.PostId
+                    into postWithAction
+                    from p in postWithAction.DefaultIfEmpty()
+                    group p by new {
+                        post.Id,
+                        post.Views,
+                        post.CreatedTimestamp,
+                    } into gr
+                    select new {
+                        gr.Key,
+                        Visited = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                            EntityAction.GenContainsJsonStatement(ActionType.Visited))),
+                        Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                            EntityAction.GenContainsJsonStatement(ActionType.Like))),
+                        DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                            EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
+                        Saved = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                            EntityAction.GenContainsJsonStatement(ActionType.Saved))),
+                        Follows = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                            EntityAction.GenContainsJsonStatement(ActionType.Follow))),
+                        Comments = __DBContext.SocialComments.Count(e =>
+                            e.PostId == gr.Key.Id
+                            && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                        ),
+                    } into ret select new {
+                        ret.Key.Id,
+                        visited     = ret.Visited,
+                        views       = ret.Key.Views,
+                        likes       = ret.Likes,
+                        dislikes    = ret.DisLikes,
+                        saved       = ret.Saved,
+                        follows     = ret.Follows,
+                        comments    = ret.Comments,
+                        created_timestamp = ret.Key.CreatedTimestamp,
+                    };
+            var rs = await query.ToListAsync();
+            var statistics = new JObject(){
+                { "posts",      rs.Count() },
+                { "visited",    rs.Sum(e => e.visited) },
+                { "views",      rs.Sum(e => e.views) },
+                { "likes",      rs.Sum(e => e.likes) },
+                { "saved",      rs.Sum(e => e.saved) },
+                { "follows",    rs.Sum(e => e.follows) },
+                { "dislikes",   rs.Sum(e => e.dislikes) },
+                { "comments",   rs.Sum(e => e.comments) },
+            };
+
+            return (statistics, ErrorCodes.NO_ERROR);
+        }
+
+        public async Task<(List<SocialPost>, int, ErrorCodes)> GetPostsStatisticDetailByAdminUser(string type,
+                                                                                                  int time  = 7,
+                                                                                                  int start = 0,
+                                                                                                  int size  = 20,
+                                                                                                  string[] tags         = default,
+                                                                                                  string[] categories   = default)
+        {
+            #region validate params
+            if (tags == default) {
+                tags = new string[]{};
+            }
+
+            if (categories == default) {
+                categories = new string[]{};
+            }
+
+            var orderStr = "created_timestamp desc";
+            switch (type) {
+                case "comment":
+                    orderStr = "comments desc";
+                    break;
+                case "view":
+                    orderStr = "views desc";
+                    break;
+                case "visited":
+                    orderStr = "visited desc";
+                    break;
+                case "like":
+                    orderStr = "likes desc";
+                    break;
+                case "dislike":
+                    orderStr = "dislikes desc";
+                    break;
+                case "saved":
+                    orderStr = "saved desc";
+                    break;
+                case "follow":
+                    orderStr = "follows desc";
+                    break;
+                default:
+                    return (default, default, ErrorCodes.INVALID_PARAMS);
+            }
+            #endregion
+            var compareDate = DateTime.UtcNow.AddDays(-time);
+            var query =
+                    from ids in (
+                        (from post in __DBContext.SocialPosts
+                                .Where(e =>
+                                    (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
+                                    && (tags.Count() == 0
+                                        || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
+                                    )
+                                    && (categories.Count() == 0
+                                        || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
+                                    )
+                                    && (time == -1 || e.CreatedTimestamp >= compareDate)
+                                )
+                        join action in __DBContext.SocialUserActionWithPosts on post.Id equals action.PostId
+                        into postWithAction
+                        from p in postWithAction.DefaultIfEmpty()
+                        group p by new {
+                            post.Id,
+                            post.Views,
+                            post.CreatedTimestamp,
+                        } into gr
+                        select new {
+                            gr.Key,
+                            Visited = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Visited))),
+                            Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Like))),
+                            DisLikes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Dislike))),
+                            Saved = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Saved))),
+                            Follows = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
+                                EntityAction.GenContainsJsonStatement(ActionType.Follow))),
+                            Comments = __DBContext.SocialComments.Count(e =>
+                                e.PostId == gr.Key.Id
+                                && e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                            ),
+                        } into ret select new {
+                            ret.Key.Id,
+                            visited     = ret.Visited,
+                            views       = ret.Key.Views,
+                            likes       = ret.Likes,
+                            dislikes    = ret.DisLikes,
+                            saved       = ret.Saved,
+                            follows     = ret.Follows,
+                            comments    = ret.Comments,
+                            created_timestamp = ret.Key.CreatedTimestamp,
+                        })
+                        .OrderBy(orderStr)
+                        .Skip(start).Take(size)
+                        .Select(e => e.Id)
+                    )
+                    join posts in __DBContext.SocialPosts on ids equals posts.Id
+                    select posts;
+            var totalCount = await __DBContext.SocialPosts
+                    .CountAsync(e =>
+                        (e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved))
+                        && (tags.Count() == 0
+                            || e.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t))
+                        )
+                        && (categories.Count() == 0
+                            || e.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c))
+                        )
+                        && (time == -1 || e.CreatedTimestamp >= compareDate)
+                    );
+
+            return (await query.ToListAsync(), totalCount, ErrorCodes.NO_ERROR);
+        }
         public async Task<(List<SocialPost>, int, ErrorCodes)> GetPostsByAdminUser(int start = 0,
                                                                                    int size = 20,
                                                                                    string search_term = default,
