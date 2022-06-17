@@ -1725,6 +1725,7 @@ namespace CoreApi.Services
             }
 
             Post.PendingContent = RawModifyBody;
+            Post.PendingContent.Add("last_modified_timestamp", DateTime.UtcNow);
             if (await __DBContext.SaveChangesAsync() <= 0) {
                 WriteLog(LOG_LEVEL.ERROR, "AddPendingContent failed.");
             }
@@ -1774,11 +1775,14 @@ namespace CoreApi.Services
                         Post.SocialPostCategories
                     );
                     Ok = await __DBContext.SaveChangesAsync() >= 0;
+                    Post.SocialPostCategories.Clear();
                     if (Ok) {
                         foreach (var it in Model.categories) {
                             // No need check status of category
-                            var (Category, ErrCode) = await __SocialCategoryManagement.FindCategoryByNameIgnoreStatus(it);
-                            if (ErrCode != ErrorCodes.NO_ERROR) {
+                            var Category = await __DBContext.SocialCategories
+                                .Where(c => c.Name == it)
+                                .FirstOrDefaultAsync();
+                            if (Category == default) {
                                 Ok = false;
                                 Error = $"Not found category for add post, category: { it }";
                                 break;
@@ -1809,12 +1813,15 @@ namespace CoreApi.Services
                     __DBContext.SocialPostTags.RemoveRange(
                         Post.SocialPostTags
                     );
+                    // Post.SocialPostTags.Clear();
                     Ok = await __DBContext.SaveChangesAsync() >= 0;
                     if (Ok) {
                         foreach (var it in Model.tags) {
                             // No need check status of tag
-                            var (Tag, ErrCode) = await __SocialTagManagement.FindTagByNameIgnoreStatus(it);
-                            if (ErrCode != ErrorCodes.NO_ERROR) {
+                            var Tag = await __DBContext.SocialTags
+                                .Where(t => t.Tag == it)
+                                .FirstOrDefaultAsync();
+                            if (Tag == default) {
                                 Ok = false;
                                 Error = $"Not found tag for add new post. tag: { it }";
                                 break;

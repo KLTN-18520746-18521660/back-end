@@ -1253,7 +1253,7 @@ namespace DatabaseAccess.Migrations
 
                     b.HasCheckConstraint("CK_social_post_content_type_valid_value", "content_type = 'HTML' OR content_type = 'MARKDOWN'");
 
-                    b.HasCheckConstraint("CK_social_post_status_valid_value", "status = 'Pending' OR status = 'Approved' OR status = 'Private' OR status = 'Deleted'");
+                    b.HasCheckConstraint("CK_social_post_status_valid_value", "status = 'Pending' OR status = 'Approved' OR status = 'Rejected' OR status = 'Private' OR status = 'Deleted'");
 
                     b.HasCheckConstraint("CK_social_post_time_read_valid_value", "time_read >= 2");
 
