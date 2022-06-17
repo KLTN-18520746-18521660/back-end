@@ -17,7 +17,7 @@ namespace CoreApi.Models.ModifyModels
     {
         public string display_name { get; set; }
         public string describe { get; set; }
-        public bool priority { get; set; }
+        public bool? priority { get; set; }
         [DefaultValue("{\"upload\": {\"read\": true, \"write\": true}}")]
         public JObject rights { get; set; }
 

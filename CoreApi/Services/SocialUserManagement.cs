@@ -1114,6 +1114,10 @@ namespace CoreApi.Services
                 Role.Describe = ModelData.describe;
                 haveChange = true;
             }
+            if (ModelData.priority != default && ModelData.priority != Role.Priority) {
+                Role.Priority = (bool) ModelData.priority;
+                haveChange = true;
+            }
             if (ModelData.rights != default) {
                 Role.SocialUserRoleDetails.Clear();
                 foreach (var It in ModelData.rights) {
