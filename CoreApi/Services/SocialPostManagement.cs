@@ -250,7 +250,7 @@ namespace CoreApi.Services
                                 + $"DATE(sp.approved_timestamp) >= TO_DATE('{ start_date }', '{ date_format }') "
                                 + $"AND DATE(sp.approved_timestamp) <= TO_DATE('{ end_date }', '{ date_format }') "
                             + ") "
-                + "GROUP BY days";
+                + "GROUP BY days ORDER BY days ASC";
             var raw_ret = await DBHelper.RawSqlQuery<(string, string)>(
                 rawQuery,
                 x => ((string)x[0], (string)x[1])
