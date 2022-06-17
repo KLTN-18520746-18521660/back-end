@@ -25,6 +25,7 @@ namespace CoreApi.Controllers.Admin.Tag
         private static string[] AllowStatus = new string[]{
             EntityStatus.StatusTypeToString(StatusType.Enabled),
             EntityStatus.StatusTypeToString(StatusType.Disabled),
+            EntityStatus.StatusTypeToString(StatusType.Readonly),
         };
         public ModifyTagController(BaseConfig _BaseConfig) : base(_BaseConfig, true)
         {
@@ -82,6 +83,12 @@ namespace CoreApi.Controllers.Admin.Tag
                         return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "tag" });
                     }
                     throw new Exception($"FindTagById failed. ErrorCode: { Error }");
+                }
+                #endregion
+
+                #region Validate status
+                if (FindTag.Status.Type == StatusType.Readonly && __ModelData.status != default && __ModelData.status != EntityStatus.StatusTypeToString(StatusType.Readonly)) {
+                        return Problem(400, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "change status" });
                 }
                 #endregion
 

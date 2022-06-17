@@ -69,6 +69,8 @@ namespace CoreApi.Controllers.Admin.User
                 Users.ForEach(e => {
                     var obj = e.GetPublicJsonObject();
                     obj.Add("id", e.Id);
+                    obj.Add("roles", Utils.ObjectToJsonToken(e.Roles));
+                    obj.Add("rights", Utils.ObjectToJsonToken(e.Rights));
                     RawRet.Add(obj);
                 });
                 var Ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(RawRet));

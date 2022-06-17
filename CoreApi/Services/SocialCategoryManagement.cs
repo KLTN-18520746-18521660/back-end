@@ -435,6 +435,10 @@ namespace CoreApi.Services
                 Category.Describe = ModelData.describe;
                 haveChange = true;
             }
+            if (ModelData.thumbnail != default && ModelData.thumbnail != Category.Thumbnail) {
+                Category.Thumbnail = ModelData.thumbnail;
+                haveChange = true;
+            }
             if (ModelData.status != default && ModelData.status != Category.StatusStr) {
                 Category.StatusStr = ModelData.status;
                 haveChange = true;

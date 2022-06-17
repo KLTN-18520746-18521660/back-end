@@ -57,8 +57,8 @@ namespace CoreApi.Controllers.Admin.Session
         /// <response code="403">
         /// <b>Error case, reasons:</b>
         /// <ul>
-        /// <li>Missing header session_token.</li>
-        /// <li>Header session_token is invalid.</li>
+        /// <li>Missing header session_token_admin.</li>
+        /// <li>Header session_token_admin is invalid.</li>
         /// </ul>
         /// </response>
         /// 
@@ -72,7 +72,7 @@ namespace CoreApi.Controllers.Admin.Session
         [ProducesResponseType(StatusCodes.Status403Forbidden, Type = typeof(StatusCode403Examples))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(StatusCode500Examples))]
         public async Task<IActionResult> GetSessions([FromServices] SessionAdminUserManagement      __SessionAdminUserManagement,
-                                                     [FromHeader(Name = "session_token")] string    SessionToken)
+                                                     [FromHeader(Name = "session_token_admin")] string    SessionToken)
         {
             #region Init Handler
             SetRunningFunction();
