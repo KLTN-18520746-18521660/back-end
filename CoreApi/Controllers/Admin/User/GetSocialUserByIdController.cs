@@ -66,6 +66,8 @@ namespace CoreApi.Controllers.Admin.User
 
                 var Ret = RetUser.GetPublicJsonObject();
                 Ret.Add("id", RetUser.Id);
+                Ret.Add("roles", Utils.ObjectToJsonToken(RetUser.Roles));
+                Ret.Add("rights", Utils.ObjectToJsonToken(RetUser.Rights));
                 return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "user", Ret },
                 });
