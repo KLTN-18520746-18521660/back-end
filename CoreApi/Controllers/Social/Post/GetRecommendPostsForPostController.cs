@@ -95,13 +95,13 @@ namespace CoreApi.Controllers.Social.Post
                 #endregion
 
                 var Ret = new List<JObject>();
-                if (IsValidSession) {
-                    Posts.ForEach(e => {
-                        var Obj = e.GetPublicShortJsonObject(IsValidSession ? Session.UserId : default);
+                Posts.ForEach(e => {
+                    var Obj = e.GetPublicShortJsonObject(IsValidSession ? Session.UserId : default);
+                    if (IsValidSession) {
                         Obj.Add("actions", Utils.ObjectToJsonToken(e.GetActionByUser(Session.UserId)));
-                        Ret.Add(Obj);
-                    });
-                }
+                    }
+                    Ret.Add(Obj);
+                });
 
                 return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "posts",      Utils.ObjectToJsonToken(Ret) },

@@ -986,7 +986,7 @@ namespace CoreApi.Services
                     } into gr
                     select new {
                         gr.Key,
-                        Visited = (socialUserId == default) ? false
+                        Visited = ((socialUserId == default) || gr.Key.actionStr == default) ? false
                             : EF.Functions.JsonContains(gr.Key.actionStr,
                             EntityAction.GenContainsJsonStatement(ActionType.Visited)),
                         Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
