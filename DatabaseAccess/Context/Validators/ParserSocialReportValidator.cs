@@ -25,13 +25,6 @@ namespace DatabaseAccess.Context.Validators
                         MinReportTypeLength.ToString(),
                         MaxReportTypeLength.ToString()
                     ));
-            
-            When(entity => entity.report_type != default && entity.report_type.ToLower() != "others", () => {
-                RuleFor(entity => entity.content)
-                    .Cascade(CascadeMode.Stop)
-                    .Must(value => value == default || value == string.Empty)
-                        .WithMessage("{PropertyName} is must be empty.");
-            });
             When(entity => entity.report_type != default && entity.report_type.ToLower() == "others", () => {
                 RuleFor(entity => entity.content)
                     .Cascade(CascadeMode.Stop)
@@ -59,7 +52,7 @@ namespace DatabaseAccess.Context.Validators
                         ));
             });
             When(entity => entity.post_slug != default, () => {
-                RuleFor(entity => entity.user_name)
+                RuleFor(entity => entity.post_slug)
                     .Cascade(CascadeMode.Stop)
                     .NotEmpty()
                         .WithMessage("{PropertyName} is empty.");

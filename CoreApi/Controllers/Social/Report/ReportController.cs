@@ -60,7 +60,7 @@ namespace CoreApi.Controllers.Social.Report
                 var Session             = __Session as SessionSocialUser;
                 #endregion
 
-                if (__ParserModel.report_type.ToLower() == "other" && (__ParserModel.content == default || __ParserModel.content == string.Empty)) {
+                if (__ParserModel.report_type.ToLower() == "others" && (__ParserModel.content == default || __ParserModel.content == string.Empty)) {
                     return Problem(400, RESPONSE_MESSAGES.NOT_ACCEPT, new string[]{ "empty content" });
                 }
 
