@@ -816,6 +816,7 @@ namespace CoreApi.Services
                                                                            string[] tags = default,
                                                                            string[] categories = default)
         {
+            search_term = search_term == default ? default : search_term.Trim();
             #region validate params
             if (tags == default) {
                 tags = new string[]{};
@@ -839,7 +840,7 @@ namespace CoreApi.Services
 
             // orderStr can't empty or null
             string orderStr = orders != default && orders.Length != 0 ? Utils.GenerateOrderString(orders) : string.Empty;
-            orderStr = orderStr != string.Empty ? $"visited asc, { orderStr }, created_timestamp desc" : "visited asc, created_timestamp desc";
+            orderStr = orderStr != string.Empty ? $"visited asc, { orderStr }, approved_timestamp desc, created_timestamp desc" : "visited asc, approved_timestamp desc, created_timestamp desc";
 
             var query =
                     from ids in (
@@ -861,6 +862,7 @@ namespace CoreApi.Services
                             post.Id,
                             post.Views,
                             post.CreatedTimestamp,
+                            post.ApprovedTimestamp,
                             actionStr = post.SocialUserActionWithPosts
                                 .Where(e => e.UserId == socialUserId)
                                 .Select(e => e.ActionsStr)
@@ -868,7 +870,7 @@ namespace CoreApi.Services
                         } into gr
                         select new {
                             gr.Key,
-                            Visited = (socialUserId == default) ? false
+                            Visited = ((socialUserId == default) || (gr.Key.actionStr == default)) ? false
                                 : EF.Functions.JsonContains(gr.Key.actionStr,
                                 EntityAction.GenContainsJsonStatement(ActionType.Visited)),
                             Likes = gr.Count(e => EF.Functions.JsonContains(e.ActionsStr,
@@ -887,6 +889,7 @@ namespace CoreApi.Services
                             dislikes = ret.DisLikes,
                             comments = ret.Comments,
                             created_timestamp = ret.Key.CreatedTimestamp,
+                            approved_timestamp = ret.Key.ApprovedTimestamp,
                         })
                         .OrderBy(orderStr)
                         .Skip(start).Take(size)
