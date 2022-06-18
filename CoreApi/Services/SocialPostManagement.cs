@@ -929,29 +929,32 @@ namespace CoreApi.Services
             var categories  = __post.SocialPostCategories.Select(e => e.Category.Name).ToArray();
 
             #region Get config
-            var __BaseConfig        = __ServiceProvider.GetService<BaseConfig>();
-            var VistedFactor        = __BaseConfig
+            var __BaseConfig            = __ServiceProvider.GetService<BaseConfig>();
+            var VistedFactor            = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.VISTED_FACTOR)
                 .Value;
-            var ViewsFactor         = __BaseConfig
+            var ViewsFactor             = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.VIEWS_FACTOR)
                 .Value;
-            var LikesFactor         = __BaseConfig
+            var LikesFactor             = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.LIKES_FACTOR)
                 .Value;
             var CommentsFactor         = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.COMMENTS_FACTOR)
                 .Value;
-            var TagsFactor          = __BaseConfig
+            var TagsFactor              = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.TAGS_FACTOR)
                 .Value;
-            var CategoriesFactor    = __BaseConfig
+            var CategoriesFactor        = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.CATEGORIES_FACTOR)
                 .Value;
-            var CommonWordsFactor     = __BaseConfig
+            var CommonWordsFactor       = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.COMMON_WORDS_FACTOR)
                 .Value;
-            var CommonWordsSize     = __BaseConfig
+            var CommonWordsRankFactor   = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.TS_RANK_FACTOR)
+                .Value;
+            var CommonWordsSize         = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.COMMON_WORDS_SIZE)
                 .Value;
             var MaxSize     = __BaseConfig
@@ -979,6 +982,7 @@ namespace CoreApi.Services
                         MatchTags         = post.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t)),
                         MatchCategories   = post.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c)),
                         MatchCommonWords  = post.SearchVector.Matches(EF.Functions.ToTsQuery(string.Join(" | ", CommonWords))),
+                        CommonWordsRank   = post.SearchVector.Rank(EF.Functions.ToTsQuery(string.Join(" | ", CommonWords))),
                         actionStr         = post.SocialUserActionWithPosts
                             .Where(e => e.UserId == socialUserId)
                             .Select(e => e.ActionsStr)
@@ -1004,6 +1008,7 @@ namespace CoreApi.Services
                             + (ret.Comments * CommentsFactor)
                             + (ret.Key.MatchTags ? 0 : TagsFactor)
                             + (ret.Key.MatchCategories ? 0 : CategoriesFactor)
+                            + (ret.Key.CommonWordsRank * CommonWordsRankFactor)
                             + (ret.Key.MatchCommonWords ? 0 : CommonWordsFactor),
                         created_timestamp = ret.Key.CreatedTimestamp,
                     })
@@ -1047,29 +1052,32 @@ namespace CoreApi.Services
             actionPosts.ForEach(e => categories.AddRange(e.SocialPostCategories.Select(e => e.Category.Name).ToList()));
 
             #region Get config
-            var __BaseConfig        = __ServiceProvider.GetService<BaseConfig>();
-            var VistedFactor        = __BaseConfig
+            var __BaseConfig            = __ServiceProvider.GetService<BaseConfig>();
+            var VistedFactor            = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.VISTED_FACTOR)
                 .Value;
-            var ViewsFactor         = __BaseConfig
+            var ViewsFactor             = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.VIEWS_FACTOR)
                 .Value;
-            var LikesFactor         = __BaseConfig
+            var LikesFactor             = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.LIKES_FACTOR)
                 .Value;
             var CommentsFactor         = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.COMMENTS_FACTOR)
                 .Value;
-            var TagsFactor          = __BaseConfig
+            var TagsFactor              = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.TAGS_FACTOR)
                 .Value;
-            var CategoriesFactor    = __BaseConfig
+            var CategoriesFactor        = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.CATEGORIES_FACTOR)
                 .Value;
-            var CommonWordsFactor     = __BaseConfig
+            var CommonWordsFactor       = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.COMMON_WORDS_FACTOR)
                 .Value;
-            var CommonWordsSize     = __BaseConfig
+            var CommonWordsRankFactor   = __BaseConfig
+                .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_POST_CONFIG, SUB_CONFIG_KEY.TS_RANK_FACTOR)
+                .Value;
+            var CommonWordsSize         = __BaseConfig
                 .GetConfigValue<int>(CONFIG_KEY.API_GET_RECOMMEND_POSTS_FOR_USER_CONFIG, SUB_CONFIG_KEY.COMMON_WORDS_SIZE)
                 .Value;
             var MaxSize     = __BaseConfig
@@ -1101,6 +1109,7 @@ namespace CoreApi.Services
                         MatchTags         = post.SocialPostTags.Select(t => t.Tag.Tag).ToArray().Any(t => tags.Contains(t)),
                         MatchCategories   = post.SocialPostCategories.Select(c => c.Category.Name).ToArray().Any(c => categories.Contains(c)),
                         MatchCommonWords  = post.SearchVector.Matches(EF.Functions.ToTsQuery(string.Join(" | ", CommonWords))),
+                        CommonWordsRank   = post.SearchVector.Rank(EF.Functions.ToTsQuery(string.Join(" | ", CommonWords))),
                         actionStr         = post.SocialUserActionWithPosts
                             .Where(e => e.UserId == SocialUserId)
                             .Select(e => e.ActionsStr)
@@ -1126,6 +1135,7 @@ namespace CoreApi.Services
                             + (ret.Comments * CommentsFactor)
                             + (ret.Key.MatchTags ? 0 : TagsFactor)
                             + (ret.Key.MatchCategories ? 0 : CategoriesFactor)
+                            + (ret.Key.CommonWordsRank * CommonWordsRankFactor)
                             + (ret.Key.MatchCommonWords ? 0 : CommonWordsFactor),
                         created_timestamp = ret.Key.CreatedTimestamp,
                     })

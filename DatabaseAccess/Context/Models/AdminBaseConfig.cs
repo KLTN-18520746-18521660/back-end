@@ -74,7 +74,8 @@ namespace DatabaseAccess.Context.Models
         CATEGORIES_FACTOR                           = 29,
         COMMON_WORDS_SIZE                           = 30,
         COMMON_WORDS_FACTOR                         = 31,
-        MAX_SIZE                                    = 32
+        MAX_SIZE                                    = 32,
+        TS_RANK_FACTOR                              = 33,
     }
 
     public static class DEFAULT_BASE_CONFIG
@@ -196,6 +197,7 @@ namespace DatabaseAccess.Context.Models
             { SubConfigKeyToString(SUB_CONFIG_KEY.TAGS_FACTOR),                                         100 },
             { SubConfigKeyToString(SUB_CONFIG_KEY.CATEGORIES_FACTOR),                                   100 },
             { SubConfigKeyToString(SUB_CONFIG_KEY.COMMON_WORDS_FACTOR),                                 500 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.TS_RANK_FACTOR),                                      10 },
             { SubConfigKeyToString(SUB_CONFIG_KEY.COMMON_WORDS_SIZE),                                   10 },
             { SubConfigKeyToString(SUB_CONFIG_KEY.MAX_SIZE),                                            50 },
         };
@@ -208,6 +210,7 @@ namespace DatabaseAccess.Context.Models
             { SubConfigKeyToString(SUB_CONFIG_KEY.CATEGORIES_FACTOR),                                   100 },
             { SubConfigKeyToString(SUB_CONFIG_KEY.COMMON_WORDS_FACTOR),                                 500 },
             { SubConfigKeyToString(SUB_CONFIG_KEY.COMMON_WORDS_SIZE),                                   10 },
+            { SubConfigKeyToString(SUB_CONFIG_KEY.TS_RANK_FACTOR),                                      10 },
             { SubConfigKeyToString(SUB_CONFIG_KEY.MAX_SIZE),                                            50 },
         };
         public static readonly string[] DEFAULT_CONFIG_KEYS = new string[]{

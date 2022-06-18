@@ -116,7 +116,7 @@ namespace DatabaseAccess.Context
             modelBuilder.Entity<AdminAuditLog>(entity =>
             {
                 entity.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn();
+                    .UseIdentityByDefaultColumn();
                 entity.Property(e => e.Timestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
 
@@ -144,7 +144,7 @@ namespace DatabaseAccess.Context
             modelBuilder.Entity<AdminBaseConfig>(entity =>
             {
                 entity.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn();
+                    .UseIdentityByDefaultColumn();
                 entity.Property(e => e.StatusStr)
                     .HasDefaultValueSql($"'{ EntityStatus.StatusTypeToString(StatusType.Enabled) }'");
                 entity.Property(e => e.ValueStr).HasDefaultValueSql("'{}'");
@@ -209,7 +209,7 @@ namespace DatabaseAccess.Context
             modelBuilder.Entity<AdminUserRight>(entity =>
             {
                 entity.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn();
+                    .UseIdentityByDefaultColumn();
                 entity.Property(e => e.StatusStr)
                     .HasDefaultValueSql($"'{ EntityStatus.StatusTypeToString(StatusType.Enabled) }'");
 
@@ -235,7 +235,7 @@ namespace DatabaseAccess.Context
             modelBuilder.Entity<AdminUserRole>(entity =>
             {
                 entity.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn();
+                    .UseIdentityByDefaultColumn();
                 entity.Property(e => e.StatusStr).HasDefaultValueSql($"'{ EntityStatus.StatusTypeToString(StatusType.Enabled) }'");
 
                 entity.HasIndex(e => e.RoleName, "IX_admin_user_role_role_name")
@@ -356,7 +356,7 @@ namespace DatabaseAccess.Context
             modelBuilder.Entity<SocialAuditLog>(entity =>
             {
                 entity.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn();
+                    .UseIdentityByDefaultColumn();
                 entity.Property(e => e.Timestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
 
@@ -384,7 +384,7 @@ namespace DatabaseAccess.Context
             modelBuilder.Entity<SocialCategory>(entity =>
             {
                 entity.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn();
+                    .UseIdentityByDefaultColumn();
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.StatusStr)
@@ -431,7 +431,7 @@ namespace DatabaseAccess.Context
             modelBuilder.Entity<SocialComment>(entity =>
             {
                 entity.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn();
+                    .UseIdentityByDefaultColumn();
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.StatusStr)
@@ -482,7 +482,7 @@ namespace DatabaseAccess.Context
         {
             modelBuilder.Entity<SocialNotification>(entity =>
             {
-                entity.Property(e => e.Id).UseIdentityAlwaysColumn();
+                entity.Property(e => e.Id).UseIdentityByDefaultColumn();
                 entity.Property(e => e.ContentStr).HasDefaultValueSql("'{}'");
                 entity.Property(e => e.CreatedTimestamp).HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.StatusStr)
@@ -550,7 +550,7 @@ namespace DatabaseAccess.Context
                     .HasFilter($"(slug <> '')");
 
                 entity.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn();
+                    .UseIdentityByDefaultColumn();
                 entity.Property(e => e.Views)
                     .HasDefaultValueSql("0");
                 entity.Property(e => e.TimeRead)
@@ -651,7 +651,7 @@ namespace DatabaseAccess.Context
             modelBuilder.Entity<SocialReport>(entity =>
             {
                 entity.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn();
+                    .UseIdentityByDefaultColumn();
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.StatusStr)
@@ -698,7 +698,7 @@ namespace DatabaseAccess.Context
                 entity.HasIndex(e => e.Tag, "IX_social_tag_tag")
                     .IsUnique();
                 entity.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn();
+                    .UseIdentityByDefaultColumn();
                 entity.Property(e => e.CreatedTimestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
                 entity.Property(e => e.StatusStr)
@@ -879,7 +879,7 @@ namespace DatabaseAccess.Context
             modelBuilder.Entity<SocialUserAuditLog>(entity =>
             {
                 entity.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn();
+                    .UseIdentityByDefaultColumn();
                 entity.Property(e => e.Timestamp)
                     .HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'");
 
@@ -913,7 +913,7 @@ namespace DatabaseAccess.Context
             modelBuilder.Entity<SocialUserRight>(entity =>
             {
                 entity.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn();
+                    .UseIdentityByDefaultColumn();
                 entity.Property(e => e.StatusStr).HasDefaultValueSql($"'{ EntityStatus.StatusTypeToString(StatusType.Enabled) }'");
                 entity.HasIndex(e => e.RightName, "IX_social_user_right_right_name")
                     .IsUnique()
@@ -937,7 +937,7 @@ namespace DatabaseAccess.Context
             modelBuilder.Entity<SocialUserRole>(entity =>
             {
                 entity.Property(e => e.Id)
-                    .UseIdentityAlwaysColumn();
+                    .UseIdentityByDefaultColumn();
                 entity.Property(e => e.StatusStr).HasDefaultValueSql($"'{ EntityStatus.StatusTypeToString(StatusType.Enabled) }'");
 
                 entity.HasIndex(e => e.RoleName, "IX_social_user_role_role_name")
