@@ -333,6 +333,39 @@ namespace CoreApi.Services
             return ErrorCodes.INTERNAL_SERVER_ERROR;
         }
 
+        public async Task<bool> IsExpiredBlockTime(Guid UserId, int LockTime)
+        {
+            #region Find user info
+            var (User, Error) = await FindUserById(UserId);
+            if (Error != ErrorCodes.NO_ERROR) {
+                return false;
+            }
+            #endregion
+
+            if (User.Settings.ContainsKey("__login_config")) {
+                try {
+                    JObject config = User.Settings.Value<JObject>("__login_config");
+                    if (!config.ContainsKey("last_login")) {
+                        return false;
+                    }
+
+                    long lastLoginFailure = config.Value<long>("last_login");
+                    if (User.Status.Type == StatusType.Blocked) {
+                        long currentUnixTime = DateTimeOffset.Now.ToUnixTimeSeconds();
+                        if (currentUnixTime - lastLoginFailure > LockTime * 60) {
+                            config["number"] = 0;
+                            User.Settings["__login_config"] = config;
+                            User.Status.ChangeStatus(StatusType.Activated);
+                            await __DBContext.SaveChangesAsync();
+                            return true;
+                        }
+                    }
+                } catch (Exception) {}
+            }
+
+            return false;
+        }
+
         public async Task<ErrorCodes> HandleLoginSuccess(Guid UserId)
         {
             #region Find user info

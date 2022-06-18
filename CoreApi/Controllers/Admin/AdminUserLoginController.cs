@@ -92,7 +92,7 @@ namespace CoreApi.Controllers.Admin
                 #endregion
 
                 #region Check user is lock or not
-                if (User.Status.Type == StatusType.Blocked) {
+                if (User.Status.Type == StatusType.Blocked && !(await __AdminUserManagement.IsExpiredBlockTime(User.Id, LockTime))) {
                     return Problem(423, RESPONSE_MESSAGES.USER_HAS_BEEN_LOCKED);
                 }
                 #endregion
