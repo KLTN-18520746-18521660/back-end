@@ -19,7 +19,9 @@ namespace CoreApi.Services
     public class BaseEmailModel
     {
         protected string __ModelName;
-        public string ModelName { get => __ModelName; }
+        protected DateTime __DateTimeSend   { get; set; }
+        public string ModelName             { get => __ModelName; }
+        public string DateTimeSend          { get => __DateTimeSend.ToString("yyyy-MM-dd HH:mm:ss \"GMT\"zzz"); }
         public BaseEmailModel()
         {
             __ModelName = "BaseEmailModel";
@@ -40,11 +42,10 @@ namespace CoreApi.Services
         public string UserName          { get; set; }
         public string DisplayName       { get; set; }
         public string ConfirmLink       { get; set; }
-        public DateTime DateTimeSend    { get; }
         public UserSignUpEmailModel()
         {
             __ModelName = "UserSignup";
-            DateTimeSend = DateTime.UtcNow;
+            __DateTimeSend = DateTime.UtcNow;
         }
     }
     public class ForgotPasswordEmailModel : BaseEmailModel
@@ -52,11 +53,10 @@ namespace CoreApi.Services
         public string UserName              { get; set; }
         public string DisplayName           { get; set; }
         public string ResetPasswordLink     { get; set; }
-        public DateTime DateTimeSend        { get; }
         public ForgotPasswordEmailModel()
         {
             __ModelName = "ForgotPassword";
-            DateTimeSend = DateTime.UtcNow;
+            __DateTimeSend = DateTime.UtcNow;
         }
     }
     #endregion

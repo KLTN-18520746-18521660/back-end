@@ -109,6 +109,7 @@ namespace CoreApi.Services
                     ret.Add(e.ConfigKey, e.Value);
                 }
             });
+            ret = ret.OrderBy(obj => obj.Key.ToLower()).ToDictionary(obj => obj.Key, obj => obj.Value);
             return (JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret)), string.Empty);
         }
 
@@ -142,6 +143,7 @@ namespace CoreApi.Services
                     });
                 }
             }
+            ret = ret.OrderBy(obj => obj.Key.ToLower()).ToDictionary(obj => obj.Key, obj => obj.Value);
             return (JsonConvert.DeserializeObject<JObject>(JsonConvert.SerializeObject(ret)), string.Empty);
         }
 

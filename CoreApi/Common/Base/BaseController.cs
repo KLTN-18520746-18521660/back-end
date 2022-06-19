@@ -323,9 +323,10 @@ namespace CoreApi.Common.Base
                 if (Error == ErrorCodes.NOT_FOUND) {
                     return (default, Problem(401, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "session" }, default, LOG_LEVEL.DEBUG));
                 }
+                var UserName = IsAdminController ? (Session as SessionAdminUser).User.UserName : (Session as SessionSocialUser).User.UserName;
                 AddLogParam(
                     "user_name",
-                    IsAdminController ? (Session as SessionAdminUser).User.UserName : (Session as SessionSocialUser).User.UserName
+                    UserName
                 );
                 if (Error == ErrorCodes.SESSION_HAS_EXPIRED) {
                     return (default, Problem(401, RESPONSE_MESSAGES.SESSION_HAS_EXPIRED, default, default, LOG_LEVEL.DEBUG));
@@ -333,7 +334,7 @@ namespace CoreApi.Common.Base
                 if (Error == ErrorCodes.USER_HAVE_BEEN_LOCKED) {
                     return (default, Problem(423, RESPONSE_MESSAGES.USER_HAS_BEEN_LOCKED));
                 }
-                if (Error == ErrorCodes.PASSWORD_IS_EXPIRED) {
+                if (Error == ErrorCodes.PASSWORD_IS_EXPIRED && UserName != AdminUser.GetAdminUserName()) {
                     AddHeader("Location", IsAdminController ? "/admin/profile/change-password" : "/profile/change-password");
                     return (default, Problem(301, RESPONSE_MESSAGES.PASSWORD_IS_EXPIRED));
                 }
