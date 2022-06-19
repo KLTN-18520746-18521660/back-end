@@ -168,7 +168,7 @@ namespace CoreApi.Controllers.Social.User
                 if (EmailSend != User.Email) {
                     return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
-                if (SendDate != Date) {
+                if (SendDate.ToString(COMMON_DEFINE.DATE_TIME_FORMAT) != Date.ToString(COMMON_DEFINE.DATE_TIME_FORMAT)) {
                     return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 if (RequestState == default || RequestState == string.Empty || RequestState.Length != 8) {

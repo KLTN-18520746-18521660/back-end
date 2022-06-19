@@ -161,7 +161,7 @@ namespace CoreApi.Controllers.Admin.User
                 var SendSuccess             = FogotPasswordSetting != default ? FogotPasswordSetting.Value<bool>("send_success") : default;
 
                 AddLogParam("forgot_password", FogotPasswordSetting != default ? FogotPasswordSetting.ToString(Formatting.None) : default);
-                if (SendDate != Date) {
+                if (SendDate.ToString(COMMON_DEFINE.DATE_TIME_FORMAT) != Date.ToString(COMMON_DEFINE.DATE_TIME_FORMAT)) {
                     return Problem(410, RESPONSE_MESSAGES.REQUEST_HAS_EXPIRED);
                 }
                 if (FogotPasswordSetting == default || IsSending == true || SendSuccess == false) {
