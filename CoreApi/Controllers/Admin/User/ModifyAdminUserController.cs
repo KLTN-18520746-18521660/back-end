@@ -89,6 +89,10 @@ namespace CoreApi.Controllers.Admin.User
                 }
                 #endregion
 
+                if (FindUser.UserName == AdminUser.GetAdminUserName() || FindUser.Id == Session.UserId) {
+                    return Problem(400, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "modify user" });
+                }
+
                 #region Modify user
                 Error = await __AdminUserManagement.ModifyUser(__Id, __ModelData, Session.UserId);
                 if (Error != ErrorCodes.NO_ERROR) {
