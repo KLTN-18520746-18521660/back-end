@@ -27,6 +27,8 @@
 >   - Password is hard coding is ``Ndh90768``
 >   - Need config path of certificate in file ``appsettings.json`` with key ``Certificate.Path``
 
+> rm -rf /etc/localtime && ln -s /usr/share/zoneinfo/Asia/Ho_Chi_Minh /etc/localtime
+
 ## Project Reference
 - edit `*.csproj`
 - Way 1 (Need generate ProjectGuid):
@@ -52,71 +54,57 @@
 
 ## Build and Run CoreApi
 > cd CoreApi
+- Base command
+> dotnet run [ssl] [disable-cors] [show-sql-command] [drop-db] [--launch-profile (pro|dev)] [-c (release|debug)]
 - debug mode + environment develop
-> dotnet run ssl
+> dotnet run ssl disable-cors --launch-profile dev -c debug
 - release mode + environment production
-> dotnet run https --launch-profile pro -c release
-- run without ssl + environment develop
-> dotnet run
+> dotnet run ssl --launch-profile pro -c release
+- release with disable cros
+> dotnet run ssl disable-cors --launch-profile pro -c release
+
+dotnet run disable-cors --launch-profile pro -c release
 
 ## Project Console is for testing
 
 ## Migration
+- **NOTE**: Migreations auto run when run app (just handle manual when needed)
 - **Using Manager Package console**
 	- *Add migrations*
 		```
-		add-migration ConfigDBCreation -Context ConfigDBContext
-		add-migration CachedDBCreation -Context CachedDBContext
-		add-migration InventoryDBCreation -Context InventoryDBContext
-		add-migration SocialDBCreation -Context SocialDBContext
+		add-migration DBCreation --context DBContext
 		```
 	- *Update database*
 		```
-		update-database ConfigDBCreation -Context ConfigDBContext
-		update-database CachedDBCreation -Context CachedDBContext
-		update-database InventoryDBCreation -Context InventoryDBContext
-		update-database SocialDBCreation -Context SocialDBContext
+		update-database DBCreation --context DBContext
 		```
 
 - **Using Cmd**
 	> dotnet tool install --global dotnet-ef
 	- *Add migrations*
 		```
-		dotnet ef migrations add ConfigDBCreation --context ConfigDBContext
-		dotnet ef migrations add CachedDBCreation --context CachedDBContext
-		dotnet ef migrations add InventoryDBCreation --context InventoryDBContext
-		dotnet ef migrations add SocialDBCreation --context SocialDBContext
+		dotnet ef migrations add DBCreation --context DBContext
 		```
 	- *Update database*
 		```
-		dotnet ef database update ConfigDBCreation --context ConfigDBContext
-		dotnet ef database update CachedDBCreation --context CachedDBContext
-		dotnet ef database update InventoryDBCreation --context InventoryDBContext
-		dotnet ef database update SocialDBCreation --context SocialDBContext
+		dotnet ef database update DBCreation --context DBContext
 		```
 	- *Drop database*
 		```
-		dotnet ef database drop ConfigDBCreation --context ConfigDBContext
-		dotnet ef database drop CachedDBCreation --context CachedDBContext
-		dotnet ef database drop InventoryDBCreation --context InventoryDBContext
-		dotnet ef database drop SocialDBCreation --context SocialDBContext
+		dotnet ef database drop --context DBContext --no-build -f
 		```
 	- *Generate script database*
 		```
-		dotnet ef migrations script --context ConfigDBContext
-		dotnet ef migrations script --context CachedDBContext
-		dotnet ef migrations script --context InventoryDBContext
-		dotnet ef migrations script --context SocialDBContext
+		dotnet ef migrations script --context DBContext
 		```
 	- *Remove migrations*
 		```
-		dotnet ef migrations remove --context ConfigDBContext
-		dotnet ef migrations remove --context CachedDBContext
-		dotnet ef migrations remove --context InventoryDBContext
-		dotnet ef migrations remove --context SocialDBContext
+		dotnet ef migrations remove --context DBContext
 		```
-		
-		dotnet ef dbcontext scaffold -o <out-path> -d "connectstring" "Microsoft.EntityFrameworkCore.SQLServer"
+	- *Get models from database*
+		```
+		dotnet ef dbcontext scaffold -o Tests -d "Host=localhost;Username=postgres;Database=postgres;Password=a;Port=5432" "Npgsql.EntityFrameworkCore.PostgreSQL"
+		```
 ## SQL
 - **Fultext search**:
 	- [Full Text Search | Npgsql Documentation](https://www.npgsql.org/efcore/mapping/full-text-search.html?tabs=pg12%2Cv5)
@@ -132,3 +120,29 @@ CREATE DATABASE "social_db";
 CREATE DATABASE "cachec_db";
 ```
 
+# DEPLOY
+- Linux (Ubuntu)
+	- get publish file by wsl:
+	> wsl -- cd /mnt/d/doc/unv/Thesis/back-end/CoreApi `&`& dotnet publish --configuration Release -o ./tmp/publish
+	- reload service
+	> cp appsettings.json publish && sudo systemctl restart kltn.service
+	
+- Service file: /etc/systemd/system/oOwlet-Blog.service
+```
+[Unit]
+Description=Graduation thesis 18520746-18521660
+
+[Service]
+WorkingDirectory=/home/ubuntu/oOwlet-Blog
+ExecStart=sudo /usr/bin/dotnet /home/ubuntu/oOwlet-Blog/CoreApi.dll
+Restart=always
+# Restart service after 10 seconds if the dotnet service crashes:
+RestartSec=10
+KillSignal=SIGINT
+User=ubuntu
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+
+[Install]
+WantedBy=multi-user.target
+```

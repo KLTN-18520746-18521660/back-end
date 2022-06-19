@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "parent_id": null,
+    "name": "technology",
+    "display_name": "Technology",
+    "slug": "technology",
+    "thumbnail": null,
+    "describe": "This not a bug this a feature"
+  },
+  {
+    "id": 2,
+    "parent_id": null,
+    "name": "developer",
+    "display_name": "Developer",
+    "slug": "developer",
+    "thumbnail": null,
+    "describe": "Do not click to this"
+  },
+  {
+    "id": 3,
+    "parent_id": null,
+    "name": "dicussion",
+    "display_name": "Dicussion",
+    "slug": "dicussion",
+    "thumbnail": null,
+    "describe": "Search google to have better solution"
+  },
+  {
+    "id": 4,
+    "parent_id": null,
+    "name": "blog",
+    "display_name": "Blog",
+    "slug": "blog",
+    "thumbnail": null,
+    "describe": "Nothing in here"
+  },
+  {
+    "id": 5,
+    "parent_id": null,
+    "name": "left",
+    "display_name": "Left",
+    "slug": "left",
+    "thumbnail": null,
+    "describe": "Life die have number"
+  }
+]

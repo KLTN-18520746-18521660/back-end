@@ -5,14 +5,23 @@
     <TargetFramework>net5.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <AnalysisLevel>5.0</AnalysisLevel>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <Deterministic>False</Deterministic>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="..\.editorconfig" Link=".editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj">
+      <Name>Common</Name>
+    </ProjectReference>
     <ProjectReference Include="..\CoreApi\CoreApi.csproj">
       <Name>CoreApi</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Common\Common.csproj">
-      <Name>Common</Name>
+    <ProjectReference Include="..\DatabaseAccess\DatabaseAccess.csproj">
+      <Name>DatabaseAccess</Name>
     </ProjectReference>
   </ItemGroup>
 
