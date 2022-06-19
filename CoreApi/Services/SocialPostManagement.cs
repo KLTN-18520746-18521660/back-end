@@ -329,6 +329,10 @@ namespace CoreApi.Services
                     };
             var rs = await query.ToListAsync();
             var statistics = new JObject(){
+                {
+                    "pendings",
+                    await __DBContext.SocialPosts.CountAsync(p => p.StatusStr == EntityStatus.StatusTypeToString(StatusType.Pending))
+                },
                 { "posts",      rs.Count() },
                 { "visited",    rs.Sum(e => e.visited) },
                 { "views",      rs.Sum(e => e.views) },
