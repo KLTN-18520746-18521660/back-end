@@ -82,6 +82,7 @@ namespace CoreApi.Services
                         "created_timestamp",
                         "status",
                         "last_modified_timestamp",
+                        "have_pending_content",
                     };
                 case GetPostAction.GetPostsByAction:
                     return new string[] {
@@ -487,7 +488,7 @@ namespace CoreApi.Services
                 categories = new string[]{};
             }
 
-            var ColumnAllowOrder = GetAllowOrderFields(GetPostAction.GetPostsAttachedToUser);
+            var ColumnAllowOrder = GetAllowOrderFields(GetPostAction.GetPostsByAdminUser);
             if (orders != default) {
                 foreach (var order in orders) {
                     if (!ColumnAllowOrder.Contains(order.Item1)) {
@@ -533,7 +534,8 @@ namespace CoreApi.Services
                             post.StatusStr,
                             post.TimeRead,
                             post.CreatedTimestamp,
-                            post.LastModifiedTimestamp
+                            post.LastModifiedTimestamp,
+                            HavePendingContent = post.PendingContentStr != default,
                         } into gr
                         select new {
                             gr.Key,
@@ -562,6 +564,7 @@ namespace CoreApi.Services
                             time_read               = ret.Key.TimeRead,
                             created_timestamp       = ret.Key.CreatedTimestamp,
                             last_modified_timestamp = ret.Key.LastModifiedTimestamp,
+                            have_pending_content    = ret.Key.HavePendingContent,
                         })
                         .OrderBy(orderStr)
                         .Skip(start).Take(size)
