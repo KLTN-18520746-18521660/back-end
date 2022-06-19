@@ -112,6 +112,6 @@ namespace CoreApi.Common
         public readonly static REST_MESSAGE EMAIL_IS_SENT_SUCCESSFULLY              = new REST_MESSAGE("Email is sent successfully",
                                                                                                        nameof(EMAIL_IS_SENT_SUCCESSFULLY));
         public readonly static REST_MESSAGE REQUEST_HAS_EXPIRED                     = new REST_MESSAGE("Request has expired",
-                                                                                                       nameof(EMAIL_IS_SENT_SUCCESSFULLY));
+                                                                                                       nameof(REQUEST_HAS_EXPIRED));
     }
 }
