@@ -83,7 +83,7 @@ namespace CoreApi.Controllers.Social.Report
                             if (Error != ErrorCodes.NO_ERROR) {
                                 return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "report user" });
                             }
-                            if (Session.UserId != ReportUser.Id) {
+                            if (Session.UserId == ReportUser.Id) {
                                 return Problem(403, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "report" });
                             }
                             Report.UserId = ReportUser.Id;
@@ -99,7 +99,7 @@ namespace CoreApi.Controllers.Social.Report
                             if (Error != ErrorCodes.NO_ERROR) {
                                 return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "report post" });
                             }
-                            if (Session.UserId != ReportPost.Owner) {
+                            if (Session.UserId == ReportPost.Owner) {
                                 return Problem(403, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "report" });
                             }
                             Report.PostId = ReportPost.Id;
@@ -115,7 +115,7 @@ namespace CoreApi.Controllers.Social.Report
                             if (Error != ErrorCodes.NO_ERROR) {
                                 return Problem(404, RESPONSE_MESSAGES.NOT_FOUND, new string[]{ "report comment" });
                             }
-                            if (Session.UserId != ReportComment.Owner) {
+                            if (Session.UserId == ReportComment.Owner) {
                                 return Problem(403, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "report" });
                             }
                             Report.CommentId = ReportComment.Id;
