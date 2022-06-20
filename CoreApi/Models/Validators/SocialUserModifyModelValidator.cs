@@ -121,7 +121,7 @@ namespace CoreApi.Models.Validators
                         .WithMessage("{PropertyName} is empty.")
                     .MaximumLength(320)
                         .WithMessage("Total length accepted for valid email is 320. See in RFC 3696.")
-                    .Matches("^[a-z0-9_\\.]{1,64}@[a-z]+\\.[a-z]{2,3}$")
+                    .Matches("^[a-z0-9_\\.]{1,64}@[a-z\\.]+\\.[a-z]{2,3}$")
                         .WithMessage("Email is invalid.");
 
             });
