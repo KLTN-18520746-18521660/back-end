@@ -120,9 +120,11 @@ namespace CoreApi.Services
                 Error = await ExtensionSession(SessionToken, ExtensionTime);
                 if (Error == ErrorCodes.NO_ERROR) {
                     Error = IsNeedChangePassword(Session.User);
-                    Session.User.LastAccessTimestamp = Session.LastInteractionTime;
-                    if (await __DBContext.SaveChangesAsync() > 0) {
-                        return (Session, Error);
+                    if (Session.User.LastAccessTimestamp != Session.LastInteractionTime) {
+                        Session.User.LastAccessTimestamp = Session.LastInteractionTime;
+                        if (await __DBContext.SaveChangesAsync() > 0) {
+                            return (Session, Error);
+                        }
                     }
                 }
             } else if (Error == ErrorCodes.NOT_FOUND) {

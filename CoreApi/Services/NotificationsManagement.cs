@@ -765,6 +765,7 @@ namespace CoreApi.Services
                         }
                     },
                     { "comment_content", cmtContent.ToString() },
+                    { "comment_id", notify.Comment.Id },
                 };
             } else if (notify.PostId != default) {
                 return new JObject(){

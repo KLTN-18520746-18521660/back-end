@@ -235,7 +235,7 @@ namespace CoreApi.Controllers.Upload
                 if (__Session == default) {
                     throw new Exception($"GetSessionToken failed.");
                 }
-                var Session = __Session as SessionSocialUser;
+                var Session = __Session as SessionAdminUser;
                 #endregion
 
                 #region Validate params
