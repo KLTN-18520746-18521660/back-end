@@ -385,7 +385,9 @@ namespace CoreApi.Services
                         if (error != ErrorCodes.NO_ERROR) {
                             throw new Exception($"TraceId: { modelData.TraceId }, Not found comment, CommentId: { modelData.CommentId }");
                         }
-
+                        if (comment.Owner == modelData.ActionOfUserId) {
+                            break;
+                        }
                         List<SocialNotification> notifications = new List<SocialNotification>();
                         notifications.Add(new SocialNotification(){
                             Content             = dataToDB,
@@ -420,7 +422,7 @@ namespace CoreApi.Services
                             .Select(e => e.UserId)
                             .ToArray();
                         foreach (var userId in userIds) {
-                            if (userId == comment.Owner) {
+                            if (userId == comment.Owner || (comment.ParentId != default && comment.Parent.Owner == userId)) {
                                 continue;
                             }
                             notifications.Add(new SocialNotification(){
@@ -432,7 +434,9 @@ namespace CoreApi.Services
                                 CommentId           = modelData.CommentId,
                             });
                         }
-                        if (!userIds.Contains(comment.Post.Owner) && comment.Owner != comment.Post.Owner) {
+                        if (!userIds.Contains(comment.Post.Owner) && comment.Owner != comment.Post.Owner
+                            && (comment.ParentId == default || !userIds.Contains(comment.Parent.Owner))
+                        ) {
                             notifications.Add(new SocialNotification(){
                                 Content             = dataToDB,
                                 Owner               = comment.Post.Owner,
@@ -639,13 +643,14 @@ namespace CoreApi.Services
             }
             return ErrorCodes.NO_ERROR;
         }
-        public async Task<(List<SocialNotification>, int)> GetNotifications(Guid socialUserId,
+        public async Task<(List<SocialNotification>, int, int)> GetNotifications(Guid socialUserId,
                                                                             int start = 0,
                                                                             int size = 20,
                                                                             string[] status = default)
         {
             List<SocialNotification> notifications = default;
             int totalCount = default;
+            int unreadNotifications = default;
             if (status == default) {
                 status = new string[]{};
             }
@@ -690,6 +695,21 @@ namespace CoreApi.Services
                             || e.UserIdDesNavigation.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
                         )
                     );
+                unreadNotifications = await __DBContext.SocialNotifications
+                    .CountAsync(e => e.Owner == socialUserId
+                        && ((status.Count() == 0
+                            && e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Sent))
+                        )
+                        && (e.PostId == default || e.Post.Owner == socialUserId
+                            || e.Post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
+                        )
+                        && (e.CommentId == default || e.Comment.Owner == socialUserId
+                            || e.Comment.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                        )
+                        && (e.UserId == default || e.UserId == socialUserId
+                            || e.UserIdDesNavigation.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                        )
+                    );
 
                 #region Update content notifications
                 var __BaseConfig            = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
@@ -707,7 +727,7 @@ namespace CoreApi.Services
                 #endregion
             }
 
-            return (notifications, totalCount);
+            return (notifications, totalCount, unreadNotifications);
         }
 
         protected JObject ProcessingContent(SocialNotification notify)

@@ -78,14 +78,22 @@ namespace DatabaseAccess.Context.Models
             }
         }
 
+        public int CountPosts(bool isOwner = true)
+        {
+            return SocialPostTags.Count(e => e.Post.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted));
+        }
+
         public int CountViews()
         {
-            return SocialPostTags.Sum(e => e.Post.Views);
+            return SocialPostTags
+                .Where(e => e.Post.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
+                .Sum(e => e.Post.Views);
         }
 
         public int CountFollow()
         {
-            return SocialUserActionWithTags.Count(e => 
+            return SocialUserActionWithTags.Count(e =>
+                // e.User.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted) &&
                 e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0
             );
         }
@@ -111,6 +119,11 @@ namespace DatabaseAccess.Context.Models
                     "tag",
                     "name",
                     "describe",
+                    "posts",
+                    "views",
+                    "follows",
+                    "used",
+                    "visited",
                 };
             }
             var ret = GetJsonObject();
@@ -126,14 +139,19 @@ namespace DatabaseAccess.Context.Models
         {
             __ObjectJson = new Dictionary<string, object>()
             {
-                { "id", Id },
-                { "tag", Tag },
-                { "name", Name },
-                { "describe", Describe },
-                { "status", StatusStr },
-                { "created_timestamp", CreatedTimestamp},
-                { "last_modified_timestamp", LastModifiedTimestamp},
-#if DEBUG
+                { "id",                         Id },
+                { "tag",                        Tag },
+                { "name",                       Name },
+                { "describe",                   Describe },
+                { "status",                     StatusStr },
+                { "posts",                      CountPosts() },
+                { "views",                      CountViews() },
+                { "follows",                    CountFollow() },
+                { "used",                       CountUsed() },
+                { "visited",                    CountVisited() },
+                { "created_timestamp",          CreatedTimestamp },
+                { "last_modified_timestamp",    LastModifiedTimestamp },
+#if DEBUG   
                 { "__ModelName", __ModelName }
 #endif
             };

@@ -171,10 +171,12 @@ namespace CoreApi.Services
             var sessions = await __DBContext.SessionAdminUsers
                 .Where(e => ExpiredSessions.Contains(e.SessionToken)).ToListAsync();
             __DBContext.SessionAdminUsers.RemoveRange(sessions);
-            if (await __DBContext.SaveChangesAsync() > 0) {
-                return ErrorCodes.NO_ERROR;
+            try {
+                await __DBContext.SaveChangesAsync();
+            } catch (Exception) {
+                // In multi-thread maybe sessions is clear so much time so not necessary check here
             }
-            return ErrorCodes.INTERNAL_SERVER_ERROR;
+            return ErrorCodes.NO_ERROR;
         }
 
         public async Task<ErrorCodes> ExtensionSession(string SessionToken, int ExtensionTime)

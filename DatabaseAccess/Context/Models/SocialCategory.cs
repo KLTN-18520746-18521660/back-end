@@ -87,16 +87,24 @@ namespace DatabaseAccess.Context.Models
             CreatedTimestamp = DateTime.UtcNow;
         }
 
+        public int CountPosts(bool isOwner = true)
+        {
+            return SocialPostCategories.Count(e => e.Post.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted));
+        }
+
         public int CountViews()
         {
-            return SocialPostCategories.Sum(e => e.Post.Views);
+            return SocialPostCategories
+                .Where(e => e.Post.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
+                .Sum(e => e.Post.Views);
         }
 
         public int CountFollow()
         {
             return SocialUserActionWithCategories.Count(e =>
-                    e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0
-                );
+                // e.User.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted) &&
+                e.Actions.Count(a => a.action == EntityAction.ActionTypeToString(ActionType.Follow)) > 0
+            );
         }
 
         public int CountVisited()
@@ -128,16 +136,20 @@ namespace DatabaseAccess.Context.Models
         {
             __ObjectJson = new Dictionary<string, object>()
             {
-                { "id", Id },
-                { "parent_id", ParentId},
-                { "name", Name},
-                { "display_name", DisplayName},
-                { "describe", Describe},
-                { "slug", Slug },
-                { "thumbnail", Thumbnail},
-                { "status", StatusStr},
-                { "last_modified_timestamp", LastModifiedTimestamp},
-                { "created_timestamp", CreatedTimestamp},
+                { "id",                         Id },
+                { "parent_id",                  ParentId },
+                { "name",                       Name },
+                { "display_name",               DisplayName },
+                { "describe",                   Describe },
+                { "slug",                       Slug },
+                { "thumbnail",                  Thumbnail },
+                { "status",                     StatusStr },
+                { "posts",                      CountPosts() },
+                { "views",                      CountViews() },
+                { "follows",                    CountFollow() },
+                { "visited",                    CountVisited() },
+                { "last_modified_timestamp",    LastModifiedTimestamp },
+                { "created_timestamp",          CreatedTimestamp },
 #if DEBUG
                 { "__ModelName", __ModelName }
 #endif
@@ -155,6 +167,10 @@ namespace DatabaseAccess.Context.Models
                     "describe",
                     "slug",
                     "thumbnail",
+                    "posts",
+                    "views",
+                    "follows",
+                    "visited",
                 };
             }
             var ret = GetJsonObject();

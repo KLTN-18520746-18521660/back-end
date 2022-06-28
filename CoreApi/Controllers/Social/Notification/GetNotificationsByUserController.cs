@@ -107,7 +107,7 @@ namespace CoreApi.Controllers.Social.Notification
                 #endregion
 
                 #region Get notifications
-                var (Notifications, TotalSize) = await __NotificationsManagement
+                var (Notifications, TotalSize, UnreadNotifications) = await __NotificationsManagement
                     .GetNotifications(
                         Session.UserId,
                         Start,
@@ -132,6 +132,7 @@ namespace CoreApi.Controllers.Social.Notification
                 return Ok(200, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "notifications", Utils.ObjectToJsonToken(Ret) },
                     { "total_size", TotalSize },
+                    { "unread_notifications", UnreadNotifications },
                 });
             } catch (Exception e) {
                 AddLogParam("exception_message", e.ToString());
