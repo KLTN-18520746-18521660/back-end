@@ -391,8 +391,17 @@ namespace DatabaseAccess.Context.Models
 
         public int CountUnreadNotifications()
         {
-            return SocialNotifications.Count(p =>
-                p.StatusStr == EntityStatus.StatusTypeToString(StatusType.Sent)
+            return SocialNotifications.Count(e =>
+                e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Sent)
+                && (e.PostId == default || e.Post.Owner == this.Id
+                    || e.Post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
+                )
+                && (e.CommentId == default || e.Comment.Owner == this.Id
+                    || e.Comment.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                )
+                && (e.UserId == default || e.UserId == this.Id
+                    || e.UserIdDesNavigation.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted)
+                )
             );
         }
 

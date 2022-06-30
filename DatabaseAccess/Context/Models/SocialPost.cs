@@ -272,7 +272,7 @@ namespace DatabaseAccess.Context.Models
                 { "categories", Categories },
                 { "short_content", ShortContent },
                 { "status", StatusStr },
-                { "approved_timestamp", CreatedTimestamp },
+                { "approved_timestamp", ApprovedTimestamp },
                 { "last_modified_timestamp", LastModifiedTimestamp },
             };
             if (this.Owner == SocialUserId || IsAdmin) {

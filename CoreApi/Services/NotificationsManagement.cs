@@ -697,9 +697,7 @@ namespace CoreApi.Services
                     );
                 unreadNotifications = await __DBContext.SocialNotifications
                     .CountAsync(e => e.Owner == socialUserId
-                        && ((status.Count() == 0
-                            && e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Sent))
-                        )
+                        && e.StatusStr == EntityStatus.StatusTypeToString(StatusType.Sent)
                         && (e.PostId == default || e.Post.Owner == socialUserId
                             || e.Post.StatusStr == EntityStatus.StatusTypeToString(StatusType.Approved)
                         )
