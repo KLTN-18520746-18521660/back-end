@@ -36,7 +36,7 @@ namespace CoreApi.Controllers.Admin.Config
                     return "Missing field";
                 }
                 var Type = (string) It.Value["type"];
-                if (Type == (string) JTokenType.String.ToString().ToLower()) {
+                if (Type == (string) JTokenType.String.ToString().ToLower() || Type == "text") {
                     var Val = (string) Input[It.Key];
                     if (Val == default || Val == string.Empty) {
                         return "Invalid string field";

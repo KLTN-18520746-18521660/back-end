@@ -19,7 +19,7 @@ namespace CoreApi.Services
     public class BaseEmailModel
     {
         protected string __ModelName;
-        protected DateTime __DateTimeSend   { get; set; }
+        public DateTime __DateTimeSend   { get; set; }
         public string ModelName             { get => __ModelName; }
         public string DateTimeSend          { get => __DateTimeSend.ToString("yyyy-MM-dd HH:mm:ss \"GMT\"zzz"); }
         public BaseEmailModel()
@@ -275,7 +275,7 @@ namespace CoreApi.Services
                     { "email",          User.Email },
                     { "is_sending",     false },
                     { "send_success",   SendSuccess },
-                    { "send_date",      Model.DateTimeSend },
+                    { "send_date",      Model.__DateTimeSend },
                     { "confirm_date",   default },
                     { "state",          RequestState },
                 });
@@ -302,9 +302,9 @@ namespace CoreApi.Services
             #region Load config value
             var __BaseConfig    = (BaseConfig)__ServiceProvider.GetService(typeof(BaseConfig));
             if (IsAdminUser) {
-                (Subject, ErrMsg)   = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.SUBJECT);
-                (HostName, ErrMsg)  = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.HOST_NAME);
-                (PrefixUrl, ErrMsg) = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.PREFIX_URL);
+                (Subject, ErrMsg)   = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.ADMIN_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.SUBJECT);
+                (HostName, ErrMsg)  = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.ADMIN_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.HOST_NAME);
+                (PrefixUrl, ErrMsg) = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.ADMIN_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.PREFIX_URL);
             } else {
                 (Subject, ErrMsg)   = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.SUBJECT);
                 (HostName, ErrMsg)  = __BaseConfig.GetConfigValue<string>(CONFIG_KEY.SOCIAL_FORGOT_PASSWORD_CONFIG, SUB_CONFIG_KEY.HOST_NAME);
@@ -347,7 +347,7 @@ namespace CoreApi.Services
                     }
                     AdminUser.Settings.Remove("forgot_password");
                     AdminUser.Settings.Add("forgot_password", new JObject(){
-                        { "email",      User.Email },
+                        { "email",      AdminUser.Email },
                         { "is_sending", true },
                         { "send_date",  DateTime.UtcNow },
                     });
@@ -371,7 +371,7 @@ namespace CoreApi.Services
                     ResetPasswordLink   = UrlForgot,
                 };
                 SendSuccess = await SendEmail<ForgotPasswordEmailModel>(new EmailForm() {
-                    ToEmail = User.Email,
+                    ToEmail = IsAdminUser ? AdminUser.Email : User.Email,
                     Subject = Subject,
                     TraceId = TraceId,
                     Model   = Model,
@@ -384,16 +384,16 @@ namespace CoreApi.Services
                         { "email",          User.Email },
                         { "is_sending",     false },
                         { "send_success",   SendSuccess },
-                        { "send_date",      Model.DateTimeSend },
+                        { "send_date",      Model.__DateTimeSend },
                         { "state",          RequestState },
                     });
                 } else {
                     AdminUser.Settings.Remove("forgot_password");
                     AdminUser.Settings.Add("forgot_password", new JObject(){
-                        { "email",          User.Email },
+                        { "email",          AdminUser.Email },
                         { "is_sending",     false },
                         { "send_success",   SendSuccess },
-                        { "send_date",      Model.DateTimeSend },
+                        { "send_date",      Model.__DateTimeSend },
                         { "state",          RequestState },
                     });
                 }

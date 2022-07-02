@@ -127,7 +127,7 @@ namespace DatabaseAccess.Context.Models
         [Column("created_timestamp", TypeName = "timestamp with time zone")]
         public DateTime CreatedTimestamp { get; set; }
         [Column("approved_timestamp", TypeName = "timestamp with time zone")]
-        public DateTime ApprovedTimestamp { get; set; }
+        public DateTime? ApprovedTimestamp { get; set; }
         [Column("last_modified_timestamp", TypeName = "timestamp with time zone")]
         public DateTime? LastModifiedTimestamp { get; set; }
         [NotMapped]

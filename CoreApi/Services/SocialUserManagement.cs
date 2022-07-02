@@ -506,7 +506,7 @@ namespace CoreApi.Services
             User.Password = NewPassword;
             if (!User.Settings.ContainsKey("password")) {
                 User.Settings.Add("password", new JObject(){
-                    "last_change_password", DateTime.UtcNow
+                    { "last_change_password", DateTime.UtcNow },
                 });
             } else {
                 var PasswordSetting = User.Settings.ContainsKey("password")

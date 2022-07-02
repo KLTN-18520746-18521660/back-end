@@ -49,6 +49,9 @@ namespace CoreApi.Controllers.Admin.User
                 #endregion
 
                 #region Find User
+                if (__ModelData.user_name == default || __ModelData.user_name == string.Empty) {
+                    return Problem(400, RESPONSE_MESSAGES.BAD_REQUEST_PARAMS);
+                }
                 AddLogParam("user_name", __ModelData.user_name);
                 var IsEmail         = CommonValidate.IsEmail(__ModelData.user_name.ToLower());
                 var (User, Error)   = await __AdminUserManagement.FindUser(__ModelData.user_name, IsEmail);

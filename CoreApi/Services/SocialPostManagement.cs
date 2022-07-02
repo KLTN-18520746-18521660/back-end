@@ -535,6 +535,7 @@ namespace CoreApi.Services
                             post.TimeRead,
                             post.CreatedTimestamp,
                             post.LastModifiedTimestamp,
+                            post.ApprovedTimestamp,
                             HavePendingContent = post.PendingContentStr != default,
                         } into gr
                         select new {
@@ -563,6 +564,7 @@ namespace CoreApi.Services
                             title                   = ret.Key.Title,
                             time_read               = ret.Key.TimeRead,
                             created_timestamp       = ret.Key.CreatedTimestamp,
+                            approved_timestamp      = ret.Key.ApprovedTimestamp,
                             last_modified_timestamp = ret.Key.LastModifiedTimestamp,
                             have_pending_content    = ret.Key.HavePendingContent,
                         })

@@ -191,10 +191,12 @@ namespace CoreApi.Services
                 return error;
             }
             session.LastInteractionTime = now.ToUniversalTime();
-            if (await __DBContext.SaveChangesAsync() > 0) {
-                return ErrorCodes.NO_ERROR;
+            try {
+                await __DBContext.SaveChangesAsync();
+            } catch (Exception) {
+                // In multi-thread maybe sessions is clear so much time so not necessary check here
             }
-            return ErrorCodes.INTERNAL_SERVER_ERROR;
+            return ErrorCodes.NO_ERROR;
         }
 
         public async Task<(List<SessionSocialUser>, ErrorCodes)> GetAllSessionOfUser(Guid UserId)

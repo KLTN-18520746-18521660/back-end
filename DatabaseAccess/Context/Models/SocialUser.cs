@@ -296,6 +296,7 @@ namespace DatabaseAccess.Context.Models
                 { "views",                      CountViews() },
                 { "likes",                      CountLikes() },
                 { "unread_notifications",       CountUnreadNotifications() },
+                { "last_access_timestamp",      LastAccessTimestamp },
             };
         }
 
@@ -317,6 +318,7 @@ namespace DatabaseAccess.Context.Models
                 "posts",
                 "views",
                 "likes",
+                "last_access_timestamp",
             };
         }
 
