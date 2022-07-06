@@ -146,7 +146,7 @@ namespace CoreApi.Services
                             || e.Email.ToLower().Contains(SearchTerm.Trim().ToLower())
                         )
                     )
-                    .OrderBy(e => e.Id)
+                    .OrderBy(e => e.CreatedTimestamp)
                     .Skip(Start)
                     .Take(Size)
                     .ToListAsync(),

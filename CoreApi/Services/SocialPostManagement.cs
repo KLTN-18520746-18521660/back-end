@@ -83,6 +83,7 @@ namespace CoreApi.Services
                         "status",
                         "last_modified_timestamp",
                         "have_pending_content",
+                        "approved_timestamp",
                     };
                 case GetPostAction.GetPostsByAction:
                     return new string[] {

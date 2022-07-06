@@ -71,32 +71,36 @@ namespace CoreApi
     }
 
     public struct ServerConfiguration {
-        public int Port                         { get; set; }
-        public string HostName                  { get; set; }
-        public bool EnableSSL                   { get; set; }
-        public bool DisableCORS                 { get; set; }
-        public bool ShowSQLCommandInLog         { get; set; }
-        public string TempPath                  { get; set; }
-        public string CertPath                  { get; set; }
-        public string LogFilePath               { get; set; }
-        public string LogTemplate               { get; set; }
-        public string PasswordCert              { get; set; }
-        public string UploadFilePath            { get; set; }
-        public string PrefixPathGetUploadFile   { get; set; }
+        public int Port                                 { get; set; }
+        public string HostName                          { get; set; }
+        public bool EnableSSL                           { get; set; }
+        public bool DisableCORS                         { get; set; }
+        public bool ShowSQLCommandInLog                 { get; set; }
+        public string TempPath                          { get; set; }
+        public string CertPath                          { get; set; }
+        public string LogFilePath                       { get; set; }
+        public string LogTemplate                       { get; set; }
+        public string PasswordCert                      { get; set; }
+        public string UploadFilePath                    { get; set; }
+        public string PrefixPathGetUploadFile           { get; set; }
+        public string WellKnownFilePath                 { get; set; }
+        public string PrefixPathGetWellKnownFile        { get; set; }
 
         public static ServerConfiguration DefaultServerConfiguration { get {
                 var Ret = new ServerConfiguration();
-                Ret.Port                    = 7005;
-                Ret.HostName                = "localhost";
-                Ret.EnableSSL               = false;
-                Ret.DisableCORS             = false;
-                Ret.ShowSQLCommandInLog     = false;
-                Ret.TempPath                = "./tmp";
-                Ret.LogFilePath             = "./tmp/logs/CoreApi-.log";
-                Ret.LogTemplate             = "{Timestamp:yyyy-MM-dd HH:mm:ss zzz} [{Level:u3}] ({ThreadId}) {EscapedMessage}{NewLine}{EscapedException}";
-                Ret.PasswordCert            = "Ndh90768";
-                Ret.UploadFilePath          = "./tmp/upload";
-                Ret.PrefixPathGetUploadFile = "/upload/file";
+                Ret.Port                            = 7005;
+                Ret.HostName                        = "localhost";
+                Ret.EnableSSL                       = false;
+                Ret.DisableCORS                     = false;
+                Ret.ShowSQLCommandInLog             = false;
+                Ret.TempPath                        = "./tmp";
+                Ret.LogFilePath                     = "./tmp/logs/CoreApi-.log";
+                Ret.LogTemplate                     = "{Timestamp:yyyy-MM-dd HH:mm:ss zzz} [{Level:u3}] ({ThreadId}) {EscapedMessage}{NewLine}{EscapedException}";
+                Ret.PasswordCert                    = "Ndh90768";
+                Ret.UploadFilePath                  = "./tmp/upload";
+                Ret.WellKnownFilePath               = "./tmp/.well-known";
+                Ret.PrefixPathGetUploadFile         = "/upload/file";
+                Ret.PrefixPathGetWellKnownFile      = "/.well-known";
                 return Ret;
             }
         }
@@ -162,6 +166,13 @@ namespace CoreApi
                     warnings.Add($"Upload path is not set or invalid. Use default path: { System.IO.Path.GetFullPath(__ServerConfiguration.UploadFilePath) }");
                 } else {
                     __ServerConfiguration.UploadFilePath = tmp_UploadFilePath;
+                }
+                // [INFO] Get custom .well-known file path
+                var tmp_WellKnownFilePath = configuration.GetSection("Server").GetValue<string>("WellKnownFilePath");
+                if (tmp_WellKnownFilePath == default || CommonValidate.ValidateDirectoryPath(tmp_WellKnownFilePath, true) == default) {
+                    warnings.Add($"Well-known path is not set or invalid. Use default path: { System.IO.Path.GetFullPath(__ServerConfiguration.WellKnownFilePath) }");
+                } else {
+                    __ServerConfiguration.WellKnownFilePath = tmp_WellKnownFilePath;
                 }
                 // [INFO] Get host name from config || default is 'localhost'
                 var tmp_HostName = configuration.GetSection("Server").GetValue<string>("HostName");
@@ -412,6 +423,7 @@ namespace CoreApi
                 SetParamsFromConfiguration(__Configuration, out WarningsWhenSetParamsFromConfiguration);
                 __ServerConfiguration.TempPath          = CommonValidate.ValidateDirectoryPath(__ServerConfiguration.TempPath, true);
                 __ServerConfiguration.UploadFilePath    = CommonValidate.ValidateDirectoryPath(__ServerConfiguration.UploadFilePath, true);
+                __ServerConfiguration.WellKnownFilePath = CommonValidate.ValidateDirectoryPath(__ServerConfiguration.WellKnownFilePath, true);
                 __Logger = SetDefaultSeriLogger(__Configuration);
                 LogStartInformation();
                 WarningsWhenSetParamsFromConfiguration.ForEach(message => {

@@ -265,16 +265,27 @@ namespace CoreApi
                 endpoints.MapControllers();
             });
 
-            var fileProvider = new PhysicalFileProvider(Program.ServerConfiguration.UploadFilePath);
+            var uploadFileProvider = new PhysicalFileProvider(Program.ServerConfiguration.UploadFilePath);
+            var wellKnownFileProvider = new PhysicalFileProvider(Program.ServerConfiguration.WellKnownFilePath);
             app.UseStaticFiles(new StaticFileOptions
             {
-                FileProvider = fileProvider,
+                FileProvider = uploadFileProvider,
                 RequestPath = Program.ServerConfiguration.PrefixPathGetUploadFile
+            });
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = wellKnownFileProvider,
+                RequestPath = Program.ServerConfiguration.PrefixPathGetWellKnownFile
             });
 #if DEBUG
             app.UseDirectoryBrowser(new DirectoryBrowserOptions
             {
-                FileProvider = fileProvider,
+                FileProvider = uploadFileProvider,
+                RequestPath = Program.ServerConfiguration.PrefixPathGetUploadFile
+            });
+            app.UseDirectoryBrowser(new DirectoryBrowserOptions
+            {
+                FileProvider = wellKnownFileProvider,
                 RequestPath = Program.ServerConfiguration.PrefixPathGetUploadFile
             });
 #endif
