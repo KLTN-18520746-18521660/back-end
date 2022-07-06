@@ -201,6 +201,8 @@ namespace CoreApi
                 if (CommonValidate.ValidateFilePath(tmp_CertPath, false) == default && __ServerConfiguration.EnableSSL) {
                     __ServerConfiguration.EnableSSL = false;
                     warnings.Add($"Certificate not exists or not set. Cerificate path: { ((tmp_CertPath == default) ? default : System.IO.Path.GetFullPath(tmp_CertPath)) }");
+                } else {
+                    __ServerConfiguration.CertPath = tmp_CertPath;
                 }
             }
             #endregion
@@ -354,6 +356,8 @@ namespace CoreApi
                                     CommonValidate.ValidateFilePath(__ServerConfiguration.CertPath, false),
                                     __ServerConfiguration.PasswordCert
                                 );
+                            } else {
+                                __ServerConfiguration.EnableSSL = false;
                             }
                         });
                         kestrelServerOptions.AddServerHeader = false;
