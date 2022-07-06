@@ -72,6 +72,7 @@ namespace CoreApi
 
     public struct ServerConfiguration {
         public int Port                                 { get; set; }
+        public int SslPort                              { get; set; }
         public string HostName                          { get; set; }
         public bool EnableSSL                           { get; set; }
         public bool DisableCORS                         { get; set; }
@@ -89,6 +90,7 @@ namespace CoreApi
         public static ServerConfiguration DefaultServerConfiguration { get {
                 var Ret = new ServerConfiguration();
                 Ret.Port                            = 7005;
+                Ret.SslPort                         = 443;
                 Ret.HostName                        = "localhost";
                 Ret.EnableSSL                       = false;
                 Ret.DisableCORS                     = false;
@@ -158,6 +160,17 @@ namespace CoreApi
                         warnings.Add($"Port not configured. Use default port: { __ServerConfiguration.Port }");
                     } else {
                         warnings.Add($"Configured port is invalid. Use default port: { __ServerConfiguration.Port }");
+                    }
+                }
+                // [INFO] Get ssl port config
+                var tmp_SslPortConfig = configuration.GetSection("Server").GetValue<string>("SslPort");
+                if (tmp_SslPortConfig != default && CommonValidate.ValidatePort(tmp_SslPortConfig)) {
+                    __ServerConfiguration.SslPort = int.Parse(tmp_SslPortConfig);
+                } else {
+                    if (tmp_SslPortConfig == default) {
+                        warnings.Add($"SslPort not configured. Use default port: { __ServerConfiguration.SslPort }");
+                    } else {
+                        warnings.Add($"Configured port is invalid. Use default port: { __ServerConfiguration.SslPort }");
                     }
                 }
                 // [INFO] Get custom upload file path
@@ -349,7 +362,11 @@ namespace CoreApi
                 .ConfigureWebHostDefaults(webBuilder => {
                     webBuilder.UseKestrel(kestrelServerOptions => {
                         // [INFO] Listen on any IP
-                        kestrelServerOptions.Listen(System.Net.IPAddress.Any, __ServerConfiguration.Port, listenOptions => {
+                        if (__ServerConfiguration.Port != __ServerConfiguration.SslPort) {
+                            kestrelServerOptions.Listen(System.Net.IPAddress.Any, __ServerConfiguration.Port);
+                        }
+                        // [INFO] Handle SSL
+                        kestrelServerOptions.Listen(System.Net.IPAddress.Any, __ServerConfiguration.SslPort, listenOptions => {
                             if (__ServerConfiguration.EnableSSL && CommonValidate.ValidateFilePath(__ServerConfiguration.CertPath, false) != default) {
                                 // Config server using ssl with pfx certificate
                                 listenOptions.UseHttps(
@@ -377,13 +394,28 @@ namespace CoreApi
             if (Utils.GetIpAddress(out var Ips)) {
                 foreach (var ipStr in Ips) {
                     var listeningAddress = string.Format(
-                        "{0}://{1}:{2}",
-                        __ServerConfiguration.EnableSSL ? "https" : "http",
+                        "http://{0}:{1}",
                         ipStr,
                         __ServerConfiguration.Port.ToString()
                     );
-                    __Logger.Information($"Listening on: { listeningAddress }");
-                    __ListeningAddress.Add(listeningAddress);
+                    var listeningAddressSsl = string.Format(
+                        "https://{0}:{1}",
+                        ipStr,
+                        __ServerConfiguration.SslPort.ToString()
+                    );
+
+                    if (__ServerConfiguration.EnableSSL && __ServerConfiguration.Port == __ServerConfiguration.SslPort) {
+                        __Logger.Information($"Listening on: { listeningAddressSsl }");
+                        __ListeningAddress.Add(listeningAddressSsl);
+                    } else {
+                        __Logger.Information($"Listening on: { listeningAddress }");
+                        __ListeningAddress.Add(listeningAddress);
+
+                        if (__ServerConfiguration.EnableSSL) {
+                            __Logger.Information($"Listening on: { listeningAddressSsl }");
+                            __ListeningAddress.Add(listeningAddressSsl);
+                        }
+                    }
                 }
             }
             __Logger.Information($"Host URL: { __ServerConfiguration.HostName }");

@@ -40,6 +40,13 @@ namespace CoreApi
         // [INFO] This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            // [INFO] Handle https
+            if (Program.ServerConfiguration.EnableSSL) {
+                services.AddHttpsRedirection(options => {
+                    options.HttpsPort = Program.ServerConfiguration.SslPort;
+                });
+            }
+
             services
                 .AddControllers()
                 .AddNewtonsoftJson()
@@ -173,6 +180,10 @@ namespace CoreApi
         {
             hostApplicationLifetime.ApplicationStopping.Register(OnStopping);
             hostApplicationLifetime.ApplicationStarted.Register(OnStarted);
+
+            if (Program.ServerConfiguration.EnableSSL) {
+                app.UseHttpsRedirection();
+            }
 
             if (env.IsDevelopment()) {
                 app.UseDeveloperExceptionPage();
