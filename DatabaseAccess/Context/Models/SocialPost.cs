@@ -166,6 +166,7 @@ namespace DatabaseAccess.Context.Models
 
             __ModelName = "SocialPost";
             CreatedTimestamp = DateTime.UtcNow;
+            ApprovedTimestamp = default;
             Status = new EntityStatus(EntityStatusType.SocialPost, StatusType.Pending);
             SettingsStr = "{}";
         }

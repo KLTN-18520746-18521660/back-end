@@ -183,7 +183,8 @@ namespace CoreApi.Services
 
         public async Task<ErrorCodes> ExtensionSession(string SessionToken, int ExtensionTime)
         {
-            var now = DateTime.UtcNow.AddMinutes(ExtensionTime);
+            // var now = DateTime.UtcNow.AddMinutes(ExtensionTime);
+            var now = DateTime.UtcNow;
             ErrorCodes error = ErrorCodes.NO_ERROR;
             SessionSocialUser session = default;
             (session, error) = await FindSession(SessionToken);

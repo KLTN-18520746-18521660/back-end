@@ -170,60 +170,22 @@ namespace CoreApi.Services
                 Orders = new (string, bool)[]{};
             }
             #endregion
-            SearchTerm = SearchTerm == default ? default : SearchTerm.Trim().ToLower();
+            // SearchTerm = SearchTerm == default ? default : SearchTerm.Trim().ToLower();
+
+            if (SearchTerm != default) {
+                SearchTerm = Utils.PrepareSearchTerm(SearchTerm);
+            }
 
             // orderStr can't empty or null
-            string OrderStr = Orders != default && Orders.Length != 0 ? Utils.GenerateOrderString(Orders) : "following desc, follower desc";
-            var Query =
-                    from ids in (
-                        (from user in __DBContext.SocialUsers
-                                .Where(e => (e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
-                                    && (SearchTerm == default
-                                        || e.SearchVector.Matches(SearchTerm)
-                                        || e.UserName.ToLower().Contains(SearchTerm)
-                                        || e.DisplayName.ToLower().Contains(SearchTerm)
-                                    )
+            // string OrderStr = Orders != default && Orders.Length != 0 ? Utils.GenerateOrderString(Orders) : "following desc, follower desc";
+            var Query = __DBContext.SocialUsers
+                            .Where(e => (e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
+                                && (SearchTerm == default
+                                    || e.SearchVector.Matches(SearchTerm)
+                                    || e.UserName.ToLower().Contains(SearchTerm)
+                                    || e.DisplayName.ToLower().Contains(SearchTerm)
                                 )
-                        join ac1 in __DBContext.SocialUserActionWithUsers on user.Id equals ac1.UserIdDes
-                        into userAction1
-                        from u1 in userAction1.DefaultIfEmpty()
-                        join ac2 in __DBContext.SocialUserActionWithUsers on user.Id equals ac2.UserId
-                        into userAction2
-                        from u2 in userAction2.DefaultIfEmpty()
-                        group u2 by new {
-                            id = user.Id,
-                            id_1 = u1.UserId,
-                            acStr1 = u1.ActionsStr,
-                            id_2 = u2.UserIdDes,
-                            acStr2 = u2.ActionsStr
-                        } into gr
-                        select new {
-                            gr.Key,
-                            Following = SocialUserId == default
-                                ? false
-                                : (
-                                    gr.Key.id_1 == SocialUserId
-                                    && EF.Functions.JsonContains(gr.Key.acStr1,
-                                                                 EntityAction.GenContainsJsonStatement(ActionType.Follow))
-                                ),
-                            Follower = SocialUserId == default
-                                ? false
-                                : (
-                                    gr.Key.id_2 == SocialUserId
-                                    && EF.Functions.JsonContains(gr.Key.acStr2,
-                                                                 EntityAction.GenContainsJsonStatement(ActionType.Follow))
-                                ),
-                        } into ret select new {
-                            ret.Key.id,
-                            following = ret.Following,
-                            follower = ret.Follower
-                        })
-                        .OrderBy(OrderStr)
-                        .Skip(Start).Take(Size)
-                        .Select(e => e.id)
-                    )
-                    join users in __DBContext.SocialUsers on ids equals users.Id
-                    select users;
+                            );
             var TotalCount = await __DBContext.SocialUsers
                                 .CountAsync(e => (e.StatusStr != EntityStatus.StatusTypeToString(StatusType.Deleted))
                                     && (SearchTerm == default

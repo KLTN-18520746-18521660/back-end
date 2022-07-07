@@ -275,15 +275,6 @@ namespace CoreApi.Services
                         }
 
                         List<SocialNotification> notifications = new List<SocialNotification>();
-                        var userIds = post.OwnerNavigation.SocialUserActionWithUserUsers
-                            .Where(
-                                e => e.UserIdDes == post.Owner
-                                && EF.Functions.JsonContains(e.ActionsStr,
-                                    EntityAction.GenContainsJsonStatement(ActionType.Follow)
-                                )
-                            )
-                            .Select(e => e.UserId)
-                            .ToArray();
                         notifications.Add(new SocialNotification(){
                             Content             = dataToDB,
                             Owner               = post.Owner,
@@ -306,6 +297,7 @@ namespace CoreApi.Services
                 case NotificationSenderAction.NEW_POST:
                 using (var scope = __ServiceProvider.CreateScope())
                     {
+                        var __DBContext = scope.ServiceProvider.GetRequiredService<DBContext>();
                         var __SocialPostManagement = scope.ServiceProvider.GetRequiredService<SocialPostManagement>();
                         __SocialPostManagement.SetTraceId(modelData.TraceId);
                         var (post, error) = await __SocialPostManagement.FindPostById(modelData.PostId);
@@ -314,16 +306,53 @@ namespace CoreApi.Services
                         }
 
                         List<SocialNotification> notifications = new List<SocialNotification>();
-                        var userIds = post.OwnerNavigation.SocialUserActionWithUserUsers
+                        List<Guid> userIds = new List<Guid>();
+                        userIds.AddRange( // post.OwnerNavigation.SocialUserActionWithUserUserIdDesNavigations
+                            __DBContext.SocialUserActionWithUsers
                             .Where(
                                 e => e.UserIdDes == post.Owner
                                 && EF.Functions.JsonContains(e.ActionsStr,
                                     EntityAction.GenContainsJsonStatement(ActionType.Follow)
                                 )
+                                && e.User.StatusStr == EntityStatus.StatusTypeToString(StatusType.Activated)
                             )
                             .Select(e => e.UserId)
-                            .ToArray();
-                        foreach (var userId in userIds) {
+                            .ToArray());
+                        foreach (var it in post.SocialPostCategories) {
+                            userIds.AddRange( // it.Category
+                                __DBContext.SocialUserActionWithCategories
+                                .Where(
+                                    ca => ca.CategoryId == it.CategoryId
+                                    && ca.Category.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
+                                    && EF.Functions.JsonContains(ca.ActionsStr,
+                                        EntityAction.GenContainsJsonStatement(ActionType.Follow)
+                                    )
+                                    && ca.User.StatusStr == EntityStatus.StatusTypeToString(StatusType.Activated)
+                                )
+                                .Select(ca => ca.UserId)
+                                .ToArray()
+                            );
+                        }
+                        foreach (var it in post.SocialPostTags) {
+                            userIds.AddRange( // it.Tag
+                                __DBContext.SocialUserActionWithTags
+                                .Where(
+                                    ta => ta.TagId == it.TagId
+                                    && ta.Tag.StatusStr != EntityStatus.StatusTypeToString(StatusType.Disabled)
+                                    && EF.Functions.JsonContains(ta.ActionsStr,
+                                        EntityAction.GenContainsJsonStatement(ActionType.Follow)
+                                    )
+                                    && ta.User.StatusStr == EntityStatus.StatusTypeToString(StatusType.Activated)
+                                )
+                                .Select(ta => ta.UserId)
+                                .ToArray()
+                            );
+                        }
+                        var _userIds = userIds.Distinct().ToArray();
+                        foreach (var userId in _userIds) {
+                            if (userId == post.Owner) {
+                                continue;
+                            }
                             notifications.Add(new SocialNotification(){
                                 Content             = dataToDB,
                                 Owner               = userId,

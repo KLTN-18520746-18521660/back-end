@@ -16,7 +16,21 @@ namespace Common
 {
     public class Utils
     {
+        
         #region Common functions
+        public static string RemoveSign4VietnameseString(string str)
+        {
+            for (int i = 1; i < COMMON_DEFINE.VietnameseSigns.Length; i++)
+            {
+                for (int j = 0; j < COMMON_DEFINE.VietnameseSigns[i].Length; j++)
+                    str = str.Replace(COMMON_DEFINE.VietnameseSigns[i][j], COMMON_DEFINE.VietnameseSigns[0][i - 1]);
+            }
+            return str;
+        }
+        public static string PrepareSearchTerm(string RawSearchTerm)
+        {
+            return RemoveSign4VietnameseString(RawSearchTerm).ToLower().Trim();
+        }
         public static string CensorString(string Value)
         {
             return Value.Length > 3

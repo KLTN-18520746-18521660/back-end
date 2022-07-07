@@ -144,14 +144,14 @@ namespace CoreApi.Controllers.Social.Post
                     throw new Exception($"AddNewPost failed, ErrorCode: { Error }");
                 }
 
-                await __NotificationsManagement.SendNotification(
-                    NotificationType.ACTION_WITH_POST,
-                    new PostNotificationModel(NotificationSenderAction.NEW_POST,
-                                              Session.UserId,
-                                              default){
-                        PostId = Post.Id,
-                    }
-                );
+                // await __NotificationsManagement.SendNotification(
+                //     NotificationType.ACTION_WITH_POST,
+                //     new PostNotificationModel(NotificationSenderAction.NEW_POST,
+                //                               Session.UserId,
+                //                               default){
+                //         PostId = Post.Id,
+                //     }
+                // );
 
                 return Ok(201, RESPONSE_MESSAGES.OK, default, new JObject(){
                     { "post_id", Post.Id },

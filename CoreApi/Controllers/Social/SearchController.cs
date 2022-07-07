@@ -95,7 +95,7 @@ namespace CoreApi.Controllers.Social
                         default
                     );
                 if (ErrorGetUsers != ErrorCodes.NO_ERROR) {
-                    throw new Exception($"SearchPosts failed, ErrorCode: { ErrorGetPosts }");
+                    throw new Exception($"SearchUsers failed, ErrorCode: { ErrorGetUsers }");
                 }
 
                 var RetUsers = new List<JObject>();

@@ -185,7 +185,11 @@ namespace CoreApi.Services
                                                              Guid socialUserId = default,
                                                              bool isAdmin = false)
         {
-            search_term = search_term == default ? default : search_term.Trim().ToLower();
+            // search_term = search_term == default ? default : search_term.Trim().ToLower();
+            if (search_term != default) {
+                search_term = Utils.PrepareSearchTerm(search_term);
+            }
+
             var query =
                     from ids in (
                         (from tag in __DBContext.SocialTags
