@@ -39,7 +39,7 @@ namespace CoreApi.Services
                     Key = default;
                     break;
             }
-            SearchTerm = SearchTerm.Trim();
+            SearchTerm = (SearchTerm == default || SearchTerm.Trim() == string.Empty) ? default : SearchTerm.Trim();
             return
             (
                 await __DBContext.SocialUserAuditLogs
