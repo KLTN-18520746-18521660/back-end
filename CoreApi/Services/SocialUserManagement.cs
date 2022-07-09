@@ -212,7 +212,7 @@ namespace CoreApi.Services
                             || e.Email.ToLower().Contains(SearchTerm.Trim().ToLower())
                         )
                     )
-                    .OrderBy(e => e.CreatedTimestamp)
+                    .OrderByDescending(e => e.CreatedTimestamp)
                     .Skip(Start)
                     .Take(Size)
                     .ToListAsync(),

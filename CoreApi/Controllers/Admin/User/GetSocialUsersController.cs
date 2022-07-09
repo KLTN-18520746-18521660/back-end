@@ -71,8 +71,8 @@ namespace CoreApi.Controllers.Admin.User
                     obj.Add("id", e.Id);
                     obj.Add("roles", Utils.ObjectToJsonToken(e.Roles));
                     obj.Add("rights", Utils.ObjectToJsonToken(e.Rights));
-                    obj["created_timestamp"] = e.LastAccessTimestamp;
-                    obj["last_access_timestamp"] = e.CreatedTimestamp;
+                    obj["created_timestamp"] = e.CreatedTimestamp;
+                    obj["last_access_timestamp"] = e.LastAccessTimestamp;
                     RawRet.Add(obj);
                 });
                 var Ret = JsonConvert.DeserializeObject<JArray>(JsonConvert.SerializeObject(RawRet));
