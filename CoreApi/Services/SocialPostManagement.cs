@@ -333,7 +333,10 @@ namespace CoreApi.Services
             var statistics = new JObject(){
                 {
                     "pendings",
-                    await __DBContext.SocialPosts.CountAsync(p => p.StatusStr == EntityStatus.StatusTypeToString(StatusType.Pending))
+                    await __DBContext.SocialPosts.CountAsync(p =>
+                        p.StatusStr == EntityStatus.StatusTypeToString(StatusType.Pending)
+                        && (time == -1 || p.CreatedTimestamp >= compareDate)
+                    )
                 },
                 { "posts",      rs.Count() },
                 { "visited",    rs.Sum(e => e.visited) },

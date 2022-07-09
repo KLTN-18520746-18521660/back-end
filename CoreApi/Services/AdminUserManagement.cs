@@ -10,6 +10,7 @@ using DatabaseAccess.Context.Models;
 using DatabaseAccess.Context.ParserModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -62,12 +63,12 @@ namespace CoreApi.Services
             var rds = AdminUserRoleDetail.GetDefaultData();
             foreach (var r in rds) {
                 if (__DBContext.AdminUserRoleDetails.Count(e => 
-                        e.RightId == r.RightId && e.RoleId == e.RoleId
+                        e.RightId == r.RightId && e.RoleId == r.RoleId
                     ) == 0
                 ) {
                     __DBContext.AdminUserRoleDetails.Add(
                         new AdminUserRoleDetail(){
-                            RoleId = r.RoleId,
+                            RoleId  = r.RoleId,
                             RightId = r.RightId,
                             Actions = r.Actions
                         }
@@ -75,6 +76,33 @@ namespace CoreApi.Services
 
                     if (__DBContext.SaveChanges() <= 0) {
                         throw new Exception("UpdateDefaultAdminRole failed.");
+                    }
+                }
+            }
+        }
+
+        public void UpdateAdminRole()
+        {
+            var rigths = __DBContext.AdminUserRights.ToArray();
+            JObject DefaultActions = new JObject{
+                { "read",  true },
+                { "write", true }
+            };
+            foreach (var r in rigths) {
+                if (__DBContext.AdminUserRoleDetails.Count(e => 
+                        e.RightId == r.Id && e.RoleId == AdminUserRole.GetAdminRoleId()
+                    ) == 0
+                ) {
+                    __DBContext.AdminUserRoleDetails.Add(
+                        new AdminUserRoleDetail(){
+                            RoleId      = AdminUserRole.GetAdminRoleId(),
+                            RightId     = r.Id,
+                            ActionsStr  = DefaultActions.ToString(Formatting.None)
+                        }
+                    );
+
+                    if (__DBContext.SaveChanges() <= 0) {
+                        throw new Exception("UpdateAdminRole failed.");
                     }
                 }
             }
@@ -798,6 +826,7 @@ namespace CoreApi.Services
 
             if (await __DBContext.SaveChangesAsync() > 0) {
                 #region [AMDIN] Write admin audit log
+                UpdateAdminRole();
                 var __AdminAuditLogManagement = __ServiceProvider.GetService<AdminAuditLogManagement>();
                 await __AdminAuditLogManagement.AddNewAuditLog(
                     Right.GetModelName(),

@@ -124,9 +124,12 @@ namespace CoreApi.Services
                     Error = IsNeedChangePassword(Session.User);
                     if (Session.User.LastAccessTimestamp != Session.LastInteractionTime) {
                         Session.User.LastAccessTimestamp = Session.LastInteractionTime;
-                        if (await __DBContext.SaveChangesAsync() > 0) {
-                            return (Session, Error);
+                        try {
+                            await __DBContext.SaveChangesAsync();
+                        } catch (Exception) {
+                            // In multi-thread maybe sessions is clear so much time so not necessary check here
                         }
+                        return (Session, Error);
                     }
                 }
             } else if (Error == ErrorCodes.NOT_FOUND) {

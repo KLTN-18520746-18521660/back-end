@@ -104,7 +104,7 @@ namespace CoreApi.Controllers.Admin.Config
                 #region Check Permission
                 var Error = __AdminUserManagement.HaveFullPermission(Session.User.Rights, ADMIN_RIGHTS.CONFIG);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    return Problem(404, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "modify config key" });
+                    return Problem(403, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "modify config key" });
                 }
                 #endregion
 

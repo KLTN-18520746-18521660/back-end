@@ -67,7 +67,8 @@ namespace CoreApi.Controllers.Admin.Tag
                 var IsHaveReadPermission = true;
                 var Error = __AdminUserManagement.HaveFullPermission(Session.User.Rights, ADMIN_RIGHTS.TAG);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    IsHaveReadPermission = false;
+                    // IsHaveReadPermission = false;
+                    return Problem(403, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "create tag" });
                 }
                 AddLogParam("have_read_permission", IsHaveReadPermission);
                 #endregion

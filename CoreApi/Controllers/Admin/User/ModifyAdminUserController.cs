@@ -56,7 +56,7 @@ namespace CoreApi.Controllers.Admin.User
 
                 #region Validate params
                 if (Session.UserId == __Id) {
-                    if (__ModelData.status != default) {
+                    if (__ModelData.status != default && __ModelData.status.ToLower() != Session.User.StatusStr.ToLower()) {
                         return Problem(400, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "modify owner status" });
                     }
                 }
@@ -89,7 +89,7 @@ namespace CoreApi.Controllers.Admin.User
                 }
                 #endregion
 
-                if (FindUser.UserName == AdminUser.GetAdminUserName() || FindUser.Id == Session.UserId) {
+                if (FindUser.UserName == AdminUser.GetAdminUserName()) {
                     return Problem(400, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "modify user" });
                 }
 

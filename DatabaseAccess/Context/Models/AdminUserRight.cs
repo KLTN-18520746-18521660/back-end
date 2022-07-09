@@ -90,14 +90,14 @@ namespace DatabaseAccess.Context.Models
         {
             List<AdminUserRight> ListData = new List<AdminUserRight>()
             {
-                new AdminUserRight()
-                {
-                    Id = 1,
-                    RightName = "dashboard",
-                    DisplayName = "Dashboard",
-                    Describe = "Can access Homepage and see statistic.",
-                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
-                },
+                // new AdminUserRight()
+                // {
+                //     Id = 1,
+                //     RightName = "dashboard",
+                //     DisplayName = "Dashboard",
+                //     Describe = "Can access Homepage and see statistic.",
+                //     Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
+                // },
                 new AdminUserRight()
                 {
                     Id = 2,
@@ -106,14 +106,14 @@ namespace DatabaseAccess.Context.Models
                     Describe = "Add, create, disable category.",
                     Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
                 },
-                new AdminUserRight()
-                {
-                    Id = 3,
-                    RightName = "topic",
-                    DisplayName = "Topic",
-                    Describe = "Add, create, disable topics",
-                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
-                },
+                // new AdminUserRight()
+                // {
+                //     Id = 3,
+                //     RightName = "topic",
+                //     DisplayName = "Topic",
+                //     Describe = "Add, create, disable topics",
+                //     Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
+                // },
                 new AdminUserRight()
                 {
                     Id = 4,
@@ -130,22 +130,22 @@ namespace DatabaseAccess.Context.Models
                     Describe = "Review, accept, reject post. See report about post.",
                     Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
                 },
-                new AdminUserRight()
-                {
-                    Id = 6,
-                    RightName = "comment",
-                    DisplayName = "Comment",
-                    Describe = "Delete comment. See report about comment.",
-                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
-                },
-                new AdminUserRight()
-                {
-                    Id = 7,
-                    RightName = "security",
-                    DisplayName = "Security",
-                    Describe = "Configure security of Server.",
-                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
-                },
+                // new AdminUserRight()
+                // {
+                //     Id = 6,
+                //     RightName = "comment",
+                //     DisplayName = "Comment",
+                //     Describe = "Delete comment. See report about comment.",
+                //     Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
+                // },
+                // new AdminUserRight()
+                // {
+                //     Id = 7,
+                //     RightName = "security",
+                //     DisplayName = "Security",
+                //     Describe = "Configure security of Server.",
+                //     Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
+                // },
                 new AdminUserRight()
                 {
                     Id = 8,
@@ -162,14 +162,14 @@ namespace DatabaseAccess.Context.Models
                     Describe = "Add, block, unblock, delete AdminUser.",
                     Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
                 },
-                new AdminUserRight()
-                {
-                    Id = 10,
-                    RightName = "log",
-                    DisplayName = "Log",
-                    Describe = "See and tracking log file.",
-                    Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
-                },
+                // new AdminUserRight()
+                // {
+                //     Id = 10,
+                //     RightName = "log",
+                //     DisplayName = "Log",
+                //     Describe = "See and tracking log file.",
+                //     Status = new EntityStatus(EntityStatusType.AdminUserRight, StatusType.Enabled),
+                // },
                 new AdminUserRight()
                 {
                     Id = 11,

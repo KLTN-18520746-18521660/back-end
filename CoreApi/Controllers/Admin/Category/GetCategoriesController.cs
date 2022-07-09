@@ -59,7 +59,8 @@ namespace CoreApi.Controllers.Admin.Category
                 var IsHaveReadPermission = true;
                 var Error = __AdminUserManagement.HaveReadPermission(Session.User.Rights, ADMIN_RIGHTS.CATEGORY);
                 if (Error == ErrorCodes.USER_DOES_NOT_HAVE_PERMISSION) {
-                    IsHaveReadPermission = false;
+                    return Problem(403, RESPONSE_MESSAGES.NOT_ALLOW_TO_DO, new string[]{ "get categories" });
+                    // IsHaveReadPermission = false;
                 }
                 AddLogParam("have_read_permission", IsHaveReadPermission);
                 #endregion
