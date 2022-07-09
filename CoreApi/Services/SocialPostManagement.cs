@@ -1019,10 +1019,10 @@ namespace CoreApi.Services
                             + (ret.Key.Views * ViewsFactor)
                             + (ret.Likes * LikesFactor)
                             + (ret.Comments * CommentsFactor)
-                            + (ret.Key.MatchTags ? 0 : TagsFactor)
-                            + (ret.Key.MatchCategories ? 0 : CategoriesFactor)
+                            + (ret.Key.MatchTags ? TagsFactor : 0)
+                            + (ret.Key.MatchCategories ? CategoriesFactor : 0)
                             + (ret.Key.CommonWordsRank * CommonWordsRankFactor)
-                            + (ret.Key.MatchCommonWords ? 0 : CommonWordsFactor),
+                            + (ret.Key.MatchCommonWords ? CommonWordsFactor : 0),
                         created_timestamp = ret.Key.CreatedTimestamp,
                     })
                     .OrderBy("sort_factor desc, created_timestamp desc")
@@ -1146,10 +1146,10 @@ namespace CoreApi.Services
                             + (ret.Key.Views * ViewsFactor)
                             + (ret.Likes * LikesFactor)
                             + (ret.Comments * CommentsFactor)
-                            + (ret.Key.MatchTags ? 0 : TagsFactor)
-                            + (ret.Key.MatchCategories ? 0 : CategoriesFactor)
+                            + (ret.Key.MatchTags ? TagsFactor : 0)
+                            + (ret.Key.MatchCategories ? CategoriesFactor : 0)
                             + (ret.Key.CommonWordsRank * CommonWordsRankFactor)
-                            + (ret.Key.MatchCommonWords ? 0 : CommonWordsFactor),
+                            + (ret.Key.MatchCommonWords ? CommonWordsFactor : 0),
                         created_timestamp = ret.Key.CreatedTimestamp,
                     })
                     .OrderBy("sort_factor desc, created_timestamp desc")
